@@ -1,0 +1,26 @@
+[
+  {
+    "id": "phanh",
+    "name": "Hệ thống phanh"
+  },
+  {
+    "id": "loc",
+    "name": "Lọc"
+  },
+  {
+    "id": "dau-nhot",
+    "name": "Dầu nhớt"
+  },
+  {
+    "id": "dong-co",
+    "name": "Động cơ"
+  },
+  {
+    "id": "treo",
+    "name": "Hệ thống treo"
+  },
+  {
+    "id": "dien",
+    "name": "Điện và đèn"
+  }
+]

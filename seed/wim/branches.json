@@ -1,0 +1,20 @@
+[
+  {
+    "id": "hn",
+    "name": "Chi nhánh Hà Nội",
+    "address": "12 Phố Huế, Hai Bà Trưng, Hà Nội",
+    "phone": "0243 000 0001"
+  },
+  {
+    "id": "hcm",
+    "name": "Chi nhánh TP.HCM",
+    "address": "45 Nguyễn Thị Minh Khai, Quận 1, TP.HCM",
+    "phone": "0283 000 0002"
+  },
+  {
+    "id": "dn",
+    "name": "Chi nhánh Đà Nẵng",
+    "address": "88 Nguyễn Văn Linh, Hải Châu, Đà Nẵng",
+    "phone": "0236 000 0003"
+  }
+]

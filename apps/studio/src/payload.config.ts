@@ -4,7 +4,7 @@ import { vi } from '@payloadcms/translations/languages/vi'
 import { en } from '@payloadcms/translations/languages/en'
 import fs from 'fs'
 import path from 'path'
-import { buildConfig } from 'payload'
+import { buildConfig, type Config } from 'payload'
 import { fileURLToPath } from 'url'
 
 import hosso from '@hosso-config'
@@ -24,7 +24,7 @@ if (!isPostgres && databaseUrl.startsWith('file:')) {
   fs.mkdirSync(path.dirname(databaseUrl.slice('file:'.length)), { recursive: true })
 }
 
-export default buildConfig({
+const base: Config = {
   secret: process.env.HOSSO_SECRET || '',
   serverURL: process.env.HOSSO_PUBLIC_URL || undefined,
   admin: {
@@ -49,4 +49,7 @@ export default buildConfig({
   onInit: async (payload) => {
     if (process.env.HOSSO_SEED !== 'false') await seedIfEmpty(payload)
   },
-})
+}
+
+// Plugin khai báo trong hosso.config.ts thêm collection/global/endpoint của chúng.
+export default buildConfig(hosso.plugins.reduce((config, plugin) => plugin.payload?.(config) ?? config, base))

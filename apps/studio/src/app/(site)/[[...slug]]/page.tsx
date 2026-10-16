@@ -7,13 +7,13 @@ import { notFound } from 'next/navigation'
 import { getPayload } from 'payload'
 import React from 'react'
 
-import { loadSite, renderConfig } from '@/lib/site'
+import { attachBlockData, loadSite, renderConfig } from '@/lib/site'
 
 export const dynamic = 'force-dynamic'
 
 type Args = {
   params: Promise<{ slug?: string[] }>
-  searchParams: Promise<{ preview?: string }>
+  searchParams: Promise<{ preview?: string; [k: string]: string | string[] | undefined }>
 }
 
 async function getPage(slug?: string[], preview?: string) {
@@ -32,15 +32,18 @@ async function getPage(slug?: string[], preview?: string) {
 }
 
 export async function generateMetadata({ params, searchParams }: Args): Promise<Metadata> {
-  const page = await getPage((await params).slug, (await searchParams).preview)
+  const page = await getPage((await params).slug, (await searchParams).preview as string | undefined)
   return page ? { title: page.title, description: page.description ?? undefined } : {}
 }
 
 export default async function Page({ params, searchParams }: Args) {
-  const page = await getPage((await params).slug, (await searchParams).preview)
+  const page = await getPage((await params).slug, (await searchParams).preview as string | undefined)
   if (!page) notFound()
   const { theme } = await loadSite()
   const puckConfig = renderConfig(theme)
-  const data = stripUnknown((page.content ?? { content: [] }) as unknown as PageData, puckConfig)
+  const data = await attachBlockData(
+    stripUnknown((page.content ?? { content: [] }) as unknown as PageData, puckConfig),
+    await searchParams,
+  )
   return <Render config={puckConfig as any} data={data as any} />
 }

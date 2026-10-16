@@ -1,6 +1,7 @@
 import config from '@payload-config'
 import hosso from '@hosso-config'
 import { FONTS, buildPuckConfig, coreBlocks, type BlockSchema, type FontId, type Theme } from '@hosso/studio-blocks'
+import { cookies as nextCookies } from 'next/headers'
 import { getPayload } from 'payload'
 
 export const allBlocks = (): BlockSchema<any>[] => [...coreBlocks, ...hosso.plugins.flatMap((p) => p.blocks ?? [])]
@@ -27,10 +28,35 @@ export async function loadSite(): Promise<{ theme: Theme; css: string; siteName?
     `--hs-radius:${ov.radius || base.radius}`,
     `--hs-space:${ov.spacing || base.spacing}`,
   ]
-  return { theme, css: `:root{${vars.join(';')}}${theme.css}`, siteName: settings.siteName ?? undefined }
+  return { theme, css: `:root{${vars.join(';')}}${theme.css}${hosso.plugins.map((p) => p.css ?? '').join('')}`, siteName: settings.siteName ?? undefined }
 }
 
 export const renderConfig = (theme: Theme) =>
   buildPuckConfig({ schemas: allBlocks(), theme, plugins: hosso.plugins, mode: 'render' })
 
 export { FONTS }
+
+const loaderFor = (type: string) => hosso.plugins.find((p) => p.loaders?.[type])?.loaders?.[type]
+
+/** Chạy loader của plugin cho từng block; lỗi của một block không làm sập trang (block tự báo lỗi). */
+export async function attachBlockData<T extends { content: { type: string; props: Record<string, any> }[] }>(
+  data: T,
+  searchParams: Record<string, string | string[] | undefined>,
+): Promise<T> {
+  if (!data.content.some((c) => loaderFor(c.type))) return data
+  const payload = await getPayload({ config })
+  const cookies = Object.fromEntries((await nextCookies()).getAll().map((c) => [c.name, c.value]))
+  const content = await Promise.all(
+    data.content.map(async (item) => {
+      const load = loaderFor(item.type)
+      if (!load) return item
+      try {
+        return { ...item, props: { ...item.props, data: await load(item.props, { payload, searchParams, cookies }) } }
+      } catch (e) {
+        console.error(`[hosso] loader ${item.type} lỗi:`, e)
+        return { ...item, props: { ...item.props, data: { status: 'error', kind: 'internal' } } }
+      }
+    }),
+  )
+  return { ...data, content }
+}

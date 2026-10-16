@@ -93,9 +93,11 @@ export interface Config {
   fallbackLocale: null;
   globals: {
     'site-settings': SiteSetting;
+    'wim-settings': WimSetting;
   };
   globalsSelect: {
     'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
+    'wim-settings': WimSettingsSelect<false> | WimSettingsSelect<true>;
   };
   locale: null;
   widgets: {
@@ -489,6 +491,42 @@ export interface SiteSetting {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "wim-settings".
+ */
+export interface WimSetting {
+  id: number;
+  /**
+   * Ví dụ http://localhost:4010. Biến môi trường HOSSO_WIM_API_URL (nếu có) được ưu tiên.
+   */
+  apiUrl?: string | null;
+  /**
+   * Biến môi trường HOSSO_WIM_API_KEY (nếu có) được ưu tiên. Lưu dạng mã hóa; để nguyên ô che để giữ giá trị hiện có.
+   */
+  apiKey?: string | null;
+  /**
+   * Dùng để kiểm tra chữ ký webhook; tùy chọn. Biến HOSSO_WIM_WEBHOOK_SECRET được ưu tiên. Lưu dạng mã hóa; để nguyên ô che để giữ giá trị hiện có.
+   */
+  webhookSecret?: string | null;
+  timeoutMs?: number | null;
+  /**
+   * Site luôn đúng chỉ với TTL này; webhook chỉ làm mới nhanh hơn.
+   */
+  cacheTtl?: number | null;
+  /**
+   * Đặt tên hiển thị riêng cho danh mục của WIM (để trống thì dùng tên của WIM).
+   */
+  categoryMap?:
+    | {
+        wimCategoryId: string;
+        label: string;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site-settings_select".
  */
 export interface SiteSettingsSelect<T extends boolean = true> {
@@ -523,6 +561,27 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         fontHeading?: T;
         radius?: T;
         spacing?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "wim-settings_select".
+ */
+export interface WimSettingsSelect<T extends boolean = true> {
+  apiUrl?: T;
+  apiKey?: T;
+  webhookSecret?: T;
+  timeoutMs?: T;
+  cacheTtl?: T;
+  categoryMap?:
+    | T
+    | {
+        wimCategoryId?: T;
+        label?: T;
+        id?: T;
       };
   updatedAt?: T;
   createdAt?: T;
