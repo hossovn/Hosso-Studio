@@ -20,7 +20,7 @@ Ngày chạy: 16–17/10/2026, Windows 11, Node 22.15.1, pnpm 10.34.6. Phiên b�
 | 12 | Cache TTL ngắn khi không webhook; webhook làm mới nhanh; webhook sai chữ ký/lệch timestamp bị từ chối | **Đạt** | TTL 4s: đổi giá trong mock → trang đổi sau TTL; webhook đúng chữ ký → đổi ngay (`refreshed`); `--bad-signature` → 401 `bad_signature`; `--old-timestamp` → 401 `stale_timestamp` |
 | 13 | Mock lỗi/chậm thì site vẫn hiện nội dung Studio và báo lỗi hợp lý | **Đạt** | `chaos error`/`slow`/tắt hẳn mock: trang 200, hero còn, khối bán hàng hiện câu báo lỗi tiếng Việt; chi tiết dùng bản cache cũ khi WIM chết |
 | 14 | Khóa API và bí mật webhook mã hóa khi lưu, không xuất hiện ở trình duyệt, gói export không chứa | **Đạt** | DB: `api_key = enc:v1:…`; API trả `••••••••`; quét `.next/static` (dev và production), HTML trang công khai và trang editor: 0 kết quả; gói zip không có `mock-wim-key`, `mock-webhook-secret`, `enc:v1` |
-| 15 | Export từ máy này, import vào cài đặt sạch bằng Docker + Postgres (env) thì site chạy giống bản gốc | **Một phần** | Đạt trên Postgres thật (embedded), production build, cấu hình hoàn toàn bằng env, DB/khóa/thư mục media mới: import 7 trang + 1 media, site và luồng đặt đơn chạy (16/16). **Chưa chạy trong Docker** vì Docker Desktop không khởi động được engine trong phiên này (xem 2) |
+| 15 | Export từ máy này, import vào cài đặt sạch bằng Docker + Postgres (env) thì site chạy giống bản gốc | **Đạt** | `docker compose up --build` (Postgres 17 + image Node 24): healthy, migration tự chạy; `studio-tools` nhập `seed/sites/phu-tung-o-to.hosso-site.zip` → 7 trang + media; trang chủ, `/san-pham` (12 sản phẩm từ mock qua `host.docker.internal`, cấu hình WIM hoàn toàn bằng env), media 200, đặt đơn `WO-000003` rồi gửi lại cùng giỏ ra cùng đơn, webhook sai chữ ký 401. Trước đó cũng đạt trên Postgres + production build ngoài Docker |
 | 16 | Health check, migration chạy được | **Đạt** | `GET /api/health` → `{"status":"ok","db":"up"}`; `payload migrate` chạy trên Postgres trống (16 bảng) |
 | 17 | Lighthouse di động ≥ 90 trang chủ và trang sản phẩm; font dấu tiếng Việt; giá VND | **Đạt** | Lighthouse 13.5.0 (headless Chrome, giả lập di động) trên production build: theme "Sáng & Sạch" trang chủ 97 / chi tiết 97 / danh sách 97; theme "Kỹ thuật tối" trang chủ 96 / chi tiết 96. Accessibility 100, SEO 100. Giá `858.000 ₫`; font Be Vietnam Pro/Barlow có subset vietnamese |
 | 18 | LICENSE (Apache-2.0 nguyên văn), NOTICE, TRADEMARK.md (nháp), CONTRIBUTING.md ở gốc | **Đạt** | `LICENSE` khớp bản chính thức (chỉ khác một dòng trống đầu file), các file khác có đủ |
@@ -29,13 +29,13 @@ Ngày chạy: 16–17/10/2026, Windows 11, Node 22.15.1, pnpm 10.34.6. Phiên b�
 
 ## 2. Chưa chạy được / giới hạn
 
-- **Docker chưa chạy.** Docker Desktop 4.55 trên máy này tự thoát khi khởi động engine (log báo hộp thoại lỗi, cần thao tác tay). Đã kiểm: `docker compose config` hợp lệ, `next build` production, `payload migrate` trên Postgres 17 thật, chạy `next start` với Postgres + env. Chưa kiểm: `docker build` và `docker compose up`. Việc cần làm sáng mai: `docker compose up --build` và báo lỗi nếu có.
+- ~~Docker chưa chạy~~ → đã chạy thật ngày 17/10 (xem dòng 15). Còn lại: chưa thử trên máy khác; thông báo Corepack tải pnpm khi chạy `studio-tools`.
 - **Logo và wordmark.** Ảnh bạn gửi trong chat không có file trên đĩa nên tôi dựng lại bằng SVG (`apps/studio/public/brand/mark.svg` chữ H đỏ, `wordmark.svg` chữ HOSSO bằng font Impact/Anton dự phòng). Hãy thả file gốc thay vào hai tên này. Theo yêu cầu: logo admin là wordmark, favicon là wordmark, biểu tượng nhỏ là chữ H.
 - Kéo thả kiểm bằng sự kiện giả lập; sự kiện giả lập thả đôi mỗi block nên đã xóa bản trùng. Chuột thật cần thử.
 - Admin Payload hiện ngôn ngữ theo trình duyệt (đã bật `vi`); trình duyệt tiếng Anh thấy nhãn mặc định tiếng Anh.
 - Editor chưa có chọn ảnh từ Media, tạo trang mới trong editor, tự lưu, khóa chống ghi đè (xem `docs/GATE2-REPORT.md`).
 - Chưa giới hạn tần suất cho form liên hệ và checkout.
-- Instance thứ hai chạy trên cùng máy (cổng 3100, Postgres khác, thư mục media khác), chưa ở máy khác.
+- Instance thứ hai (Docker + Postgres) chạy trên cùng máy với bản gốc, chưa ở máy khác.
 
 ## 3. Quyết định tự chọn
 
