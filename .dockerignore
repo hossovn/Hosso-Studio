@@ -1,0 +1,10 @@
+.git
+.tmp
+.env
+**/.env
+**/node_modules
+**/.next
+**/dist
+apps/studio/data
+apps/studio/media
+*.zip

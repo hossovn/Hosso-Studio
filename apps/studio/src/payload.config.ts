@@ -13,7 +13,7 @@ import { Media } from './collections/Media'
 import { Pages } from './collections/Pages'
 import { SiteSettings } from './globals/SiteSettings'
 import { Users } from './collections/Users'
-import { seedIfEmpty } from './lib/seed'
+import { ensureAdmin, seedIfEmpty } from './lib/seed'
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 const databaseUrl = process.env.HOSSO_DATABASE_URL || 'file:./data/studio.db'
@@ -44,9 +44,25 @@ const base: Config = {
   globals: [SiteSettings],
   typescript: { outputFile: path.resolve(dirname, 'payload-types.ts') },
   db: isPostgres
-    ? postgresAdapter({ pool: { connectionString: databaseUrl } })
+    ? postgresAdapter({ pool: { connectionString: databaseUrl }, migrationDir: path.resolve(dirname, 'migrations') })
     : sqliteAdapter({ client: { url: databaseUrl } }),
+  // Health check cho Docker/dịch vụ deploy: GET /api/health
+  endpoints: [
+    {
+      path: '/health',
+      method: 'get',
+      handler: async (req) => {
+        try {
+          await req.payload.count({ collection: 'users' })
+          return Response.json({ status: 'ok', db: 'up' })
+        } catch {
+          return Response.json({ status: 'error', db: 'down' }, { status: 503 })
+        }
+      },
+    },
+  ],
   onInit: async (payload) => {
+    await ensureAdmin(payload)
     if (process.env.HOSSO_SEED !== 'false') await seedIfEmpty(payload)
   },
 }

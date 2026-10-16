@@ -18,4 +18,4 @@ Lần chạy đầu tự tạo `apps/studio/.env` (khóa ngẫu nhiên, tài kho
 
 Biến môi trường: xem `.env.example`. Cấu hình thương hiệu, theme, plugin: `apps/studio/hosso.config.ts`.
 
-Kế hoạch và tiến độ: `docs/PLAN.md`. Giấy phép thư viện: `docs/LICENSES.md`.
+Tài liệu: `docs/INSTALL.md` (cài đặt, WIM, Docker, export/import), `docs/ARCHITECTURE.md`, `docs/PLAN.md` (kế hoạch), `docs/GATE2-REPORT.md` (Puck + Payload), `docs/LICENSES.md`, `docs/ACCEPTANCE.md` (nghiệm thu).

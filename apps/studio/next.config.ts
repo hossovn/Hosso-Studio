@@ -24,4 +24,20 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default withPayload(nextConfig, { devBundleServerPackages: false })
+const config = withPayload(nextConfig, { devBundleServerPackages: false })
+
+// Payload gắn Critical-CH (dò theme sáng/tối) cho MỌI đường dẫn, làm trình duyệt gửi lại yêu cầu trang công khai
+// (tốn ~600ms trên di động). Chỉ giữ cho trang quản trị.
+const CH = new Set(['Accept-CH', 'Critical-CH', 'Vary'])
+const payloadHeaders = config.headers!
+config.headers = async () =>
+  (await payloadHeaders()).flatMap((rule) =>
+    rule.source === '/:path*'
+      ? [
+          { source: '/admin/:path*', headers: rule.headers.filter((h) => CH.has(h.key)) },
+          { source: rule.source, headers: rule.headers.filter((h) => !CH.has(h.key)) },
+        ]
+      : [rule],
+  )
+
+export default config

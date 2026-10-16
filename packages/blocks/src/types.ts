@@ -86,6 +86,8 @@ export type HossoPlugin = {
   css?: string
   /** Thêm collection, global, endpoint vào Payload (chỉ chạy lúc dựng cấu hình Payload). */
   payload?: (config: Config) => Config
+  /** Global của plugin được đưa vào gói export/import; `secretFields` không bao giờ vào gói. */
+  portable?: { globals: { slug: string; secretFields: string[] }[] }
   /** Lấy dữ liệu server cho block: kết quả được truyền vào renderer qua prop `data`. */
   loaders?: Record<string, BlockLoader>
 }
