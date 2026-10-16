@@ -1,12 +1,12 @@
-import { SiteNav, t, type BlockRenderer, type SiteChrome, type Theme, type ThemeManifest } from '@hosso/studio-blocks'
+import { SiteNav, VideoEmbed, t, type BlockRenderer, type SiteChrome, type Theme, type ThemeManifest } from '@hosso/studio-blocks'
 import type React from 'react'
 import manifest from '../theme.json'
 import { css } from './styles'
 
 // Bố cục khác hẳn theme sáng: hero nền lưới, tính năng dạng bảng đánh số, văn bản hai cột, form chia đôi.
 
-const Hero: BlockRenderer = ({ title, subtitle, ctaLabel, ctaHref }) => (
-  <section className="ha-hero">
+const Hero: BlockRenderer = ({ title, subtitle, ctaLabel, ctaHref, image }) => (
+  <section className="ha-hero" style={image ? { backgroundImage: `linear-gradient(rgba(11,15,20,.8), rgba(11,15,20,.8)), url("${image}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
     <div className="ha-wrap">
       <p className="ha-eyebrow">{t('hero.eyebrow')}</p>
       <h1>{title}</h1>
@@ -44,6 +44,15 @@ const Image: BlockRenderer = ({ src, alt, caption }) =>
       <img src={src} alt={alt ?? ''} loading="lazy" />
       {caption && <figcaption className="ha-wrap">{caption}</figcaption>}
     </figure>
+  ) : null
+
+const Video: BlockRenderer = ({ url, title, caption }) =>
+  url ? (
+    <section className="ha-section">
+      <div className="ha-wrap">
+        <VideoEmbed url={url} title={title} caption={caption} cls="ha" />
+      </div>
+    </section>
   ) : null
 
 const Features: BlockRenderer = ({ heading, items }) => (
@@ -120,6 +129,13 @@ const Header = ({ chrome, actions }: { chrome: SiteChrome; actions?: React.React
         {chrome.logoUrl ? <img src={chrome.logoUrl} alt={chrome.siteName} height={36} /> : chrome.siteName}
       </a>
       <SiteNav items={chrome.headerMenu} cls="ha-nav" />
+      {chrome.search && (
+        <form className="ha-search" action="/tim-kiem" role="search">
+          <label className="ha-sr" htmlFor="ha-q">{t('search.label')}</label>
+          <input id="ha-q" name="q" type="search" placeholder={t('search.placeholder')} />
+        </form>
+      )}
+      
       {actions && <div className="ha-header-actions">{actions}</div>}
     </div>
   </header>
@@ -187,7 +203,7 @@ const Footer = ({ chrome }: { chrome: SiteChrome }) => {
 export const theme: Theme = {
   manifest: manifest as ThemeManifest,
   css,
-  renderers: { Hero, Text, Image, Features, ContactForm, Footer: FooterBlock },
+  renderers: { Hero, Text, Image, Video, Features, ContactForm, Footer: FooterBlock },
   layout: { Header, Footer },
 }
 

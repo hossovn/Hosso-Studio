@@ -73,4 +73,7 @@ export const css = `
 .ha-sitefooter small{display:block;margin-top:1.5rem;color:var(--hs-muted);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem}
 .ha-float{position:fixed;right:1rem;bottom:1rem;display:grid;gap:.5rem;z-index:30}
 .ha-float a{background:var(--hs-primary);color:var(--hs-on-primary)!important;padding:.65rem 1.1rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:.8rem;text-decoration:none;border-radius:var(--hs-radius)}
+.ha-video{margin:0}.ha-video-frame{position:relative;aspect-ratio:16/9;background:#000;border-radius:var(--hs-radius);overflow:hidden}.ha-video-frame iframe,.ha-video-frame video{position:absolute;inset:0;width:100%;height:100%;border:0}.ha-video figcaption{color:var(--hs-muted);font-size:.9rem;margin-top:.5rem}
+.ha-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.ha-search{order:3;flex:1 1 100%}.ha-search input{width:100%;font:inherit;padding:.5rem .8rem;border:1px solid var(--hs-border);border-radius:var(--hs-radius);background:var(--hs-bg);color:var(--hs-text)}
+@media(min-width:56rem){.ha-search{order:0;flex:0 1 16rem;margin-left:1rem}.ha-nav{margin-left:0}.ha-header-actions{margin-left:auto}}
 `

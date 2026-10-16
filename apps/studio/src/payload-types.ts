@@ -68,6 +68,7 @@ export interface Config {
   blocks: {};
   collections: {
     pages: Page;
+    posts: Post;
     media: Media;
     'contact-messages': ContactMessage;
     users: User;
@@ -79,6 +80,7 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     pages: PagesSelect<false> | PagesSelect<true>;
+    posts: PostsSelect<false> | PostsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     'contact-messages': ContactMessagesSelect<false> | ContactMessagesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
@@ -139,6 +141,17 @@ export interface Page {
    */
   slug: string;
   description?: string | null;
+  /**
+   * Để trống thì dùng tiêu đề và mô tả của trang.
+   */
+  seo?: {
+    /**
+     * Nên dưới 60 ký tự.
+     */
+    title?: string | null;
+    image?: (number | null) | Media;
+    noindex?: boolean | null;
+  };
   content?:
     | {
         [k: string]: unknown;
@@ -170,6 +183,44 @@ export interface Media {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "posts".
+ */
+export interface Post {
+  id: number;
+  title: string;
+  slug: string;
+  /**
+   * Hiện ở danh sách bài viết và làm mô tả SEO.
+   */
+  excerpt?: string | null;
+  cover?: (number | null) | Media;
+  publishedAt?: string | null;
+  content?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Để trống thì dùng tiêu đề và mô tả của trang.
+   */
+  seo?: {
+    /**
+     * Nên dưới 60 ký tự.
+     */
+    title?: string | null;
+    image?: (number | null) | Media;
+    noindex?: boolean | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -239,6 +290,10 @@ export interface PayloadLockedDocument {
         value: number | Page;
       } | null)
     | ({
+        relationTo: 'posts';
+        value: number | Post;
+      } | null)
+    | ({
         relationTo: 'media';
         value: number | Media;
       } | null)
@@ -300,7 +355,36 @@ export interface PagesSelect<T extends boolean = true> {
   title?: T;
   slug?: T;
   description?: T;
+  seo?:
+    | T
+    | {
+        title?: T;
+        image?: T;
+        noindex?: T;
+      };
   content?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "posts_select".
+ */
+export interface PostsSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  excerpt?: T;
+  cover?: T;
+  publishedAt?: T;
+  content?: T;
+  seo?:
+    | T
+    | {
+        title?: T;
+        image?: T;
+        noindex?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
@@ -407,6 +491,7 @@ export interface SiteSetting {
   siteName?: string | null;
   logo?: (number | null) | Media;
   favicon?: (number | null) | Media;
+  showSearch?: boolean | null;
   /**
    * Một dòng ngắn ở đầu site, ví dụ "Ship COD toàn quốc". Để trống để ẩn.
    */
@@ -458,7 +543,7 @@ export interface SiteSetting {
         id?: string | null;
       }[]
     | null;
-  theme: 'default' | 'alt';
+  theme: 'default' | 'alt' | 'shop';
   tokens_default?: {
     /**
      * Mặc định: #ffffff
@@ -539,6 +624,58 @@ export interface SiteSetting {
     radius?: string | null;
     spacing?: string | null;
   };
+  tokens_shop?: {
+    /**
+     * Mặc định: #ffffff
+     */
+    color_bg?: string | null;
+    /**
+     * Mặc định: #f3f4f6
+     */
+    color_surface?: string | null;
+    /**
+     * Mặc định: #111827
+     */
+    color_text?: string | null;
+    /**
+     * Mặc định: #4b5563
+     */
+    color_muted?: string | null;
+    /**
+     * Mặc định: #b45309
+     */
+    color_primary?: string | null;
+    /**
+     * Mặc định: #ffffff
+     */
+    color_onPrimary?: string | null;
+    /**
+     * Mặc định: #e5e7eb
+     */
+    color_border?: string | null;
+    /**
+     * Mặc định: #f59e0b
+     */
+    color_accent?: string | null;
+    /**
+     * Mặc định: #111827
+     */
+    color_onAccent?: string | null;
+    /**
+     * Mặc định: #111827
+     */
+    color_dark?: string | null;
+    /**
+     * Mặc định: Be Vietnam Pro
+     */
+    fontBody?: ('be-vietnam-pro' | 'barlow' | 'jetbrains-mono') | null;
+    /**
+     * Mặc định: Be Vietnam Pro
+     */
+    fontHeading?: ('be-vietnam-pro' | 'barlow' | 'jetbrains-mono') | null;
+    radius?: string | null;
+    spacing?: string | null;
+  };
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -586,6 +723,7 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   siteName?: T;
   logo?: T;
   favicon?: T;
+  showSearch?: T;
   announcement?: T;
   headerMenu?:
     | T
@@ -650,6 +788,24 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         color_primary?: T;
         color_onPrimary?: T;
         color_border?: T;
+        fontBody?: T;
+        fontHeading?: T;
+        radius?: T;
+        spacing?: T;
+      };
+  tokens_shop?:
+    | T
+    | {
+        color_bg?: T;
+        color_surface?: T;
+        color_text?: T;
+        color_muted?: T;
+        color_primary?: T;
+        color_onPrimary?: T;
+        color_border?: T;
+        color_accent?: T;
+        color_onAccent?: T;
+        color_dark?: T;
         fontBody?: T;
         fontHeading?: T;
         radius?: T;

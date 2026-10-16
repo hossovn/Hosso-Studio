@@ -41,12 +41,20 @@ for (const m of read('data/media.json') ?? []) {
 }
 void mediaDir
 
+// Tên tệp -> id media (đã nhập ở bước trên).
+const mediaId = async (ref: { filename?: string } | null | undefined) => {
+  if (!ref?.filename) return null
+  const found = await payload.find({ collection: 'media', where: { filename: { equals: ref.filename } }, limit: 1, depth: 0 })
+  return found.docs[0]?.id ?? null
+}
+const seoIn = async (seo: any) => (seo ? { title: seo.title, noindex: seo.noindex, image: await mediaId(seo.image) } : undefined)
+
 // Trang.
 let created = 0
 let updated = 0
 for (const p of read('data/pages.json') ?? []) {
   const existing = await payload.find({ collection: 'pages', where: { slug: { equals: p.slug } }, limit: 1, draft: true })
-  const data = { title: p.title, slug: p.slug, description: p.description, content: p.content, _status: p.status }
+  const data = { title: p.title, slug: p.slug, description: p.description, content: p.content, seo: await seoIn(p.seo), _status: p.status }
   if (existing.docs[0]) {
     await payload.update({ collection: 'pages', id: existing.docs[0].id, data })
     updated++
@@ -54,6 +62,16 @@ for (const p of read('data/pages.json') ?? []) {
     await payload.create({ collection: 'pages', data })
     created++
   }
+}
+
+// Bài viết.
+let postsDone = 0
+for (const p of read('data/posts.json') ?? []) {
+  const existing = await payload.find({ collection: 'posts', where: { slug: { equals: p.slug } }, limit: 1, draft: true })
+  const data = { title: p.title, slug: p.slug, excerpt: p.excerpt, publishedAt: p.publishedAt, content: p.content, cover: await mediaId(p.cover), seo: await seoIn(p.seo), _status: p.status }
+  if (existing.docs[0]) await payload.update({ collection: 'posts', id: existing.docs[0].id, data })
+  else await payload.create({ collection: 'posts', data })
+  postsDone++
 }
 
 // Cấu hình site (theme, token) và cấu hình plugin (không có bí mật).
@@ -73,7 +91,7 @@ for (const plugin of hosso.plugins) {
   }
 }
 
-console.log(`Đã nhập: ${created} trang mới, ${updated} trang cập nhật.`)
+console.log(`Đã nhập: ${created} trang mới, ${updated} trang cập nhật, ${postsDone} bài viết.`)
 if (manifest.secretsOmitted?.length) {
   console.log(`Cần nhập lại bí mật (gói không chứa): ${manifest.secretsOmitted.join(', ')}. Dùng admin hoặc biến môi trường HOSSO_WIM_API_KEY, HOSSO_WIM_WEBHOOK_SECRET.`)
 }

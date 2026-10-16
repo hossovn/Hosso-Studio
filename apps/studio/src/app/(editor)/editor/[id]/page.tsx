@@ -11,20 +11,23 @@ import { Editor } from './Editor'
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Trình dựng trang' }
 
-export default async function EditorPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditorPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ c?: string }> }) {
   const { id } = await params
+  const collection = (await searchParams).c === 'posts' ? 'posts' : 'pages'
   const payload = await getPayload({ config })
   const { user } = await payload.auth({ headers: await headers() })
-  if (!user) redirect('/admin/login?redirect=' + encodeURIComponent(`/editor/${id}`))
+  if (!user) redirect('/admin/login?redirect=' + encodeURIComponent(`/editor/${id}${collection === 'posts' ? '?c=posts' : ''}`))
 
   const page = await payload
-    .findByID({ collection: 'pages', id, draft: true, user, overrideAccess: false })
+    .findByID({ collection, id, draft: true, user, overrideAccess: false })
     .catch(() => null)
   if (!page) notFound()
 
   const site = await loadSite()
   return (
     <Editor
+      collection={collection}
+      publicHref={collection === 'posts' ? `/bai-viet/${page.slug}` : page.slug === 'home' ? '/' : `/${page.slug}`}
       id={String(page.id)}
       title={page.title}
       slug={page.slug}

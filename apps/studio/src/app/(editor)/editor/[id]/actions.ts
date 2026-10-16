@@ -1,6 +1,6 @@
 'use server'
 import config from '@payload-config'
-import hosso from '@hosso-config'
+import { loaderFor } from '@/lib/site'
 import { headers } from 'next/headers'
 import { getPayload } from 'payload'
 
@@ -9,7 +9,7 @@ export async function loadBlockData(type: string, props: Record<string, unknown>
   const payload = await getPayload({ config })
   const { user } = await payload.auth({ headers: await headers() })
   if (!user) return { status: 'error', kind: 'unauthorized' }
-  const load = hosso.plugins.find((p) => p.loaders?.[type])?.loaders?.[type]
+  const load = loaderFor(type)
   if (!load) return undefined
   try {
     return await load(props, { payload, searchParams: {}, cookies: {} })

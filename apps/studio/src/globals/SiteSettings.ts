@@ -61,6 +61,7 @@ export const SiteSettings: GlobalConfig = {
             { name: 'siteName', type: 'text', label: 'Tên site' },
             { name: 'logo', type: 'upload', relationTo: 'media', label: 'Logo' },
             { name: 'favicon', type: 'upload', relationTo: 'media', label: 'Favicon (biểu tượng tab trình duyệt)' },
+            { name: 'showSearch', type: 'checkbox', label: 'Hiện ô tìm kiếm trên đầu trang', defaultValue: true },
             { name: 'announcement', type: 'text', label: 'Thông báo trên cùng', admin: { description: 'Một dòng ngắn ở đầu site, ví dụ "Ship COD toàn quốc". Để trống để ẩn.' } },
           ],
         },

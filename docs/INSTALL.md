@@ -25,6 +25,17 @@ Lần đầu `pnpm dev` tạo `apps/studio/.env` (khóa ngẫu nhiên, tài kho�
 5. **Người dùng**: vai trò `admin` (xuất bản, cài đặt) và `editor` (chỉ lưu nháp).
 6. **Thương hiệu, theme, plugin** khai báo trong một file: `apps/studio/hosso.config.ts`. Muốn thêm theme: thêm package theme và một dòng trong `themes`. Gỡ plugin: xóa import và mục `plugins`; block của plugin bị bỏ qua, site vẫn chạy (Payload sẽ hỏi xác nhận xóa bảng cài đặt của plugin khi khởi động ở chế độ dev).
 
+### Nội dung và quản trị (đợt 2–4)
+
+- **Bài viết** (Admin → Bài viết): tiêu đề, tóm tắt, ảnh đại diện, ngày đăng; nội dung dựng bằng cùng trình dựng kéo thả (`/editor/<id>?c=posts`). Địa chỉ công khai `/bai-viet/<slug>`. Dùng block "Danh sách bài viết" để hiện bài trên một trang (ví dụ trang Cẩm nang, có phân trang).
+- **Video**: block Video nhận link YouTube/Vimeo (nhúng qua youtube-nocookie, tải khi cuộn tới) hoặc tệp mp4/webm tải lên từ thư viện Media.
+- **Block thêm cho trang bán hàng**: Lưới danh mục (có ảnh), Thanh cam kết, Banner có ảnh nền (Hero có trường ảnh).
+- **Tìm kiếm** `/tim-kiem`: tìm trong trang, bài viết và (khi có plugin WIM) sản phẩm; ô tìm trên header bật/tắt ở Cài đặt site. Trang 404 có ô tìm.
+- **SEO**: mỗi trang/bài có nhóm SEO (tiêu đề Google, ảnh chia sẻ, không lập chỉ mục); site tự sinh `/sitemap.xml` và `/robots.txt` (dùng `HOSSO_PUBLIC_URL`).
+- **Trình dựng**: tự lưu nháp sau 4 giây, cảnh báo khi rời trang còn thay đổi chưa lưu, nút "Lịch sử" mở các phiên bản trong admin để khôi phục, chuyển đổi xem trước điện thoại / máy tính bảng / máy tính.
+- **Hướng dẫn bắt đầu** hiện ở dashboard admin cho đến khi hoàn tất các bước (tên và logo, menu, trang chủ, ít nhất 3 trang, kết nối WIM nếu có plugin).
+- **Theme**: "Sáng & Sạch", "Kỹ thuật tối" và "Cửa hàng phụ tùng" (header hai tầng có tìm kiếm, hotline, giỏ hàng và thanh menu màu nhấn).
+
 ## 3. Kết nối Hosso WIM (plugin, tùy chọn)
 
 Trong PoC dùng mock:
@@ -37,7 +48,7 @@ Admin → Kết nối Hosso WIM: nhập địa chỉ API, khóa API, bí mật w
 
 Có thể đặt toàn bộ bằng biến môi trường (ưu tiên hơn giá trị trong admin): `HOSSO_WIM_API_URL`, `HOSSO_WIM_API_KEY`, `HOSSO_WIM_WEBHOOK_SECRET`, `HOSSO_WIM_TIMEOUT_MS`, `HOSSO_WIM_CACHE_TTL`.
 
-Các block thương mại (Bộ chọn xe, Ô tìm, Lưới sản phẩm, Chi tiết sản phẩm, Giỏ hàng, Thanh toán, Trạng thái đơn) xuất hiện trong trình dựng khi plugin được cài. Trang mẫu: `seed/sites/phu-tung-o-to.hosso-site.zip` (xem mục 5).
+Các block thương mại (Bộ chọn xe, Ô tìm, Lưới sản phẩm, Chi tiết sản phẩm, Giỏ hàng, Thanh toán, Trạng thái đơn) xuất hiện trong trình dựng khi plugin được cài. Site mẫu hoàn chỉnh (theme Cửa hàng phụ tùng, 8 trang, 3 bài viết, ảnh, menu, kết nối WIM mock): `seed/sites/phu-tung-o-to.hosso-site.zip`, nhập bằng `pnpm studio:import seed/sites/phu-tung-o-to.hosso-site.zip` (xem mục 5).
 
 Điều khiển mock để thử lỗi (không mở thêm endpoint):
 
@@ -67,7 +78,7 @@ Migration Postgres được sinh sẵn trong `apps/studio/src/migrations` cho b�
 
 ```bash
 pnpm studio:export site.zip     # nội dung, cấu trúc trang, theme + token, cấu hình plugin (không có khóa/bí mật), media
-pnpm studio:import site.zip     # trên cài đặt sạch đã migrate; trang trùng slug được cập nhật
+pnpm studio:import site.zip     # trên cài đặt sạch đã migrate (SQLite: chạy pnpm dev một lần trước để tạo schema); trang/bài trùng slug được cập nhật
 ```
 
 Gói không chứa tài khoản, tin nhắn liên hệ, đơn hàng (WIM làm chủ), và không chứa khóa API/bí mật webhook: nhập lại trong admin hoặc đặt bằng `HOSSO_WIM_*`. Với Docker: `docker compose run --rm -v "$PWD:/pkg" studio-tools pnpm studio:import /pkg/site.zip`.

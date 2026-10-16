@@ -67,4 +67,14 @@ Mục tiêu: tạo được một site hoàn chỉnh như WordPress. Đợt 1 l�
 - **Trình dựng**: trường chọn ảnh (thư viện Media, tải lên, dán địa chỉ); danh sách trang, tạo trang mới, đổi tên/đường dẫn; khung xem trước có header/footer thật.
 - **Export/import** mang theo cài đặt site; logo/favicon ánh xạ theo tên tệp (đã thử qua Postgres). Migration Postgres `site_chrome` thêm vào và chạy được sau migration đầu.
 - Kiểm tra: typecheck, `check:boundaries`, `check:order-flow` 16/16, Lighthouse di động lại 97/97 (trang chủ, chi tiết), menu di động và dropdown bằng bàn phím hoạt động.
-- Chưa làm (đợt 2–4): xem trước theo thiết bị, tự lưu nháp, hướng dẫn lần đầu, SEO/sitemap, bài viết, tìm kiếm, 404, theme cửa hàng, site mẫu.
+
+## 6. Đợt 2–4 (17/10/2026): tạo được site hoàn chỉnh như WordPress
+
+Đã làm và kiểm tra bằng chạy thật:
+
+- **Quản trị (đợt 2)**: tự lưu nháp (đã kiểm: sửa tiêu đề hero, sau 4 giây bản nháp đổi còn bản xuất bản giữ nguyên), cảnh báo chưa lưu, nút Lịch sử phiên bản, viewport điện thoại/tablet/máy tính, hướng dẫn bắt đầu ở dashboard, SEO từng trang (tiêu đề, ảnh chia sẻ, noindex), `sitemap.xml` (trang và bài đã xuất bản, bỏ noindex) và `robots.txt`.
+- **Nội dung (đợt 3)**: bài viết (collection, trình dựng, trang chi tiết `/bai-viet/<slug>`, danh sách có phân trang), video (YouTube/Vimeo/tệp), tìm kiếm `/tim-kiem` (trang + bài + sản phẩm WIM), trang 404 trong khung site.
+- **Giao diện (đợt 4)**: theme "Cửa hàng phụ tùng", block Lưới danh mục, Thanh cam kết, Hero ảnh nền; site mẫu hoàn chỉnh trong `seed/sites/phu-tung-o-to.hosso-site.zip` (8 trang, 3 bài, 11 ảnh, menu dropdown, liên hệ, WIM mock).
+- Export/import mang theo bài viết, ảnh đại diện, SEO, logo/favicon (ánh xạ theo tên tệp). Migration Postgres chạy chuỗi 3 bước trên Postgres 17.
+
+Còn lại / giới hạn: chưa có phân loại bài viết (danh mục, thẻ), bình luận, nhiều ngôn ngữ, xem trước bản nháp chia sẻ bằng liên kết công khai; SQLite dev dùng "push" nên đổi schema trên DB cũ có thể xung đột (xóa `apps/studio/data` hoặc dùng export/import); ảnh sản phẩm của WIM chưa hiển thị vì hợp đồng mock không trả ảnh.

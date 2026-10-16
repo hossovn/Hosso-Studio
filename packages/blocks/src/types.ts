@@ -5,7 +5,7 @@ import type { Config, Payload } from 'payload'
 /** Field của block: tập con tương thích với field của Puck (slice 2 truyền thẳng vào Puck). */
 export type BlockField =
   | { type: 'text' | 'textarea' | 'number'; label?: string }
-  | { type: 'media'; label?: string }
+  | { type: 'media'; label?: string; kind?: 'image' | 'video' }
   | { type: 'select' | 'radio'; label?: string; options: { label: string; value: string | number | boolean }[] }
   | { type: 'array'; label?: string; arrayFields: Record<string, BlockField>; defaultItemProps?: Record<string, unknown> }
 
@@ -30,6 +30,8 @@ export type SiteChrome = {
   footerText?: string
   contact: { phone?: string; email?: string; address?: string; zalo?: string }
   social: { label: string; href: string }[]
+  /** Hiện ô tìm kiếm trên header. */
+  search: boolean
 }
 
 /** Header/footer do theme cung cấp. `actions` là phần do plugin chèn thêm (ví dụ giỏ hàng). */
@@ -114,6 +116,10 @@ export type HossoPlugin = {
   payload?: (config: Config) => Config
   /** Global của plugin được đưa vào gói export/import; `secretFields` không bao giờ vào gói. */
   portable?: { globals: { slug: string; secretFields: string[] }[] }
+  /** Các bước cài đặt hiện trên dashboard admin (ví dụ "Kết nối WIM"). */
+  checklist?: (payload: Payload) => Promise<{ label: string; done: boolean; href: string }[]>
+  /** Tìm kiếm trên site: trả kết quả của plugin (ví dụ sản phẩm). */
+  search?: (query: string, payload: Payload) => Promise<{ title: string; href: string; description?: string }[]>
   /** Lấy dữ liệu server cho block: kết quả được truyền vào renderer qua prop `data`. */
   loaders?: Record<string, BlockLoader>
 }
