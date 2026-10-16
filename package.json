@@ -15,7 +15,10 @@
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "typecheck": "pnpm -r typecheck",
     "check:order-flow": "node scripts/check-order-flow.mjs",
-    "mock:wim": "pnpm --filter @hosso/mock-wim start"
+    "mock:wim": "pnpm --filter @hosso/mock-wim start",
+    "studio:export": "pnpm --filter @hosso/studio studio:export",
+    "studio:import": "pnpm --filter @hosso/studio studio:import",
+    "migrate": "pnpm --filter @hosso/studio migrate"
   },
   "pnpm": {
     "overrides": {

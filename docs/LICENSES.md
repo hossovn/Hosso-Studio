@@ -14,6 +14,9 @@ Kiểm tra trực tiếp từ metadata của từng gói (npm registry / repo) v
 | reflect-metadata, rxjs (mock WIM) | 0.2.2 / 7.8.2 | Apache-2.0 |
 | openapi-typescript (dev) | 7.13.0 | MIT |
 | ajv, yaml (dev, contract test) | 8.20.0 / 2.9.1 | MIT / ISC |
+| fflate (export/import) | 0.8.3 | MIT |
+| pg (Postgres, qua Payload) | 8.x | MIT |
+| @libsql/client (SQLite, qua Payload) | 0.x | MIT |
 | typescript | 5.9.3 | Apache-2.0 |
 | drizzle-orm (qua Payload) | 0.45.2 | Apache-2.0 |
 
@@ -33,3 +36,8 @@ Kết quả: không có GPL, AGPL hay LGPL trong cây phụ thuộc prod.
 ## sharp / libvips
 
 Binary libvips đi kèm `sharp` là LGPL-3.0. Quyết định: **không dùng sharp**. `pnpm.overrides` đặt `"sharp": "-"` để gỡ khỏi cây (Next và Payload coi nó là tùy chọn); ảnh upload không được resize, Next tắt tối ưu ảnh (`images.unoptimized`). Đã xác nhận `node_modules/.pnpm` không chứa sharp hay libvips.
+
+## Công cụ chỉ dùng để kiểm tra, không nằm trong cây phụ thuộc
+
+- Lighthouse 13.5.0 (Apache-2.0): đo hiệu năng, chạy bằng `npx`.
+- embedded-postgres (MIT): Postgres tạm để kiểm tra migration khi Docker không chạy được.

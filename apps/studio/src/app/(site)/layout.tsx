@@ -1,3 +1,4 @@
+import hosso from '@hosso-config'
 import { t } from '@hosso/studio-blocks'
 import React from 'react'
 
@@ -12,6 +13,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
     <html lang="vi" className={fontClassNames}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" type="image/svg+xml" href={hosso.brand.favicon} />
         <style>{css}</style>
       </head>
       <body style={{ margin: 0 }}>

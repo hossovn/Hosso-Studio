@@ -1,0 +1,58 @@
+# Hosso Studio + Postgres. Cấu hình qua biến môi trường (xem .env.example): cp .env.example .env rồi điền.
+#   docker compose up --build
+# Nhập gói site đã xuất:  docker compose run --rm -v "$PWD:/pkg" studio-tools pnpm studio:import /pkg/site.zip
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hosso
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Đặt POSTGRES_PASSWORD trong .env}
+      POSTGRES_DB: hosso
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U hosso -d hosso']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  studio: &studio
+    build: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment: &studio-env
+      HOSSO_DATABASE_URL: postgres://hosso:${POSTGRES_PASSWORD}@postgres:5432/hosso
+      HOSSO_SECRET: ${HOSSO_SECRET:?Đặt HOSSO_SECRET trong .env}
+      HOSSO_ENCRYPTION_KEY: ${HOSSO_ENCRYPTION_KEY:?Đặt HOSSO_ENCRYPTION_KEY trong .env}
+      HOSSO_PUBLIC_URL: ${HOSSO_PUBLIC_URL:-http://localhost:3000}
+      HOSSO_ADMIN_EMAIL: ${HOSSO_ADMIN_EMAIL:-}
+      HOSSO_ADMIN_PASSWORD: ${HOSSO_ADMIN_PASSWORD:-}
+      HOSSO_SEED: ${HOSSO_SEED:-true}
+      HOSSO_WIM_API_URL: ${HOSSO_WIM_API_URL:-}
+      HOSSO_WIM_API_KEY: ${HOSSO_WIM_API_KEY:-}
+      HOSSO_WIM_WEBHOOK_SECRET: ${HOSSO_WIM_WEBHOOK_SECRET:-}
+      HOSSO_WIM_TIMEOUT_MS: ${HOSSO_WIM_TIMEOUT_MS:-}
+      HOSSO_WIM_CACHE_TTL: ${HOSSO_WIM_CACHE_TTL:-}
+    ports:
+      - '${HOSSO_PORT:-3000}:3000'
+    volumes:
+      - media:/app/media
+    extra_hosts:
+      - 'host.docker.internal:host-gateway' # để container gọi mock WIM chạy trên máy host
+
+  # Công cụ một lần (nhập/xuất gói site): docker compose run --rm studio-tools pnpm studio:export /pkg/site.zip
+  studio-tools:
+    <<: *studio
+    profiles: ['tools']
+    restart: 'no'
+    entrypoint: ['sh', '-c', 'pnpm --filter @hosso/studio migrate && exec "$@"', '--']
+    healthcheck:
+      disable: true
+    ports: []
+
+volumes:
+  pgdata:
+  media:

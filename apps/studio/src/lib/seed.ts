@@ -2,14 +2,18 @@ import fs from 'fs'
 import path from 'path'
 import type { Payload } from 'payload'
 
-// Nạp dữ liệu mẫu khi DB trống: tài khoản admin (từ env) và các trang trong seed/pages.
-export async function seedIfEmpty(payload: Payload) {
+/** Tạo tài khoản quản trị đầu tiên từ HOSSO_ADMIN_EMAIL / HOSSO_ADMIN_PASSWORD khi DB chưa có người dùng. */
+export async function ensureAdmin(payload: Payload) {
   const email = process.env.HOSSO_ADMIN_EMAIL
   const password = process.env.HOSSO_ADMIN_PASSWORD
   if (email && password && (await payload.count({ collection: 'users' })).totalDocs === 0) {
     await payload.create({ collection: 'users', data: { email, password, roles: ['admin'] } })
     payload.logger.info(`Đã tạo tài khoản quản trị: ${email}`)
   }
+}
+
+/** Nạp trang mẫu trong seed/pages khi chưa có trang nào. */
+export async function seedIfEmpty(payload: Payload) {
 
   if ((await payload.count({ collection: 'pages' })).totalDocs > 0) return
 

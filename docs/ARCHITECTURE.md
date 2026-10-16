@@ -1,0 +1,32 @@
+# Kiến trúc Hosso Studio (PoC)
+
+```
+apps/studio            Payload (admin) + site runtime Next.js + hosso.config.ts
+packages/blocks        Hợp đồng chung: kiểu Block/Theme/Plugin, schema block lõi, buildPuckConfig, chuỗi vi
+packages/theme-*       Theme: theme.json (token) + renderer cho từng block + CSS
+packages/plugin-wim    Plugin WIM (đóng mã nguồn): kết nối, block thương mại, cache, webhook, đặt đơn
+tools/mock-wim         Mock WIM (NestJS 11) dựng từ openapi.yaml
+seed/                  Trang mẫu, dữ liệu mock WIM, gói site mẫu
+```
+
+## Nguyên tắc
+
+- **Lõi không phụ thuộc plugin.** `apps/studio/src`, `packages/blocks`, `packages/theme-*` không nhắc `plugin-wim` (kiểm bằng `pnpm check:boundaries`). Chỗ duy nhất đăng ký plugin là `hosso.config.ts`.
+- **Schema tách renderer.** Block khai báo field và giá trị mặc định (`BlockSchema`); theme cung cấp renderer. `buildPuckConfig(schemas, theme)` dựng cấu hình Puck lúc chạy, nên đổi theme không đổi JSON trang.
+- **Quyền làm chủ dữ liệu.** Sản phẩm, giá, tồn kho, chi nhánh, xe, đơn hàng do WIM làm chủ; Studio chỉ đọc (và tạo đơn qua `POST /orders`), không lưu bản sao. Bảng trong DB của Studio: `pages`, `_pages_v`, `media`, `users*`, `contact_messages`, `site_settings`, `wim_settings*`, bảng nội bộ Payload.
+- **Trình duyệt không gọi WIM.** Mọi gọi WIM đi qua server của site (loader của block, endpoint `/api/plugins/wim/*`).
+
+## Luồng
+
+- **Trang**: `pages.content` là JSON của Puck (collection có nháp/xuất bản/phiên bản của Payload). Trang công khai render bằng `Render` của Puck (RSC); với block có loader, server chạy loader rồi truyền kết quả vào prop `data`.
+- **Đọc catalog (B)**: loader → cache TTL ngắn (bộ nhớ) → WIM. Site đúng chỉ với TTL; webhook (C, tùy chọn) xóa đúng mục cache. Lỗi tạm thời: dùng bản cache cũ (tối đa 10 phút); WIM lỗi hẳn: block báo lỗi thân thiện, phần nội dung Studio vẫn hiển thị.
+- **Đặt đơn (D)**: `POST /api/plugins/wim/checkout` → kiểm tra lại tồn kho (không cache, theo chi nhánh nếu nhận tại chi nhánh) → Idempotency-Key = SHA-256(cartId + nội dung đơn) → `POST /v1/orders`; lỗi mạng/timeout thử lại tối đa 3 lần với cùng khóa. Hết hàng: 409, giữ giỏ.
+- **Theo dõi đơn (E)**: `GET /v1/orders/{id}` qua cache; cần mã đơn + 4 số cuối điện thoại. Webhook `order.status_changed` làm mới ngay.
+- **Webhook**: `POST /api/plugins/wim/webhook`; chữ ký HMAC-SHA256(secret, `timestamp.thân`) trong `X-Hosso-Signature`, `X-Hosso-Timestamp` lệch quá 5 phút thì từ chối.
+- **Bí mật**: khóa API và bí mật webhook mã hóa AES-256-GCM (`HOSSO_ENCRYPTION_KEY`) khi lưu; API/admin chỉ trả dạng che; mã plugin dùng Web Crypto nên không kéo module Node vào bundle trình duyệt.
+
+## Giới hạn đã biết
+
+- Giỏ hàng nằm ở trình duyệt (localStorage); cache là bộ nhớ trong một tiến trình (đủ cho một cài đặt = một site).
+- Chưa có giới hạn tần suất cho form liên hệ và checkout (chỉ có ô bẫy bot).
+- Puck còn ở 0.x; xem `docs/GATE2-REPORT.md`.

@@ -12,6 +12,7 @@ const plugin: HossoPlugin = {
   fallbackRenderers,
   css,
   payload: applyPayload,
+  portable: { globals: [{ slug: 'wim-settings', secretFields: ['apiKey', 'webhookSecret'] }] },
   loaders: {
     WimVehicleSelector: loadVehicleSelector,
     WimProductGrid: loadProductGrid,
