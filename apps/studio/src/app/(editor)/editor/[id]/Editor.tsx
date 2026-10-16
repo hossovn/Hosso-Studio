@@ -3,7 +3,9 @@ import hosso from '@hosso-config'
 import { buildPuckConfig, coreBlocks } from '@hosso/studio-blocks'
 import { Puck, usePuck } from '@puckeditor/core'
 import '@puckeditor/core/puck.css'
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
+
+import { loadBlockData } from './actions'
 
 type Props = {
   id: string
@@ -15,6 +17,24 @@ type Props = {
   css: string
   canPublish: boolean
   fontClass: string
+}
+
+/** Bọc renderer của block có loader: lấy dữ liệu thật qua server action rồi mới hiển thị. */
+function withLiveData(type: string, Render: React.ComponentType<any>) {
+  return function Live(props: Record<string, any>) {
+    const [data, setData] = useState<unknown>(undefined)
+    const key = JSON.stringify({ ...props, puck: undefined })
+    useEffect(() => {
+      let on = true
+      const t = setTimeout(() => loadBlockData(type, props).then((d) => on && setData(d)), 300)
+      return () => {
+        on = false
+        clearTimeout(t)
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [key])
+    return <Render {...props} data={data ?? { status: 'loading' }} />
+  }
 }
 
 function Actions({ id, slug, canPublish, onStatus }: Pick<Props, 'id' | 'slug' | 'canPublish'> & { onStatus: (s: string) => void }) {
@@ -65,6 +85,12 @@ export function Editor(props: Props) {
     const known = new Set(schemas.map((s) => s.type))
     const extraTypes = (props.data?.content ?? []).map((c: { type: string }) => c.type).filter((t: string) => !known.has(t))
     const built = buildPuckConfig({ schemas, theme, plugins: hosso.plugins, mode: 'editor', extraTypes })
+    for (const p of hosso.plugins) {
+      for (const type of Object.keys(p.loaders ?? {})) {
+        const c = built.components[type]
+        if (c) c.render = withLiveData(type, c.render)
+      }
+    }
     // Khung gốc giống site công khai (class .hs-theme + biến font) để xem trước khớp bản thật.
     return { ...built, root: { fields: {}, render: ({ children }: { children: React.ReactNode }) => <div className={`hs-theme ${props.fontClass}`}>{children}</div> } }
   }, [schemas, theme, props.data, props.fontClass])

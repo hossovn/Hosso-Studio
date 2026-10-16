@@ -1,0 +1,30 @@
+{
+  "name": "@hosso/plugin-wim",
+  "version": "0.1.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "description": "Plugin nối Hosso Studio với Hosso WIM. Mã nguồn đóng, không phát hành công khai.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./admin": "./src/admin.tsx"
+  },
+  "scripts": {
+    "generate:api": "openapi-typescript ../../tools/mock-wim/openapi.yaml -o src/api/schema.d.ts",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@hosso/studio-blocks": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "19.3.1"
+  },
+  "devDependencies": {
+    "@payloadcms/ui": "3.91.0",
+    "@types/react": "19.3.0",
+    "openapi-typescript": "7.13.0",
+    "payload": "3.91.0",
+    "react": "19.3.1",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react'
+import type { Config, Payload } from 'payload'
 
 /** Field của block: tập con tương thích với field của Puck (slice 2 truyền thẳng vào Puck). */
 export type BlockField =
@@ -63,12 +64,30 @@ export type HossoBrand = {
   favicon: string
 }
 
-/** Plugin đăng ký qua hosso.config.ts. Slice 3 sẽ bổ sung collection, endpoint, trang cài đặt. */
+/** Ngữ cảnh khi lấy dữ liệu server cho block. */
+export type LoadContext = {
+  payload: Payload
+  searchParams: Record<string, string | string[] | undefined>
+  cookies: Record<string, string>
+}
+
+export type BlockLoader = (props: Record<string, any>, ctx: LoadContext) => Promise<unknown>
+
+/**
+ * Plugin đăng ký qua hosso.config.ts. Phần này chạy được ở cả server và trình duyệt (editor),
+ * nên mã plugin không được import module chỉ có ở Node lúc chạy (dùng Web Crypto, fetch).
+ */
 export type HossoPlugin = {
   id: string
-  blocks?: BlockSchema[]
+  blocks?: BlockSchema<any>[]
   /** Renderer dự phòng khi theme không hỗ trợ block của plugin. */
   fallbackRenderers?: Record<string, BlockRenderer>
+  /** CSS của renderer dự phòng, dùng biến --hs-*. */
+  css?: string
+  /** Thêm collection, global, endpoint vào Payload (chỉ chạy lúc dựng cấu hình Payload). */
+  payload?: (config: Config) => Config
+  /** Lấy dữ liệu server cho block: kết quả được truyền vào renderer qua prop `data`. */
+  loaders?: Record<string, BlockLoader>
 }
 
 export type HossoConfig = {

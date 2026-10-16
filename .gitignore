@@ -12,3 +12,4 @@ apps/studio/next-env.d.ts
 .codegraph
 apps/studio/AGENTS.md
 .tmp
+apps/studio/src/app/(payload)/admin/importMap.js

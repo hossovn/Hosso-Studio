@@ -5,7 +5,9 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
+    "predev": "pnpm generate:importmap",
     "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
+    "prebuild": "pnpm generate:importmap",
     "build": "cross-env NODE_OPTIONS=--no-deprecation next build",
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
@@ -13,6 +15,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@hosso/plugin-wim": "workspace:*",
     "@hosso/studio-blocks": "workspace:*",
     "@hosso/theme-alt": "workspace:*",
     "@hosso/theme-default": "workspace:*",

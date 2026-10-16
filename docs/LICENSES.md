@@ -9,7 +9,11 @@ Kiểm tra trực tiếp từ metadata của từng gói (npm registry / repo) v
 | react, react-dom | 19.3.1 | MIT |
 | graphql | 16.14.2 | MIT |
 | @puckeditor/core | 0.23.0 | MIT |
-| @nestjs/* (mock WIM, dùng từ lát 3) | 11.x | MIT |
+| @nestjs/common, core, platform-express (mock WIM) | 11.2.7 | MIT |
+| class-validator, class-transformer (mock WIM) | 0.15.1 / 0.5.1 | MIT |
+| reflect-metadata, rxjs (mock WIM) | 0.2.2 / 7.8.2 | Apache-2.0 |
+| openapi-typescript (dev) | 7.13.0 | MIT |
+| ajv, yaml (dev, contract test) | 8.20.0 / 2.9.1 | MIT / ISC |
 | typescript | 5.9.3 | Apache-2.0 |
 | drizzle-orm (qua Payload) | 0.45.2 | Apache-2.0 |
 

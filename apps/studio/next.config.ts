@@ -1,5 +1,6 @@
 import { withPayload } from '@payloadcms/next/withPayload'
 import type { NextConfig } from 'next'
+import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -7,7 +8,7 @@ const dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const nextConfig: NextConfig = {
   // Package workspace phát hành TS nguồn, không có bước build riêng.
-  transpilePackages: ['@hosso/studio-blocks', '@hosso/theme-default', '@hosso/theme-alt'],
+  transpilePackages: fs.readdirSync(path.join(dirname, 'node_modules/@hosso')).map((name) => `@hosso/${name}`),
   // Không dùng sharp (binary libvips là LGPL): tắt tối ưu ảnh của Next, dùng <img> thường.
   images: { unoptimized: true },
   webpack: (webpackConfig) => {

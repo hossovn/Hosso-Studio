@@ -1,0 +1,112 @@
+import type { BlockLoader, LoadContext } from '@hosso/studio-blocks'
+import { wimGet, WimError } from './client'
+import type { Availability, Branch, Named, Product, ProductPage } from './client'
+import { getWimConfig, type WimConfig } from './config'
+
+export type LoadError = { status: 'error'; kind: WimError['kind'] | 'internal' }
+
+const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
+const int = (v: unknown) => (Number.isInteger(Number(v)) && Number(v) > 0 ? Number(v) : undefined)
+
+import { VEHICLE_COOKIE } from './constants'
+
+type Vehicle = { make?: string; model?: string; year?: number }
+
+function vehicleFrom(ctx: LoadContext): Vehicle {
+  const sp = ctx.searchParams
+  if (first(sp.make) || first(sp.model) || first(sp.year)) return { make: first(sp.make), model: first(sp.model), year: int(first(sp.year)) }
+  return parseVehicleCookie(ctx.cookies[VEHICLE_COOKIE])
+}
+
+export function parseVehicleCookie(raw?: string): Vehicle {
+  const [make, model, year] = (raw ? decodeURIComponent(raw) : '').split('~')
+  return { make: make || undefined, model: model || undefined, year: int(year) }
+}
+
+/** Bọc loader: chưa cấu hình / WIM lỗi thì trả trạng thái lỗi để block tự báo, phần nội dung khác của trang không ảnh hưởng. */
+const guarded =
+  (fn: (cfg: WimConfig, props: Record<string, any>, ctx: LoadContext) => Promise<object>): BlockLoader =>
+  async (props, ctx) => {
+    const cfg = await getWimConfig(ctx.payload)
+    if (!cfg) return { status: 'error', kind: 'unconfigured' } satisfies LoadError
+    try {
+      return { status: 'ok', ...(await fn(cfg, props, ctx)) }
+    } catch (e) {
+      if (e instanceof WimError) return { status: 'error', kind: e.kind } satisfies LoadError
+      throw e
+    }
+  }
+
+const names = <T extends Named>(items: T[]) => Object.fromEntries(items.map((i) => [i.id, i.name]))
+
+export const loadVehicleSelector = guarded(async (cfg, _props, ctx) => {
+  let makes: Named[]
+  try {
+    makes = (await wimGet<{ items: Named[] }>(cfg, '/v1/vehicles/makes', {}, ['vehicles'], 10)).items
+  } catch (e) {
+    // WIM chưa có dữ liệu xe (404): ẩn bộ chọn, site vẫn chạy.
+    if (e instanceof WimError && e.status === 404) return { unavailable: true }
+    throw e
+  }
+  const selected = vehicleFrom(ctx)
+  const models = selected.make
+    ? (await wimGet<{ items: Named[] }>(cfg, `/v1/vehicles/makes/${selected.make}/models`, {}, ['vehicles'], 10).catch(() => ({ items: [] }))).items
+    : []
+  const years = selected.model
+    ? (await wimGet<{ items: number[] }>(cfg, `/v1/vehicles/models/${selected.model}/years`, {}, ['vehicles'], 10).catch(() => ({ items: [] }))).items
+    : []
+  return { makes, models, years, selected }
+})
+
+export const loadProductGrid = guarded(async (cfg, props, ctx) => {
+  const sp = ctx.searchParams
+  const vehicle = props.useSelectedVehicle === 'no' ? {} : vehicleFrom(ctx)
+  const filters = {
+    q: first(sp.q),
+    category: first(sp.category) || props.category || undefined,
+    brand: first(sp.brand) || props.brand || undefined,
+    condition: first(sp.condition) || (props.condition && props.condition !== 'any' ? props.condition : undefined),
+  }
+  const page = int(first(sp.page)) ?? 1
+  const result = await wimGet<ProductPage>(
+    cfg,
+    '/v1/products',
+    { page, pageSize: int(props.pageSize) ?? 12, ...filters, ...vehicle },
+    ['list'],
+  )
+
+  // Nhãn hiển thị cho xe đã chọn (không bắt buộc, lỗi thì bỏ qua).
+  let vehicleLabel: string | undefined
+  if (vehicle.make) {
+    try {
+      const makes = names((await wimGet<{ items: Named[] }>(cfg, '/v1/vehicles/makes', {}, ['vehicles'], 10)).items)
+      const models = vehicle.model ? names((await wimGet<{ items: Named[] }>(cfg, `/v1/vehicles/makes/${vehicle.make}/models`, {}, ['vehicles'], 10)).items) : {}
+      vehicleLabel = [makes[vehicle.make], vehicle.model && models[vehicle.model], vehicle.year].filter(Boolean).join(' ')
+    } catch {}
+  }
+
+  const categoryNames: Record<string, string> = {}
+  try {
+    Object.assign(categoryNames, names((await wimGet<{ items: Named[] }>(cfg, '/v1/categories', {}, ['list'], 10)).items))
+  } catch {}
+  for (const c of cfg.categoryMap) categoryNames[c.wimCategoryId] = c.label // quản trị viên ánh xạ tên riêng
+
+  return { ...result, filters: { ...filters, ...vehicle }, vehicleLabel, categoryNames, detailPath: props.detailPath || '/chi-tiet' }
+})
+
+export const loadProductDetail = guarded(async (cfg, props, ctx) => {
+  const id = first(ctx.searchParams.p)
+  if (!id) return { missing: 'pick' }
+  try {
+    const [product, availability, branches] = await Promise.all([
+      wimGet<Product>(cfg, `/v1/products/${encodeURIComponent(id)}`, {}, [`product:${id}`]),
+      wimGet<Availability>(cfg, `/v1/products/${encodeURIComponent(id)}/availability`, {}, [`product:${id}`]),
+      wimGet<{ items: Branch[] }>(cfg, '/v1/branches', {}, ['list'], 10),
+    ])
+    const categoryNames = Object.fromEntries(cfg.categoryMap.map((c) => [c.wimCategoryId, c.label]))
+    return { product, availability, branches: branches.items, categoryName: product.categoryId && categoryNames[product.categoryId] }
+  } catch (e) {
+    if (e instanceof WimError && e.status === 404) return { missing: 'notFound' }
+    throw e
+  }
+})
