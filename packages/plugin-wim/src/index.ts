@@ -1,6 +1,7 @@
 import type { HossoPlugin } from '@hosso/studio-blocks'
 import { wimBlocks } from './blocks'
 import { loadCheckout, loadOrderStatus, loadProductDetail, loadProductGrid, loadVehicleSelector } from './loaders'
+import { CartLink } from './client/CartLink'
 import { applyPayload } from './payload'
 import { fallbackRenderers } from './renderers'
 import { css } from './styles'
@@ -11,6 +12,7 @@ const plugin: HossoPlugin = {
   blocks: wimBlocks,
   fallbackRenderers,
   css,
+  headerSlot: CartLink,
   payload: applyPayload,
   portable: { globals: [{ slug: 'wim-settings', secretFields: ['apiKey', 'webhookSecret'] }] },
   loaders: {

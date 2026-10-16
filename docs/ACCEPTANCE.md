@@ -58,3 +58,13 @@ pnpm check:order-flow                             # 16 kiểm tra luồng đặt
 pnpm check:boundaries && pnpm typecheck
 pnpm studio:export site.zip && pnpm studio:import site.zip
 ```
+
+## 5. Bổ sung sau PoC: đợt 1 "khung site" (17/10/2026)
+
+Mục tiêu: tạo được một site hoàn chỉnh như WordPress. Đợt 1 làm xong:
+
+- **Khung site**: cài đặt site (tên, logo, favicon, thông báo trên cùng, menu đầu/cuối trang hai cấp, liên hệ, mạng xã hội); header/footer do theme vẽ (cả hai theme), dùng chung mọi trang; nút Zalo/Gọi điện nổi; liên kết giỏ hàng trên header do plugin WIM chèn (không có plugin thì không hiện).
+- **Trình dựng**: trường chọn ảnh (thư viện Media, tải lên, dán địa chỉ); danh sách trang, tạo trang mới, đổi tên/đường dẫn; khung xem trước có header/footer thật.
+- **Export/import** mang theo cài đặt site; logo/favicon ánh xạ theo tên tệp (đã thử qua Postgres). Migration Postgres `site_chrome` thêm vào và chạy được sau migration đầu.
+- Kiểm tra: typecheck, `check:boundaries`, `check:order-flow` 16/16, Lighthouse di động lại 97/97 (trang chủ, chi tiết), menu di động và dropdown bằng bàn phím hoạt động.
+- Chưa làm (đợt 2–4): xem trước theo thiết bị, tự lưu nháp, hướng dẫn lần đầu, SEO/sitemap, bài viết, tìm kiếm, 404, theme cửa hàng, site mẫu.

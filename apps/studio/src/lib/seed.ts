@@ -19,6 +19,8 @@ export async function seedIfEmpty(payload: Payload) {
 
   const dir = path.resolve(process.env.HOSSO_SEED_DIR || path.join(process.cwd(), '../../seed'), 'pages')
   if (!fs.existsSync(dir)) return
+  const settingsFile = path.resolve(dir, '../site-settings.json')
+  if (fs.existsSync(settingsFile)) await payload.updateGlobal({ slug: 'site-settings', data: JSON.parse(fs.readFileSync(settingsFile, 'utf8')) })
   for (const file of fs.readdirSync(dir).filter((f) => f.endsWith('.json')).sort()) {
     const page = JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8'))
     await payload.create({ collection: 'pages', data: { ...page, _status: 'published' } })

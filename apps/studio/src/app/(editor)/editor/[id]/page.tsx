@@ -32,6 +32,7 @@ export default async function EditorPage({ params }: { params: Promise<{ id: str
       data={(page.content as any) ?? { content: [], root: { props: {} } }}
       themeName={site.theme.manifest.name}
       css={site.css}
+      chrome={site.chrome}
       fontClass={fontClassNames}
       canPublish={Boolean((user as { roles?: string[] }).roles?.includes('admin'))}
     />

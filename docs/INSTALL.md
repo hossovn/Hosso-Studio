@@ -19,9 +19,11 @@ Lần đầu `pnpm dev` tạo `apps/studio/.env` (khóa ngẫu nhiên, tài kho�
 ## 2. Dựng site
 
 1. **Trang**: Admin → Các trang → tạo trang, lưu, mở trình dựng, kéo block vào, chỉnh thuộc tính. "Lưu nháp" ai cũng làm được; "Xuất bản" chỉ vai trò quản trị viên.
-2. **Theme**: Admin → Giao diện site → chọn theme, chỉnh màu/font/bo góc (để trống = mặc định của theme). Đổi theme không đổi nội dung trang.
-3. **Người dùng**: vai trò `admin` (xuất bản, cài đặt) và `editor` (chỉ lưu nháp).
-4. **Thương hiệu, theme, plugin** khai báo trong một file: `apps/studio/hosso.config.ts`. Muốn thêm theme: thêm package theme và một dòng trong `themes`. Gỡ plugin: xóa import và mục `plugins`; block của plugin bị bỏ qua, site vẫn chạy (Payload sẽ hỏi xác nhận xóa bảng cài đặt của plugin khi khởi động ở chế độ dev).
+2. **Khung site** (Admin → Giao diện site, các tab): Thương hiệu (tên, logo, favicon, thông báo trên cùng), Menu (menu đầu trang tối đa hai cấp có dropdown, menu chân trang), Liên hệ (điện thoại, email, địa chỉ, Zalo, mạng xã hội; nút Zalo/Gọi điện nổi tự hiện khi có số). Header và footer do theme vẽ, dùng chung mọi trang.
+3. **Trình dựng**: chọn ảnh từ thư viện Media hoặc tải ảnh lên ngay trong ô thuộc tính; menu trên cùng của trình dựng có danh sách trang, "+ Trang mới" và "Đổi tên / đường dẫn".
+4. **Theme**: tab "Giao diện" cùng trang đó → chọn theme, chỉnh màu/font/bo góc (để trống = mặc định của theme). Đổi theme không đổi nội dung trang.
+5. **Người dùng**: vai trò `admin` (xuất bản, cài đặt) và `editor` (chỉ lưu nháp).
+6. **Thương hiệu, theme, plugin** khai báo trong một file: `apps/studio/hosso.config.ts`. Muốn thêm theme: thêm package theme và một dòng trong `themes`. Gỡ plugin: xóa import và mục `plugins`; block của plugin bị bỏ qua, site vẫn chạy (Payload sẽ hỏi xác nhận xóa bảng cài đặt của plugin khi khởi động ở chế độ dev).
 
 ## 3. Kết nối Hosso WIM (plugin, tùy chọn)
 

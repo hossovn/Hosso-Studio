@@ -7,6 +7,12 @@ export const strings = {
   'contact.error': 'Không gửi được, vui lòng thử lại.',
   'hero.eyebrow': '// PHỤ TÙNG & KỸ THUẬT',
   'nav.skip': 'Bỏ qua đến nội dung chính',
+  'nav.main': 'Menu chính',
+  'nav.menu': 'Menu',
+  'footer.contact': 'Liên hệ',
+  'footer.follow': 'Theo dõi',
+  'contact.call': 'Gọi điện',
+  'contact.zalo': 'Zalo',
   'block.missing': 'Thiếu plugin hoặc block không còn được hỗ trợ',
 } as const
 

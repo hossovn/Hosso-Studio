@@ -1,4 +1,5 @@
-import { t, type BlockRenderer, type Theme, type ThemeManifest } from '@hosso/studio-blocks'
+import { SiteNav, t, type BlockRenderer, type SiteChrome, type Theme, type ThemeManifest } from '@hosso/studio-blocks'
+import type React from 'react'
 import manifest from '../theme.json'
 import { css } from './styles'
 
@@ -94,7 +95,7 @@ const ContactForm: BlockRenderer = ({ id, heading, description, submitLabel }) =
   </section>
 )
 
-const Footer: BlockRenderer = ({ text, links }) => (
+const FooterBlock: BlockRenderer = ({ text, links }) => (
   <footer className="ha-footer">
     <div className="ha-wrap ha-cols">
       <small>{text}</small>
@@ -109,10 +110,85 @@ const Footer: BlockRenderer = ({ text, links }) => (
   </footer>
 )
 
+const zaloHref = (z: string) => (/^https?:/.test(z) ? z : `https://zalo.me/${z.replace(/\D/g, '')}`)
+
+const Header = ({ chrome, actions }: { chrome: SiteChrome; actions?: React.ReactNode }) => (
+  <header className="ha-header">
+    {chrome.announcement && <div className="ha-announce">{chrome.announcement}</div>}
+    <div className="ha-wrap ha-header-row">
+      <a className="ha-brand" href="/">
+        {chrome.logoUrl ? <img src={chrome.logoUrl} alt={chrome.siteName} height={36} /> : chrome.siteName}
+      </a>
+      <SiteNav items={chrome.headerMenu} cls="ha-nav" />
+      {actions && <div className="ha-header-actions">{actions}</div>}
+    </div>
+  </header>
+)
+
+const Footer = ({ chrome }: { chrome: SiteChrome }) => {
+  const { contact } = chrome
+  return (
+    <footer className="ha-sitefooter">
+      <div className="ha-wrap ha-footer-grid">
+        <div>
+          <strong>{chrome.siteName}</strong>
+          {contact.address && <p>{contact.address}</p>}
+          {contact.phone && (
+            <p>
+              <a href={`tel:${contact.phone.replace(/\s/g, '')}`}>{contact.phone}</a>
+            </p>
+          )}
+          {contact.email && (
+            <p>
+              <a href={`mailto:${contact.email}`}>{contact.email}</a>
+            </p>
+          )}
+        </div>
+        {!!chrome.footerMenu.length && (
+          <ul>
+            {chrome.footerMenu.map((i, n) => (
+              <li key={n}>
+                <a href={i.href}>{i.label}</a>
+              </li>
+            ))}
+          </ul>
+        )}
+        {!!chrome.social.length && (
+          <ul>
+            {chrome.social.map((i, n) => (
+              <li key={n}>
+                <a href={i.href} rel="noopener noreferrer">
+                  {i.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      {chrome.footerText && (
+        <div className="ha-wrap">
+          <small>{chrome.footerText}</small>
+        </div>
+      )}
+      {(contact.phone || contact.zalo) && (
+        <div className="ha-float">
+          {contact.zalo && (
+            <a href={zaloHref(contact.zalo)} rel="noopener noreferrer">
+              {t('contact.zalo')}
+            </a>
+          )}
+          {contact.phone && <a href={`tel:${contact.phone.replace(/\s/g, '')}`}>{t('contact.call')}</a>}
+        </div>
+      )}
+    </footer>
+  )
+}
+
 export const theme: Theme = {
   manifest: manifest as ThemeManifest,
   css,
-  renderers: { Hero, Text, Image, Features, ContactForm, Footer },
+  renderers: { Hero, Text, Image, Features, ContactForm, Footer: FooterBlock },
+  layout: { Header, Footer },
 }
 
 export default theme
