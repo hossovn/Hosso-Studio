@@ -1,7 +1,8 @@
 # Hosso Studio: image chạy được với Postgres. Build: docker compose build
 FROM node:24-slim AS base
-ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH NEXT_TELEMETRY_DISABLED=1
-RUN corepack enable
+ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH NEXT_TELEMETRY_DISABLED=1 COREPACK_HOME=/opt/corepack
+# Tải sẵn pnpm lúc build để container không phải tải lại khi chạy.
+RUN corepack enable && corepack prepare pnpm@10.34.6 --activate && chmod -R a+rX /opt/corepack
 WORKDIR /app
 
 FROM base AS build

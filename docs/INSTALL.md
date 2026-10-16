@@ -59,7 +59,7 @@ docker compose up --build
 
 Migration Postgres được sinh sẵn trong `apps/studio/src/migrations` cho bản phân phối đầy đủ (có plugin WIM). Nếu thêm plugin có bảng riêng: `HOSSO_DATABASE_URL=postgres://... pnpm --filter @hosso/studio payload migrate:create <tên>`.
 
-> Ghi chú PoC: Dockerfile và compose đã được kiểm tra cú pháp (`docker compose config`), build production và migration đã chạy thật trên Postgres, nhưng chưa chạy `docker compose up` vì Docker Desktop trên máy phát triển không khởi động được engine trong phiên làm việc này.
+> Đã kiểm tra thật (17/10/2026, Docker Desktop 4.55): `docker compose up --build` dựng image, Postgres healthy, container tự chạy migration và báo healthy; nhập gói site bằng `studio-tools` thành công; WIM mock ở máy host truy cập qua `HOSSO_WIM_API_URL=http://host.docker.internal:4010`. Lưu ý nhỏ: container vẫn in thông báo Corepack tải pnpm khi chạy `studio-tools`.
 
 ## 5. Xuất / nhập gói site
 
