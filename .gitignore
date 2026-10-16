@@ -1,0 +1,13 @@
+node_modules
+.next
+dist
+.env
+.env.local
+*.db
+*.db-*
+apps/studio/data
+apps/studio/media
+apps/studio/next-env.d.ts
+*.tsbuildinfo
+.codegraph
+apps/studio/AGENTS.md

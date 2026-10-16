@@ -1,0 +1,29 @@
+{
+  "name": "hosso-studio",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.34.6",
+  "engines": {
+    "node": ">=22.15",
+    "pnpm": ">=10"
+  },
+  "scripts": {
+    "dev": "node scripts/ensure-env.mjs && pnpm --filter @hosso/studio dev",
+    "build": "pnpm --filter @hosso/studio build",
+    "start": "pnpm --filter @hosso/studio start",
+    "check:boundaries": "node scripts/check-boundaries.mjs",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "pnpm": {
+    "overrides": {
+      "react": "19.3.1",
+      "react-dom": "19.3.1",
+      "sharp": "-"
+    },
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "unrs-resolver"
+    ]
+  }
+}
