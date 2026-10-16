@@ -1,10 +1,12 @@
 import { createElement } from 'react'
 import { MediaField } from './MediaField'
+import { CategoryGrid, TrustBar } from './CoreExtras'
+import { PostList } from './PostList'
 import { t } from './strings.vi'
-import type { BlockField, BlockSchema, HossoPlugin, Theme } from './types'
+import type { BlockField, BlockRenderer, BlockSchema, HossoPlugin, Theme } from './types'
 
 const toPuckField = (f: BlockField): any => {
-  if (f.type === 'media') return { type: 'custom', label: f.label, render: ({ value, onChange, readOnly }: any) => createElement(MediaField, { value, onChange, readOnly }) }
+  if (f.type === 'media') return { type: 'custom', label: f.label, render: ({ value, onChange, readOnly }: any) => createElement(MediaField, { value, onChange, readOnly, kind: f.kind }) }
   if (f.type !== 'array') return f
   const first = Object.keys(f.arrayFields)[0]
   return {
@@ -13,6 +15,9 @@ const toPuckField = (f: BlockField): any => {
     getItemSummary: (item: Record<string, unknown>, i: number) => String(item?.[first] || `Mục ${i + 1}`),
   }
 }
+
+// Renderer dự phòng của lõi khi theme không có renderer riêng.
+const coreFallback: Record<string, BlockRenderer> = { PostList, TrustBar, CategoryGrid }
 
 const Missing = ({ type }: { type?: string }) =>
   createElement('div', { className: 'hs-missing', role: 'note' }, `${t('block.missing')}: ${type ?? ''}`)
@@ -35,7 +40,7 @@ export function buildPuckConfig(opts: {
   const components: Record<string, any> = {}
 
   for (const s of schemas) {
-    const render = theme.renderers[s.type] ?? fallback(s.type)
+    const render = theme.renderers[s.type] ?? coreFallback[s.type] ?? fallback(s.type)
     if (!render) {
       if (mode === 'render') continue
       components[s.type] = { label: s.label, fields: {}, defaultProps: {}, render: () => createElement(Missing, { type: s.type }) }

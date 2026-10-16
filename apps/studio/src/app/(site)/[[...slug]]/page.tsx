@@ -7,7 +7,7 @@ import { notFound } from 'next/navigation'
 import { getPayload } from 'payload'
 import React from 'react'
 
-import { attachBlockData, loadSite, renderConfig } from '@/lib/site'
+import { attachBlockData, loadSite, mediaUrl, renderConfig } from '@/lib/site'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,6 +26,7 @@ async function getPage(slug?: string[], preview?: string) {
     limit: 1,
     draft: Boolean(user),
     user,
+    depth: 1,
     overrideAccess: false,
   })
   return docs[0]
@@ -33,7 +34,17 @@ async function getPage(slug?: string[], preview?: string) {
 
 export async function generateMetadata({ params, searchParams }: Args): Promise<Metadata> {
   const page = await getPage((await params).slug, (await searchParams).preview as string | undefined)
-  return page ? { title: page.title, description: page.description ?? undefined } : {}
+  if (!page) return {}
+  const seo = (page.seo ?? {}) as { title?: string; image?: unknown; noindex?: boolean }
+  const image = mediaUrl(seo.image)
+  const title = seo.title || page.title
+  return {
+    title: page.slug === 'home' ? { absolute: seo.title || (await loadSite()).chrome.siteName } : title,
+    description: page.description ?? undefined,
+    robots: seo.noindex ? { index: false, follow: false } : undefined,
+    alternates: { canonical: page.slug === 'home' ? '/' : `/${page.slug}` },
+    openGraph: { title, description: page.description ?? undefined, type: 'website', images: image ? [image] : undefined },
+  }
 }
 
 export default async function Page({ params, searchParams }: Args) {

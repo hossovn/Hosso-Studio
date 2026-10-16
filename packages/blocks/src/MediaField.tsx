@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 type Doc = { id: string | number; filename?: string; alt?: string; mimeType?: string }
 
 const urlOf = (d: Doc) => `/api/media/file/${encodeURIComponent(d.filename ?? '')}`
-const isImage = (d: Doc) => d.mimeType?.startsWith('image/')
+const matches = (d: Doc, kind: 'image' | 'video') => d.mimeType?.startsWith(`${kind}/`)
 
 const box: React.CSSProperties = { display: 'grid', gap: 8 }
 const btn: React.CSSProperties = { padding: '6px 10px', border: '1px solid #c9ccd1', borderRadius: 4, background: '#fff', cursor: 'pointer', font: 'inherit', fontSize: 13 }
@@ -13,7 +13,7 @@ const btn: React.CSSProperties = { padding: '6px 10px', border: '1px solid #c9cc
  * Trường chọn ảnh cho trình dựng: chọn từ thư viện Media, tải ảnh lên, hoặc dán địa chỉ.
  * Giá trị lưu là URL (chuỗi) nên nội dung trang không phụ thuộc id media và export/import không cần ánh xạ lại.
  */
-export function MediaField({ value, onChange, readOnly }: { value?: string; onChange: (v: string) => void; readOnly?: boolean }) {
+export function MediaField({ value, onChange, readOnly, kind = 'image' }: { value?: string; onChange: (v: string) => void; readOnly?: boolean; kind?: 'image' | 'video' }) {
   const [open, setOpen] = useState(false)
   const [docs, setDocs] = useState<Doc[]>([])
   const [busy, setBusy] = useState(false)
@@ -43,14 +43,14 @@ export function MediaField({ value, onChange, readOnly }: { value?: string; onCh
 
   return (
     <div style={box}>
-      {value && /\.(png|jpe?g|gif|webp|svg|avif)(\?|$)/i.test(value) && (
+      {kind === 'image' && value && /\.(png|jpe?g|gif|webp|svg|avif)(\?|$)/i.test(value) && (
         <img src={value} alt="" style={{ maxWidth: '100%', maxHeight: 120, objectFit: 'contain', background: '#f3f4f6', borderRadius: 4 }} />
       )}
       <input
         type="text"
         value={value ?? ''}
         readOnly={readOnly}
-        placeholder="/api/media/file/anh.jpg hoặc https://…"
+        placeholder={kind === 'video' ? 'Link YouTube/Vimeo hoặc tệp video' : '/api/media/file/anh.jpg hoặc https://…'}
         onChange={(e) => onChange(e.target.value)}
         style={{ padding: 8, border: '1px solid #c9ccd1', borderRadius: 4, font: 'inherit' }}
       />
@@ -59,8 +59,8 @@ export function MediaField({ value, onChange, readOnly }: { value?: string; onCh
           {open ? 'Đóng thư viện' : 'Chọn từ thư viện'}
         </button>
         <label style={{ ...btn, display: 'inline-block' }}>
-          {busy ? 'Đang tải lên…' : 'Tải ảnh lên'}
-          <input type="file" accept="image/*" hidden disabled={busy} onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
+          {busy ? 'Đang tải lên…' : kind === 'video' ? 'Tải video lên' : 'Tải ảnh lên'}
+          <input type="file" accept={kind === 'video' ? 'video/*' : 'image/*'} hidden disabled={busy} onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
         </label>
         {value && (
           <button type="button" style={btn} onClick={() => onChange('')}>
@@ -72,7 +72,7 @@ export function MediaField({ value, onChange, readOnly }: { value?: string; onCh
       {open && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, maxHeight: 240, overflow: 'auto' }}>
           {docs.length === 0 && <span style={{ gridColumn: '1 / -1', fontSize: 13 }}>Thư viện trống.</span>}
-          {docs.filter(isImage).map((d) => (
+          {docs.filter((d) => matches(d, kind)).map((d) => (
             <button
               key={d.id}
               type="button"
@@ -83,7 +83,7 @@ export function MediaField({ value, onChange, readOnly }: { value?: string; onCh
               }}
               style={{ ...btn, padding: 2, aspectRatio: '1', display: 'grid', placeItems: 'center', overflow: 'hidden' }}
             >
-              <img src={urlOf(d)} alt={d.alt ?? ''} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'cover' }} />
+              {kind === 'video' ? <span style={{ fontSize: 11, wordBreak: 'break-all' }}>{d.filename}</span> : <img src={urlOf(d)} alt={d.alt ?? ''} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'cover' }} />}
             </button>
           ))}
         </div>

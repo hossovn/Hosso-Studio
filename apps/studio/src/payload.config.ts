@@ -11,6 +11,7 @@ import hosso from '@hosso-config'
 import { ContactMessages } from './collections/ContactMessages'
 import { Media } from './collections/Media'
 import { Pages } from './collections/Pages'
+import { Posts } from './collections/Posts'
 import { SiteSettings } from './globals/SiteSettings'
 import { Users } from './collections/Users'
 import { ensureAdmin, seedIfEmpty } from './lib/seed'
@@ -37,15 +38,20 @@ const base: Config = {
     components: {
       graphics: { Logo: '/components/admin/Logo#Logo', Icon: '/components/admin/Logo#Icon' },
       providers: ['/components/admin/BrandStyle#BrandStyle'],
+      beforeDashboard: ['/components/admin/GettingStarted#GettingStarted'],
     },
   },
   i18n: { supportedLanguages: { vi, en }, fallbackLanguage: 'vi' },
-  collections: [Pages, Media, ContactMessages, Users],
+  collections: [Pages, Posts, Media, ContactMessages, Users],
   globals: [SiteSettings],
   typescript: { outputFile: path.resolve(dirname, 'payload-types.ts') },
   db: isPostgres
     ? postgresAdapter({ pool: { connectionString: databaseUrl }, migrationDir: path.resolve(dirname, 'migrations') })
-    : sqliteAdapter({ client: { url: databaseUrl } }),
+    : sqliteAdapter({
+        client: { url: databaseUrl },
+        // Lệnh studio:export/import chạy song song với dev server: không đẩy lại schema lên DB đã có (tránh xung đột index của SQLite).
+        push: process.env.HOSSO_SCRIPT === '1' && fs.existsSync(databaseUrl.slice('file:'.length)) ? false : undefined,
+      }),
   // Health check cho Docker/dịch vụ deploy: GET /api/health
   endpoints: [
     {

@@ -67,7 +67,8 @@ export const loadProductGrid = guarded(async (cfg, props, ctx) => {
     brand: first(sp.brand) || props.brand || undefined,
     condition: first(sp.condition) || (props.condition && props.condition !== 'any' ? props.condition : undefined),
   }
-  const page = int(first(sp.page)) ?? 1
+  const paged = props.pager !== 'no'
+  const page = paged ? (int(first(sp.page)) ?? 1) : 1
   const result = await wimGet<ProductPage>(
     cfg,
     '/v1/products',
@@ -91,7 +92,7 @@ export const loadProductGrid = guarded(async (cfg, props, ctx) => {
   } catch {}
   for (const c of cfg.categoryMap) categoryNames[c.wimCategoryId] = c.label // quản trị viên ánh xạ tên riêng
 
-  return { ...result, filters: { ...filters, ...vehicle }, vehicleLabel, categoryNames, detailPath: props.detailPath || '/chi-tiet' }
+  return { ...result, paged, filters: { ...filters, ...vehicle }, vehicleLabel, categoryNames, detailPath: props.detailPath || '/chi-tiet' }
 })
 
 export const loadProductDetail = guarded(async (cfg, props, ctx) => {

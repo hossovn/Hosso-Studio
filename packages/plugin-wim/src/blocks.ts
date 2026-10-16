@@ -29,6 +29,7 @@ export const productGrid: BlockSchema<{
   condition: string
   useSelectedVehicle: string
   detailPath: string
+  pager: string
 }> = {
   type: 'WimProductGrid',
   label: 'Lưới sản phẩm',
@@ -55,8 +56,16 @@ export const productGrid: BlockSchema<{
       ],
     },
     detailPath: { type: 'text', label: 'Trang chi tiết sản phẩm (đường dẫn)' },
+    pager: {
+      type: 'radio',
+      label: 'Hiện phân trang',
+      options: [
+        { label: 'Có', value: 'yes' },
+        { label: 'Không (dùng cho mục sản phẩm nổi bật)', value: 'no' },
+      ],
+    },
   },
-  defaultProps: { heading: 'Phụ tùng', pageSize: 12, category: '', brand: '', condition: 'any', useSelectedVehicle: 'yes', detailPath: '/chi-tiet' },
+  defaultProps: { heading: 'Phụ tùng', pageSize: 12, category: '', brand: '', condition: 'any', useSelectedVehicle: 'yes', detailPath: '/chi-tiet', pager: 'yes' },
 }
 
 export const productDetail: BlockSchema<{ backPath: string; cartPath: string }> = {

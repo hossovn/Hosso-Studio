@@ -1,0 +1,25 @@
+{
+  "name": "shop",
+  "title": "Cửa hàng phụ tùng",
+  "version": "0.1.0",
+  "studio": "^0.1.0",
+  "preview": "preview.svg",
+  "pluginBlocks": ["WimVehicleSelector", "WimProductSearch", "WimProductGrid", "WimProductDetail", "WimCart", "WimCheckout", "WimOrderStatus"],
+  "tokens": {
+    "colors": {
+      "bg": "#ffffff",
+      "surface": "#f3f4f6",
+      "text": "#111827",
+      "muted": "#4b5563",
+      "primary": "#b45309",
+      "onPrimary": "#ffffff",
+      "border": "#e5e7eb",
+      "accent": "#f59e0b",
+      "onAccent": "#111827",
+      "dark": "#111827"
+    },
+    "fonts": { "body": "be-vietnam-pro", "heading": "be-vietnam-pro" },
+    "radius": "6px",
+    "spacing": "1rem"
+  }
+}

@@ -14,11 +14,20 @@ const payload = await getPayload({ config })
 const files: Record<string, Uint8Array> = {}
 const json = (name: string, data: unknown) => (files[name] = strToU8(JSON.stringify(data, null, 2)))
 
-// Trang: bản đã xuất bản (hoặc bản nháp nếu chưa từng xuất bản).
-const pages = await payload.find({ collection: 'pages', limit: 1000, depth: 0, pagination: false, draft: false, overrideAccess: true })
+// Ảnh liên kết (cover, seo.image) xuất theo tên tệp media vì id khác nhau giữa các cài đặt.
+const fileOf = (m: any) => (m && typeof m === 'object' && m.filename ? { filename: m.filename } : null)
+const seoOf = (d: any) => (d.seo ? { title: d.seo.title ?? null, noindex: d.seo.noindex ?? false, image: fileOf(d.seo.image) } : undefined)
+
+// Trang và bài viết: bản đã xuất bản (hoặc bản nháp nếu chưa từng xuất bản).
+const pages = await payload.find({ collection: 'pages', limit: 1000, depth: 1, pagination: false, draft: false, overrideAccess: true })
 json(
   'data/pages.json',
-  pages.docs.map((p) => ({ title: p.title, slug: p.slug, description: p.description, content: p.content, status: p._status ?? 'draft' })),
+  pages.docs.map((p) => ({ title: p.title, slug: p.slug, description: p.description, content: p.content, seo: seoOf(p), status: p._status ?? 'draft' })),
+)
+const posts = await payload.find({ collection: 'posts', limit: 1000, depth: 1, pagination: false, draft: false, overrideAccess: true })
+json(
+  'data/posts.json',
+  posts.docs.map((p) => ({ title: p.title, slug: p.slug, excerpt: p.excerpt, publishedAt: p.publishedAt, cover: fileOf(p.cover), content: p.content, seo: seoOf(p), status: p._status ?? 'draft' })),
 )
 
 // Cấu hình site (theme + token). Bỏ các trường hệ thống.
@@ -63,11 +72,11 @@ json('manifest.json', {
   exportedAt: new Date().toISOString(),
   themes: hosso.themes.map((t) => `${t.manifest.name}@${t.manifest.version}`),
   plugins: hosso.plugins.map((p) => p.id),
-  counts: { pages: pages.docs.length, media: mediaMeta.length },
+  counts: { pages: pages.docs.length, posts: posts.docs.length, media: mediaMeta.length },
   secretsOmitted,
 })
 
 fs.writeFileSync(out, zipSync(files))
-console.log(`Đã xuất ${pages.docs.length} trang, ${mediaMeta.length} media -> ${out}`)
+console.log(`Đã xuất ${pages.docs.length} trang, ${posts.docs.length} bài viết, ${mediaMeta.length} media -> ${out}`)
 if (secretsOmitted.length) console.log(`Không kèm bí mật: ${secretsOmitted.join(', ')} (nhập lại trong admin hoặc đặt bằng biến môi trường HOSSO_WIM_*).`)
 process.exit(0)

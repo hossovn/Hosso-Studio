@@ -1,6 +1,6 @@
 import type { BlockSchema } from './types'
 
-export const hero: BlockSchema<{ title: string; subtitle: string; ctaLabel: string; ctaHref: string }> = {
+export const hero: BlockSchema<{ title: string; subtitle: string; ctaLabel: string; ctaHref: string; image: string }> = {
   type: 'Hero',
   label: 'Banner chính',
   fields: {
@@ -8,8 +8,9 @@ export const hero: BlockSchema<{ title: string; subtitle: string; ctaLabel: stri
     subtitle: { type: 'textarea', label: 'Mô tả' },
     ctaLabel: { type: 'text', label: 'Nhãn nút' },
     ctaHref: { type: 'text', label: 'Liên kết nút' },
+    image: { type: 'media', label: 'Ảnh nền (tùy chọn)' },
   },
-  defaultProps: { title: 'Tiêu đề banner', subtitle: '', ctaLabel: 'Xem ngay', ctaHref: '#' },
+  defaultProps: { title: 'Tiêu đề banner', subtitle: '', ctaLabel: 'Xem ngay', ctaHref: '#', image: '' },
 }
 
 export const text: BlockSchema<{ heading: string; body: string }> = {
@@ -31,6 +32,17 @@ export const image: BlockSchema<{ src: string; alt: string; caption: string }> =
     caption: { type: 'text', label: 'Chú thích' },
   },
   defaultProps: { src: '', alt: '', caption: '' },
+}
+
+export const video: BlockSchema<{ url: string; title: string; caption: string }> = {
+  type: 'Video',
+  label: 'Video',
+  fields: {
+    url: { type: 'media', kind: 'video', label: 'Video (link YouTube/Vimeo hoặc tệp tải lên)' },
+    title: { type: 'text', label: 'Tiêu đề video (cho người dùng đọc màn hình)' },
+    caption: { type: 'text', label: 'Chú thích' },
+  },
+  defaultProps: { url: '', title: '', caption: '' },
 }
 
 export const features: BlockSchema<{ heading: string; items: { title: string; description: string }[] }> = {
@@ -74,4 +86,47 @@ export const footer: BlockSchema<{ text: string; links: { label: string; href: s
   defaultProps: { text: '', links: [] },
 }
 
-export const coreBlocks: BlockSchema<any>[] = [hero, text, image, features, contactForm, footer]
+export const trustBar: BlockSchema<{ items: { text: string }[] }> = {
+  type: 'TrustBar',
+  label: 'Thanh cam kết',
+  fields: { items: { type: 'array', label: 'Cam kết', arrayFields: { text: { type: 'text', label: 'Nội dung' } }, defaultItemProps: { text: 'Cam kết' } } },
+  defaultProps: { items: [{ text: 'Hỗ trợ 24/7' }, { text: 'Giao toàn quốc' }, { text: 'Hàng chính hãng' }] },
+}
+
+export const categoryGrid: BlockSchema<{ heading: string; items: { label: string; href: string; image: string }[] }> = {
+  type: 'CategoryGrid',
+  label: 'Lưới danh mục (có ảnh)',
+  fields: {
+    heading: { type: 'text', label: 'Tiêu đề' },
+    items: {
+      type: 'array',
+      label: 'Danh mục',
+      arrayFields: { label: { type: 'text', label: 'Tên' }, href: { type: 'text', label: 'Liên kết' }, image: { type: 'media', label: 'Ảnh' } },
+      defaultItemProps: { label: 'Danh mục', href: '/san-pham', image: '' },
+    },
+  },
+  defaultProps: { heading: 'Danh mục sản phẩm', items: [] },
+}
+
+export const postList: BlockSchema<{ heading: string; count: number; paginate: string }> = {
+  type: 'PostList',
+  label: 'Danh sách bài viết',
+  fields: {
+    heading: { type: 'text', label: 'Tiêu đề' },
+    count: { type: 'number', label: 'Số bài mỗi trang' },
+    paginate: {
+      type: 'radio',
+      label: 'Phân trang',
+      options: [
+        { label: 'Có', value: 'yes' },
+        { label: 'Không', value: 'no' },
+      ],
+    },
+  },
+  defaultProps: { heading: 'Bài viết mới', count: 6, paginate: 'no' },
+}
+
+/** Block của lõi cần dữ liệu server (xem lib/core-loaders.ts trong app). */
+export const CORE_LOADER_TYPES = ['PostList']
+
+export const coreBlocks: BlockSchema<any>[] = [hero, text, image, video, features, categoryGrid, trustBar, postList, contactForm, footer]

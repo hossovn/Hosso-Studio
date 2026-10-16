@@ -2,6 +2,7 @@ import { defineHossoConfig } from '@hosso/studio-blocks'
 import wim from '@hosso/plugin-wim'
 import altTheme from '@hosso/theme-alt'
 import defaultTheme from '@hosso/theme-default'
+import shopTheme from '@hosso/theme-shop'
 
 // Nơi duy nhất khai báo thương hiệu, theme và plugin của site.
 export default defineHossoConfig({
@@ -13,7 +14,7 @@ export default defineHossoConfig({
     mark: '/brand/mark.svg',
     favicon: '/brand/wordmark.svg',
   },
-  themes: [defaultTheme, altTheme],
+  themes: [defaultTheme, altTheme, shopTheme],
   // Gỡ plugin: xóa dòng import ở trên và `wim` ở đây; Studio vẫn chạy, block của plugin bị bỏ qua.
   plugins: [wim],
 })

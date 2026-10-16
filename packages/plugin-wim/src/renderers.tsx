@@ -74,8 +74,8 @@ export const ProductGrid: BlockRenderer = ({ heading, data }) => {
       </Section>
     )
   }
-  const { items, total, page, pageSize, filters, vehicleLabel, detailPath, categoryNames } = d as any
-  const pages = Math.max(1, Math.ceil(total / pageSize))
+  const { items, total, page, pageSize, filters, vehicleLabel, detailPath, categoryNames, paged } = d as any
+  const pages = paged === false ? 1 : Math.max(1, Math.ceil(total / pageSize))
   return (
     <Section heading={heading}>
       {vehicleLabel && (
