@@ -1,23 +1,18 @@
 import { t } from '@hosso/studio-blocks'
-import { Be_Vietnam_Pro } from 'next/font/google'
 import React from 'react'
 
-import { activeTheme, tokenCss } from '@/lib/site'
+import { fontClassNames } from '@/lib/fonts'
+import { loadSite } from '@/lib/site'
 
-const font = Be_Vietnam_Pro({
-  subsets: ['vietnamese', 'latin'],
-  weight: ['400', '600', '700'],
-  variable: '--font-sans',
-  display: 'swap',
-})
+export const dynamic = 'force-dynamic'
 
-export default function SiteLayout({ children }: { children: React.ReactNode }) {
-  const theme = activeTheme()
+export default async function SiteLayout({ children }: { children: React.ReactNode }) {
+  const { css } = await loadSite()
   return (
-    <html lang="vi" className={font.variable}>
+    <html lang="vi" className={fontClassNames}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <style>{tokenCss(theme) + theme.css}</style>
+        <style>{css}</style>
       </head>
       <body style={{ margin: 0 }}>
         <div className="hs-theme">

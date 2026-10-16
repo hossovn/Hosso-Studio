@@ -7,7 +7,7 @@ export async function seedIfEmpty(payload: Payload) {
   const email = process.env.HOSSO_ADMIN_EMAIL
   const password = process.env.HOSSO_ADMIN_PASSWORD
   if (email && password && (await payload.count({ collection: 'users' })).totalDocs === 0) {
-    await payload.create({ collection: 'users', data: { email, password } })
+    await payload.create({ collection: 'users', data: { email, password, roles: ['admin'] } })
     payload.logger.info(`Đã tạo tài khoản quản trị: ${email}`)
   }
 

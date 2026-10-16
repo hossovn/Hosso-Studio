@@ -1,0 +1,25 @@
+{
+  "name": "alt",
+  "title": "Kỹ thuật tối",
+  "version": "0.1.0",
+  "studio": "^0.1.0",
+  "preview": "preview.svg",
+  "pluginBlocks": [],
+  "tokens": {
+    "colors": {
+      "bg": "#0b0f14",
+      "surface": "#131a22",
+      "text": "#e7edf3",
+      "muted": "#9aa8b6",
+      "primary": "#ff5a36",
+      "onPrimary": "#0b0f14",
+      "border": "#2a3644"
+    },
+    "fonts": {
+      "body": "be-vietnam-pro",
+      "heading": "barlow"
+    },
+    "radius": "2px",
+    "spacing": "1.1rem"
+  }
+}

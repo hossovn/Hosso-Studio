@@ -5,6 +5,7 @@ export const strings = {
   'contact.message': 'Nội dung',
   'contact.sent': 'Cảm ơn bạn! Chúng tôi sẽ liên hệ sớm.',
   'contact.error': 'Không gửi được, vui lòng thử lại.',
+  'hero.eyebrow': '// PHỤ TÙNG & KỸ THUẬT',
   'nav.skip': 'Bỏ qua đến nội dung chính',
   'block.missing': 'Thiếu plugin hoặc block không còn được hỗ trợ',
 } as const

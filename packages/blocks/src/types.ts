@@ -17,9 +17,17 @@ export type BlockSchema<P extends Record<string, unknown> = Record<string, unkno
 /** Renderer của block do theme cung cấp. `id` là id của block trong JSON trang. */
 export type BlockRenderer<P = any> = ComponentType<P & { id: string }>
 
+/** Font có sẵn (khai báo bằng next/font trong app). Quản trị viên chọn trong admin. */
+export const FONTS = {
+  'be-vietnam-pro': 'Be Vietnam Pro',
+  barlow: 'Barlow',
+  'jetbrains-mono': 'JetBrains Mono',
+} as const
+export type FontId = keyof typeof FONTS
+
 export type ThemeTokens = {
   colors: Record<string, string>
-  fonts: { body: string; heading: string }
+  fonts: { body: FontId; heading: FontId }
   radius: string
   spacing: string
 }

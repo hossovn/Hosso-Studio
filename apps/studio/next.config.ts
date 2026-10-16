@@ -7,7 +7,7 @@ const dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const nextConfig: NextConfig = {
   // Package workspace phát hành TS nguồn, không có bước build riêng.
-  transpilePackages: ['@hosso/studio-blocks', '@hosso/theme-default'],
+  transpilePackages: ['@hosso/studio-blocks', '@hosso/theme-default', '@hosso/theme-alt'],
   // Không dùng sharp (binary libvips là LGPL): tắt tối ưu ảnh của Next, dùng <img> thường.
   images: { unoptimized: true },
   webpack: (webpackConfig) => {

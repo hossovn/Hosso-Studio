@@ -1,34 +1,46 @@
 import config from '@payload-config'
-import type { PageData } from '@hosso/studio-blocks'
+import { stripUnknown, type PageData } from '@hosso/studio-blocks'
+import { Render } from '@puckeditor/core/rsc'
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { getPayload } from 'payload'
 import React from 'react'
 
-import { RenderPage, activeTheme } from '@/lib/site'
+import { loadSite, renderConfig } from '@/lib/site'
 
 export const dynamic = 'force-dynamic'
 
-type Args = { params: Promise<{ slug?: string[] }> }
+type Args = {
+  params: Promise<{ slug?: string[] }>
+  searchParams: Promise<{ preview?: string }>
+}
 
-async function getPage(slug?: string[]) {
+async function getPage(slug?: string[], preview?: string) {
   const payload = await getPayload({ config })
+  // ?preview=1: người đã đăng nhập xem bản nháp mới nhất; khách luôn chỉ thấy bản đã xuất bản.
+  const { user } = preview ? await payload.auth({ headers: await headers() }) : { user: null }
   const { docs } = await payload.find({
     collection: 'pages',
     where: { slug: { equals: slug?.join('/') || 'home' } },
     limit: 1,
-    overrideAccess: false, // khách chỉ thấy bản đã xuất bản
+    draft: Boolean(user),
+    user,
+    overrideAccess: false,
   })
   return docs[0]
 }
 
-export async function generateMetadata({ params }: Args): Promise<Metadata> {
-  const page = await getPage((await params).slug)
+export async function generateMetadata({ params, searchParams }: Args): Promise<Metadata> {
+  const page = await getPage((await params).slug, (await searchParams).preview)
   return page ? { title: page.title, description: page.description ?? undefined } : {}
 }
 
-export default async function Page({ params }: Args) {
-  const page = await getPage((await params).slug)
+export default async function Page({ params, searchParams }: Args) {
+  const page = await getPage((await params).slug, (await searchParams).preview)
   if (!page) notFound()
-  return <RenderPage data={page.content as unknown as PageData} theme={activeTheme()} />
+  const { theme } = await loadSite()
+  const puckConfig = renderConfig(theme)
+  const data = stripUnknown((page.content ?? { content: [] }) as unknown as PageData, puckConfig)
+  return <Render config={puckConfig as any} data={data as any} />
 }

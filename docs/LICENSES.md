@@ -8,7 +8,7 @@ Kiểm tra trực tiếp từ metadata của từng gói (npm registry / repo) v
 | next | 16.4.2 | MIT |
 | react, react-dom | 19.3.1 | MIT |
 | graphql | 16.14.2 | MIT |
-| @puckeditor/core (dùng từ lát 2) | 0.23.0 | MIT |
+| @puckeditor/core | 0.23.0 | MIT |
 | @nestjs/* (mock WIM, dùng từ lát 3) | 11.x | MIT |
 | typescript | 5.9.3 | Apache-2.0 |
 | drizzle-orm (qua Payload) | 0.45.2 | Apache-2.0 |

@@ -91,8 +91,12 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    'site-settings': SiteSetting;
+  };
+  globalsSelect: {
+    'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
@@ -183,6 +187,7 @@ export interface ContactMessage {
  */
 export interface User {
   id: number;
+  roles: ('admin' | 'editor')[];
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -332,6 +337,7 @@ export interface ContactMessagesSelect<T extends boolean = true> {
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
+  roles?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -389,6 +395,138 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings".
+ */
+export interface SiteSetting {
+  id: number;
+  siteName?: string | null;
+  theme: 'default' | 'alt';
+  tokens_default?: {
+    /**
+     * Mặc định: #ffffff
+     */
+    color_bg?: string | null;
+    /**
+     * Mặc định: #f4f5f7
+     */
+    color_surface?: string | null;
+    /**
+     * Mặc định: #14181f
+     */
+    color_text?: string | null;
+    /**
+     * Mặc định: #4b5563
+     */
+    color_muted?: string | null;
+    /**
+     * Mặc định: #b91c1c
+     */
+    color_primary?: string | null;
+    /**
+     * Mặc định: #ffffff
+     */
+    color_onPrimary?: string | null;
+    /**
+     * Mặc định: #e2e5ea
+     */
+    color_border?: string | null;
+    /**
+     * Mặc định: Be Vietnam Pro
+     */
+    fontBody?: ('be-vietnam-pro' | 'barlow' | 'jetbrains-mono') | null;
+    /**
+     * Mặc định: Be Vietnam Pro
+     */
+    fontHeading?: ('be-vietnam-pro' | 'barlow' | 'jetbrains-mono') | null;
+    radius?: string | null;
+    spacing?: string | null;
+  };
+  tokens_alt?: {
+    /**
+     * Mặc định: #0b0f14
+     */
+    color_bg?: string | null;
+    /**
+     * Mặc định: #131a22
+     */
+    color_surface?: string | null;
+    /**
+     * Mặc định: #e7edf3
+     */
+    color_text?: string | null;
+    /**
+     * Mặc định: #9aa8b6
+     */
+    color_muted?: string | null;
+    /**
+     * Mặc định: #ff5a36
+     */
+    color_primary?: string | null;
+    /**
+     * Mặc định: #0b0f14
+     */
+    color_onPrimary?: string | null;
+    /**
+     * Mặc định: #2a3644
+     */
+    color_border?: string | null;
+    /**
+     * Mặc định: Be Vietnam Pro
+     */
+    fontBody?: ('be-vietnam-pro' | 'barlow' | 'jetbrains-mono') | null;
+    /**
+     * Mặc định: Barlow
+     */
+    fontHeading?: ('be-vietnam-pro' | 'barlow' | 'jetbrains-mono') | null;
+    radius?: string | null;
+    spacing?: string | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings_select".
+ */
+export interface SiteSettingsSelect<T extends boolean = true> {
+  siteName?: T;
+  theme?: T;
+  tokens_default?:
+    | T
+    | {
+        color_bg?: T;
+        color_surface?: T;
+        color_text?: T;
+        color_muted?: T;
+        color_primary?: T;
+        color_onPrimary?: T;
+        color_border?: T;
+        fontBody?: T;
+        fontHeading?: T;
+        radius?: T;
+        spacing?: T;
+      };
+  tokens_alt?:
+    | T
+    | {
+        color_bg?: T;
+        color_surface?: T;
+        color_text?: T;
+        color_muted?: T;
+        color_primary?: T;
+        color_onPrimary?: T;
+        color_border?: T;
+        fontBody?: T;
+        fontHeading?: T;
+        radius?: T;
+        spacing?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

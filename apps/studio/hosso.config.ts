@@ -1,4 +1,5 @@
 import { defineHossoConfig } from '@hosso/studio-blocks'
+import altTheme from '@hosso/theme-alt'
 import defaultTheme from '@hosso/theme-default'
 
 // Nơi duy nhất khai báo thương hiệu, theme và plugin của site.
@@ -11,6 +12,6 @@ export default defineHossoConfig({
     mark: '/brand/mark.svg',
     favicon: '/brand/wordmark.svg',
   },
-  themes: [defaultTheme],
+  themes: [defaultTheme, altTheme],
   plugins: [],
 })

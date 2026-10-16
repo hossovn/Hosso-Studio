@@ -11,6 +11,7 @@ import hosso from '@hosso-config'
 import { ContactMessages } from './collections/ContactMessages'
 import { Media } from './collections/Media'
 import { Pages } from './collections/Pages'
+import { SiteSettings } from './globals/SiteSettings'
 import { Users } from './collections/Users'
 import { seedIfEmpty } from './lib/seed'
 
@@ -40,6 +41,7 @@ export default buildConfig({
   },
   i18n: { supportedLanguages: { vi, en }, fallbackLanguage: 'vi' },
   collections: [Pages, Media, ContactMessages, Users],
+  globals: [SiteSettings],
   typescript: { outputFile: path.resolve(dirname, 'payload-types.ts') },
   db: isPostgres
     ? postgresAdapter({ pool: { connectionString: databaseUrl } })

@@ -16,8 +16,8 @@
       "border": "#e2e5ea"
     },
     "fonts": {
-      "body": "var(--font-sans), system-ui, sans-serif",
-      "heading": "var(--font-sans), system-ui, sans-serif"
+      "body": "be-vietnam-pro",
+      "heading": "be-vietnam-pro"
     },
     "radius": "10px",
     "spacing": "1rem"

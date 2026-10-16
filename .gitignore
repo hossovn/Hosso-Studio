@@ -11,3 +11,4 @@ apps/studio/next-env.d.ts
 *.tsbuildinfo
 .codegraph
 apps/studio/AGENTS.md
+.tmp
