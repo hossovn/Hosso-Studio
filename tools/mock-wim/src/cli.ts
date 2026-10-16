@@ -3,7 +3,7 @@ import { existsSync, rmSync } from 'node:fs'
 import { ChaosMode, Store, stateFile } from './store'
 
 // Lệnh điều khiển mock từ ngoài (không mở thêm endpoint HTTP). Ví dụ:
-//   pnpm --filter @hosso/mock-wim mock chaos slow|timeout|error|out_of_stock|no-compat|off
+//   pnpm --filter @hosso/mock-wim mock chaos slow|timeout|error|out_of_stock|no-compat|order-timeout|off
 //   pnpm --filter @hosso/mock-wim mock price P001 900000
 //   pnpm --filter @hosso/mock-wim mock stock P001 hn 3
 //   pnpm --filter @hosso/mock-wim mock order-status WO-000001 confirmed
@@ -15,7 +15,7 @@ const pos = args.filter((a) => !a.startsWith('--'))
 const store = new Store()
 const state = store.get()
 
-const MODES: ChaosMode[] = ['off', 'slow', 'timeout', 'error', 'out_of_stock', 'no-compat']
+const MODES: ChaosMode[] = ['off', 'slow', 'timeout', 'error', 'out_of_stock', 'no-compat', 'order-timeout']
 
 async function webhook(type: string, id: string) {
   const url = process.env.MOCK_WIM_WEBHOOK_URL || 'http://localhost:3000/api/plugins/wim/webhook'

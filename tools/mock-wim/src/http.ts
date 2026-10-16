@@ -11,7 +11,7 @@ import {
   NestInterceptor,
 } from '@nestjs/common'
 import type { Request, Response } from 'express'
-import { Observable, from, switchMap } from 'rxjs'
+import { Observable, delayWhen, from, switchMap, timer } from 'rxjs'
 import { Store } from './store'
 
 /** Lỗi theo hợp đồng: { error: { code, message, productId? } }. */
@@ -55,8 +55,13 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 export class ChaosInterceptor implements NestInterceptor {
   constructor(private readonly store: Store) {}
 
-  intercept(_: ExecutionContext, next: CallHandler): Observable<unknown> {
+  intercept(ctx: ExecutionContext, next: CallHandler): Observable<unknown> {
     const mode = this.store.get().chaos
+    // order-timeout: WIM đã tạo đơn nhưng phản hồi POST /orders về rất muộn (client timeout rồi thử lại cùng Idempotency-Key).
+    const req = ctx.switchToHttp().getRequest<Request>()
+    if (mode === 'order-timeout' && req.method === 'POST' && req.path === '/v1/orders') {
+      return next.handle().pipe(delayWhen(() => timer(60_000)))
+    }
     const delay = mode === 'slow' ? Number(process.env.MOCK_WIM_SLOW_MS || 6000) : mode === 'timeout' ? 60_000 : 0
     return from(sleep(delay)).pipe(
       switchMap(() => {
