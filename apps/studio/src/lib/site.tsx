@@ -1,6 +1,6 @@
 import config from '@payload-config'
 import hosso from '@hosso-config'
-import { FONTS, buildPuckConfig, coreBlocks, type BlockSchema, type FontId, type Theme } from '@hosso/studio-blocks'
+import { FONTS, buildPuckConfig, coreBlocks, type BlockSchema, type FontId, type MenuItem, type SiteChrome, type Theme } from '@hosso/studio-blocks'
 import { cookies as nextCookies } from 'next/headers'
 import { getPayload } from 'payload'
 
@@ -13,9 +13,13 @@ const fontStack = (id: FontId) =>
 type Overrides = Record<string, string | undefined | null>
 
 /** Theme đang chọn + token đã gộp (token của theme, ghi đè bởi quản trị viên) thành CSS. */
-export async function loadSite(): Promise<{ theme: Theme; css: string; siteName?: string }> {
+const mediaUrl = (m: unknown) => (m && typeof m === 'object' && (m as { filename?: string }).filename ? `/api/media/file/${encodeURIComponent((m as { filename: string }).filename)}` : undefined)
+const menu = (items: any[] | undefined): MenuItem[] =>
+  (items ?? []).map((i) => ({ label: i.label, href: i.href, children: i.children?.length ? i.children.map((c: any) => ({ label: c.label, href: c.href })) : undefined }))
+
+export async function loadSite(): Promise<{ theme: Theme; css: string; siteName?: string; chrome: SiteChrome; favicon: string }> {
   const payload = await getPayload({ config })
-  const settings = (await payload.findGlobal({ slug: 'site-settings' })) as Record<string, any>
+  const settings = (await payload.findGlobal({ slug: 'site-settings', depth: 1 })) as Record<string, any>
   const theme = hosso.themes.find((t) => t.manifest.name === settings.theme) ?? hosso.themes[0]
   const ov: Overrides = settings[`tokens_${theme.manifest.name}`] ?? {}
   const base = theme.manifest.tokens
@@ -28,7 +32,29 @@ export async function loadSite(): Promise<{ theme: Theme; css: string; siteName?
     `--hs-radius:${ov.radius || base.radius}`,
     `--hs-space:${ov.spacing || base.spacing}`,
   ]
-  return { theme, css: `:root{${vars.join(';')}}${theme.css}${hosso.plugins.map((p) => p.css ?? '').join('')}`, siteName: settings.siteName ?? undefined }
+  const siteName = settings.siteName || hosso.brand.name
+  const chrome: SiteChrome = {
+    siteName,
+    logoUrl: mediaUrl(settings.logo),
+    announcement: settings.announcement || undefined,
+    headerMenu: menu(settings.headerMenu),
+    footerMenu: menu(settings.footerMenu),
+    footerText: settings.footerText || undefined,
+    contact: {
+      phone: settings.contact?.phone || undefined,
+      email: settings.contact?.email || undefined,
+      address: settings.contact?.address || undefined,
+      zalo: settings.contact?.zalo || undefined,
+    },
+    social: (settings.social ?? []).map((i: any) => ({ label: i.label, href: i.href })),
+  }
+  return {
+    theme,
+    css: `:root{${vars.join(';')}}${theme.css}${hosso.plugins.map((p) => p.css ?? '').join('')}`,
+    siteName: settings.siteName ?? undefined,
+    chrome,
+    favicon: mediaUrl(settings.favicon) ?? hosso.brand.favicon,
+  }
 }
 
 export const renderConfig = (theme: Theme) =>

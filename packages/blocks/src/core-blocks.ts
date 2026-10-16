@@ -26,7 +26,7 @@ export const image: BlockSchema<{ src: string; alt: string; caption: string }> =
   type: 'Image',
   label: 'Hình ảnh',
   fields: {
-    src: { type: 'text', label: 'Địa chỉ ảnh' },
+    src: { type: 'media', label: 'Ảnh' },
     alt: { type: 'text', label: 'Mô tả ảnh' },
     caption: { type: 'text', label: 'Chú thích' },
   },

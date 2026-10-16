@@ -405,6 +405,59 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
 export interface SiteSetting {
   id: number;
   siteName?: string | null;
+  logo?: (number | null) | Media;
+  favicon?: (number | null) | Media;
+  /**
+   * Một dòng ngắn ở đầu site, ví dụ "Ship COD toàn quốc". Để trống để ẩn.
+   */
+  announcement?: string | null;
+  headerMenu?:
+    | {
+        label: string;
+        /**
+         * Ví dụ /san-pham hoặc https://…
+         */
+        href: string;
+        children?:
+          | {
+              label: string;
+              /**
+               * Ví dụ /san-pham hoặc https://…
+               */
+              href: string;
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  footerMenu?:
+    | {
+        label: string;
+        /**
+         * Ví dụ /san-pham hoặc https://…
+         */
+        href: string;
+        id?: string | null;
+      }[]
+    | null;
+  footerText?: string | null;
+  contact?: {
+    phone?: string | null;
+    email?: string | null;
+    address?: string | null;
+    zalo?: string | null;
+  };
+  social?:
+    | {
+        label: string;
+        /**
+         * Ví dụ /san-pham hoặc https://…
+         */
+        href: string;
+        id?: string | null;
+      }[]
+    | null;
   theme: 'default' | 'alt';
   tokens_default?: {
     /**
@@ -531,6 +584,46 @@ export interface WimSetting {
  */
 export interface SiteSettingsSelect<T extends boolean = true> {
   siteName?: T;
+  logo?: T;
+  favicon?: T;
+  announcement?: T;
+  headerMenu?:
+    | T
+    | {
+        label?: T;
+        href?: T;
+        children?:
+          | T
+          | {
+              label?: T;
+              href?: T;
+              id?: T;
+            };
+        id?: T;
+      };
+  footerMenu?:
+    | T
+    | {
+        label?: T;
+        href?: T;
+        id?: T;
+      };
+  footerText?: T;
+  contact?:
+    | T
+    | {
+        phone?: T;
+        email?: T;
+        address?: T;
+        zalo?: T;
+      };
+  social?:
+    | T
+    | {
+        label?: T;
+        href?: T;
+        id?: T;
+      };
   theme?: T;
   tokens_default?:
     | T

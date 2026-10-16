@@ -32,21 +32,74 @@ const tokenGroup = (theme: (typeof hosso.themes)[number]): Field => {
   }
 }
 
+const link = (name: string, label: string, extra: Field[] = []): Field => ({
+  name,
+  type: 'array',
+  label,
+  labels: { singular: 'Mục', plural: 'Mục' },
+  fields: [
+    { name: 'label', type: 'text', label: 'Tên hiển thị', required: true },
+    { name: 'href', type: 'text', label: 'Đường dẫn', required: true, admin: { description: 'Ví dụ /san-pham hoặc https://…' } },
+    ...extra,
+  ],
+})
+
+const submenu = link('children', 'Menu con (dropdown)')
+
 export const SiteSettings: GlobalConfig = {
   slug: 'site-settings',
   label: 'Giao diện site',
   admin: { group: 'Hệ thống' },
   access: { read: () => true, update: adminOnly },
   fields: [
-    { name: 'siteName', type: 'text', label: 'Tên site' },
     {
-      name: 'theme',
-      type: 'select',
-      label: 'Theme',
-      required: true,
-      defaultValue: hosso.themes[0].manifest.name,
-      options: hosso.themes.map((t) => ({ label: t.manifest.title, value: t.manifest.name })),
+      type: 'tabs',
+      tabs: [
+        {
+          label: 'Thương hiệu',
+          fields: [
+            { name: 'siteName', type: 'text', label: 'Tên site' },
+            { name: 'logo', type: 'upload', relationTo: 'media', label: 'Logo' },
+            { name: 'favicon', type: 'upload', relationTo: 'media', label: 'Favicon (biểu tượng tab trình duyệt)' },
+            { name: 'announcement', type: 'text', label: 'Thông báo trên cùng', admin: { description: 'Một dòng ngắn ở đầu site, ví dụ "Ship COD toàn quốc". Để trống để ẩn.' } },
+          ],
+        },
+        {
+          label: 'Menu',
+          fields: [link('headerMenu', 'Menu đầu trang', [submenu]), link('footerMenu', 'Menu chân trang'), { name: 'footerText', type: 'text', label: 'Dòng chân trang' }],
+        },
+        {
+          label: 'Liên hệ',
+          fields: [
+            {
+              name: 'contact',
+              type: 'group',
+              label: 'Thông tin liên hệ',
+              fields: [
+                { name: 'phone', type: 'text', label: 'Điện thoại' },
+                { name: 'email', type: 'email', label: 'Email' },
+                { name: 'address', type: 'textarea', label: 'Địa chỉ' },
+                { name: 'zalo', type: 'text', label: 'Zalo (số điện thoại hoặc liên kết)' },
+              ],
+            },
+            link('social', 'Mạng xã hội'),
+          ],
+        },
+        {
+          label: 'Giao diện',
+          fields: [
+            {
+              name: 'theme',
+              type: 'select',
+              label: 'Theme',
+              required: true,
+              defaultValue: hosso.themes[0].manifest.name,
+              options: hosso.themes.map((t) => ({ label: t.manifest.title, value: t.manifest.name })),
+            },
+            ...hosso.themes.map(tokenGroup),
+          ],
+        },
+      ],
     },
-    ...hosso.themes.map(tokenGroup),
   ],
 }

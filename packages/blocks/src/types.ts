@@ -1,9 +1,11 @@
+import type React from 'react'
 import type { ComponentType } from 'react'
 import type { Config, Payload } from 'payload'
 
 /** Field của block: tập con tương thích với field của Puck (slice 2 truyền thẳng vào Puck). */
 export type BlockField =
   | { type: 'text' | 'textarea' | 'number'; label?: string }
+  | { type: 'media'; label?: string }
   | { type: 'select' | 'radio'; label?: string; options: { label: string; value: string | number | boolean }[] }
   | { type: 'array'; label?: string; arrayFields: Record<string, BlockField>; defaultItemProps?: Record<string, unknown> }
 
@@ -13,6 +15,27 @@ export type BlockSchema<P extends Record<string, unknown> = Record<string, unkno
   label: string
   fields: Record<keyof P & string, BlockField>
   defaultProps: P
+}
+
+/** Một mục menu (tối đa hai cấp). */
+export type MenuItem = { label: string; href: string; children?: { label: string; href: string }[] }
+
+/** Dữ liệu khung site (header, footer) lấy từ trang "Cài đặt site" trong admin. */
+export type SiteChrome = {
+  siteName: string
+  logoUrl?: string
+  announcement?: string
+  headerMenu: MenuItem[]
+  footerMenu: MenuItem[]
+  footerText?: string
+  contact: { phone?: string; email?: string; address?: string; zalo?: string }
+  social: { label: string; href: string }[]
+}
+
+/** Header/footer do theme cung cấp. `actions` là phần do plugin chèn thêm (ví dụ giỏ hàng). */
+export type ThemeLayout = {
+  Header: ComponentType<{ chrome: SiteChrome; actions?: React.ReactNode }>
+  Footer: ComponentType<{ chrome: SiteChrome }>
 }
 
 /** Renderer của block do theme cung cấp. `id` là id của block trong JSON trang. */
@@ -51,6 +74,7 @@ export type Theme = {
   /** CSS của theme, dùng biến --hs-* do token sinh ra. */
   css: string
   renderers: Record<string, BlockRenderer>
+  layout?: ThemeLayout
 }
 
 export type HossoBrand = {
@@ -82,6 +106,8 @@ export type HossoPlugin = {
   blocks?: BlockSchema<any>[]
   /** Renderer dự phòng khi theme không hỗ trợ block của plugin. */
   fallbackRenderers?: Record<string, BlockRenderer>
+  /** Phần chèn vào header (ví dụ liên kết giỏ hàng); chạy ở trình duyệt. */
+  headerSlot?: ComponentType
   /** CSS của renderer dự phòng, dùng biến --hs-*. */
   css?: string
   /** Thêm collection, global, endpoint vào Payload (chỉ chạy lúc dựng cấu hình Payload). */

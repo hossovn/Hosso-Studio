@@ -3,11 +3,19 @@
   "slug": "gioi-thieu",
   "description": "Giới thiệu cửa hàng phụ tùng ô tô.",
   "content": {
-    "root": { "props": {} },
+    "root": {
+      "props": {}
+    },
     "content": [
       {
         "type": "Hero",
-        "props": { "id": "Hero-about", "title": "Giới thiệu", "subtitle": "Câu chuyện và cam kết của cửa hàng.", "ctaLabel": "", "ctaHref": "" }
+        "props": {
+          "id": "Hero-about",
+          "title": "Giới thiệu",
+          "subtitle": "Câu chuyện và cam kết của cửa hàng.",
+          "ctaLabel": "",
+          "ctaHref": ""
+        }
       },
       {
         "type": "Text",
@@ -15,14 +23,6 @@
           "id": "Text-about",
           "heading": "Cam kết",
           "body": "Hàng chính hãng có nguồn gốc rõ ràng.\n\nHàng thay thế được ghi rõ thương hiệu và thời hạn bảo hành."
-        }
-      },
-      {
-        "type": "Footer",
-        "props": {
-          "id": "Footer-about",
-          "text": "© 2026 Cửa hàng phụ tùng mẫu",
-          "links": [{ "label": "Trang chủ", "href": "/" }]
         }
       }
     ]

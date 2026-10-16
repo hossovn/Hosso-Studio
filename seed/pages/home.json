@@ -3,7 +3,9 @@
   "slug": "home",
   "description": "Phụ tùng ô tô chính hãng và thay thế, tra theo xe hoặc mã phụ tùng.",
   "content": {
-    "root": { "props": {} },
+    "root": {
+      "props": {}
+    },
     "content": [
       {
         "type": "Hero",
@@ -21,9 +23,18 @@
           "id": "Features-home",
           "heading": "Vì sao chọn chúng tôi",
           "items": [
-            { "title": "Tra theo xe", "description": "Chọn hãng, dòng và đời xe để chỉ thấy phụ tùng tương thích." },
-            { "title": "Tra theo mã", "description": "Tìm bằng mã OEM, mã hãng hoặc mã thay thế." },
-            { "title": "Tồn kho theo chi nhánh", "description": "Biết ngay chi nhánh nào còn hàng để đến nhận." }
+            {
+              "title": "Tra theo xe",
+              "description": "Chọn hãng, dòng và đời xe để chỉ thấy phụ tùng tương thích."
+            },
+            {
+              "title": "Tra theo mã",
+              "description": "Tìm bằng mã OEM, mã hãng hoặc mã thay thế."
+            },
+            {
+              "title": "Tồn kho theo chi nhánh",
+              "description": "Biết ngay chi nhánh nào còn hàng để đến nhận."
+            }
           ]
         }
       },
@@ -42,17 +53,6 @@
           "heading": "Cần tư vấn?",
           "description": "Để lại thông tin, chúng tôi gọi lại trong giờ làm việc.",
           "submitLabel": "Gửi liên hệ"
-        }
-      },
-      {
-        "type": "Footer",
-        "props": {
-          "id": "Footer-home",
-          "text": "© 2026 Cửa hàng phụ tùng mẫu",
-          "links": [
-            { "label": "Trang chủ", "href": "/" },
-            { "label": "Giới thiệu", "href": "/gioi-thieu" }
-          ]
         }
       }
     ]

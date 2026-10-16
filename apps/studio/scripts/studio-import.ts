@@ -58,7 +58,14 @@ for (const p of read('data/pages.json') ?? []) {
 
 // Cấu hình site (theme, token) và cấu hình plugin (không có bí mật).
 const site = read('data/site-settings.json')
-if (site) await payload.updateGlobal({ slug: 'site-settings', data: site })
+if (site) {
+  for (const k of ['logo', 'favicon']) {
+    const filename = site[k]?.filename
+    const found = filename ? await payload.find({ collection: 'media', where: { filename: { equals: filename } }, limit: 1, depth: 0 }) : null
+    site[k] = found?.docs[0]?.id ?? null
+  }
+  await payload.updateGlobal({ slug: 'site-settings', data: site })
+}
 for (const plugin of hosso.plugins) {
   for (const g of plugin.portable?.globals ?? []) {
     const data = read(`data/plugins/${g.slug}.json`)

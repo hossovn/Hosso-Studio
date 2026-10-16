@@ -26,7 +26,10 @@ const strip = (doc: Record<string, any>) => {
   const { id, createdAt, updatedAt, globalType, ...rest } = doc
   return rest
 }
-json('data/site-settings.json', strip(await payload.findGlobal({ slug: 'site-settings', overrideAccess: true })))
+// logo/favicon xuất theo tên tệp media (id khác nhau giữa các cài đặt).
+const site = strip(await payload.findGlobal({ slug: 'site-settings', overrideAccess: true, depth: 1 }))
+for (const k of ['logo', 'favicon']) site[k] = site[k] && typeof site[k] === 'object' ? { filename: site[k].filename } : null
+json('data/site-settings.json', site)
 
 // Cấu hình plugin: chỉ các global plugin khai báo là "portable"; trường bí mật bị bỏ khỏi gói.
 const secretsOmitted: string[] = []

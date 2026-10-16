@@ -1,8 +1,10 @@
 import { createElement } from 'react'
+import { MediaField } from './MediaField'
 import { t } from './strings.vi'
 import type { BlockField, BlockSchema, HossoPlugin, Theme } from './types'
 
 const toPuckField = (f: BlockField): any => {
+  if (f.type === 'media') return { type: 'custom', label: f.label, render: ({ value, onChange, readOnly }: any) => createElement(MediaField, { value, onChange, readOnly }) }
   if (f.type !== 'array') return f
   const first = Object.keys(f.arrayFields)[0]
   return {
