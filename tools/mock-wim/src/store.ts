@@ -5,7 +5,7 @@ import type { components } from './api/schema'
 
 type Order = components['schemas']['Order']
 
-export type ChaosMode = 'off' | 'slow' | 'timeout' | 'error' | 'out_of_stock' | 'no-compat'
+export type ChaosMode = 'off' | 'slow' | 'timeout' | 'error' | 'out_of_stock' | 'no-compat' | 'order-timeout'
 
 export type MockState = {
   chaos: ChaosMode

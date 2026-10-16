@@ -2,6 +2,7 @@ import type { Config, Endpoint, FieldHook, GlobalConfig, PayloadRequest } from '
 import { wimGet } from './client'
 import { MASK, SETTINGS_SLUG, clearConfigMemo, getWimConfig } from './config'
 import { encryptSecret, isEncrypted } from './crypto'
+import { placeOrder } from './checkout'
 import { applyEvent, verifyWebhook } from './webhook'
 import { wimFetch } from './client'
 import type { Branch, Named } from './client'
@@ -89,6 +90,21 @@ const endpoints: Endpoint[] = [
         return json({ error: { code: 'bad_request', message: 'Thân không phải JSON' } }, 400)
       }
       return json({ ok: true, refreshed: applyEvent(event) })
+    },
+  },
+  {
+    // Luồng D: khách đặt đơn (kiểm tra tồn kho -> Idempotency-Key -> POST /orders; lỗi mạng thì thử lại cùng khóa).
+    path: '/plugins/wim/checkout',
+    method: 'post',
+    handler: async (req) => {
+      let body: any
+      try {
+        body = await req.json?.()
+      } catch {
+        return json({ ok: false, code: 'bad_request', message: 'Yêu cầu không hợp lệ' }, 400)
+      }
+      const result = await placeOrder(req.payload, body ?? {})
+      return json(result.body, result.status)
     },
   },
   {

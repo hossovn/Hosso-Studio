@@ -13,7 +13,9 @@
     "build": "pnpm --filter @hosso/studio build",
     "start": "pnpm --filter @hosso/studio start",
     "check:boundaries": "node scripts/check-boundaries.mjs",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "check:order-flow": "node scripts/check-order-flow.mjs",
+    "mock:wim": "pnpm --filter @hosso/mock-wim start"
   },
   "pnpm": {
     "overrides": {

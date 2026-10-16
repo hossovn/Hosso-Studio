@@ -1,6 +1,6 @@
 import type { HossoPlugin } from '@hosso/studio-blocks'
 import { wimBlocks } from './blocks'
-import { loadProductDetail, loadProductGrid, loadVehicleSelector } from './loaders'
+import { loadCheckout, loadOrderStatus, loadProductDetail, loadProductGrid, loadVehicleSelector } from './loaders'
 import { applyPayload } from './payload'
 import { fallbackRenderers } from './renderers'
 import { css } from './styles'
@@ -16,6 +16,8 @@ const plugin: HossoPlugin = {
     WimVehicleSelector: loadVehicleSelector,
     WimProductGrid: loadProductGrid,
     WimProductDetail: loadProductDetail,
+    WimCheckout: loadCheckout,
+    WimOrderStatus: loadOrderStatus,
   },
 }
 

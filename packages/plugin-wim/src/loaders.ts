@@ -1,6 +1,6 @@
 import type { BlockLoader, LoadContext } from '@hosso/studio-blocks'
 import { wimGet, WimError } from './client'
-import type { Availability, Branch, Named, Product, ProductPage } from './client'
+import type { Availability, Branch, Named, Order, Product, ProductPage } from './client'
 import { getWimConfig, type WimConfig } from './config'
 
 export type LoadError = { status: 'error'; kind: WimError['kind'] | 'internal' }
@@ -107,6 +107,31 @@ export const loadProductDetail = guarded(async (cfg, props, ctx) => {
     return { product, availability, branches: branches.items, categoryName: product.categoryId && categoryNames[product.categoryId] }
   } catch (e) {
     if (e instanceof WimError && e.status === 404) return { missing: 'notFound' }
+    throw e
+  }
+})
+
+export const loadCheckout = guarded(async (cfg) => {
+  const branches = await wimGet<{ items: Branch[] }>(cfg, '/v1/branches', {}, ['list'], 10)
+  return { branches: branches.items.map((b) => ({ id: b.id, name: b.name })) }
+})
+
+/** Luồng E: khách xem trạng thái đơn. Cần mã đơn + 4 số cuối điện thoại (khách không có tài khoản). */
+export const loadOrderStatus = guarded(async (cfg, _props, ctx) => {
+  const id = first(ctx.searchParams.id)
+  const phone4 = (first(ctx.searchParams.phone) ?? '').replace(/\D/g, '')
+  if (!id) return { ask: true }
+  try {
+    const order = await wimGet<Order>(cfg, `/v1/orders/${encodeURIComponent(id)}`, {}, [`order:${id}`])
+    // Không tiết lộ đơn tồn tại hay không khi 4 số cuối sai.
+    if (phone4.length !== 4 || !order.customer.phone.replace(/\D/g, '').endsWith(phone4)) return { notFound: true, id }
+    const branches = order.fulfillment.type === 'pickup' ? (await wimGet<{ items: Branch[] }>(cfg, '/v1/branches', {}, ['list'], 10)).items : []
+    return {
+      order: { id: order.id, status: order.status, total: order.total, items: order.items, fulfillment: order.fulfillment, createdAt: order.createdAt },
+      branchName: branches.find((b) => b.id === order.fulfillment.branchId)?.name,
+    }
+  } catch (e) {
+    if (e instanceof WimError && e.status === 404) return { notFound: true, id }
     throw e
   }
 })

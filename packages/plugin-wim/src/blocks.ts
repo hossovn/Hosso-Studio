@@ -59,11 +59,43 @@ export const productGrid: BlockSchema<{
   defaultProps: { heading: 'Phụ tùng', pageSize: 12, category: '', brand: '', condition: 'any', useSelectedVehicle: 'yes', detailPath: '/chi-tiet' },
 }
 
-export const productDetail: BlockSchema<{ backPath: string }> = {
+export const productDetail: BlockSchema<{ backPath: string; cartPath: string }> = {
   type: 'WimProductDetail',
   label: 'Chi tiết sản phẩm',
-  fields: { backPath: { type: 'text', label: 'Trang danh sách (đường dẫn)' } },
-  defaultProps: { backPath: '/san-pham' },
+  fields: {
+    backPath: { type: 'text', label: 'Trang danh sách (đường dẫn)' },
+    cartPath: { type: 'text', label: 'Trang giỏ hàng (đường dẫn)' },
+  },
+  defaultProps: { backPath: '/san-pham', cartPath: '/gio-hang' },
 }
 
-export const wimBlocks = [vehicleSelector, productSearch, productGrid, productDetail]
+export const cart: BlockSchema<{ heading: string; checkoutPath: string; shopPath: string }> = {
+  type: 'WimCart',
+  label: 'Giỏ hàng',
+  fields: {
+    heading: { type: 'text', label: 'Tiêu đề' },
+    checkoutPath: { type: 'text', label: 'Trang thanh toán (đường dẫn)' },
+    shopPath: { type: 'text', label: 'Trang sản phẩm (đường dẫn)' },
+  },
+  defaultProps: { heading: 'Giỏ hàng', checkoutPath: '/thanh-toan', shopPath: '/san-pham' },
+}
+
+export const checkout: BlockSchema<{ heading: string; statusPath: string; cartPath: string }> = {
+  type: 'WimCheckout',
+  label: 'Thanh toán (COD hoặc nhận tại chi nhánh)',
+  fields: {
+    heading: { type: 'text', label: 'Tiêu đề' },
+    statusPath: { type: 'text', label: 'Trang trạng thái đơn (đường dẫn)' },
+    cartPath: { type: 'text', label: 'Trang giỏ hàng (đường dẫn)' },
+  },
+  defaultProps: { heading: 'Đặt hàng', statusPath: '/trang-thai-don', cartPath: '/gio-hang' },
+}
+
+export const orderStatus: BlockSchema<{ heading: string }> = {
+  type: 'WimOrderStatus',
+  label: 'Trạng thái đơn',
+  fields: { heading: { type: 'text', label: 'Tiêu đề' } },
+  defaultProps: { heading: 'Trạng thái đơn hàng' },
+}
+
+export const wimBlocks = [vehicleSelector, productSearch, productGrid, productDetail, cart, checkout, orderStatus]

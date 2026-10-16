@@ -1,5 +1,6 @@
 import type { BlockRenderer } from '@hosso/studio-blocks'
 import React from 'react'
+import { AddToCart, CartView, CheckoutForm } from './client/Commerce'
 import { VehicleSelectorClient } from './client/VehicleSelector'
 import type { Availability, Branch, Product } from './client'
 import { formatVnd } from './format'
@@ -114,7 +115,7 @@ export const ProductGrid: BlockRenderer = ({ heading, data }) => {
   )
 }
 
-export const ProductDetail: BlockRenderer = ({ backPath, data }) => {
+export const ProductDetail: BlockRenderer = ({ backPath, cartPath, data }) => {
   const d = data as Data
   if (d?.status !== 'ok') {
     return (
@@ -142,6 +143,11 @@ export const ProductDetail: BlockRenderer = ({ backPath, data }) => {
         <Condition c={p.condition} />
         <h1>{p.name}</h1>
         <p className="wp-price wp-price-lg">{formatVnd(availability.price)}</p>
+        <AddToCart
+          product={{ id: p.id, name: p.name, price: availability.price }}
+          cartPath={cartPath || '/gio-hang'}
+          inStock={availability.branches.some((b) => b.available > 0)}
+        />
         <dl className="wp-spec">
           <dt>{tr('product.brand')}</dt>
           <dd>{p.brand}</dd>
@@ -199,9 +205,104 @@ export const ProductDetail: BlockRenderer = ({ backPath, data }) => {
   )
 }
 
+export const Cart: BlockRenderer = ({ heading, checkoutPath, shopPath }) => (
+  <CartView heading={heading} checkoutPath={checkoutPath || '/thanh-toan'} shopPath={shopPath || '/san-pham'} />
+)
+
+export const Checkout: BlockRenderer = ({ heading, statusPath, cartPath, data }) => {
+  const d = data as Data
+  if (d?.status !== 'ok') {
+    return (
+      <Section heading={heading}>
+        <Notice data={d} />
+      </Section>
+    )
+  }
+  return <CheckoutForm heading={heading} branches={d.branches} statusPath={statusPath || '/trang-thai-don'} cartPath={cartPath || '/gio-hang'} />
+}
+
+type OrderView = {
+  id: string
+  status: string
+  total: number
+  items: { name?: string; productId: string; quantity: number; unitPrice?: number }[]
+  fulfillment: { type: string }
+  createdAt: string
+}
+
+export const OrderStatus: BlockRenderer = ({ heading, data }) => {
+  const d = data as Data
+  if (d?.status !== 'ok') {
+    return (
+      <Section heading={heading}>
+        <Notice data={d} />
+      </Section>
+    )
+  }
+  const o = d.order as OrderView | undefined
+  return (
+    <Section heading={heading}>
+      {d.notFound && (
+        <p className="wp-note wp-note-error" role="alert">
+          {tr('order.notFound')}
+        </p>
+      )}
+      {o ? (
+        <article className="wp-detail">
+          <p className="wp-note">{tr('order.thanks')}</p>
+          <dl className="wp-spec">
+            <dt>{tr('order.id')}</dt>
+            <dd>{o.id}</dd>
+            <dt>{tr('order.status')}</dt>
+            <dd>
+              <strong>{tr(`status.${o.status}` as Key)}</strong>
+            </dd>
+            <dt>{tr('order.fulfillment')}</dt>
+            <dd>{o.fulfillment.type === 'pickup' ? `${tr('checkout.pickup').split(' (')[0]}: ${d.branchName ?? ''}` : tr('checkout.delivery').split(' (')[0]}</dd>
+            <dt>{tr('order.created')}</dt>
+            <dd>{new Date(o.createdAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</dd>
+          </dl>
+          <h2>{tr('order.items')}</h2>
+          <ul className="wp-cart wp-cart-summary">
+            {o.items.map((l, i) => (
+              <li key={i}>
+                <span>
+                  {l.name ?? l.productId} × {l.quantity}
+                </span>
+                <strong>{formatVnd((l.unitPrice ?? 0) * l.quantity)}</strong>
+              </li>
+            ))}
+          </ul>
+          <p className="wp-total">
+            {tr('order.total')}: <strong>{formatVnd(o.total)}</strong>
+          </p>
+        </article>
+      ) : (
+        <form className="wp-form" method="get">
+          <h3>{tr('order.lookup')}</h3>
+          <label>
+            {tr('order.id')}
+            <input name="id" required defaultValue={(d.id as string) ?? ''} />
+          </label>
+          <label>
+            {tr('order.phone4')}
+            <input name="phone" required inputMode="numeric" pattern="[0-9]{4}" maxLength={4} />
+          </label>
+          <button className="wp-btn" type="submit">
+            {tr('order.find')}
+          </button>
+        </form>
+      )}
+    </Section>
+  )
+}
+
 export const fallbackRenderers: Record<string, BlockRenderer> = {
   WimVehicleSelector: VehicleSelector,
   WimProductSearch: ProductSearch,
   WimProductGrid: ProductGrid,
   WimProductDetail: ProductDetail,
+  WimCart: Cart,
+  WimCheckout: Checkout,
+  WimOrderStatus: OrderStatus,
 }
