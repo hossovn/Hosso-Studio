@@ -1,7 +1,7 @@
 'use client'
 import React, { useState } from 'react'
 import { VEHICLE_COOKIE } from '../constants'
-import { tr } from '../strings.vi'
+import { useTr } from './useTr'
 
 type Named = { id: string; name: string }
 type Props = {
@@ -19,6 +19,7 @@ const setCookie = (value: string, maxAge: number) => {
 
 /** Chọn hãng → dòng → đời; nhớ lựa chọn trong cookie của trình duyệt (server đọc để lọc lưới sản phẩm). */
 export function VehicleSelectorClient({ heading, targetPath, makes, models: m0, years: y0, selected }: Props) {
+  const tr = useTr()
   const [make, setMake] = useState(selected.make ?? '')
   const [model, setModel] = useState(selected.model ?? '')
   const [year, setYear] = useState(selected.year ? String(selected.year) : '')

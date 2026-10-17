@@ -2,6 +2,7 @@ import type { Payload } from 'payload'
 import { WimError, wimFetch, wimGet } from './client'
 import type { Availability, Branch, CreateOrder, Order, Product } from './client'
 import { getWimConfig } from './config'
+import { trFor } from './i18n'
 
 // Luồng D: khách đặt đơn. Toàn bộ chạy trên server của site; trình duyệt không gọi WIM trực tiếp.
 
@@ -11,6 +12,7 @@ export type CheckoutBody = {
   customer?: { name?: unknown; phone?: unknown; address?: unknown; note?: unknown }
   fulfillment?: { type?: unknown; branchId?: unknown }
   website?: unknown // ô bẫy bot
+  locale?: unknown
 }
 
 export type CheckoutResult =
@@ -34,7 +36,8 @@ export async function idempotencyKey(cartId: string, payload: unknown): Promise<
 }
 
 export async function placeOrder(payload: Payload, input: CheckoutBody): Promise<CheckoutResult> {
-  if (input.website) return fail(400, 'bad_request', 'Yêu cầu không hợp lệ') // bẫy bot
+  const tr = trFor(String(input.locale ?? '').slice(0, 8))
+  if (input.website) return fail(400, 'bad_request', tr('co.badRequest')) // bẫy bot
 
   // --- Kiểm tra dữ liệu khách gửi ---
   const cartId = text(input.cartId, 64)
@@ -50,21 +53,21 @@ export async function placeOrder(payload: Payload, input: CheckoutBody): Promise
   const type = input.fulfillment?.type
   const branchId = text(input.fulfillment?.branchId, 32)
 
-  if (!cartId || cartId.length < 8) return fail(400, 'bad_request', 'Giỏ hàng không hợp lệ')
-  if (!items.length || items.length !== rawItems.length) return fail(400, 'bad_request', 'Giỏ hàng trống hoặc có dòng không hợp lệ')
-  if (!name) return fail(400, 'bad_request', 'Vui lòng nhập họ tên')
-  if (!PHONE.test(phone)) return fail(400, 'bad_request', 'Số điện thoại không hợp lệ')
-  if (type !== 'delivery' && type !== 'pickup') return fail(400, 'bad_request', 'Chọn hình thức nhận hàng')
-  if (type === 'delivery' && !address) return fail(400, 'bad_request', 'Vui lòng nhập địa chỉ giao hàng')
-  if (type === 'pickup' && !branchId) return fail(400, 'bad_request', 'Vui lòng chọn chi nhánh nhận hàng')
+  if (!cartId || cartId.length < 8) return fail(400, 'bad_request', tr('co.cart'))
+  if (!items.length || items.length !== rawItems.length) return fail(400, 'bad_request', tr('co.emptyCart'))
+  if (!name) return fail(400, 'bad_request', tr('co.name'))
+  if (!PHONE.test(phone)) return fail(400, 'bad_request', tr('co.phone'))
+  if (type !== 'delivery' && type !== 'pickup') return fail(400, 'bad_request', tr('co.fulfillment'))
+  if (type === 'delivery' && !address) return fail(400, 'bad_request', tr('co.address'))
+  if (type === 'pickup' && !branchId) return fail(400, 'bad_request', tr('co.branchPick'))
 
   const cfg = await getWimConfig(payload)
-  if (!cfg) return fail(503, 'unavailable', 'Chưa thể đặt hàng lúc này, vui lòng thử lại sau.')
+  if (!cfg) return fail(503, 'unavailable', tr('co.unavailable'))
 
   try {
     if (type === 'pickup') {
       const branches = await wimGet<{ items: Branch[] }>(cfg, '/v1/branches', {}, ['list'], 10)
-      if (!branches.items.some((b) => b.id === branchId)) return fail(400, 'bad_request', 'Chi nhánh không hợp lệ')
+      if (!branches.items.some((b) => b.id === branchId)) return fail(400, 'bad_request', tr('co.branchBad'))
     }
 
     // 1. Kiểm tra lại tồn kho ngay lúc đặt (không dùng cache), theo chi nhánh nếu nhận tại chi nhánh.
@@ -73,7 +76,7 @@ export async function placeOrder(payload: Payload, input: CheckoutBody): Promise
       try {
         availability = await wimFetch<Availability>(cfg, `/v1/products/${encodeURIComponent(line.productId)}/availability`)
       } catch (e) {
-        if (e instanceof WimError && e.status === 404) return fail(409, 'product_not_found', 'Có sản phẩm không còn bán, vui lòng cập nhật giỏ hàng.', { productId: line.productId })
+        if (e instanceof WimError && e.status === 404) return fail(409, 'product_not_found', tr('co.productGone'), { productId: line.productId })
         throw e
       }
       const available =
@@ -82,7 +85,7 @@ export async function placeOrder(payload: Payload, input: CheckoutBody): Promise
           : availability.branches.reduce((sum, b) => sum + b.available, 0)
       if (available < line.quantity) {
         const product = await wimGet<Product>(cfg, `/v1/products/${encodeURIComponent(line.productId)}`, {}, [`product:${line.productId}`]).catch(() => null)
-        return fail(409, 'out_of_stock', `${product?.name ?? 'Sản phẩm'} không đủ hàng`, { productId: line.productId, available })
+        return fail(409, 'out_of_stock', `${product?.name ?? tr('co.product')} ${tr('co.outOfStock')}`, { productId: line.productId, available })
       }
     }
 
@@ -112,10 +115,10 @@ export async function placeOrder(payload: Payload, input: CheckoutBody): Promise
     if (e instanceof WimError) {
       if (e.status === 409 && e.code === 'out_of_stock') return fail(409, 'out_of_stock', e.message, { productId: e.body?.error?.productId })
       if (e.kind === 'timeout' || e.kind === 'network' || (e.status ?? 0) >= 500)
-        return fail(504, 'wim_unavailable', 'Hệ thống kho phản hồi chậm nên chưa xác nhận được đơn. Giỏ hàng của bạn vẫn được giữ; bấm "Đặt hàng" lần nữa để thử lại, đơn sẽ không bị tạo trùng.')
+        return fail(504, 'wim_unavailable', tr('co.wimSlow'))
       return fail(e.status && e.status < 500 ? 400 : 502, 'wim_rejected', e.message)
     }
     payload.logger.error(e)
-    return fail(500, 'internal', 'Có lỗi khi đặt hàng, vui lòng thử lại.')
+    return fail(500, 'internal', tr('co.internal'))
   }
 }

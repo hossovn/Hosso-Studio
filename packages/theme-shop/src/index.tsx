@@ -14,11 +14,11 @@ const Header = ({ chrome, actions }: { chrome: SiteChrome; actions?: React.React
     {chrome.announcement && <div className="sh-announce">{chrome.announcement}</div>}
     <div className="sh-main">
       <div className="sh-wrap sh-main-row">
-        <a className="sh-brand" href="/">
+        <a className="sh-brand" href={chrome.homeHref}>
           {chrome.logoUrl ? <img src={chrome.logoUrl} alt={chrome.siteName} /> : chrome.siteName}
         </a>
         {chrome.search && (
-          <form className="sh-search" action="/tim-kiem" role="search">
+          <form className="sh-search" action={chrome.searchHref} role="search">
             <label className="sh-sr" htmlFor="sh-q">
               {t('search.label')}
             </label>

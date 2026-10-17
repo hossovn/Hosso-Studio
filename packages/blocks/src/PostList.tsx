@@ -1,15 +1,15 @@
 import React from 'react'
-import { t } from './strings.vi'
+import { getLocale, t } from './i18n'
 import type { BlockRenderer } from './types'
 
-export type PostItem = { title: string; slug: string; excerpt?: string; cover?: string; publishedAt?: string }
+export type PostItem = { title: string; slug: string; href: string; excerpt?: string; cover?: string; publishedAt?: string }
 export type PostListData =
   | { status: 'ok'; items: PostItem[]; page: number; pages: number }
   | { status: 'error' }
   | { status: 'loading' }
   | undefined
 
-const date = (iso?: string) => (iso ? new Date(iso).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) : '')
+const date = (iso?: string) => (iso ? new Date(iso).toLocaleDateString(getLocale() === 'vi' ? 'vi-VN' : getLocale(), { timeZone: 'Asia/Ho_Chi_Minh' }) : '')
 
 /** Danh sách bài viết (renderer dự phòng của lõi, dùng chung mọi theme; style `ss-*` trong baseCss). */
 export const PostList: BlockRenderer = ({ heading, data }) => {
@@ -27,14 +27,14 @@ export const PostList: BlockRenderer = ({ heading, data }) => {
             {d.items.map((p) => (
               <li key={p.slug} className="ss-post-card">
                 {p.cover && (
-                  <a href={`/bai-viet/${p.slug}`} tabIndex={-1} aria-hidden="true">
+                  <a href={p.href} tabIndex={-1} aria-hidden="true">
                     <img src={p.cover} alt="" loading="lazy" />
                   </a>
                 )}
                 <div>
                   {p.publishedAt && <time dateTime={p.publishedAt}>{date(p.publishedAt)}</time>}
                   <h3>
-                    <a href={`/bai-viet/${p.slug}`}>{p.title}</a>
+                    <a href={p.href}>{p.title}</a>
                   </h3>
                   {p.excerpt && <p>{p.excerpt}</p>}
                 </div>

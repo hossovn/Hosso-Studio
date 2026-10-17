@@ -1,10 +1,11 @@
-import type { BlockRenderer } from '@hosso/studio-blocks'
+import { getLocale, type BlockRenderer } from '@hosso/studio-blocks'
 import React from 'react'
 import { AddToCart, CartView, CheckoutForm } from './client/Commerce'
 import { VehicleSelectorClient } from './client/VehicleSelector'
 import type { Availability, Branch, Product } from './client'
 import { formatVnd } from './format'
-import { tr, type Key } from './strings.vi'
+import { lh, tr } from './i18n'
+import type { Key } from './strings.vi'
 
 // Renderer dự phòng: dùng khi theme không có renderer riêng cho block của plugin. Style theo biến --hs-* của theme.
 
@@ -34,7 +35,7 @@ export const VehicleSelector: BlockRenderer = ({ heading, targetPath, data }) =>
   return (
     <Section>
       {d?.status === 'ok' ? (
-        <VehicleSelectorClient heading={heading} targetPath={targetPath || '/san-pham'} makes={d.makes} models={d.models} years={d.years} selected={d.selected} />
+        <VehicleSelectorClient heading={heading} targetPath={lh(targetPath || '/san-pham')} makes={d.makes} models={d.models} years={d.years} selected={d.selected} />
       ) : (
         <Notice data={d} />
       )}
@@ -44,7 +45,7 @@ export const VehicleSelector: BlockRenderer = ({ heading, targetPath, data }) =>
 
 export const ProductSearch: BlockRenderer = ({ heading, targetPath }) => (
   <Section heading={heading}>
-    <form className="wp-search" method="get" action={targetPath || '/san-pham'} role="search">
+    <form className="wp-search" method="get" action={lh(targetPath || '/san-pham')} role="search">
       <label className="wp-sr" htmlFor="wp-q">
         {tr('search.label')}
       </label>
@@ -91,7 +92,7 @@ export const ProductGrid: BlockRenderer = ({ heading, data }) => {
             <li key={p.id} className="wp-card">
               <Condition c={p.condition} />
               <h3>
-                <a href={`${detailPath}?p=${encodeURIComponent(p.id)}`}>{p.name}</a>
+                <a href={`${lh(detailPath)}?p=${encodeURIComponent(p.id)}`}>{p.name}</a>
               </h3>
               <p className="wp-meta">
                 {p.brand} · {tr('product.code')} {p.code}
@@ -103,7 +104,7 @@ export const ProductGrid: BlockRenderer = ({ heading, data }) => {
         </ul>
       )}
       {pages > 1 && (
-        <nav className="wp-pager" aria-label="Phân trang">
+        <nav className="wp-pager" aria-label={tr('grid.pager')}>
           {page > 1 && <a href={qs(filters, page - 1)}>{tr('grid.prev')}</a>}
           <span>
             {page} / {pages}
@@ -128,7 +129,7 @@ export const ProductDetail: BlockRenderer = ({ backPath, cartPath, data }) => {
     return (
       <Section>
         <p className="wp-note">{tr(d.missing === 'pick' ? 'product.pick' : 'product.notFound')}</p>
-        <a href={backPath || '/san-pham'}>{tr('product.back')}</a>
+        <a href={lh(backPath || '/san-pham')}>{tr('product.back')}</a>
       </Section>
     )
   }
@@ -136,7 +137,7 @@ export const ProductDetail: BlockRenderer = ({ backPath, cartPath, data }) => {
   const branchName = Object.fromEntries(branches.map((b) => [b.id, b.name]))
   return (
     <Section>
-      <a className="wp-back" href={backPath || '/san-pham'}>
+      <a className="wp-back" href={lh(backPath || '/san-pham')}>
         ← {tr('product.back')}
       </a>
       <article className="wp-detail">
@@ -145,7 +146,7 @@ export const ProductDetail: BlockRenderer = ({ backPath, cartPath, data }) => {
         <p className="wp-price wp-price-lg">{formatVnd(availability.price)}</p>
         <AddToCart
           product={{ id: p.id, name: p.name, price: availability.price }}
-          cartPath={cartPath || '/gio-hang'}
+          cartPath={lh(cartPath || '/gio-hang')}
           inStock={availability.branches.some((b) => b.available > 0)}
         />
         <dl className="wp-spec">
@@ -155,7 +156,7 @@ export const ProductDetail: BlockRenderer = ({ backPath, cartPath, data }) => {
           <dd>{p.code}</dd>
           {categoryName && (
             <>
-              <dt>Danh mục</dt>
+              <dt>{tr('product.category')}</dt>
               <dd>{categoryName}</dd>
             </>
           )}
@@ -206,7 +207,7 @@ export const ProductDetail: BlockRenderer = ({ backPath, cartPath, data }) => {
 }
 
 export const Cart: BlockRenderer = ({ heading, checkoutPath, shopPath }) => (
-  <CartView heading={heading} checkoutPath={checkoutPath || '/thanh-toan'} shopPath={shopPath || '/san-pham'} />
+  <CartView heading={heading} checkoutPath={lh(checkoutPath || '/thanh-toan')} shopPath={lh(shopPath || '/san-pham')} />
 )
 
 export const Checkout: BlockRenderer = ({ heading, statusPath, cartPath, data }) => {
@@ -218,7 +219,7 @@ export const Checkout: BlockRenderer = ({ heading, statusPath, cartPath, data })
       </Section>
     )
   }
-  return <CheckoutForm heading={heading} branches={d.branches} statusPath={statusPath || '/trang-thai-don'} cartPath={cartPath || '/gio-hang'} />
+  return <CheckoutForm heading={heading} branches={d.branches} statusPath={lh(statusPath || '/trang-thai-don')} cartPath={lh(cartPath || '/gio-hang')} />
 }
 
 type OrderView = {
@@ -260,7 +261,7 @@ export const OrderStatus: BlockRenderer = ({ heading, data }) => {
             <dt>{tr('order.fulfillment')}</dt>
             <dd>{o.fulfillment.type === 'pickup' ? `${tr('checkout.pickup').split(' (')[0]}: ${d.branchName ?? ''}` : tr('checkout.delivery').split(' (')[0]}</dd>
             <dt>{tr('order.created')}</dt>
-            <dd>{new Date(o.createdAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</dd>
+            <dd>{new Date(o.createdAt).toLocaleString(getLocale() === 'vi' ? 'vi-VN' : getLocale(), { timeZone: 'Asia/Ho_Chi_Minh' })}</dd>
           </dl>
           <h2>{tr('order.items')}</h2>
           <ul className="wp-cart wp-cart-summary">

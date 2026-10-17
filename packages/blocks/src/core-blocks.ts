@@ -18,7 +18,7 @@ export const text: BlockSchema<{ heading: string; body: string }> = {
   label: 'Văn bản',
   fields: {
     heading: { type: 'text', label: 'Tiêu đề' },
-    body: { type: 'textarea', label: 'Nội dung (cách đoạn bằng dòng trống)' },
+    body: { type: 'textarea', label: 'Nội dung (cách đoạn bằng dòng trống; hỗ trợ **đậm**, *nghiêng*, [chữ](liên kết), dòng bắt đầu bằng - là danh sách)' },
   },
   defaultProps: { heading: '', body: '' },
 }
@@ -108,12 +108,28 @@ export const categoryGrid: BlockSchema<{ heading: string; items: { label: string
   defaultProps: { heading: 'Danh mục sản phẩm', items: [] },
 }
 
-export const postList: BlockSchema<{ heading: string; count: number; paginate: string }> = {
+export const formBlock: BlockSchema<{ heading: string; form: string }> = {
+  type: 'Form',
+  label: 'Biểu mẫu (tùy chỉnh)',
+  fields: { heading: { type: 'text', label: 'Tiêu đề' }, form: { type: 'ref', collection: 'forms', label: 'Biểu mẫu' } },
+  defaultProps: { heading: '', form: '' },
+}
+
+export const reusable: BlockSchema<{ slug: string }> = {
+  type: 'Reusable',
+  label: 'Khối dùng lại',
+  fields: { slug: { type: 'ref', collection: 'reusable-blocks', label: 'Chọn khối' } },
+  defaultProps: { slug: '' },
+}
+
+export const postList: BlockSchema<{ heading: string; count: number; paginate: string; category: string; tag: string }> = {
   type: 'PostList',
   label: 'Danh sách bài viết',
   fields: {
     heading: { type: 'text', label: 'Tiêu đề' },
     count: { type: 'number', label: 'Số bài mỗi trang' },
+    category: { type: 'text', label: 'Chỉ chuyên mục này (mã chuyên mục, để trống = tất cả)' },
+    tag: { type: 'text', label: 'Chỉ thẻ này (mã thẻ)' },
     paginate: {
       type: 'radio',
       label: 'Phân trang',
@@ -123,10 +139,10 @@ export const postList: BlockSchema<{ heading: string; count: number; paginate: s
       ],
     },
   },
-  defaultProps: { heading: 'Bài viết mới', count: 6, paginate: 'no' },
+  defaultProps: { heading: 'Bài viết mới', count: 6, paginate: 'no', category: '', tag: '' },
 }
 
 /** Block của lõi cần dữ liệu server (xem lib/core-loaders.ts trong app). */
-export const CORE_LOADER_TYPES = ['PostList']
+export const CORE_LOADER_TYPES = ['PostList', 'Form']
 
-export const coreBlocks: BlockSchema<any>[] = [hero, text, image, video, features, categoryGrid, trustBar, postList, contactForm, footer]
+export const coreBlocks: BlockSchema<any>[] = [hero, text, image, video, features, categoryGrid, trustBar, postList, contactForm, formBlock, reusable, footer]

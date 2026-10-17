@@ -16,6 +16,7 @@ const plugin: HossoPlugin = {
   fallbackRenderers,
   css,
   headerSlot: CartLink,
+  adminNav: [{ label: 'Kết nối Hosso WIM', href: '/admin/globals/wim-settings', roles: ['admin'] }],
   checklist: async (payload) => [{ label: 'Kết nối Hosso WIM (địa chỉ API và khóa)', done: Boolean(await getWimConfig(payload)), href: '/admin/globals/wim-settings' }],
   payload: applyPayload,
   portable: { globals: [{ slug: 'wim-settings', secretFields: ['apiKey', 'webhookSecret'] }] },

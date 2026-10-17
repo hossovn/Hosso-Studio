@@ -2,12 +2,14 @@
 import React, { useState } from 'react'
 import { addToCart, cartCount, cartTotal, clearCart, removeFromCart, setQuantity, useCart } from '../cart'
 import { formatVnd } from '../format'
-import { tr } from '../strings.vi'
+import { useLocale } from '@hosso/studio-blocks'
+import { useTr } from './useTr'
 
 type Branch = { id: string; name: string }
 
 /** Nút thêm vào giỏ ở trang chi tiết. */
 export function AddToCart({ product, cartPath, inStock }: { product: { id: string; name: string; price: number }; cartPath: string; inStock: boolean }) {
+  const tr = useTr()
   const [added, setAdded] = useState(false)
   const cart = useCart()
   return (
@@ -37,6 +39,7 @@ export function AddToCart({ product, cartPath, inStock }: { product: { id: strin
 
 /** Giỏ hàng: sửa số lượng, xóa dòng, sang thanh toán. */
 export function CartView({ heading, checkoutPath, shopPath }: { heading?: string; checkoutPath: string; shopPath: string }) {
+  const tr = useTr()
   const cart = useCart()
   return (
     <section className="wp-section">
@@ -84,6 +87,8 @@ type CheckoutError = { code: string; message: string; productId?: string; availa
 
 /** Thanh toán: COD (giao tận nơi) hoặc nhận tại chi nhánh. Lỗi thì giữ nguyên giỏ hàng. */
 export function CheckoutForm({ heading, branches, statusPath, cartPath }: { heading?: string; branches: Branch[]; statusPath: string; cartPath: string }) {
+  const tr = useTr()
+  const { locale } = useLocale()
   const cart = useCart()
   const [type, setType] = useState<'delivery' | 'pickup'>('delivery')
   const [branchId, setBranchId] = useState('')
@@ -112,6 +117,7 @@ export function CheckoutForm({ heading, branches, statusPath, cartPath }: { head
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          locale,
           cartId: cart.id,
           items: cart.lines.map((l) => ({ productId: l.productId, quantity: l.quantity })),
           customer: { name: f.get('name'), phone: f.get('phone'), address: f.get('address'), note: f.get('note') },

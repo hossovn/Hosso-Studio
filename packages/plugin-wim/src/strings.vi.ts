@@ -79,7 +79,24 @@ export const s = {
   'status.shipping': 'Đang giao',
   'status.completed': 'Hoàn tất',
   'status.cancelled': 'Đã hủy',
+  'product.category': 'Danh mục',
+  'grid.pager': 'Phân trang',
+  'cart.link': 'Giỏ hàng',
+  'co.badRequest': 'Yêu cầu không hợp lệ',
+  'co.cart': 'Giỏ hàng không hợp lệ',
+  'co.emptyCart': 'Giỏ hàng trống hoặc có dòng không hợp lệ',
+  'co.name': 'Vui lòng nhập họ tên',
+  'co.phone': 'Số điện thoại không hợp lệ',
+  'co.fulfillment': 'Chọn hình thức nhận hàng',
+  'co.address': 'Vui lòng nhập địa chỉ giao hàng',
+  'co.branchPick': 'Vui lòng chọn chi nhánh nhận hàng',
+  'co.branchBad': 'Chi nhánh không hợp lệ',
+  'co.unavailable': 'Chưa thể đặt hàng lúc này, vui lòng thử lại sau.',
+  'co.productGone': 'Có sản phẩm không còn bán, vui lòng cập nhật giỏ hàng.',
+  'co.outOfStock': 'không đủ hàng',
+  'co.product': 'Sản phẩm',
+  'co.wimSlow': 'Hệ thống kho phản hồi chậm nên chưa xác nhận được đơn. Giỏ hàng của bạn vẫn được giữ; bấm "Đặt hàng" lần nữa để thử lại, đơn sẽ không bị tạo trùng.',
+  'co.internal': 'Có lỗi khi đặt hàng, vui lòng thử lại.',
 } as const
 
 export type Key = keyof typeof s
-export const tr = (k: Key) => s[k]
