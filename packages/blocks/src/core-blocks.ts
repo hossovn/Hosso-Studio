@@ -174,7 +174,31 @@ export const termList: BlockSchema<{ heading: string; kind: string; showCount: s
   defaultProps: { heading: 'Chuyên mục', kind: 'categories', showCount: 'yes' },
 }
 
-/** Block của lõi cần dữ liệu server (xem lib/core-loaders.ts trong app). */
-export const CORE_LOADER_TYPES = ['PostList', 'Form', 'TermList']
+export const navMenu: BlockSchema<{ heading: string; source: string; links: { label: string; href: string }[] }> = {
+  type: 'NavMenu',
+  label: 'Menu tùy chọn (widget)',
+  fields: {
+    heading: { type: 'text', label: 'Tiêu đề' },
+    source: {
+      type: 'radio',
+      label: 'Nguồn menu',
+      options: [
+        { label: 'Liên kết tự nhập', value: 'custom' },
+        { label: 'Menu đầu trang', value: 'header' },
+        { label: 'Menu chân trang', value: 'footer' },
+      ],
+    },
+    links: {
+      type: 'array',
+      label: 'Liên kết (khi chọn "Liên kết tự nhập")',
+      arrayFields: { label: { type: 'text', label: 'Tên hiển thị' }, href: { type: 'text', label: 'Đường dẫn' } },
+      defaultItemProps: { label: 'Liên kết', href: '/' },
+    },
+  },
+  defaultProps: { heading: 'Liên kết nhanh', source: 'custom', links: [{ label: 'Giới thiệu', href: '/gioi-thieu' }, { label: 'Liên hệ', href: '/lien-he' }] },
+}
 
-export const coreBlocks: BlockSchema<any>[] = [hero, text, image, video, features, categoryGrid, trustBar, postList, searchBox, termList, contactForm, formBlock, reusable, footer]
+/** Block của lõi cần dữ liệu server (xem lib/core-loaders.ts trong app). */
+export const CORE_LOADER_TYPES = ['PostList', 'Form', 'TermList', 'NavMenu']
+
+export const coreBlocks: BlockSchema<any>[] = [hero, text, image, video, features, categoryGrid, trustBar, postList, searchBox, termList, navMenu, contactForm, formBlock, reusable, footer]

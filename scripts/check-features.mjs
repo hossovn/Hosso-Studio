@@ -217,10 +217,15 @@ assert.match(await (await fetch(SITE + '/')).text(), new RegExp('A-' + run)); ok
 await api(admin, 'POST', '/api/globals/site-settings?locale=vi', { headerMenu: cur.headerMenu ?? null })
 assert.doesNotMatch(await (await fetch(SITE + '/')).text(), new RegExp('A-' + run)); ok('khôi phục menu cũ')
 const wid = { root: { props: {} }, content: [block('TermList', { heading: 'WG-' + run, kind: 'categories', showCount: 'yes' }), block('SearchBox', { heading: 'TK-' + run })] }
+wid.content.push(block('NavMenu', { heading: 'NM-' + run, source: 'custom', links: [{ label: 'Liên kết-' + run, href: '/gioi-thieu' }] }))
 assert.equal((await api(T('publisher'), 'POST', '/api/globals/site-areas?locale=vi', { postSidebar: wid })).status, 200)
 const pwid = await api(T('publisher'), 'POST', '/api/posts', { title: 'Bài widget', slug: 'bw-' + run, content: emptyContent, _status: 'published' }); del(admin, '/api/posts/' + pwid.body.doc.id)
 const wh = await (await fetch(SITE + '/bai-viet/bw-' + run)).text()
 assert.match(wh, new RegExp('WG-' + run)); assert.match(wh, new RegExp('TK-' + run)); ok('widget cột bên hiện cạnh bài viết')
+assert.match(wh, new RegExp('NM-' + run)); assert.match(wh, new RegExp('Liên kết-' + run + '</a>')); ok('widget menu tùy chọn (liên kết tự nhập) hiện đúng')
+const wid2 = { root: { props: {} }, content: [block('NavMenu', { heading: 'NH-' + run, source: 'header', links: [] })] }
+assert.equal((await api(T('publisher'), 'POST', '/api/globals/site-areas?locale=vi', { postSidebar: wid2 })).status, 200)
+assert.match(await (await fetch(SITE + '/bai-viet/bw-' + run)).text(), new RegExp('NH-' + run + '[^]*ss-navmenu')); ok('widget menu lấy lại menu đầu trang của site')
 await api(T('publisher'), 'POST', '/api/globals/site-areas?locale=vi', { postSidebar: null })
 assert.doesNotMatch(await (await fetch(SITE + '/bai-viet/bw-' + run)).text(), new RegExp('WG-' + run)); ok('gỡ widget thì biến mất')
 

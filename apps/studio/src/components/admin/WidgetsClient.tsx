@@ -3,11 +3,13 @@ import hosso from '@hosso-config'
 import { MediaField, RefField, coreBlocks, type BlockField, type BlockSchema } from '@hosso/studio-blocks'
 import React, { useMemo, useRef, useState } from 'react'
 
+import { WidgetPreview } from './WidgetPreview'
+
 type Item = { type: string; props: Record<string, unknown> & { id?: string } }
 type Area = { name: string; label: string; content: Item[] }
 
 // Block hợp làm widget (cột bên, trước/sau header/footer). Block plugin có thể thêm vào đây qua hosso.config.
-const WIDGET_TYPES = ['Text', 'Image', 'Video', 'SearchBox', 'TermList', 'PostList', 'Form', 'Reusable']
+const WIDGET_TYPES = ['Text', 'Image', 'Video', 'SearchBox', 'TermList', 'NavMenu', 'PostList', 'Form', 'Reusable']
 
 const card: React.CSSProperties = { border: '1px solid var(--theme-elevation-150)', borderRadius: 8, marginBottom: 8, background: 'var(--theme-bg)' }
 const input: React.CSSProperties = { width: '100%', padding: '6px 8px', borderRadius: 4, border: '1px solid var(--theme-elevation-200)', background: 'var(--theme-input-bg)', color: 'inherit', font: 'inherit' }
@@ -56,7 +58,7 @@ function FieldInput({ f, value, onChange }: { f: BlockField; value: unknown; onC
   return <input style={input} value={String(value ?? '')} onChange={(e) => onChange(e.target.value)} />
 }
 
-export function WidgetsClient({ locale, locales, areas: initial }: { locale: string; locales: { code: string; label: string }[]; areas: Area[] }) {
+export function WidgetsClient({ locale, defaultLocale, themeName, css, fontClass, locales, areas: initial }: { locale: string; defaultLocale: string; themeName: string; css: string; fontClass: string; locales: { code: string; label: string }[]; areas: Area[] }) {
   const schemas = useMemo(() => {
     const all: BlockSchema<any>[] = [...coreBlocks, ...hosso.plugins.flatMap((p) => p.blocks ?? [])]
     return Object.fromEntries(all.map((s) => [s.type, s])) as Record<string, BlockSchema<any>>
@@ -118,6 +120,10 @@ export function WidgetsClient({ locale, locales, areas: initial }: { locale: str
             </button>
           </header>
 
+          <details open style={{ marginBottom: 12 }}>
+            <summary style={{ cursor: 'pointer', fontWeight: 600, marginBottom: 8 }}>Xem trước (cập nhật ngay khi sửa)</summary>
+            <WidgetPreview content={a.content} themeName={themeName} css={css} fontClass={fontClass} locale={locale} defaultLocale={defaultLocale} layout={a.name === 'postSidebar' ? 'sidebar' : 'full'} />
+          </details>
           {a.content.length === 0 && <p style={{ opacity: 0.7 }}>Chưa có widget nào.</p>}
           {a.content.map((it, i) => {
             const schema = schemas[it.type]
