@@ -85,3 +85,11 @@ Còn lại / giới hạn: chưa có phân loại bài viết (danh mục, thẻ
 - Kiểm tự động: luồng đặt đơn 16/16, hợp đồng mock 25/25, tính năng 47/47; migration Postgres `20261017_031543_i18n_nav` chạy trên Postgres 17 sạch sau 3 migration cũ.
 - Gói mẫu `seed/sites/phu-tung-o-to.hosso-site.zip` định dạng 2 (9 trang, 3 bài, 11 ảnh, vi + en).
 - Giới hạn: giới hạn tần suất là bộ nhớ trong một tiến trình; chưa kiểm lại Lighthouse và docker compose sau đợt này.
+
+## 8. Đợt 6 (17/10/2026): vận hành, biên tập, SEO
+
+- Đã làm: email thông báo, link xem trước bản nháp, chuyển hướng 308/307, JSON-LD và breadcrumb, trang Công cụ (sao lưu, khôi phục, mẫu site, báo bản mới), `studio:backup`/`studio:update` và service backup trong compose, vùng widget cạnh bài viết, thanh quản trị trên site, khóa sửa, Tùy biến giao diện có xem trước trực tiếp, sửa chữ trực tiếp trên canvas Puck, header bảo mật, CSRF.
+- Kiểm tự động (`scripts/check-features.mjs`): 73 kiểm tra, gồm xuất/nhập vòng tròn qua API (phát hiện và sửa 2 lỗi: trùng slug khi bản ghi chỉ có ở bảng chính, biểu mẫu thiếu nhãn khi nhập bản dịch).
+- Lighthouse (bản build production, SQLite, máy phát triển): trang chủ vi 94, trang chủ en 94, bài viết 91; trợ năng, thực hành tốt, SEO đều 100; CLS 0.
+- Không làm (có lý do): cài theme/plugin từ trình duyệt (chạy mã lạ trên máy chủ); cache toàn trang trong ứng dụng (Next ghi đè Cache-Control của trang động, nên đặt ở reverse proxy/CDN).
+- Giới hạn: sửa chữ trực tiếp mới bật cho vài trường đơn giản (Banner, tiêu đề Văn bản/Lưới tính năng), nội dung Văn bản vẫn sửa ở bảng bên vì có định dạng; menu vẫn sắp xếp bằng danh sách kéo thả của Payload, chưa phải cây trực quan; kiểm tải thực và kiểm thử xâm nhập chưa làm.

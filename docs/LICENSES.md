@@ -15,6 +15,7 @@ Kiểm tra trực tiếp từ metadata của từng gói (npm registry / repo) v
 | openapi-typescript (dev) | 7.13.0 | MIT |
 | ajv, yaml (dev, contract test) | 8.20.0 / 2.9.1 | MIT / ISC |
 | fflate (export/import) | 0.8.3 | MIT |
+| @payloadcms/email-nodemailer, nodemailer (email thông báo) | 3.91.0 / 10.1.2 | MIT / MIT-0 |
 | fast-xml-parser, node-html-parser (nhập WordPress) | 5.11.2 / 9.0.4 | MIT |
 | pg (Postgres, qua Payload) | 8.x | MIT |
 | @libsql/client (SQLite, qua Payload) | 0.x | MIT |

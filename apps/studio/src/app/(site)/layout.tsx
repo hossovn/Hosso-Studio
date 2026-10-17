@@ -37,6 +37,12 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <style>{css}</style>
+        {/* Chỉ trong khung xem trước của trang Tùy biến giao diện (admin cùng origin): nhận biến --hs-* để đổi màu/font tức thì. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "if(window.parent!==window)addEventListener('message',function(e){var v=e.origin===location.origin&&e.data&&e.data.hossoVars;if(v)for(var k in v)if(k.indexOf('--hs-')===0)document.documentElement.style.setProperty(k,String(v[k]))})",
+          }}
+        />
       </head>
       <body style={{ margin: 0 }}>
         <LocaleProvider locale={locale} defaultLocale={defaultLocaleCode}>

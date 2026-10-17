@@ -4,9 +4,9 @@ export const hero: BlockSchema<{ title: string; subtitle: string; ctaLabel: stri
   type: 'Hero',
   label: 'Banner chính',
   fields: {
-    title: { type: 'text', label: 'Tiêu đề' },
-    subtitle: { type: 'textarea', label: 'Mô tả' },
-    ctaLabel: { type: 'text', label: 'Nhãn nút' },
+    title: { type: 'text', label: 'Tiêu đề', contentEditable: true },
+    subtitle: { type: 'textarea', label: 'Mô tả', contentEditable: true },
+    ctaLabel: { type: 'text', label: 'Nhãn nút', contentEditable: true },
     ctaHref: { type: 'text', label: 'Liên kết nút' },
     image: { type: 'media', label: 'Ảnh nền (tùy chọn)' },
   },
@@ -17,7 +17,7 @@ export const text: BlockSchema<{ heading: string; body: string }> = {
   type: 'Text',
   label: 'Văn bản',
   fields: {
-    heading: { type: 'text', label: 'Tiêu đề' },
+    heading: { type: 'text', label: 'Tiêu đề', contentEditable: true },
     body: { type: 'textarea', label: 'Nội dung (cách đoạn bằng dòng trống; hỗ trợ **đậm**, *nghiêng*, [chữ](liên kết), dòng bắt đầu bằng - là danh sách)' },
   },
   defaultProps: { heading: '', body: '' },
@@ -49,7 +49,7 @@ export const features: BlockSchema<{ heading: string; items: { title: string; de
   type: 'Features',
   label: 'Lưới tính năng',
   fields: {
-    heading: { type: 'text', label: 'Tiêu đề' },
+    heading: { type: 'text', label: 'Tiêu đề', contentEditable: true },
     items: {
       type: 'array',
       label: 'Mục',

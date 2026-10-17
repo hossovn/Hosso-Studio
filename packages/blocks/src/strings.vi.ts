@@ -14,6 +14,7 @@ export const strings = {
   'breadcrumb.home': 'Trang chủ',
   'breadcrumb.posts': 'Bài viết',
   'breadcrumb.label': 'Đường dẫn',
+  'post.sidebar': 'Cột bên cạnh',
   'post.categories': 'Chuyên mục',
   'post.tags': 'Thẻ',
   'post.byCategory': 'Chuyên mục',
