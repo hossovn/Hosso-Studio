@@ -15,7 +15,7 @@ RUN pnpm --filter @hosso/studio build
 FROM base AS run
 ENV NODE_ENV=production HOSTNAME=0.0.0.0 PORT=3000
 COPY --from=build /app /app
-RUN chmod +x /app/docker/entrypoint.sh && mkdir -p /app/media && chown -R node:node /app/media /app/apps/studio
+RUN chmod +x /app/docker/entrypoint.sh && mkdir -p /app/media /app/backups && chown -R node:node /app/media /app/backups /app/apps/studio
 USER node
 EXPOSE 3000
 VOLUME ["/app/media"]

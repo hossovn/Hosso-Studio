@@ -47,7 +47,7 @@ config.headers = async () => [
           { source: rule.source, headers: rule.headers.filter((h) => !CH.has(h.key)) },
         ]
       : [rule],
-  ),
+  ).filter((rule) => rule.headers.length > 0), // Next từ chối rule không có header
 ]
 
 export default config

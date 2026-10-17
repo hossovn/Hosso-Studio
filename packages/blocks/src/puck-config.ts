@@ -65,5 +65,6 @@ export function buildPuckConfig(opts: {
 
 /** Bỏ block mà config không biết (plugin đã gỡ) trước khi render công khai. */
 export function stripUnknown<T extends { content: { type: string }[] }>(data: T, config: { components: Record<string, unknown> }): T {
-  return { ...data, content: data.content.filter((c) => c.type in config.components) }
+  // Puck cần data.root; nội dung rỗng/cũ có thể thiếu nên bù lại để trang không lỗi 500.
+  return { ...data, root: (data as { root?: unknown }).root ?? { props: {} }, content: (data.content ?? []).filter((c) => c.type in config.components) }
 }
