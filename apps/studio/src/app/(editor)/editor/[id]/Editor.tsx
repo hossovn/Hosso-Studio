@@ -5,7 +5,7 @@ import { Puck, usePuck } from '@puckeditor/core'
 import '@puckeditor/core/puck.css'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 
-import { loadBlockData } from './actions'
+import { withLiveData } from '@/components/admin/live-data'
 
 type Kind = 'pages' | 'posts' | 'reusable-blocks' | 'area'
 
@@ -29,24 +29,6 @@ type Props = {
 
 const NOUN: Record<Kind, string> = { pages: 'trang', posts: 'bài viết', 'reusable-blocks': 'khối dùng lại', area: 'vùng' }
 const NEW_LABEL: Record<Kind, string> = { pages: 'Trang mới', posts: 'Bài mới', 'reusable-blocks': 'Khối mới', area: '' }
-
-/** Bọc renderer của block có loader: lấy dữ liệu thật qua server action rồi mới hiển thị. */
-function withLiveData(type: string, Render: React.ComponentType<any>, locale: string) {
-  return function Live(props: Record<string, any>) {
-    const [data, setData] = useState<unknown>(undefined)
-    const key = JSON.stringify({ ...props, puck: undefined })
-    useEffect(() => {
-      let on = true
-      const t = setTimeout(() => loadBlockData(type, props, locale).then((d) => on && setData(d)), 300)
-      return () => {
-        on = false
-        clearTimeout(t)
-      }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [key])
-    return <Render {...props} data={data ?? { status: 'loading' }} />
-  }
-}
 
 const slugify = (v: string) =>
   v

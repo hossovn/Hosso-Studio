@@ -90,3 +90,32 @@ export const TermList: BlockRenderer = ({ heading, data }) => {
     </section>
   )
 }
+
+type NavItem = { label: string; href: string; children?: NavItem[] }
+const NavTree = ({ items }: { items: NavItem[] }) => (
+  <ul className="ss-navmenu">
+    {items.map((i, n) => (
+      <li key={n}>
+        <a href={i.href}>{i.label}</a>
+        {!!i.children?.length && <NavTree items={i.children} />}
+      </li>
+    ))}
+  </ul>
+)
+
+/** Widget: danh sách liên kết tự nhập, hoặc lấy lại menu đầu/chân trang của site (loader của lõi trả về menu đã dịch). */
+export const NavMenu: BlockRenderer = ({ heading, source, links, data }) => {
+  const custom = source === 'custom' || !source
+  const d = data as { status: string; items?: NavItem[] } | undefined
+  const items: NavItem[] | null = custom
+    ? ((links ?? []) as NavItem[]).filter((l) => l.label).map((l) => ({ label: l.label, href: /^\//.test(l.href) ? localizeHref(l.href, getLocale(), getDefaultLocale()) : l.href || '#' }))
+    : d?.status === 'ok'
+      ? (d.items ?? [])
+      : null
+  return (
+    <section className="ss-widget">
+      {heading && <h3>{heading}</h3>}
+      {items === null ? <p className="ss-muted">…</p> : items.length ? <nav aria-label={String(heading || '')}><NavTree items={items} /></nav> : <p className="ss-muted">{t('post.empty')}</p>}
+    </section>
+  )
+}

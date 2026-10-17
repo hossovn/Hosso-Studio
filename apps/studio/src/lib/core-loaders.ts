@@ -1,6 +1,6 @@
 import type { BlockLoader } from '@hosso/studio-blocks'
 
-import { href, mediaUrl } from './site'
+import { href, loadSite, mediaUrl } from './site'
 
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
 
@@ -41,6 +41,12 @@ export const coreLoaders: Record<string, BlockLoader> = {
       page: res.page ?? 1,
       pages: props.paginate === 'yes' ? res.totalPages : 1,
     }
+  },
+
+  NavMenu: async (props, ctx) => {
+    if (props.source !== 'header' && props.source !== 'footer') return { status: 'ok', items: [] }
+    const { chrome } = await loadSite(ctx.locale)
+    return { status: 'ok', items: props.source === 'header' ? chrome.headerMenu : chrome.footerMenu }
   },
 
   TermList: async (props, ctx) => {
