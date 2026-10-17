@@ -16,6 +16,7 @@ export const strings: Record<StringKey, string> = {
   'breadcrumb.home': 'Home',
   'breadcrumb.posts': 'Posts',
   'breadcrumb.label': 'Breadcrumb',
+  'post.sidebar': 'Sidebar',
   'post.categories': 'Categories',
   'post.tags': 'Tags',
   'post.byCategory': 'Category',

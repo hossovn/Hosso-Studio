@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url'
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   // Package workspace phát hành TS nguồn, không có bước build riêng.
   transpilePackages: fs.readdirSync(path.join(dirname, 'node_modules/@hosso')).map((name) => `@hosso/${name}`),
   // Không dùng sharp (binary libvips là LGPL): tắt tối ưu ảnh của Next, dùng <img> thường.
@@ -30,14 +31,23 @@ const config = withPayload(nextConfig, { devBundleServerPackages: false })
 // (tốn ~600ms trên di động). Chỉ giữ cho trang quản trị.
 const CH = new Set(['Accept-CH', 'Critical-CH', 'Vary'])
 const payloadHeaders = config.headers!
-config.headers = async () =>
-  (await payloadHeaders()).flatMap((rule) =>
+// Header bảo mật cơ bản cho mọi đường dẫn (khung nhúng cùng origin vẫn dùng được cho trình dựng và Tùy biến giao diện).
+const SECURITY = [
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+]
+config.headers = async () => [
+  { source: '/:path*', headers: SECURITY },
+  ...(await payloadHeaders()).flatMap((rule) =>
     rule.source === '/:path*'
       ? [
           { source: '/admin/:path*', headers: rule.headers.filter((h) => CH.has(h.key)) },
           { source: rule.source, headers: rule.headers.filter((h) => !CH.has(h.key)) },
         ]
       : [rule],
-  )
+  ),
+]
 
 export default config

@@ -54,6 +54,21 @@ pnpm studio:import-wordpress export.xml --media --site-url https://site-cu.vn --
 
   Trang, bài viết, chuyên mục, thẻ, bình luận, ảnh đại diện được chuyển; link nội bộ được viết lại, video YouTube thành block Video.
 
+### Vận hành, biên tập và SEO (đợt 6)
+
+- **Công cụ** (Admin → Công cụ, chỉ admin): tải gói site về máy, sao lưu ngay trên máy chủ (giữ `HOSSO_BACKUP_KEEP` bản trong `HOSSO_BACKUP_DIR`), khôi phục từ gói zip, cài **mẫu site** (các tệp `*.hosso-site.zip` trong `HOSSO_TEMPLATES_DIR`, mặc định `seed/sites`), xem phiên bản và báo có bản mới (đặt `HOSSO_UPDATE_URL`).
+- **Sao lưu tự động**: `pnpm studio:backup` (chạy bằng cron), hoặc service `backup` trong docker-compose (mỗi 24 giờ). Gói chứa nội dung, cấu hình và media, không chứa tài khoản/bình luận/bí mật; sao lưu cả CSDL bằng `pg_dump` (xem chú thích trong docker-compose.yml).
+- **Cập nhật một lệnh**: `pnpm studio:update` (cài từ git: sao lưu, `git pull --ff-only`, cài phụ thuộc, migrate, build; dừng nếu có lỗi hoặc có thay đổi chưa commit). Docker: `docker compose pull && docker compose up -d` (migration chạy khi khởi động). Theme và plugin là mã nguồn: thêm package vào `hosso.config.ts` rồi build lại, không cài từ trình duyệt (cố ý, để không chạy mã lạ trên máy chủ).
+- **Email thông báo** khi có biểu mẫu/bình luận mới (Cài đặt site → Thông báo; người nhận mặc định là email liên hệ). Cần `HOSSO_SMTP_URL` (ví dụ `smtp://user:pass@host:587`) và `HOSSO_MAIL_FROM`; chưa cấu hình thì email chỉ ghi ra nhật ký.
+- **Link xem trước bản nháp**: trong trang/bài (admin) bấm "Link xem trước chia sẻ" → link 7 ngày, ký HMAC bằng `HOSSO_SECRET`, chỉ mở đúng tài liệu đó, có noindex.
+- **Chuyển hướng** (Admin → SEO → Chuyển hướng 301): đường dẫn cũ → mới (HTTP 308 vĩnh viễn hoặc 307 tạm); có trong gói xuất/nhập.
+- **SEO**: JSON-LD (Organization + WebSite ở trang chủ, Article + BreadcrumbList ở bài viết, BreadcrumbList ở trang), breadcrumb hiển thị trên bài viết, sitemap theo ngôn ngữ.
+- **Tùy biến giao diện** (Admin → Giao diện → Tùy biến trực tiếp): chỉnh màu, font, bo góc và thấy ngay trên site thật (khung xem trước máy tính/tablet/điện thoại, chọn trang), rồi Lưu.
+- **Sửa trực tiếp**: thanh quản trị hiện trên site cho người đã đăng nhập ("Sửa trang này", "Thuộc tính và SEO", "Tùy biến giao diện"); trong trình dựng, tiêu đề/mô tả/nhãn nút của Banner, tiêu đề của Văn bản và Lưới tính năng sửa thẳng trên canvas.
+- **Khóa sửa**: hai người mở cùng trang/ngôn ngữ trong trình dựng thì người sau bị báo ai đang sửa và bị chặn lưu (có nút "Tiếp quản").
+- **Widget**: vùng "Cột bên cạnh bài viết" dựng bằng kéo thả (cùng các vùng trước/sau header, footer); menu có dòng tóm tắt "Tên → đường dẫn · n mục con" để sắp xếp bằng kéo thả.
+- **Cache trang**: Next trả `Cache-Control: private, no-store` cho trang động nên cache toàn trang nên đặt ở reverse proxy/CDN (ví dụ nginx `proxy_cache` 30–60 giây, bỏ qua khi có cookie `payload-token`). Đã đo TTFB 30–60 ms (SQLite, trang chủ) nên không bắt buộc.
+
 ## 3. Kết nối Hosso WIM (plugin, tùy chọn)
 
 Trong PoC dùng mock:

@@ -4,7 +4,7 @@ import type { Config, Payload } from 'payload'
 
 /** Field của block: tập con tương thích với field của Puck (slice 2 truyền thẳng vào Puck). */
 export type BlockField =
-  | { type: 'text' | 'textarea' | 'number'; label?: string }
+  | { type: 'text' | 'textarea' | 'number'; label?: string; /** Sửa chữ trực tiếp trên canvas của trình dựng (chỉ nên bật khi renderer chỉ in giá trị ra JSX). */ contentEditable?: boolean }
   | { type: 'media'; label?: string; kind?: 'image' | 'video' }
   | { type: 'ref'; label?: string; collection: string }
   | { type: 'select' | 'radio'; label?: string; options: { label: string; value: string | number | boolean }[] }

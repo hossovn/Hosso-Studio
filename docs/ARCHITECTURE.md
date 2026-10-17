@@ -33,6 +33,12 @@ seed/                  Trang mẫu, dữ liệu mock WIM, gói site mẫu
 - Định tuyến công khai gom về `app/(site)/[[...slug]]` + `views/` (trang, bài viết, chuyên mục/thẻ, tìm kiếm).
 - Sidebar admin: `components/admin/Nav*.tsx` (thay `admin.components.Nav`), mục plugin qua `HossoPlugin.adminNav`.
 
+## Vận hành (đợt 6)
+
+- Gói site (`lib/site-package.ts` xuất, `lib/site-import.ts` nhập) dùng chung cho CLI (`studio:export/import`), sao lưu (`lib/backup.ts`, `studio:backup`) và trang Công cụ; endpoint admin: `/api/site/backup`, `/api/site/backups`, `/api/site/package-import`, `/api/site/template-install`.
+- Link chia sẻ bản nháp: `lib/share.ts` (HMAC), endpoint `/api/site/share-link`; chuyển hướng: collection `redirects` + `lib/redirects.ts` (chỉ tra khi không tìm thấy nội dung); thông báo: `lib/notify.ts`; khóa sửa mềm: collection `edit-locks` + `/api/site/lock` (TTL 60 giây, gia hạn 25 giây/lần).
+- Header bảo mật (nosniff, SAMEORIGIN, Referrer-Policy, Permissions-Policy) ở `next.config.ts` và `csrf` theo `HOSSO_PUBLIC_URL` ở cấu hình Payload.
+
 ## Giới hạn đã biết
 
 - Giỏ hàng nằm ở trình duyệt (localStorage); cache là bộ nhớ trong một tiến trình (đủ cho một cài đặt = một site).

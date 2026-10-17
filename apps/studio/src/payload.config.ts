@@ -44,6 +44,8 @@ const base: Config = {
   ...(email ? { email } : {}),
   secret: process.env.HOSSO_SECRET || '',
   serverURL: process.env.HOSSO_PUBLIC_URL || undefined,
+  // Chỉ origin của site được gửi yêu cầu kèm cookie đăng nhập (chống CSRF); localhost luôn được phép để chạy dev.
+  csrf: process.env.HOSSO_PUBLIC_URL ? [process.env.HOSSO_PUBLIC_URL, 'http://localhost:3000'] : [],
   admin: {
     user: Users.slug,
     importMap: { baseDir: path.resolve(dirname) },
@@ -54,7 +56,10 @@ const base: Config = {
     components: {
       graphics: { Logo: '/components/admin/Logo#Logo', Icon: '/components/admin/Logo#Icon' },
       Nav: '/components/admin/Nav#Nav',
-      views: { tools: { Component: '/components/admin/ToolsView#ToolsView', path: '/tools' } },
+      views: {
+        tools: { Component: '/components/admin/ToolsView#ToolsView', path: '/tools' },
+        customize: { Component: '/components/admin/CustomizeView#CustomizeView', path: '/customize' },
+      },
       providers: ['/components/admin/BrandStyle#BrandStyle'],
       beforeDashboard: ['/components/admin/GettingStarted#GettingStarted'],
     },

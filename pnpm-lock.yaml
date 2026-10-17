@@ -36,6 +36,9 @@ importers:
       '@payloadcms/db-sqlite':
         specifier: 3.91.0
         version: 3.91.0(@types/pg@8.20.0)(payload@3.91.0(graphql@16.14.2)(typescript@5.9.3))(pg@8.20.0)
+      '@payloadcms/email-nodemailer':
+        specifier: 3.91.0
+        version: 3.91.0(payload@3.91.0(graphql@16.14.2)(typescript@5.9.3))
       '@payloadcms/next':
         specifier: 3.91.0
         version: 3.91.0(@types/react@19.3.0)(graphql@16.14.2)(monaco-editor@0.57.0)(next@16.4.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.77.4))(payload@3.91.0(graphql@16.14.2)(typescript@5.9.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@5.9.3)
@@ -66,6 +69,9 @@ importers:
       node-html-parser:
         specifier: 9.0.4
         version: 9.0.4
+      nodemailer:
+        specifier: ^10.1.2
+        version: 10.1.2
       payload:
         specifier: 3.91.0
         version: 3.91.0(graphql@16.14.2)(typescript@5.9.3)
@@ -1061,6 +1067,12 @@ packages:
 
   '@payloadcms/drizzle@3.91.0':
     resolution: {integrity: sha512-qkY+UKgi+Ku1FZw9G5jEaRhXB9+iS7ic7cY0LM+42GtKXln3wp/vyAXLuIPwutTGQ0WZYpcKkuvRkN7L/yojKg==}
+    peerDependencies:
+      payload: 3.91.0
+
+  '@payloadcms/email-nodemailer@3.91.0':
+    resolution: {integrity: sha512-Hp3TpLz0Lu3WgDVkCk4Ua1HFMzOUuVKJ1rsffS2TEDSbNRd7BdWrXvvTtyjwnfuAjdMk4sBWIFGvaT7Ckbxlgg==}
+    engines: {node: '>=20.18.1'}
     peerDependencies:
       payload: 3.91.0
 
@@ -2380,6 +2392,10 @@ packages:
 
   node-html-parser@9.0.4:
     resolution: {integrity: sha512-reUSrZkF1rO7hEYe5mJwtbVcQ6mB5QrViCZH6Wv+iz3er/PA9Q50gol15dMLQRDfdli4VzqPMPR24HNRFgVKFw==}
+
+  nodemailer@10.1.2:
+    resolution: {integrity: sha512-rnQn9Rzh8RAwcp42MVsIvxbsv6YZ2a2/av+uyJ/LPU1+2QSlrRgFsWWZTKenyRUqkIl8urOI0c4+CEcmFdsvQw==}
+    engines: {node: '>=20.0.0'}
 
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
@@ -3883,6 +3899,11 @@ snapshots:
       - sql.js
       - sqlite3
 
+  '@payloadcms/email-nodemailer@3.91.0(payload@3.91.0(graphql@16.14.2)(typescript@5.9.3))':
+    dependencies:
+      nodemailer: 10.1.2
+      payload: 3.91.0(graphql@16.14.2)(typescript@5.9.3)
+
   '@payloadcms/graphql@3.91.0(graphql@16.14.2)(payload@3.91.0(graphql@16.14.2)(typescript@5.9.3))(typescript@5.9.3)':
     dependencies:
       graphql: 16.14.2
@@ -5258,6 +5279,8 @@ snapshots:
     dependencies:
       css-select: 5.2.2
       entities: 8.1.0
+
+  nodemailer@10.1.2: {}
 
   normalize-path@3.0.0: {}
 
