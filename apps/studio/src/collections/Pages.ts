@@ -1,7 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
-import { loggedIn, adminOnly } from '../lib/access'
-import { builderLinkField, onlyAdminPublishes, seoFields } from '../lib/content'
+import { pageEditors, publishers } from '../lib/access'
+import { builderLinkField, onlyPublishersPublish, seoFields } from '../lib/content'
 
 export const Pages: CollectionConfig = {
   slug: 'pages',
@@ -11,15 +11,15 @@ export const Pages: CollectionConfig = {
   // Biên tập viên sửa và lưu nháp; chỉ quản trị viên được xuất bản (hook bên dưới).
   access: {
     read: ({ req: { user } }) => (user ? true : { _status: { equals: 'published' } }),
-    create: loggedIn,
-    update: loggedIn,
-    delete: adminOnly,
+    create: pageEditors,
+    update: pageEditors,
+    delete: publishers,
   },
   versions: { drafts: { autosave: true }, maxPerDoc: 20 },
-  hooks: { beforeChange: [onlyAdminPublishes] },
+  hooks: { beforeChange: [onlyPublishersPublish] },
   fields: [
     builderLinkField,
-    { name: 'title', type: 'text', label: 'Tiêu đề', required: true },
+    { name: 'title', type: 'text', label: 'Tiêu đề', required: true, localized: true },
     {
       name: 'slug',
       type: 'text',
@@ -29,9 +29,9 @@ export const Pages: CollectionConfig = {
       index: true,
       admin: { description: '"home" là trang chủ.' },
     },
-    { name: 'description', type: 'textarea', label: 'Mô tả (dùng cho SEO)' },
+    { name: 'description', type: 'textarea', localized: true, label: 'Mô tả (dùng cho SEO)' },
     seoFields,
     // JSON của Puck; chỉnh bằng trình dựng kéo thả.
-    { name: 'content', type: 'json', label: 'Cấu trúc trang (JSON)', admin: { hidden: true } },
+    { name: 'content', type: 'json', localized: true, label: 'Cấu trúc trang (JSON)', admin: { hidden: true } },
   ],
 }

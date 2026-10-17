@@ -14,6 +14,11 @@ export default defineHossoConfig({
     mark: '/brand/mark.svg',
     favicon: '/brand/wordmark.svg',
   },
+  // Ngôn ngữ đầu tiên là mặc định (URL không có tiền tố); ngôn ngữ khác có tiền tố /en, ...
+  locales: [
+    { code: 'vi', label: 'Tiếng Việt' },
+    { code: 'en', label: 'English' },
+  ],
   themes: [defaultTheme, altTheme, shopTheme],
   // Gỡ plugin: xóa dòng import ở trên và `wim` ở đây; Studio vẫn chạy, block của plugin bị bỏ qua.
   plugins: [wim],

@@ -38,7 +38,7 @@ const link = (name: string, label: string, extra: Field[] = []): Field => ({
   label,
   labels: { singular: 'Mục', plural: 'Mục' },
   fields: [
-    { name: 'label', type: 'text', label: 'Tên hiển thị', required: true },
+    { name: 'label', type: 'text', localized: true, label: 'Tên hiển thị', required: true },
     { name: 'href', type: 'text', label: 'Đường dẫn', required: true, admin: { description: 'Ví dụ /san-pham hoặc https://…' } },
     ...extra,
   ],
@@ -58,16 +58,16 @@ export const SiteSettings: GlobalConfig = {
         {
           label: 'Thương hiệu',
           fields: [
-            { name: 'siteName', type: 'text', label: 'Tên site' },
+            { name: 'siteName', type: 'text', localized: true, label: 'Tên site' },
             { name: 'logo', type: 'upload', relationTo: 'media', label: 'Logo' },
             { name: 'favicon', type: 'upload', relationTo: 'media', label: 'Favicon (biểu tượng tab trình duyệt)' },
             { name: 'showSearch', type: 'checkbox', label: 'Hiện ô tìm kiếm trên đầu trang', defaultValue: true },
-            { name: 'announcement', type: 'text', label: 'Thông báo trên cùng', admin: { description: 'Một dòng ngắn ở đầu site, ví dụ "Ship COD toàn quốc". Để trống để ẩn.' } },
+            { name: 'announcement', type: 'text', localized: true, label: 'Thông báo trên cùng', admin: { description: 'Một dòng ngắn ở đầu site, ví dụ "Ship COD toàn quốc". Để trống để ẩn.' } },
           ],
         },
         {
           label: 'Menu',
-          fields: [link('headerMenu', 'Menu đầu trang', [submenu]), link('footerMenu', 'Menu chân trang'), { name: 'footerText', type: 'text', label: 'Dòng chân trang' }],
+          fields: [link('headerMenu', 'Menu đầu trang', [submenu]), link('footerMenu', 'Menu chân trang'), { name: 'footerText', type: 'text', localized: true, label: 'Dòng chân trang' }],
         },
         {
           label: 'Liên hệ',
@@ -79,11 +79,18 @@ export const SiteSettings: GlobalConfig = {
               fields: [
                 { name: 'phone', type: 'text', label: 'Điện thoại' },
                 { name: 'email', type: 'email', label: 'Email' },
-                { name: 'address', type: 'textarea', label: 'Địa chỉ' },
+                { name: 'address', type: 'textarea', localized: true, label: 'Địa chỉ' },
                 { name: 'zalo', type: 'text', label: 'Zalo (số điện thoại hoặc liên kết)' },
               ],
             },
             link('social', 'Mạng xã hội'),
+          ],
+        },
+        {
+          label: 'Bình luận',
+          fields: [
+            { name: 'commentsEnabled', type: 'checkbox', label: 'Bật bình luận trên bài viết', defaultValue: true },
+            { name: 'commentsAutoApprove', type: 'checkbox', label: 'Tự động duyệt bình luận (mặc định: chờ duyệt thủ công)', defaultValue: false },
           ],
         },
         {

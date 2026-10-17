@@ -69,6 +69,12 @@ export interface Config {
   collections: {
     pages: Page;
     posts: Post;
+    'post-categories': PostCategory;
+    'post-tags': PostTag;
+    comments: Comment;
+    forms: Form;
+    'form-submissions': FormSubmission;
+    'reusable-blocks': ReusableBlock;
     media: Media;
     'contact-messages': ContactMessage;
     users: User;
@@ -81,6 +87,12 @@ export interface Config {
   collectionsSelect: {
     pages: PagesSelect<false> | PagesSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
+    'post-categories': PostCategoriesSelect<false> | PostCategoriesSelect<true>;
+    'post-tags': PostTagsSelect<false> | PostTagsSelect<true>;
+    comments: CommentsSelect<false> | CommentsSelect<true>;
+    forms: FormsSelect<false> | FormsSelect<true>;
+    'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
+    'reusable-blocks': ReusableBlocksSelect<false> | ReusableBlocksSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     'contact-messages': ContactMessagesSelect<false> | ContactMessagesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
@@ -92,16 +104,18 @@ export interface Config {
   db: {
     defaultIDType: number;
   };
-  fallbackLocale: null;
+  fallbackLocale: ('false' | 'none' | 'null') | false | null | ('vi' | 'en') | ('vi' | 'en')[];
   globals: {
     'site-settings': SiteSetting;
+    'site-areas': SiteArea;
     'wim-settings': WimSetting;
   };
   globalsSelect: {
     'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
+    'site-areas': SiteAreasSelect<false> | SiteAreasSelect<true>;
     'wim-settings': WimSettingsSelect<false> | WimSettingsSelect<true>;
   };
-  locale: null;
+  locale: 'vi' | 'en';
   widgets: {
     collections: CollectionsWidget;
   };
@@ -181,8 +195,6 @@ export interface Media {
   filesize?: number | null;
   width?: number | null;
   height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -197,7 +209,10 @@ export interface Post {
    */
   excerpt?: string | null;
   cover?: (number | null) | Media;
+  categories?: (number | PostCategory)[] | null;
+  tags?: (number | PostTag)[] | null;
   publishedAt?: string | null;
+  commentsEnabled?: boolean | null;
   content?:
     | {
         [k: string]: unknown;
@@ -207,6 +222,7 @@ export interface Post {
     | number
     | boolean
     | null;
+  createdBy?: (number | null) | User;
   /**
    * Để trống thì dùng tiêu đề và mô tả của trang.
    */
@@ -224,13 +240,25 @@ export interface Post {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "contact-messages".
+ * via the `definition` "post-categories".
  */
-export interface ContactMessage {
+export interface PostCategory {
   id: number;
   name: string;
-  phone: string;
-  message: string;
+  slug: string;
+  description?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "post-tags".
+ */
+export interface PostTag {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -240,7 +268,7 @@ export interface ContactMessage {
  */
 export interface User {
   id: number;
-  roles: ('admin' | 'editor')[];
+  roles: ('admin' | 'publisher' | 'editor' | 'author' | 'moderator')[];
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -260,6 +288,100 @@ export interface User {
     | null;
   password?: string | null;
   collection: 'users';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "comments".
+ */
+export interface Comment {
+  id: number;
+  post: number | Post;
+  authorName: string;
+  authorEmail?: string | null;
+  content: string;
+  status: 'pending' | 'approved' | 'spam';
+  locale?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "forms".
+ */
+export interface Form {
+  id: number;
+  title: string;
+  slug: string;
+  fields: {
+    label: string;
+    /**
+     * Chữ thường, số, gạch dưới (dùng chung mọi ngôn ngữ).
+     */
+    name?: string | null;
+    type: 'text' | 'email' | 'tel' | 'number' | 'textarea' | 'select' | 'checkbox';
+    options?: string | null;
+    required?: boolean | null;
+    placeholder?: string | null;
+    id?: string | null;
+  }[];
+  submitLabel?: string | null;
+  successMessage?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "form-submissions".
+ */
+export interface FormSubmission {
+  id: number;
+  form: number | Form;
+  formTitle?: string | null;
+  data:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  locale?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reusable-blocks".
+ */
+export interface ReusableBlock {
+  id: number;
+  title: string;
+  slug: string;
+  content?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contact-messages".
+ */
+export interface ContactMessage {
+  id: number;
+  name: string;
+  phone: string;
+  message: string;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -292,6 +414,30 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'posts';
         value: number | Post;
+      } | null)
+    | ({
+        relationTo: 'post-categories';
+        value: number | PostCategory;
+      } | null)
+    | ({
+        relationTo: 'post-tags';
+        value: number | PostTag;
+      } | null)
+    | ({
+        relationTo: 'comments';
+        value: number | Comment;
+      } | null)
+    | ({
+        relationTo: 'forms';
+        value: number | Form;
+      } | null)
+    | ({
+        relationTo: 'form-submissions';
+        value: number | FormSubmission;
+      } | null)
+    | ({
+        relationTo: 'reusable-blocks';
+        value: number | ReusableBlock;
       } | null)
     | ({
         relationTo: 'media';
@@ -376,8 +522,12 @@ export interface PostsSelect<T extends boolean = true> {
   slug?: T;
   excerpt?: T;
   cover?: T;
+  categories?: T;
+  tags?: T;
   publishedAt?: T;
+  commentsEnabled?: T;
   content?: T;
+  createdBy?: T;
   seo?:
     | T
     | {
@@ -385,6 +535,89 @@ export interface PostsSelect<T extends boolean = true> {
         image?: T;
         noindex?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "post-categories_select".
+ */
+export interface PostCategoriesSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  description?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "post-tags_select".
+ */
+export interface PostTagsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  description?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "comments_select".
+ */
+export interface CommentsSelect<T extends boolean = true> {
+  post?: T;
+  authorName?: T;
+  authorEmail?: T;
+  content?: T;
+  status?: T;
+  locale?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "forms_select".
+ */
+export interface FormsSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  fields?:
+    | T
+    | {
+        label?: T;
+        name?: T;
+        type?: T;
+        options?: T;
+        required?: T;
+        placeholder?: T;
+        id?: T;
+      };
+  submitLabel?: T;
+  successMessage?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "form-submissions_select".
+ */
+export interface FormSubmissionsSelect<T extends boolean = true> {
+  form?: T;
+  formTitle?: T;
+  data?: T;
+  locale?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reusable-blocks_select".
+ */
+export interface ReusableBlocksSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  content?: T;
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
@@ -404,8 +637,6 @@ export interface MediaSelect<T extends boolean = true> {
   filesize?: T;
   width?: T;
   height?: T;
-  focalX?: T;
-  focalY?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -543,6 +774,8 @@ export interface SiteSetting {
         id?: string | null;
       }[]
     | null;
+  commentsEnabled?: boolean | null;
+  commentsAutoApprove?: boolean | null;
   theme: 'default' | 'alt' | 'shop';
   tokens_default?: {
     /**
@@ -681,6 +914,51 @@ export interface SiteSetting {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-areas".
+ */
+export interface SiteArea {
+  id: number;
+  beforeHeader?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  afterHeader?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  beforeFooter?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  afterFooter?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "wim-settings".
  */
 export interface WimSetting {
@@ -762,6 +1040,8 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         href?: T;
         id?: T;
       };
+  commentsEnabled?: T;
+  commentsAutoApprove?: T;
   theme?: T;
   tokens_default?:
     | T
@@ -811,6 +1091,19 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         radius?: T;
         spacing?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-areas_select".
+ */
+export interface SiteAreasSelect<T extends boolean = true> {
+  beforeHeader?: T;
+  afterHeader?: T;
+  beforeFooter?: T;
+  afterFooter?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

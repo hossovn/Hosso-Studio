@@ -1,7 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
-import { adminOnly, loggedIn } from '../lib/access'
-import { builderLinkField, onlyAdminPublishes, seoFields } from '../lib/content'
+import { ownOrEditor, postWriters, publishers } from '../lib/access'
+import { builderLinkField, onlyPublishersPublish, seoFields } from '../lib/content'
 
 /** Bài viết / tin tức / cẩm nang. Nội dung dựng bằng cùng trình dựng kéo thả như trang. Địa chỉ công khai: /bai-viet/<slug>. */
 export const Posts: CollectionConfig = {
@@ -10,19 +10,35 @@ export const Posts: CollectionConfig = {
   admin: { useAsTitle: 'title', defaultColumns: ['title', 'slug', 'publishedAt', '_status'], group: 'Nội dung' },
   access: {
     read: ({ req: { user } }) => (user ? true : { _status: { equals: 'published' } }),
-    create: loggedIn,
-    update: loggedIn,
-    delete: adminOnly,
+    create: postWriters,
+    update: ownOrEditor,
+    delete: publishers,
   },
   versions: { drafts: { autosave: true }, maxPerDoc: 20 },
-  hooks: { beforeChange: [onlyAdminPublishes] },
+  hooks: {
+    // Xóa bài thì xóa luôn bình luận của bài (tránh vướng khóa ngoại).
+    beforeDelete: [
+      async ({ id, req }) => {
+        await req.payload.delete({ collection: 'comments', where: { post: { equals: id } }, overrideAccess: true, req })
+      },
+    ],
+    beforeChange: [
+      onlyPublishersPublish,
+      ({ data, operation, req }) => {
+        if (operation === 'create' && req.user && !data.createdBy) data.createdBy = req.user.id
+        return data
+      },
+    ],
+  },
   defaultSort: '-publishedAt',
   fields: [
     builderLinkField,
-    { name: 'title', type: 'text', label: 'Tiêu đề', required: true },
+    { name: 'title', type: 'text', label: 'Tiêu đề', required: true, localized: true },
     { name: 'slug', type: 'text', label: 'Đường dẫn', required: true, unique: true, index: true },
-    { name: 'excerpt', type: 'textarea', label: 'Tóm tắt', admin: { description: 'Hiện ở danh sách bài viết và làm mô tả SEO.' } },
+    { name: 'excerpt', type: 'textarea', localized: true, label: 'Tóm tắt', admin: { description: 'Hiện ở danh sách bài viết và làm mô tả SEO.' } },
     { name: 'cover', type: 'upload', relationTo: 'media', label: 'Ảnh đại diện' },
+    { name: 'categories', type: 'relationship', relationTo: 'post-categories', hasMany: true, label: 'Chuyên mục' },
+    { name: 'tags', type: 'relationship', relationTo: 'post-tags', hasMany: true, label: 'Thẻ' },
     {
       name: 'publishedAt',
       type: 'date',
@@ -30,7 +46,9 @@ export const Posts: CollectionConfig = {
       defaultValue: () => new Date().toISOString(),
       admin: { date: { pickerAppearance: 'dayAndTime' } },
     },
-    { name: 'content', type: 'json', label: 'Nội dung (JSON)', admin: { hidden: true } },
+    { name: 'commentsEnabled', type: 'checkbox', label: 'Cho phép bình luận', defaultValue: true },
+    { name: 'content', type: 'json', localized: true, label: 'Nội dung (JSON)', admin: { hidden: true } },
+    { name: 'createdBy', type: 'relationship', relationTo: 'users', label: 'Tác giả', admin: { position: 'sidebar', readOnly: true } },
     seoFields,
   ],
 }
