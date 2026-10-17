@@ -1,0 +1,48 @@
+{
+  "title": "Home",
+  "description": "Genuine and aftermarket car parts; search by vehicle or part number.",
+  "content": {
+    "root": { "props": {} },
+    "content": [
+      {
+        "type": "Hero",
+        "props": {
+          "id": "Hero-home",
+          "title": "The right car part for your vehicle, by exact code",
+          "subtitle": "Genuine and aftermarket parts, with stock per branch. Reserve online and pick up at a store near you.",
+          "ctaLabel": "Ask for advice",
+          "ctaHref": "#lien-he-ContactForm-home"
+        }
+      },
+      {
+        "type": "Features",
+        "props": {
+          "id": "Features-home",
+          "heading": "Why choose us",
+          "items": [
+            { "title": "Search by vehicle", "description": "Pick the make, model and year to see only compatible parts." },
+            { "title": "Search by code", "description": "Find parts by OEM code, brand code or replacement code." },
+            { "title": "Stock per branch", "description": "See at once which branch has the part so you can pick it up." }
+          ]
+        }
+      },
+      {
+        "type": "Text",
+        "props": {
+          "id": "Text-home",
+          "heading": "About the store",
+          "body": "We sell car parts at retail to garages and individual drivers.\n\nEvery product comes with clear warranty and origin information."
+        }
+      },
+      {
+        "type": "ContactForm",
+        "props": {
+          "id": "ContactForm-home",
+          "heading": "Need advice?",
+          "description": "Leave your details and we will call you back during business hours.",
+          "submitLabel": "Send"
+        }
+      }
+    ]
+  }
+}

@@ -1,5 +1,6 @@
 // Kiểm tra luồng đặt đơn qua site + mock WIM đang chạy (pnpm dev, pnpm --filter @hosso/mock-wim start).
 // Chạy: node scripts/check-order-flow.mjs   (đọc tài khoản admin từ apps/studio/.env để chỉnh timeout tạm thời)
+import { say } from './lib/say.mjs'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
@@ -24,7 +25,7 @@ const base = {
   fulfillment: { type: 'pickup', branchId: 'hn' },
 }
 let n = 0
-const ok = (m) => console.log(`  ✓ ${m}`, ++n && '')
+const ok = (m, vars) => console.log(`  ✓ ${say(m, vars)}`, ++n && '')
 
 mock('reset'); mock('chaos', 'off')
 await new Promise((r) => setTimeout(r, 1200))
@@ -32,7 +33,7 @@ const before = orders()
 
 // 1. Nhận tại chi nhánh -> tạo đơn
 const first = await checkout(base)
-assert.equal(first.status, 200, JSON.stringify(first)); assert.equal(first.order.status, 'new'); ok(`nhận tại chi nhánh: đơn ${first.order.id}`)
+assert.equal(first.status, 200, JSON.stringify(first)); assert.equal(first.order.status, 'new'); ok('nhận tại chi nhánh: đơn {id}', { id: first.order.id })
 assert.equal((await wim(`/v1/orders/${first.order.id}`)).fulfillment.branchId, 'hn'); ok('đơn xuất hiện trong mock WIM (đúng chi nhánh)')
 
 // 2. Gửi lại cùng giỏ -> cùng đơn, không tạo đơn thứ hai (Idempotency-Key)
@@ -63,11 +64,11 @@ const count = orders()
 mock('chaos', 'order-timeout'); await new Promise((r) => setTimeout(r, 1200))
 const t0 = Date.now()
 const lost = await checkout(key)
-assert.equal(lost.status, 504); assert.equal(lost.code, 'wim_unavailable'); ok(`timeout: báo lỗi hợp lý sau ${Math.round((Date.now() - t0) / 1000)}s, giữ giỏ để thử lại`)
+assert.equal(lost.status, 504); assert.equal(lost.code, 'wim_unavailable'); ok('timeout: báo lỗi hợp lý sau {s}s, giữ giỏ để thử lại', { s: Math.round((Date.now() - t0) / 1000) })
 assert.equal(orders(), count + 1); ok('dù thử lại 3 lần, WIM chỉ có đúng 1 đơn mới')
 mock('chaos', 'off'); await new Promise((r) => setTimeout(r, 1200))
 const retry = await checkout(key)
-assert.equal(retry.status, 200); assert.equal(orders(), count + 1); ok(`khách bấm đặt lại: nhận đơn ${retry.order.id}, vẫn chỉ 1 đơn`)
+assert.equal(retry.status, 200); assert.equal(orders(), count + 1); ok('khách bấm đặt lại: nhận đơn {id}, vẫn chỉ 1 đơn', { id: retry.order.id })
 await setSettings({ timeoutMs: 5000 })
 
 // 7. Theo dõi đơn (luồng E) + webhook order.status_changed
@@ -80,4 +81,4 @@ const hook = mock('webhook', 'order.status_changed', first.order.id)
 assert.match(hook, /-> 200/)
 assert.match(await page(first.order.id, '4567'), /Đã xác nhận/); ok('webhook order.status_changed: làm mới ngay -> Đã xác nhận')
 
-console.log(`\nLuồng đặt đơn OK (${n} kiểm tra).`)
+console.log(say('\nLuồng đặt đơn OK ({n} kiểm tra).', { n }))

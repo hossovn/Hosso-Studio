@@ -113,10 +113,10 @@ export async function placeOrder(payload: Payload, input: CheckoutBody): Promise
     throw lastError
   } catch (e) {
     if (e instanceof WimError) {
-      if (e.status === 409 && e.code === 'out_of_stock') return fail(409, 'out_of_stock', e.message, { productId: e.body?.error?.productId })
+      if (e.status === 409 && e.code === 'out_of_stock') return fail(409, 'out_of_stock', `${e.body?.error?.productId ?? tr('co.product')} ${tr('co.outOfStock')}`, { productId: e.body?.error?.productId })
       if (e.kind === 'timeout' || e.kind === 'network' || (e.status ?? 0) >= 500)
         return fail(504, 'wim_unavailable', tr('co.wimSlow'))
-      return fail(e.status && e.status < 500 ? 400 : 502, 'wim_rejected', e.message)
+      return fail(e.status && e.status < 500 ? 400 : 502, 'wim_rejected', tr('co.rejected'))
     }
     payload.logger.error(e)
     return fail(500, 'internal', tr('co.internal'))

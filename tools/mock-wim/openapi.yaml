@@ -1,16 +1,16 @@
 openapi: 3.1.0
 info:
-  title: Hosso WIM API (hợp đồng PoC)
+  title: Hosso WIM API (PoC contract) / Hosso WIM API (hợp đồng PoC)
   version: 0.1.0
   description: |
-    Hợp đồng giữa site Hosso Studio và Hosso WIM. Mock (tools/mock-wim) và kiểu TypeScript của plugin đều sinh từ file này.
-    Xác thực bằng khóa API trong header `X-API-Key`. Mọi đường dẫn có tiền tố `/v1`.
+    Contract between a Hosso Studio site and Hosso WIM. The mock (tools/mock-wim) and the plugin TypeScript types are both generated from this file. / Hợp đồng giữa site Hosso Studio và Hosso WIM. Mock (tools/mock-wim) và kiểu TypeScript của plugin đều sinh từ file này.
+    Authenticate with the API key in the `X-API-Key` header. Every path is prefixed with `/v1`. / Xác thực bằng khóa API trong header `X-API-Key`. Mọi đường dẫn có tiền tố `/v1`.
 
-    Trường tùy chọn (OEM, mã thay thế, tương thích xe, ảnh) có thể vắng; site vẫn chạy.
+    Optional fields (OEM, replacement code, vehicle fitment, images) may be absent; the site keeps working. / Trường tùy chọn (OEM, mã thay thế, tương thích xe, ảnh) có thể vắng; site vẫn chạy.
 
-    Webhook (WIM gọi site): sự kiện `product.updated`, `stock.changed`, `order.status_changed`.
-    Chữ ký: header `X-Hosso-Timestamp` (giây epoch) và `X-Hosso-Signature` = hex(HMAC-SHA256(secret, timestamp + "." + thân thô)).
-    Site từ chối khi chữ ký sai hoặc timestamp lệch quá 5 phút.
+    Webhooks (WIM calls the site): events `product.updated`, `stock.changed`, `order.status_changed`. / Webhook (WIM gọi site): sự kiện `product.updated`, `stock.changed`, `order.status_changed`.
+    Signature: header `X-Hosso-Timestamp` (epoch seconds) and `X-Hosso-Signature` = hex(HMAC-SHA256(secret, timestamp + "." + raw body)). / Chữ ký: header `X-Hosso-Timestamp` (giây epoch) và `X-Hosso-Signature` = hex(HMAC-SHA256(secret, timestamp + "." + thân thô)).
+    The site rejects the request when the signature is wrong or the timestamp is off by more than 5 minutes. / Site từ chối khi chữ ký sai hoặc timestamp lệch quá 5 phút.
 servers:
   - url: http://localhost:4010
 security:
@@ -19,7 +19,7 @@ paths:
   /v1/vehicles/makes:
     get:
       operationId: listMakes
-      summary: Danh sách hãng xe (tùy chọn)
+      summary: List of vehicle makes (optional) / Danh sách hãng xe (tùy chọn)
       responses:
         '200':
           description: OK
@@ -30,7 +30,7 @@ paths:
   /v1/vehicles/makes/{make}/models:
     get:
       operationId: listModels
-      summary: Dòng xe của một hãng (tùy chọn)
+      summary: Models of a make (optional) / Dòng xe của một hãng (tùy chọn)
       parameters:
         - { name: make, in: path, required: true, schema: { type: string } }
       responses:
@@ -43,7 +43,7 @@ paths:
   /v1/vehicles/models/{model}/years:
     get:
       operationId: listYears
-      summary: Đời xe của một dòng (tùy chọn)
+      summary: Years of a model (optional) / Đời xe của một dòng (tùy chọn)
       parameters:
         - { name: model, in: path, required: true, schema: { type: string } }
       responses:
@@ -56,7 +56,7 @@ paths:
   /v1/products:
     get:
       operationId: listProducts
-      summary: Danh sách sản phẩm (phân trang, lọc, tìm kiếm)
+      summary: List of products (pagination, filters, search) / Danh sách sản phẩm (phân trang, lọc, tìm kiếm)
       parameters:
         - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
         - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 12 } }
@@ -66,7 +66,7 @@ paths:
         - { name: category, in: query, schema: { type: string } }
         - { name: brand, in: query, schema: { type: string } }
         - { name: condition, in: query, schema: { $ref: '#/components/schemas/Condition' } }
-        - { name: q, in: query, description: 'Tìm theo mã (mã sản phẩm, OEM, mã thay thế) hoặc tên', schema: { type: string } }
+        - { name: q, in: query, description: 'Search by code (product code, OEM, replacement code) or name / Tìm theo mã (mã sản phẩm, OEM, mã thay thế) hoặc tên', schema: { type: string } }
       responses:
         '200':
           description: OK
@@ -88,7 +88,7 @@ paths:
   /v1/products/{id}/availability:
     get:
       operationId: getAvailability
-      summary: Số lượng bán được theo chi nhánh và giá hiện hành
+      summary: Sellable quantity per branch and the current price / Số lượng bán được theo chi nhánh và giá hiện hành
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }
       responses:
@@ -119,7 +119,7 @@ paths:
   /v1/orders:
     post:
       operationId: createOrder
-      summary: Tạo đơn hàng (bắt buộc Idempotency-Key)
+      summary: Create an order (Idempotency-Key is required) / Tạo đơn hàng (bắt buộc Idempotency-Key)
       parameters:
         - name: Idempotency-Key
           in: header
@@ -132,23 +132,23 @@ paths:
             schema: { $ref: '#/components/schemas/CreateOrder' }
       responses:
         '201':
-          description: Đã tạo đơn
+          description: Order created / Đã tạo đơn
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Order' }
         '200':
-          description: Gửi lại cùng Idempotency-Key và cùng nội dung; trả lại đơn đã tạo, không tạo đơn mới
+          description: Same Idempotency-Key and same body sent again; returns the existing order and does not create a new one / Gửi lại cùng Idempotency-Key và cùng nội dung; trả lại đơn đã tạo, không tạo đơn mới
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Order' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '409':
-          description: Hết hàng (code out_of_stock)
+          description: Out of stock (code out_of_stock) / Hết hàng (code out_of_stock)
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '422':
-          description: Idempotency-Key đã dùng cho nội dung khác
+          description: Idempotency-Key already used for a different body / Idempotency-Key đã dùng cho nội dung khác
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -167,34 +167,34 @@ paths:
 webhooks:
   product.updated:
     post:
-      summary: Sản phẩm (giá, thông tin) thay đổi
+      summary: Product (price, details) changed / Sản phẩm (giá, thông tin) thay đổi
       requestBody:
         content:
           application/json:
             schema: { $ref: '#/components/schemas/WebhookEvent' }
       responses:
-        '200': { description: Đã nhận }
-        '401': { description: Chữ ký hoặc timestamp không hợp lệ }
+        '200': { description: Received / Đã nhận }
+        '401': { description: Invalid signature or timestamp / Chữ ký hoặc timestamp không hợp lệ }
   stock.changed:
     post:
-      summary: Tồn kho thay đổi
+      summary: Stock changed / Tồn kho thay đổi
       requestBody:
         content:
           application/json:
             schema: { $ref: '#/components/schemas/WebhookEvent' }
       responses:
-        '200': { description: Đã nhận }
-        '401': { description: Chữ ký hoặc timestamp không hợp lệ }
+        '200': { description: Received / Đã nhận }
+        '401': { description: Invalid signature or timestamp / Chữ ký hoặc timestamp không hợp lệ }
   order.status_changed:
     post:
-      summary: Trạng thái đơn thay đổi
+      summary: Order status changed / Trạng thái đơn thay đổi
       requestBody:
         content:
           application/json:
             schema: { $ref: '#/components/schemas/WebhookEvent' }
       responses:
-        '200': { description: Đã nhận }
-        '401': { description: Chữ ký hoặc timestamp không hợp lệ }
+        '200': { description: Received / Đã nhận }
+        '401': { description: Invalid signature or timestamp / Chữ ký hoặc timestamp không hợp lệ }
 components:
   securitySchemes:
     ApiKey:
@@ -203,17 +203,17 @@ components:
       name: X-API-Key
   responses:
     NotFound:
-      description: Không tìm thấy
+      description: Not found / Không tìm thấy
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
     NotAvailable:
-      description: Dữ liệu này WIM chưa cung cấp
+      description: WIM does not provide this data / Dữ liệu này WIM chưa cung cấp
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
     BadRequest:
-      description: Yêu cầu không hợp lệ
+      description: Invalid request / Yêu cầu không hợp lệ
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
@@ -231,7 +231,7 @@ components:
             productId: { type: string }
     Condition:
       type: string
-      description: Tình trạng/nguồn gốc
+      description: Condition / origin / Tình trạng/nguồn gốc
       enum: [genuine, aftermarket]
     Named:
       type: object
@@ -289,12 +289,12 @@ components:
       required: [id, code, name, brand, condition, warrantyMonths, price]
       properties:
         id: { type: string }
-        code: { type: string, description: Mã sản phẩm }
+        code: { type: string, description: Product code / Mã sản phẩm }
         name: { type: string }
         brand: { type: string }
         condition: { $ref: '#/components/schemas/Condition' }
         warrantyMonths: { type: integer, minimum: 0 }
-        price: { type: integer, minimum: 0, description: 'VND, không thập phân' }
+        price: { type: integer, minimum: 0, description: 'VND, no decimals / VND, không thập phân' }
         categoryId: { type: string }
         oemCodes: { type: array, items: { type: string } }
         altCodes: { type: array, items: { type: string } }
@@ -330,8 +330,8 @@ components:
       properties:
         productId: { type: string }
         quantity: { type: integer, minimum: 1, maximum: 999 }
-        name: { type: string, description: Chỉ có trong phản hồi }
-        unitPrice: { type: integer, description: Chỉ có trong phản hồi }
+        name: { type: string, description: Only present in responses / Chỉ có trong phản hồi }
+        unitPrice: { type: integer, description: Only present in responses / Chỉ có trong phản hồi }
     Customer:
       type: object
       required: [name, phone]
@@ -345,7 +345,7 @@ components:
       required: [type]
       properties:
         type: { type: string, enum: [delivery, pickup] }
-        branchId: { type: string, description: Bắt buộc khi type = pickup }
+        branchId: { type: string, description: Required when type = pickup / Bắt buộc khi type = pickup }
     CreateOrder:
       type: object
       required: [items, customer, fulfillment]

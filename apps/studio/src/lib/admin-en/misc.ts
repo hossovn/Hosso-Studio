@@ -92,6 +92,10 @@ export const misc: Record<string, string> = {
   '+ Thêm widget…': '+ Add a widget…',
   'Chưa có widget nào để xem trước.': 'No widgets to preview yet.',
   'Xem trước': 'Preview',
+  // Thanh quản trị trên site
+  'Thanh quản trị': 'Admin toolbar',
+  'Sửa trang này': 'Edit this page',
+  'Thuộc tính và SEO': 'Properties and SEO',
   // Plugin
   'Plugin': 'Plugins',
   'Kết nối Hosso WIM': 'Hosso WIM connection',

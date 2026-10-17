@@ -1,0 +1,14 @@
+{
+  "siteName": "Sample parts store",
+  "announcement": "Nationwide delivery, pay on delivery (COD)",
+  "headerMenu": [
+    { "label": "Home", "href": "/" },
+    { "label": "About", "href": "/gioi-thieu" }
+  ],
+  "footerMenu": [
+    { "label": "Home", "href": "/" },
+    { "label": "About", "href": "/gioi-thieu" }
+  ],
+  "footerText": "© 2026 Sample parts store",
+  "contact": { "address": "12 Hue Street, Hai Ba Trung, Hanoi" }
+}

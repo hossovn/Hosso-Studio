@@ -1,10 +1,31 @@
-// Kiểm tra hợp đồng: gọi từng endpoint của mock và đối chiếu phản hồi với schema trong openapi.yaml.
+// Contract check: calls every mock endpoint and compares the response with the schemas in openapi.yaml. / Kiểm tra hợp đồng: gọi từng endpoint của mock và đối chiếu phản hồi với schema trong openapi.yaml.
 import Ajv2020 from 'ajv/dist/2020'
 import assert from 'node:assert/strict'
 import { readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { parse } from 'yaml'
+
+// Thông báo theo HOSSO_LANG=en|vi (mặc định theo LANG; không có thì tiếng Việt). / Messages follow HOSSO_LANG=en|vi.
+const EN = /^en/i.test(process.env.HOSSO_LANG || process.env.LC_ALL || process.env.LANG || '')
+const MSG: Record<string, string> = {
+  'thiếu khóa API -> 401': 'missing API key -> 401',
+  'hãng không có -> 404': 'unknown make -> 404',
+  'giá là số nguyên VND': 'prices are whole VND',
+  'lọc theo xe chỉ trả phụ tùng tương thích': 'filtering by vehicle returns only compatible parts',
+  'tìm theo mã OEM': 'search by OEM code',
+  'tìm theo mã thay thế (bỏ dấu gạch, không phân biệt hoa/thường)': 'search by replacement code (ignores dashes and letter case)',
+  'tìm theo tên': 'search by name',
+  'lọc tình trạng': 'filter by condition',
+  'sản phẩm không có -> 404': 'unknown product -> 404',
+  'thiếu Idempotency-Key -> 400': 'missing Idempotency-Key -> 400',
+  'cùng Idempotency-Key -> cùng đơn, không tạo đơn thứ hai': 'same Idempotency-Key -> same order, no second order',
+  'cùng key khác nội dung -> 422': 'same key with a different body -> 422',
+  'đơn trừ tồn của chi nhánh nhận hàng': 'the order deducts stock of the pick-up branch',
+  'hết hàng -> 409 out_of_stock': 'out of stock -> 409 out_of_stock',
+  'giao tận nơi thiếu địa chỉ -> 400': 'delivery without an address -> 400',
+}
+const say = (vi: string) => (EN ? (MSG[vi] ?? vi) : vi)
 
 process.env.MOCK_WIM_STATE = join(tmpdir(), `mock-wim-contract-${process.pid}.json`)
 
@@ -15,7 +36,7 @@ const ajv = new Ajv2020({ strict: false, formats: { 'date-time': true } })
 const validator = (name: string) => ajv.compile({ components: doc.components, $ref: `#/components/schemas/${name}` })
 const check = (name: string, value: unknown, label: string) => {
   const v = validator(name)
-  assert.ok(v(value), `${label}: không khớp schema ${name}: ${JSON.stringify(v.errors)}`)
+  assert.ok(v(value), `${label}: ${EN ? 'does not match schema' : 'không khớp schema'} ${name}: ${JSON.stringify(v.errors)}`)
 }
 
 async function main() {
@@ -28,7 +49,7 @@ async function main() {
     fetch(base + path, { method: 'POST', headers: { ...KEY, 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) })
 
   let n = 0
-  const ok = (msg: string) => console.log(`  ✓ ${msg}`, ++n && '')
+  const ok = (msg: string) => console.log(`  ✓ ${say(msg)}`, ++n && '')
 
   assert.equal((await get('/v1/branches', {} as any)).status, 401); ok('thiếu khóa API -> 401')
 
@@ -37,7 +58,7 @@ async function main() {
   const years = await (await get('/v1/vehicles/models/toyota-vios/years')).json(); check('YearList', years, 'years'); ok('GET years')
   assert.equal((await get('/v1/vehicles/makes/xxx/models')).status, 404); ok('hãng không có -> 404')
 
-  const list = await (await get('/v1/products?pageSize=100')).json(); check('ProductPage', list, 'products'); ok(`GET /products (${list.total} sản phẩm)`)
+  const list = await (await get('/v1/products?pageSize=100')).json(); check('ProductPage', list, 'products'); ok(EN ? `GET /products (${list.total} products)` : `GET /products (${list.total} sản phẩm)`)
   assert.ok(list.items.every((p: any) => Number.isInteger(p.price))); ok('giá là số nguyên VND')
   const byVehicle = await (await get('/v1/products?make=toyota&model=toyota-vios&year=2015&pageSize=100')).json()
   assert.ok(byVehicle.total > 0 && byVehicle.items.every((p: any) => p.compatibility.some((c: any) => c.model === 'toyota-vios' && c.yearFrom <= 2015 && 2015 <= c.yearTo))); ok('lọc theo xe chỉ trả phụ tùng tương thích')
@@ -72,7 +93,7 @@ async function main() {
 
   await app.close()
   rmSync(process.env.MOCK_WIM_STATE!, { force: true })
-  console.log(`\nHợp đồng OK (${n} kiểm tra).`)
+  console.log(EN ? `\nContract OK (${n} checks).` : `\nHợp đồng OK (${n} kiểm tra).`)
 }
 
 main().catch((e) => {

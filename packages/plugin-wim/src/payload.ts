@@ -6,6 +6,7 @@ import { placeOrder } from './checkout'
 import { applyEvent, verifyWebhook } from './webhook'
 import { wimFetch } from './client'
 import type { Branch, Named } from './client'
+import { L, bi, msg } from './lang'
 
 type Roled = { roles?: string[] | null } | null | undefined
 const isAdmin = (u: unknown) => Boolean((u as Roled)?.roles?.includes('admin'))
@@ -23,18 +24,18 @@ const secretBeforeChange: FieldHook = async ({ value, field, req }) => {
 }
 const secretAfterRead: FieldHook = ({ value, req }) => (req.context?.wimUnmask ? value : value ? MASK : '')
 
-const secretField = (name: string, label: string, description: string) => ({
+const secretField = (name: string, label: { vi: string; en: string }, description: { vi: string; en: string }) => ({
   name,
   type: 'text' as const,
   label,
-  admin: { description: `${description} Lưu dạng mã hóa; để nguyên ô che để giữ giá trị hiện có.` },
+  admin: { description: bi(`${description.vi} Lưu dạng mã hóa; để nguyên ô che để giữ giá trị hiện có.`, `${description.en} Stored encrypted; leave the masked value as is to keep the current one.`) },
   hooks: { beforeChange: [secretBeforeChange], afterRead: [secretAfterRead] },
 })
 
 export const WimSettings: GlobalConfig = {
   slug: SETTINGS_SLUG,
-  label: 'Kết nối Hosso WIM',
-  admin: { group: 'Hệ thống' },
+  label: bi('Kết nối Hosso WIM', 'Hosso WIM connection'),
+  admin: { group: bi('Hệ thống', 'System') },
   access: { read: ({ req }) => isAdmin(req.user), update: ({ req }) => isAdmin(req.user) },
   hooks: { afterChange: [() => clearConfigMemo()] },
   fields: [
@@ -43,19 +44,19 @@ export const WimSettings: GlobalConfig = {
       type: 'ui',
       admin: { components: { Field: '@hosso/plugin-wim/admin#TestConnection' } },
     },
-    { name: 'apiUrl', type: 'text', label: 'Địa chỉ API WIM', admin: { description: 'Ví dụ http://localhost:4010. Biến môi trường HOSSO_WIM_API_URL (nếu có) được ưu tiên.', placeholder: 'http://localhost:4010' } },
-    secretField('apiKey', 'Khóa API', 'Biến môi trường HOSSO_WIM_API_KEY (nếu có) được ưu tiên.'),
-    secretField('webhookSecret', 'Bí mật webhook', 'Dùng để kiểm tra chữ ký webhook; tùy chọn. Biến HOSSO_WIM_WEBHOOK_SECRET được ưu tiên.'),
-    { name: 'timeoutMs', type: 'number', label: 'Thời gian chờ WIM (ms)', defaultValue: 5000, min: 500, max: 30000 },
-    { name: 'cacheTtl', type: 'number', label: 'Cache dữ liệu (giây)', defaultValue: 30, min: 1, max: 3600, admin: { description: 'Site luôn đúng chỉ với TTL này; webhook chỉ làm mới nhanh hơn.' } },
+    { name: 'apiUrl', type: 'text', label: bi('Địa chỉ API WIM', 'WIM API address'), admin: { description: bi('Ví dụ http://localhost:4010. Biến môi trường HOSSO_WIM_API_URL (nếu có) được ưu tiên.', 'For example http://localhost:4010. The HOSSO_WIM_API_URL environment variable (if set) takes priority.'), placeholder: 'http://localhost:4010' } },
+    secretField('apiKey', bi('Khóa API', 'API key'), bi('Biến môi trường HOSSO_WIM_API_KEY (nếu có) được ưu tiên.', 'The HOSSO_WIM_API_KEY environment variable (if set) takes priority.')),
+    secretField('webhookSecret', bi('Bí mật webhook', 'Webhook secret'), bi('Dùng để kiểm tra chữ ký webhook; tùy chọn. Biến HOSSO_WIM_WEBHOOK_SECRET được ưu tiên.', 'Used to verify webhook signatures; optional. The HOSSO_WIM_WEBHOOK_SECRET variable takes priority.')),
+    { name: 'timeoutMs', type: 'number', label: bi('Thời gian chờ WIM (ms)', 'WIM timeout (ms)'), defaultValue: 5000, min: 500, max: 30000 },
+    { name: 'cacheTtl', type: 'number', label: bi('Cache dữ liệu (giây)', 'Data cache (seconds)'), defaultValue: 30, min: 1, max: 3600, admin: { description: bi('Site luôn đúng chỉ với TTL này; webhook chỉ làm mới nhanh hơn.', 'The site is always correct within this TTL; webhooks only refresh faster.') } },
     {
       name: 'categoryMap',
       type: 'array',
-      label: 'Ánh xạ danh mục',
-      admin: { description: 'Đặt tên hiển thị riêng cho danh mục của WIM (để trống thì dùng tên của WIM).' },
+      label: bi('Ánh xạ danh mục', 'Category mapping'),
+      admin: { description: bi('Đặt tên hiển thị riêng cho danh mục của WIM (để trống thì dùng tên của WIM).', 'Give WIM categories their own display names (empty = use the WIM name).') },
       fields: [
-        { name: 'wimCategoryId', type: 'text', label: 'Mã danh mục WIM', required: true },
-        { name: 'label', type: 'text', label: 'Tên hiển thị trên site', required: true },
+        { name: 'wimCategoryId', type: 'text', label: bi('Mã danh mục WIM', 'WIM category code'), required: true },
+        { name: 'label', type: 'text', label: bi('Tên hiển thị trên site', 'Display name on the site'), required: true },
       ],
     },
   ],
@@ -80,14 +81,14 @@ const endpoints: Endpoint[] = [
         body,
       )
       if (!check.ok) {
-        req.payload.logger.warn(`[wim] webhook bị từ chối: ${check.reason}`)
+        req.payload.logger.warn(`[wim] ${L('webhook bị từ chối', 'webhook rejected')}: ${check.reason}`)
         return json({ error: { code: 'unauthorized', message: check.reason } }, check.reason === 'no_secret' ? 503 : 401)
       }
       let event: any
       try {
         event = JSON.parse(body)
       } catch {
-        return json({ error: { code: 'bad_request', message: 'Thân không phải JSON' } }, 400)
+        return json({ error: { code: 'bad_request', message: msg(req, 'Thân không phải JSON', 'The body is not JSON') } }, 400)
       }
       return json({ ok: true, refreshed: applyEvent(event) })
     },
@@ -101,7 +102,7 @@ const endpoints: Endpoint[] = [
       try {
         body = await req.json?.()
       } catch {
-        return json({ ok: false, code: 'bad_request', message: 'Yêu cầu không hợp lệ' }, 400)
+        return json({ ok: false, code: 'bad_request', message: msg(req, 'Yêu cầu không hợp lệ', 'Invalid request') }, 400)
       }
       const result = await placeOrder(req.payload, body ?? {})
       return json(result.body, result.status)
@@ -112,15 +113,15 @@ const endpoints: Endpoint[] = [
     path: '/plugins/wim/test',
     method: 'post',
     handler: async (req) => {
-      if (!isAdmin(req.user)) return json({ ok: false, message: 'Cần quyền quản trị viên' }, 403)
+      if (!isAdmin(req.user)) return json({ ok: false, message: msg(req, 'Cần quyền quản trị viên', 'Administrator access is required') }, 403)
       const cfg = await getWimConfig(req.payload)
-      if (!cfg) return json({ ok: false, message: 'Chưa đủ địa chỉ API và khóa API (lưu cài đặt trước khi kiểm tra).' })
+      if (!cfg) return json({ ok: false, message: msg(req, 'Chưa đủ địa chỉ API và khóa API (lưu cài đặt trước khi kiểm tra).', 'The API address and key are incomplete (save the settings before testing).') })
       const t0 = Date.now()
       try {
         const branches = await wimFetch<{ items: Branch[] }>(cfg, '/v1/branches')
-        return json({ ok: true, ms: Date.now() - t0, message: `Kết nối được, WIM có ${branches.items.length} chi nhánh.` })
+        return json({ ok: true, ms: Date.now() - t0, message: msg(req, `Kết nối được, WIM có ${branches.items.length} chi nhánh.`, `Connected; WIM has ${branches.items.length} branches.`) })
       } catch (e) {
-        return json({ ok: false, ms: Date.now() - t0, message: e instanceof Error ? e.message : 'Lỗi không rõ' })
+        return json({ ok: false, ms: Date.now() - t0, message: e instanceof Error ? e.message : msg(req, 'Lỗi không rõ', 'Unknown error') })
       }
     },
   },

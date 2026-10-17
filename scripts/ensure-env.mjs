@@ -1,4 +1,4 @@
-// Tạo apps/studio/.env từ .env.example nếu chưa có, tự sinh các bí mật ngẫu nhiên.
+// Creates apps/studio/.env from .env.example when missing and generates random secrets. / Tạo apps/studio/.env từ .env.example nếu chưa có, tự sinh các bí mật ngẫu nhiên.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { randomBytes } from 'node:crypto'
 
@@ -16,4 +16,4 @@ const out = readFileSync(new URL('../.env.example', import.meta.url), 'utf8')
   .join('\n')
 
 writeFileSync(target, out)
-console.log('Đã tạo apps/studio/.env (tài khoản admin và mật khẩu nằm trong file này).')
+console.log(/^en/i.test(process.env.HOSSO_LANG || process.env.LC_ALL || process.env.LANG || '') ? 'Created apps/studio/.env (the admin account and password are in this file).' : 'Đã tạo apps/studio/.env (tài khoản admin và mật khẩu nằm trong file này).')

@@ -93,6 +93,7 @@ export const s = {
   'co.branchBad': 'Chi nhánh không hợp lệ',
   'co.unavailable': 'Chưa thể đặt hàng lúc này, vui lòng thử lại sau.',
   'co.productGone': 'Có sản phẩm không còn bán, vui lòng cập nhật giỏ hàng.',
+  'co.rejected': 'WIM không nhận đơn hàng, vui lòng kiểm tra thông tin và thử lại.',
   'co.outOfStock': 'không đủ hàng',
   'co.product': 'Sản phẩm',
   'co.wimSlow': 'Hệ thống kho phản hồi chậm nên chưa xác nhận được đơn. Giỏ hàng của bạn vẫn được giữ; bấm "Đặt hàng" lần nữa để thử lại, đơn sẽ không bị tạo trùng.',

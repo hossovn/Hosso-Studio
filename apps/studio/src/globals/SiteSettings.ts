@@ -3,8 +3,9 @@ import type { Field, GlobalConfig } from 'payload'
 
 import hosso from '@hosso-config'
 import { adminOnly } from '../lib/access'
+import { msg } from '../lib/lang'
 
-const hex = (v: unknown) => !v || /^#[0-9a-fA-F]{6}$/.test(String(v)) || 'Dùng mã màu dạng #rrggbb'
+const hex = (v: unknown, { req }: { req?: { i18n?: { language?: string } } } = {}) => !v || /^#[0-9a-fA-F]{6}$/.test(String(v)) || msg(req, 'Dùng mã màu dạng #rrggbb', 'Use a color code like #rrggbb')
 const fontOptions = Object.entries(FONTS).map(([value, label]) => ({ label, value }))
 
 // Mỗi theme có một nhóm token riêng (hiện khi theme đó được chọn). Để trống = dùng mặc định của theme.
@@ -52,8 +53,8 @@ const menu = (name: string, label: string, maxDepth: number): Field => ({
   localized: true,
   label,
   admin: { components: { Field: { path: '/components/admin/MenuTreeField#MenuTreeField', clientProps: { maxDepth } } } },
-  validate: (v: unknown) =>
-    v == null || (Array.isArray(v) && v.every((n) => n && typeof n.label === 'string' && typeof n.href === 'string')) || 'Menu không hợp lệ: mỗi mục cần tên hiển thị và đường dẫn',
+  validate: (v: unknown, { req }: { req?: { i18n?: { language?: string } } } = {}) =>
+    v == null || (Array.isArray(v) && v.every((n) => n && typeof n.label === 'string' && typeof n.href === 'string')) || msg(req, 'Menu không hợp lệ: mỗi mục cần tên hiển thị và đường dẫn', 'Invalid menu: every item needs a display name and a path'),
 })
 
 export const SiteSettings: GlobalConfig = {

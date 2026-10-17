@@ -5,6 +5,7 @@ import { HTMLElement, NodeType, parse, type Node } from 'node-html-parser'
 import os from 'os'
 import path from 'path'
 import { getPayload } from 'payload'
+import { L } from '../src/lib/lang'
 
 import { embedUrl } from '@hosso/studio-blocks'
 
@@ -18,7 +19,7 @@ const flag = (name: string) => args.includes(`--${name}`)
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3)
 const file = args.find((a) => !a.startsWith('--'))
 if (!file) {
-  console.error('Cách dùng: pnpm studio:import-wordpress <tệp.xml> [--site-url=https://site-cu.vn] [--locale=vi] [--media] [--dry-run]')
+  console.error(L('Cách dùng: pnpm studio:import-wordpress <tệp.xml> [--site-url=https://site-cu.vn] [--locale=vi] [--media] [--dry-run]', 'Usage: pnpm studio:import-wordpress <file.xml> [--site-url=https://old-site.com] [--locale=en] [--media] [--dry-run]'))
   process.exit(1)
 }
 const dry = flag('dry-run')
@@ -36,7 +37,7 @@ const parser = new XMLParser({
 })
 const channel = parser.parse(xml)?.rss?.channel
 if (!channel) {
-  console.error('Không phải tệp xuất WordPress (WXR) hợp lệ.')
+  console.error(L('Không phải tệp xuất WordPress (WXR) hợp lệ.', 'Not a valid WordPress export (WXR) file.'))
   process.exit(1)
 }
 
@@ -95,7 +96,7 @@ async function importMedia(url: string): Promise<string | null> {
     }
     return null
   } catch (e) {
-    warn(`Không tải được ảnh/video: ${url} (${(e as Error).message})`)
+    warn(L(`Không tải được ảnh/video: ${url} (${(e as Error).message})`, `Could not download image/video: ${url} (${(e as Error).message})`))
     return null
   }
 }
@@ -144,7 +145,7 @@ async function htmlToBlocks(html: string): Promise<Block[]> {
   // Bỏ chú thích khối Gutenberg và shortcode; bài kiểu cổ điển (không có thẻ khối) tách đoạn theo dòng trống.
   let src = html.replace(/<!--[\s\S]*?-->/g, '')
   src = src.replace(/\[(\/?[a-z_]+)[^\]]*\]/gi, (m, name) => {
-    warn(`Shortcode không chuyển được: [${String(name).replace('/', '')}]`)
+    warn(L(`Shortcode không chuyển được: [${String(name).replace('/', '')}]`, `Shortcode could not be converted: [${String(name).replace('/', '')}]`))
     return ''
   })
   if (!/<(p|div|h[1-6]|ul|ol|figure|table|blockquote)\b/i.test(src)) src = src.split(/\n\s*\n/).map((p) => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('')
@@ -163,7 +164,7 @@ async function htmlToBlocks(html: string): Promise<Block[]> {
     const local = await importMedia(raw)
     flush()
     blocks.push({ type: 'Image', props: { id: id('Image'), src: local ?? raw, alt: el.getAttribute('alt') ?? '', caption } })
-    if (!local) warn('Ảnh trong bài vẫn trỏ về site cũ (dùng --media để tải về)')
+    if (!local) warn(L('Ảnh trong bài vẫn trỏ về site cũ (dùng --media để tải về)', 'Images in the post still point to the old site (use --media to download them)'))
   }
   const pushVideo = (url: string, title = '') => {
     flush()
@@ -192,7 +193,7 @@ async function htmlToBlocks(html: string): Promise<Block[]> {
       } else if (tag === 'iframe') {
         const src = el.getAttribute('src') ?? ''
         if (embedUrl(src)) pushVideo(src, el.getAttribute('title') ?? '')
-        else warn(`iframe không chuyển được: ${src.slice(0, 80)}`)
+        else warn(L(`iframe không chuyển được: ${src.slice(0, 80)}`, `iframe could not be converted: ${src.slice(0, 80)}`))
       } else if (tag === 'video') {
         const src = el.getAttribute('src') ?? el.querySelector('source')?.getAttribute('src') ?? ''
         const local = await importMedia(src)
@@ -210,14 +211,14 @@ async function htmlToBlocks(html: string): Promise<Block[]> {
           for (const img of imgs) await pushImage(img)
         }
       } else if (tag === 'table') {
-        warn('Bảng (table) được chuyển thành văn bản thuần')
+        warn(L('Bảng (table) được chuyển thành văn bản thuần', 'Tables were converted to plain text'))
         for (const tr of el.querySelectorAll('tr')) paras.push(tr.querySelectorAll('th,td').map((c) => inlineText(c).trim()).join(' | '))
       } else if (['script', 'style', 'hr'].includes(tag)) continue
       else if (['div', 'section', 'article', 'span', 'center', 'main'].includes(tag)) await walk(el.childNodes)
       else {
         const t = inlineText(el).trim()
         if (t) paras.push(t)
-        warn(`Thẻ <${tag}> được chuyển thành văn bản`)
+        warn(L(`Thẻ <${tag}> được chuyển thành văn bản`, `<${tag}> elements were converted to text`))
       }
     }
   }
@@ -260,7 +261,7 @@ for (const it of items) {
   if (type !== 'page' && type !== 'post') continue
   const status = text(it['wp:status']) === 'publish' ? 'published' : 'draft'
   if (!['publish', 'draft', 'pending', 'private', 'future'].includes(text(it['wp:status']))) continue
-  const title = text(it.title) || '(Không tiêu đề)'
+  const title = text(it.title) || (opt('locale') === 'en' ? '(Untitled)' : '(Không tiêu đề)')
   const slug = type === 'page' ? pageSlug(it) : text(it['wp:post_name']) || slugify(title)
   const blocks = await htmlToBlocks(text(it['content:encoded']))
   const excerpt = plainFromHtml(text(it['excerpt:encoded'])).slice(0, 300) || undefined
@@ -287,7 +288,7 @@ for (const it of items) {
     if (thumbUrl) {
       const mid = await mediaId(thumbUrl)
       if (mid != null) data.cover = mid
-      else if (!withMedia) warn('Ảnh đại diện bài viết cần --media để tải về')
+      else if (!withMedia) warn(L('Ảnh đại diện bài viết cần --media để tải về', 'Featured images need --media to be downloaded'))
     }
   }
   if (dry) {
@@ -306,7 +307,7 @@ for (const it of items) {
     for (const c of it['wp:comment'] ?? []) {
       if (text(c['wp:comment_approved']) !== '1' || !['', 'comment'].includes(text(c['wp:comment_type']))) continue
       const body = plainFromHtml(text(c['wp:comment_content'])).slice(0, 2000)
-      const author = text(c['wp:comment_author']).slice(0, 80) || 'Khách'
+      const author = text(c['wp:comment_author']).slice(0, 80) || (opt('locale') === 'en' ? 'Guest' : 'Khách')
       if (!body) continue
       const dup = await payload.find({ collection: 'comments', where: { and: [{ post: { equals: doc.id } }, { authorName: { equals: author } }, { content: { equals: body } }] }, limit: 1, depth: 0 })
       if (dup.docs[0]) continue
@@ -318,10 +319,10 @@ for (const it of items) {
 }
 
 stats.media = mediaCache.size
-console.log(`${dry ? '[chạy thử, không ghi] ' : ''}Đã nhập: ${stats.pages} trang, ${stats.posts} bài viết, ${termIds.category.size} chuyên mục, ${termIds.tag.size} thẻ, ${stats.comments} bình luận, ${stats.media} tệp media.`)
+console.log(L(`${dry ? '[chạy thử, không ghi] ' : ''}Đã nhập: ${stats.pages} trang, ${stats.posts} bài viết, ${termIds.category.size} chuyên mục, ${termIds.tag.size} thẻ, ${stats.comments} bình luận, ${stats.media} tệp media.`, `${dry ? '[dry run, nothing written] ' : ''}Imported: ${stats.pages} pages, ${stats.posts} posts, ${termIds.category.size} categories, ${termIds.tag.size} tags, ${stats.comments} comments, ${stats.media} media files.`))
 if (warnings.size) {
-  console.log('\nCần xem lại:')
+  console.log(L('\nCần xem lại:', '\nNeeds review:'))
   for (const [msg, n] of warnings) console.log(`  - ${msg}${n > 1 ? ` (×${n})` : ''}`)
 }
-console.log('\nGhi chú: đặt đường dẫn một trang thành "home" nếu muốn dùng làm trang chủ; menu và tiện ích của WordPress không được nhập, hãy dựng lại ở Cài đặt site.')
+console.log(L('\nGhi chú: đặt đường dẫn một trang thành "home" nếu muốn dùng làm trang chủ; menu và tiện ích của WordPress không được nhập, hãy dựng lại ở Cài đặt site.', '\nNote: set a page path to "home" to use it as the home page; WordPress menus and widgets are not imported, rebuild them in Site settings.'))
 process.exit(0)

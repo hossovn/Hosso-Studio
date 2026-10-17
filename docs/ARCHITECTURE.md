@@ -1,4 +1,5 @@
 # Kiến trúc Hosso Studio (PoC)
+**Tiếng Việt** | [English](en/ARCHITECTURE.md)
 
 ```
 apps/studio            Payload (admin) + site runtime Next.js + hosso.config.ts

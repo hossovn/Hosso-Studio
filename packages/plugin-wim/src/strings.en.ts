@@ -94,6 +94,7 @@ export const s: Record<Key, string> = {
   'co.branchBad': 'Invalid branch',
   'co.unavailable': 'Cannot place orders right now, please try again later.',
   'co.productGone': 'Some products are no longer available, please update your cart.',
+  'co.rejected': 'The order was not accepted; please check the details and try again.',
   'co.outOfStock': 'is out of stock',
   'co.product': 'Product',
   'co.wimSlow': 'The warehouse system is slow, so we could not confirm your order. Your cart is kept; press "Place order" again to retry, the order will not be duplicated.',

@@ -19,6 +19,7 @@ export const strings: Record<StringKey, string> = {
   'post.sidebar': 'Sidebar',
   'form.previewNote': 'Preview only: nothing was sent or saved.',
   'form.previewAgain': 'Try again',
+  'nav.quick': 'Quick links',
   'post.categories': 'Categories',
   'post.tags': 'Tags',
   'post.byCategory': 'Category',

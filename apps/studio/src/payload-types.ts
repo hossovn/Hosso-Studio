@@ -1038,24 +1038,24 @@ export interface SiteArea {
 export interface WimSetting {
   id: number;
   /**
-   * Ví dụ http://localhost:4010. Biến môi trường HOSSO_WIM_API_URL (nếu có) được ưu tiên.
+   * For example http://localhost:4010. The HOSSO_WIM_API_URL environment variable (if set) takes priority.
    */
   apiUrl?: string | null;
   /**
-   * Biến môi trường HOSSO_WIM_API_KEY (nếu có) được ưu tiên. Lưu dạng mã hóa; để nguyên ô che để giữ giá trị hiện có.
+   * The HOSSO_WIM_API_KEY environment variable (if set) takes priority. Stored encrypted; leave the masked value as is to keep the current one.
    */
   apiKey?: string | null;
   /**
-   * Dùng để kiểm tra chữ ký webhook; tùy chọn. Biến HOSSO_WIM_WEBHOOK_SECRET được ưu tiên. Lưu dạng mã hóa; để nguyên ô che để giữ giá trị hiện có.
+   * Used to verify webhook signatures; optional. The HOSSO_WIM_WEBHOOK_SECRET variable takes priority. Stored encrypted; leave the masked value as is to keep the current one.
    */
   webhookSecret?: string | null;
   timeoutMs?: number | null;
   /**
-   * Site luôn đúng chỉ với TTL này; webhook chỉ làm mới nhanh hơn.
+   * The site is always correct within this TTL; webhooks only refresh faster.
    */
   cacheTtl?: number | null;
   /**
-   * Đặt tên hiển thị riêng cho danh mục của WIM (để trống thì dùng tên của WIM).
+   * Give WIM categories their own display names (empty = use the WIM name).
    */
   categoryMap?:
     | {

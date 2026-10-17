@@ -17,6 +17,7 @@ export const strings = {
   'post.sidebar': 'Cột bên cạnh',
   'form.previewNote': 'Đây là xem trước: dữ liệu chưa được gửi hay lưu.',
   'form.previewAgain': 'Thử lại',
+  'nav.quick': 'Liên kết nhanh',
   'post.categories': 'Chuyên mục',
   'post.tags': 'Thẻ',
   'post.byCategory': 'Chuyên mục',

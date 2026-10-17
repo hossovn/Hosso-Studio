@@ -1,3 +1,4 @@
+import { L } from './lang'
 import type { components } from './api/schema'
 import { cached } from './cache'
 import type { WimConfig } from './config'
@@ -42,11 +43,11 @@ export async function wimFetch<T>(cfg: WimConfig, path: string, opts: Opts = {})
     })
   } catch (e) {
     const timeout = e instanceof Error && (e.name === 'TimeoutError' || e.name === 'AbortError')
-    throw new WimError(timeout ? 'timeout' : 'network', timeout ? 'WIM phản hồi quá chậm' : 'Không kết nối được WIM')
+    throw new WimError(timeout ? 'timeout' : 'network', timeout ? L('WIM phản hồi quá chậm', 'WIM responded too slowly') : L('Không kết nối được WIM', 'Could not connect to WIM'))
   }
   const text = await res.text()
   const body = text ? safeJson(text) : undefined
-  if (!res.ok) throw new WimError('http', body?.error?.message ?? `WIM trả ${res.status}`, res.status, body?.error?.code, body)
+  if (!res.ok) throw new WimError('http', body?.error?.message ?? L(`WIM trả ${res.status}`, `WIM returned ${res.status}`), res.status, body?.error?.code, body)
   return body as T
 }
 

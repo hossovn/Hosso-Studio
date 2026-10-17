@@ -1,5 +1,7 @@
 # Chính sách nhãn hiệu
 
+**Tiếng Việt** | [English](TRADEMARK.en.md)
+
 > **Bản nháp, cần luật sư duyệt.**
 
 Giấy phép Apache-2.0 áp dụng cho mã nguồn của Hosso Studio. Giấy phép này **không** cấp quyền sử dụng tên và logo "Hosso" và "Hosso Studio" (mục 6 của Apache-2.0).

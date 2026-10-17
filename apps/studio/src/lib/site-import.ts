@@ -5,24 +5,28 @@ import os from 'os'
 import path from 'path'
 import type { Payload } from 'payload'
 
+import type { AdminLang } from './admin-i18n'
+import { serverLang } from './lang'
+
 /**
  * Khôi phục gói (định dạng 2) lên cài đặt sạch (DB đã chạy migration). Bản ghi trùng slug được cập nhật; media trùng tên bị bỏ qua.
  * Dùng chung cho CLI (studio:import) và trang Công cụ trong admin.
  */
-export async function importSitePackage(payload: Payload, bytes: Uint8Array, log: (msg: string) => void = console.log) {
+export async function importSitePackage(payload: Payload, bytes: Uint8Array, log: (msg: string) => void = console.log, lang: AdminLang = serverLang()) {
+  const M = (vi: string, en: string) => (lang === 'en' ? en : vi)
 const zip = unzipSync(bytes)
 const read = (name: string) => (zip[name] ? JSON.parse(strFromU8(zip[name])) : undefined)
 
 const manifest = read('manifest.json')
-  if (manifest?.format !== 2) throw new Error('Gói không hợp lệ hoặc không đúng phiên bản định dạng (cần định dạng 2; xuất lại bằng bản Studio mới).')
+  if (manifest?.format !== 2) throw new Error(M('Gói không hợp lệ hoặc không đúng phiên bản định dạng (cần định dạng 2; xuất lại bằng bản Studio mới).', 'Invalid package or wrong format version (format 2 is required; export again with a current Studio).'))
 
   const LOCALES = hosso.locales.map((l) => l.code)
   const D = LOCALES[0]
 
   // Cảnh báo nếu theme/plugin/ngôn ngữ của gói chưa có trên cài đặt này (nội dung vẫn nhập, phần thiếu bị bỏ qua).
-  for (const t of manifest.themes as string[]) if (!hosso.themes.some((x) => x.manifest.name === t.split('@')[0])) log(`Cảnh báo: theme "${t}" chưa được cài trong hosso.config.ts.`)
-  for (const p of manifest.plugins as string[]) if (!hosso.plugins.some((x) => x.id === p)) log(`Cảnh báo: plugin "${p}" chưa được cài; block của nó sẽ bị bỏ qua.`)
-  for (const l of (manifest.locales ?? []) as string[]) if (!LOCALES.includes(l)) log(`Cảnh báo: ngôn ngữ "${l}" chưa khai báo trong hosso.config.ts; bản dịch này bị bỏ qua.`)
+  for (const t of manifest.themes as string[]) if (!hosso.themes.some((x) => x.manifest.name === t.split('@')[0])) log(M(`Cảnh báo: theme "${t}" chưa được cài trong hosso.config.ts.`, `Warning: theme "${t}" is not installed in hosso.config.ts.`))
+  for (const p of manifest.plugins as string[]) if (!hosso.plugins.some((x) => x.id === p)) log(M(`Cảnh báo: plugin "${p}" chưa được cài; block của nó sẽ bị bỏ qua.`, `Warning: plugin "${p}" is not installed; its blocks will be skipped.`))
+  for (const l of (manifest.locales ?? []) as string[]) if (!LOCALES.includes(l)) log(M(`Cảnh báo: ngôn ngữ "${l}" chưa khai báo trong hosso.config.ts; bản dịch này bị bỏ qua.`, `Warning: language "${l}" is not declared in hosso.config.ts; this translation is skipped.`))
 
   // Media trước (nội dung tham chiếu qua URL theo tên tệp).
   for (const m of read('data/media.json') ?? []) {
@@ -149,7 +153,7 @@ const manifest = read('manifest.json')
         })
       }
     } catch (e: any) {
-      log('Không nhập được cài đặt site: ' + JSON.stringify(e?.data?.errors ?? e?.message))
+      log(M('Không nhập được cài đặt site: ', 'Could not import the site settings: ') + JSON.stringify(e?.data?.errors ?? e?.message))
       throw e
     }
   }
@@ -160,9 +164,9 @@ const manifest = read('manifest.json')
     }
   }
 
-  log(`Đã nhập: ${stats.pages} trang mới, ${stats.pagesUpdated} trang cập nhật, ${stats.posts} bài viết, ${stats.terms} chuyên mục/thẻ, ${stats.forms} biểu mẫu, ${stats.blocks} khối dùng lại.`)
+  log(M(`Đã nhập: ${stats.pages} trang mới, ${stats.pagesUpdated} trang cập nhật, ${stats.posts} bài viết, ${stats.terms} chuyên mục/thẻ, ${stats.forms} biểu mẫu, ${stats.blocks} khối dùng lại.`, `Imported: ${stats.pages} new pages, ${stats.pagesUpdated} updated pages, ${stats.posts} posts, ${stats.terms} categories/tags, ${stats.forms} forms, ${stats.blocks} reusable blocks.`))
   if (manifest.secretsOmitted?.length) {
-    log(`Cần nhập lại bí mật (gói không chứa): ${manifest.secretsOmitted.join(', ')}. Dùng admin hoặc biến môi trường HOSSO_WIM_API_KEY, HOSSO_WIM_WEBHOOK_SECRET.`)
+    log(M(`Cần nhập lại bí mật (gói không chứa): ${manifest.secretsOmitted.join(', ')}. Dùng admin hoặc biến môi trường HOSSO_WIM_API_KEY, HOSSO_WIM_WEBHOOK_SECRET.`, `Secrets must be entered again (the package does not contain them): ${manifest.secretsOmitted.join(', ')}. Use the admin or the environment variables HOSSO_WIM_API_KEY, HOSSO_WIM_WEBHOOK_SECRET.`))
   }
   return { stats, secretsOmitted: (manifest.secretsOmitted ?? []) as string[] }
 }

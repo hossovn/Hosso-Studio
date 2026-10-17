@@ -1,4 +1,5 @@
 # Tạo theme cho Hosso Studio
+**Tiếng Việt** | [English](en/THEME-GUIDE.md)
 
 Theme quyết định **giao diện** của site: màu, font, header, footer và cách hiển thị từng block. Theme không chứa nội dung. Đổi theme thì nội dung các trang giữ nguyên, chỉ cách vẽ thay đổi.
 

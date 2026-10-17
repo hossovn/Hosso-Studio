@@ -1,14 +1,14 @@
-# Hosso Studio: image chạy được với Postgres. Build: docker compose build
+# Hosso Studio: an image that runs with Postgres. Build: docker compose build / image chạy được với Postgres.
 FROM node:24-slim AS base
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH NEXT_TELEMETRY_DISABLED=1 COREPACK_HOME=/opt/corepack
-# Tải sẵn pnpm lúc build để container không phải tải lại khi chạy.
+# Download pnpm at build time so the container does not download it at run time. / Tải sẵn pnpm lúc build.
 RUN corepack enable && corepack prepare pnpm@10.34.6 --activate && chmod -R a+rX /opt/corepack
 WORKDIR /app
 
 FROM base AS build
 COPY . .
 RUN pnpm install --frozen-lockfile
-# Giá trị giả chỉ để build; cấu hình thật đến từ biến môi trường lúc chạy.
+# Placeholder values only for the build; the real configuration comes from environment variables at run time. / Giá trị giả chỉ để build.
 ENV HOSSO_SECRET=build-time-placeholder HOSSO_DATABASE_URL=file:/tmp/build.db
 RUN pnpm --filter @hosso/studio build
 

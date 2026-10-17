@@ -1,5 +1,7 @@
 import type { Payload } from 'payload'
 
+import { L } from './lang'
+
 /**
  * Gửi email thông báo cho chủ site (Cài đặt site → Thông báo). Không bao giờ làm hỏng request của khách:
  * lỗi chỉ được ghi log. Chưa cấu hình SMTP (HOSSO_SMTP_URL) thì Payload ghi nội dung email ra console.
@@ -13,6 +15,6 @@ export async function notify(payload: Payload, kind: 'comment' | 'form', subject
     if (!to) return
     await payload.sendEmail({ to, subject: `[${s.siteName || 'Hosso'}] ${subject}`, text: lines.join('\n') })
   } catch (e) {
-    payload.logger.warn(`Không gửi được email thông báo: ${(e as Error).message}`)
+    payload.logger.warn(`${L('Không gửi được email thông báo', 'Could not send the notification email')}: ${(e as Error).message}`)
   }
 }

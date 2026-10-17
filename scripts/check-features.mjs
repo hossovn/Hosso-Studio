@@ -1,5 +1,8 @@
+// Feature checks against a running site (pnpm dev): permissions per role, categories/tags, comments, forms, reusable blocks,
+// site areas, languages, redirects, tools, edit locks, menus and widgets. Needs the admin account in apps/studio/.env. Test data is cleaned up.
 // Kiểm tra tính năng nội dung qua site đang chạy (pnpm dev): phân quyền theo vai trò, chuyên mục/thẻ, bình luận,
 // biểu mẫu, khối dùng lại, vùng giao diện, đa ngôn ngữ. Cần tài khoản admin trong apps/studio/.env. Dữ liệu thử tự dọn.
+import { say } from './lib/say.mjs'
 import assert from 'node:assert/strict'
 import { randomBytes } from 'node:crypto'
 import { readFileSync } from 'node:fs'
@@ -8,7 +11,7 @@ const SITE = process.env.SITE_URL || 'http://localhost:3000'
 const env = Object.fromEntries(readFileSync(new URL('../apps/studio/.env', import.meta.url), 'utf8').split(/\r?\n/).filter((l) => l.includes('=')).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]))
 const run = randomBytes(3).toString('hex')
 let n = 0
-const ok = (m) => console.log(`  ✓ ${m}`, ++n && '')
+const ok = (m, vars) => console.log(`  ✓ ${say(m, vars)}`, ++n && '')
 
 const api = async (token, method, path, body, headers = {}) => {
   const r = await fetch(SITE + path, { method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `JWT ${token}` } : {}), ...headers }, body: body ? JSON.stringify(body) : undefined })
@@ -35,7 +38,7 @@ const emptyContent = { root: { props: {} }, content: [] }
 const block = (type, props) => ({ type, props: { id: `${type}-${run}`, ...props } })
 const page = (slug, content = emptyContent, extra = {}) => ({ title: `Thử ${slug}`, slug, content, _status: 'draft', ...extra })
 
-console.log('Phân quyền')
+console.log(say('Phân quyền'))
 const pEd = await api(T('editor'), 'POST', '/api/pages', page(`ed-${run}`))
 assert.equal(pEd.status, 201); del(admin, `/api/pages/${pEd.body.doc.id}`); ok('editor tạo trang nháp')
 assert.equal((await api(T('editor'), 'PATCH', `/api/pages/${pEd.body.doc.id}`, { _status: 'published' })).status, 403); ok('editor không xuất bản được')
@@ -63,7 +66,7 @@ const areaSave = await api(T('publisher'), 'POST', '/api/globals/site-areas?loca
 assert.equal(areaSave.status, 200); ok('publisher sửa được vùng giao diện')
 assert.equal((await api(T('editor'), 'POST', '/api/globals/site-areas?locale=vi', { beforeFooter: emptyContent })).status, 403); ok('editor không sửa được vùng giao diện')
 
-console.log('Chuyên mục, thẻ')
+console.log(say('Chuyên mục, thẻ'))
 const cat = await api(T('editor'), 'POST', '/api/post-categories', { name: `Chuyên mục ${run}`, slug: `cm-${run}` })
 const tag = await api(T('editor'), 'POST', '/api/post-tags', { name: `Thẻ ${run}`, slug: `the-${run}` })
 assert.equal(cat.status, 201); assert.equal(tag.status, 201); del(admin, `/api/post-categories/${cat.body.doc.id}`); del(admin, `/api/post-tags/${tag.body.doc.id}`)
@@ -79,7 +82,7 @@ assert.match(html, new RegExp(`cong-khai-${run}`)); ok('trang thẻ liệt kê b
 html = await (await fetch(`${SITE}/bai-viet/cong-khai-${run}`)).text()
 assert.match(html, /<strong>đậm<\/strong>/); assert.match(html, /<li>mục một<\/li>/); assert.match(html, new RegExp(`danh-muc/cm-${run}`)); ok('bài hiện định dạng nhẹ, danh sách và liên kết chuyên mục')
 
-console.log('Bình luận')
+console.log(say('Bình luận'))
 const submitComment = (extra = {}) => api(null, 'POST', '/api/site/comments', { postId: String(postPub.body.doc.id), name: 'Khách', email: 'k@example.com', content: 'Bình luận thử nghiệm', locale: 'vi', ...extra }, { 'x-forwarded-for': `10.0.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}` })
 const c1 = await submitComment()
 assert.equal(c1.status, 200); assert.equal(c1.body.status, 'pending'); ok('bình luận mới chờ duyệt')
@@ -123,7 +126,7 @@ del(admin, `/api/pages/${fpage.body.doc.id}`)
 html = await (await fetch(`${SITE}/bm-${run}`)).text()
 assert.match(html, /Nhận báo giá/); assert.match(html, /Gửi báo giá/); assert.match(html, /name="ho_ten"/); ok('block Biểu mẫu hiển thị trên trang')
 
-console.log('Khối dùng lại và vùng giao diện')
+console.log(say('Khối dùng lại và vùng giao diện'))
 const rb = await api(T('publisher'), 'POST', '/api/reusable-blocks', { title: 'Khuyến mãi', slug: `km-${run}`, _status: 'published', content: { root: { props: {} }, content: [block('Text', { heading: 'KHUYẾN MÃI DÙNG LẠI', body: 'Giảm 10%' })] } })
 assert.equal(rb.status, 201); del(admin, `/api/reusable-blocks/${rb.body.doc.id}`)
 const rpage = await api(T('publisher'), 'POST', '/api/pages', page(`rb-${run}`, { root: { props: {} }, content: [block('Reusable', { slug: `km-${run}` })] }, { _status: 'published' }))
@@ -135,7 +138,7 @@ assert.match(await (await fetch(`${SITE}/`)).text(), new RegExp(`VÙNG-${run}`))
 assert.equal((await api(T('publisher'), 'POST', '/api/globals/site-areas?locale=vi', { beforeFooter: null })).status, 200)
 assert.doesNotMatch(await (await fetch(`${SITE}/`)).text(), new RegExp(`VÙNG-${run}`)); ok('xóa vùng thì biến mất')
 
-console.log('Đa ngôn ngữ')
+console.log(say('Đa ngôn ngữ'))
 const ml = await api(T('publisher'), 'POST', '/api/pages?locale=vi', page(`ml-${run}`, { root: { props: {} }, content: [block('Text', { heading: 'Xin chào', body: 'nội dung tiếng Việt' })] }, { title: 'Trang vi', _status: 'published' }))
 del(admin, `/api/pages/${ml.body.doc.id}`)
 assert.match(await (await fetch(`${SITE}/en/ml-${run}`)).text(), /Xin chào/); ok('chưa có bản dịch thì /en dùng nội dung tiếng Việt')
@@ -148,7 +151,7 @@ assert.match(await (await fetch(`${SITE}/en/tim-kiem?q=zzzz`)).text(), /No match
 assert.match(await (await fetch(`${SITE}/en/khong-ton-tai-${run}`)).text(), /Page not found/); ok('404 theo ngôn ngữ')
 assert.match(await (await fetch(`${SITE}/sitemap.xml`)).text(), new RegExp(`/en/ml-${run}`)); ok('sitemap có URL theo ngôn ngữ')
 
-console.log('Xem trước chia sẻ, chuyển hướng, SEO')
+console.log(say('Xem trước chia sẻ, chuyển hướng, SEO'))
 const dr = await api(T('editor'), 'POST', '/api/pages', page(`dr-${run}`, { root: { props: {} }, content: [block('Text', { heading: `BẢN-NHÁP-${run}`, body: 'chưa xuất bản' })] }))
 del(admin, `/api/pages/${dr.body.doc.id}`)
 assert.equal((await fetch(`${SITE}/dr-${run}`)).status, 404); ok('trang nháp không xem được công khai')
@@ -176,7 +179,7 @@ const home = await (await fetch(`${SITE}/`)).text()
 assert.match(home, /"@type":"Organization"/); assert.match(home, /"@type":"WebSite"/); ok('trang chủ có schema Organization + WebSite')
 assert.match(await (await fetch(`${SITE}/ml-${run}`)).text(), /"@type":"BreadcrumbList"/); ok('trang có breadcrumb schema')
 
-console.log('Công cụ: sao lưu, khôi phục, mẫu site')
+console.log(say('Công cụ: sao lưu, khôi phục, mẫu site'))
 const raw = (token, method, path, body, type) => fetch(SITE + path, { method, headers: { Authorization: 'JWT ' + token, ...(type ? { 'Content-Type': type } : {}) }, body })
 assert.equal((await raw(T('publisher'), 'GET', '/api/site/backup')).status, 403); ok('chỉ admin tải được gói site')
 assert.equal((await raw(T('publisher'), 'POST', '/api/site/backups')).status, 403); ok('chỉ admin sao lưu trên máy chủ')
@@ -184,7 +187,7 @@ const bk = await raw(admin, 'GET', '/api/site/backup')
 const zipBytes = Buffer.from(await bk.arrayBuffer())
 assert.equal(bk.status, 200); assert.equal(zipBytes.subarray(0, 2).toString(), 'PK'); ok('admin tải được gói site (zip)')
 const mk = await (await raw(admin, 'POST', '/api/site/backups')).json()
-assert.ok(mk.ok && /^hosso-backup-.*\.zip$/.test(mk.name)); ok('sao lưu ngay: ' + mk.name)
+assert.ok(mk.ok && /^hosso-backup-.*\.zip$/.test(mk.name)); ok('sao lưu ngay: {name}', { name: mk.name })
 assert.equal((await raw(admin, 'GET', '/api/site/backup?name=' + mk.name)).status, 200); ok('tải lại bản sao lưu đã lưu')
 assert.equal((await raw(admin, 'GET', '/api/site/backup?name=..%2F..%2Fpackage.json')).status, 404); ok('tên sao lưu không thoát được thư mục')
 const imp = await (await raw(admin, 'POST', '/api/site/package-import', zipBytes, 'application/octet-stream')).json()
@@ -192,7 +195,7 @@ assert.ok(imp.ok, JSON.stringify(imp)); ok('khôi phục từ chính gói vừa 
 assert.equal((await raw(admin, 'POST', '/api/site/package-import', Buffer.from('không phải zip'), 'application/octet-stream')).status, 400); ok('gói hỏng bị từ chối')
 assert.equal((await raw(admin, 'POST', '/api/site/template-install', JSON.stringify({ id: '../x' }), 'application/json')).status, 404); ok('id mẫu không hợp lệ bị từ chối')
 
-console.log('Khóa sửa')
+console.log(say('Khóa sửa'))
 const lockApi = (token, body) => api(token, 'POST', '/api/site/lock', body)
 const lk = 'pages:99999:vi'
 assert.equal((await lockApi(T('editor'), { key: lk })).body.ok, true); ok('editor nhận khóa')
@@ -207,7 +210,7 @@ await lockApi(T('editor'), { key: lk, release: true })
 assert.equal((await lockApi(T('moderator'), { key: lk })).status, 403); ok('moderator không dùng khóa sửa')
 assert.equal((await lockApi(T('editor'), { key: '../x' })).status, 400); ok('khóa sai định dạng bị từ chối')
 
-console.log('Menu dạng cây và widget')
+console.log(say('Menu dạng cây và widget'))
 const cur = (await api(admin, 'GET', '/api/globals/site-settings?locale=vi&depth=0')).body
 const tree = [{ label: 'A-' + run, href: '/a', children: [{ label: 'A1', href: '/a1' }] }, { label: 'B', href: '/b' }]
 assert.equal((await api(T('publisher'), 'POST', '/api/globals/site-settings?locale=vi', { headerMenu: tree })).status, 403); ok('publisher không sửa menu (chỉ admin)')
@@ -231,4 +234,4 @@ assert.doesNotMatch(await (await fetch(SITE + '/bai-viet/bw-' + run)).text(), ne
 
 for (const f of cleanup.reverse()) await f()
 for (const u of Object.values(users)) await api(admin, 'DELETE', `/api/users/${u.id}`)
-console.log(`\nTính năng OK (${n} kiểm tra).`)
+console.log(say('\nTính năng OK ({n} kiểm tra).', { n }))

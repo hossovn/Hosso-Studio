@@ -1,4 +1,5 @@
 # Tạo block và plugin cho Hosso Studio
+**Tiếng Việt** | [English](en/PLUGIN-GUIDE.md)
 
 Bài này hướng dẫn thêm chức năng cho Studio theo hai mức:
 

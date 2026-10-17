@@ -1,5 +1,7 @@
 # Đóng góp cho Hosso Studio
 
+**Tiếng Việt** | [English](CONTRIBUTING.en.md)
+
 Cảm ơn bạn đã quan tâm. Mọi đóng góp được nhận và phân phối theo giấy phép **Apache-2.0** của dự án (xem [LICENSE](LICENSE)).
 
 ## 1. Chuẩn bị môi trường
@@ -46,7 +48,7 @@ Muốn thử plugin WIM mà không có WIM thật, chạy mock: `pnpm mock:wim`.
 
 ### Commit
 
-Dự án viết commit message bằng tiếng Việt, dòng đầu ngắn nêu việc đã làm (xem `git log`). Ví dụ: `Sửa menu dropdown không đóng khi bấm ra ngoài`. Một commit nên làm một việc.
+Viết commit message bằng tiếng Anh (tiếng Việt cũng được chấp nhận), dòng đầu ngắn nêu việc đã làm (xem `git log`). Ví dụ: `Fix the dropdown menu not closing when clicking outside`. Một commit nên làm một việc.
 
 ## 4. Quy tắc mã nguồn
 
@@ -65,6 +67,8 @@ Dự án viết commit message bằng tiếng Việt, dòng đầu ngắn nêu v
 ### Nội dung và giao diện
 
 - Chuỗi hiển thị cho người dùng đặt trong `strings.vi.ts` và `strings.en.ts`, không viết cứng trong component.
+- Admin và trình dựng song ngữ: viết tiếng Việt trong code dạng `T('…')` (hoặc `L('…')` trong `packages/blocks`) rồi thêm bản tiếng Anh vào `apps/studio/src/lib/admin-en/*.ts` (nhãn block: `packages/blocks/src/labels-en.ts`; nhãn plugin: `HossoPlugin.adminEn`). `pnpm check:i18n` liệt kê chuỗi còn thiếu.
+- Thông báo của máy chủ và CLI dùng `L('Tiếng Việt', 'English')` / `msg(req, …)` trong `apps/studio/src/lib/lang.ts`.
 - Theme chỉ lo giao diện. Đổi theme không được làm thay đổi nội dung trang.
 - Block mới: đăng ký trong `puck-config.ts`, thêm kiểu trong `types.ts`, và chạy được khi không có plugin.
 - Giữ trang công khai nhẹ: tránh thêm JavaScript phía client khi CSS hoặc server component làm được.
@@ -78,6 +82,7 @@ Phiên bản Next.js ở đây có thay đổi so với bản phổ biến. Đ�
 ```bash
 pnpm typecheck          # kiểm tra kiểu toàn workspace
 pnpm check:boundaries   # kiểm tra ranh giới lõi / plugin
+pnpm check:i18n         # kiểm tra đủ bản dịch admin (vi/en)
 ```
 
 Nếu sửa phần thương mại (plugin WIM, giỏ hàng, thanh toán), chạy thêm với mock đang bật:
@@ -98,7 +103,7 @@ Khi sửa collection hoặc global của Payload:
 
 ### Gói site
 
-Nếu thay đổi ảnh hưởng định dạng export/import (`studio:export`, `studio:import`), kiểm tra nhập lại `seed/sites/phu-tung-o-to.hosso-site.zip` vào một DB sạch.
+Nếu thay đổi ảnh hưởng định dạng export/import (`studio:export`, `studio:import`), kiểm tra nhập lại `packages/plugin-wim/templates/phu-tung-o-to.hosso-site.zip` vào một DB sạch.
 
 ## 6. Báo lỗi
 
