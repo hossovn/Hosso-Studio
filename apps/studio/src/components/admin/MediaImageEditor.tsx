@@ -3,10 +3,14 @@ import { ImageEditor } from '@hosso/studio-blocks'
 import { useDocumentInfo } from '@payloadcms/ui'
 import React, { useEffect, useState } from 'react'
 
+import { useAdminT } from '@/lib/use-admin-t'
+import { AdminLang } from './AdminLang'
+
 type Doc = { filename?: string; mimeType?: string; alt?: string }
 
 /** Nút "Sửa ảnh" trên trang chi tiết Media: xoay, lật, cắt, đổi kích thước, chỉnh màu; lưu ảnh mới hoặc thay ảnh gốc. */
 export const MediaImageEditor = () => {
+  const T = useAdminT()
   const { id } = useDocumentInfo()
   const [doc, setDoc] = useState<Doc | null>(null)
   const [open, setOpen] = useState(false)
@@ -24,7 +28,7 @@ export const MediaImageEditor = () => {
     form.append('_payload', JSON.stringify({ alt: doc.alt || name.replace(/\.[^.]+$/, '') }))
     const res = await fetch(replace ? `/api/media/${id}` : '/api/media', { method: replace ? 'PATCH' : 'POST', body: form })
     const body = await res.json().catch(() => ({}))
-    if (!res.ok) throw new Error(body?.errors?.[0]?.message ?? 'Không lưu được ảnh')
+    if (!res.ok) throw new Error(body?.errors?.[0]?.message ?? T('Không lưu được ảnh'))
     window.location.href = `/admin/collections/media/${replace ? id : body.doc.id}`
   }
 
@@ -35,9 +39,10 @@ export const MediaImageEditor = () => {
         onClick={() => setOpen(true)}
         style={{ background: 'var(--hosso-brand)', color: '#fff', border: 0, borderRadius: 4, padding: '10px 18px', fontWeight: 600, cursor: 'pointer' }}
       >
-        Sửa ảnh
+        {T('Sửa ảnh')}
       </button>
       {open && (
+        <AdminLang>
         <ImageEditor
           src={src}
           filename={doc.filename}
@@ -46,6 +51,7 @@ export const MediaImageEditor = () => {
           onReplace={(b) => upload(b, doc.filename!, true)}
           onClose={() => setOpen(false)}
         />
+        </AdminLang>
       )}
     </div>
   )

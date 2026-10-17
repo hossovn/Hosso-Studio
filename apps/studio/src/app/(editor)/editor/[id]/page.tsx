@@ -1,19 +1,22 @@
 import config from '@payload-config'
 import hosso from '@hosso-config'
-import { headers } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
 import { getPayload } from 'payload'
 import React from 'react'
 
 import { AREAS } from '@/globals/SiteAreas'
 import { canPublish, hasRole } from '@/lib/access'
+import { adminLang, makeT } from '@/lib/admin-i18n'
 import { fontClassNames } from '@/lib/fonts'
 import { defaultLocaleCode, isLocale } from '@/lib/locale'
 import { href, loadSite } from '@/lib/site'
 import { Editor } from './Editor'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: 'Trình dựng trang' }
+export async function generateMetadata() {
+  return { title: makeT(adminLang((await cookies()).get('payload-lng')?.value))('Trình dựng trang') }
+}
 
 type Kind = 'pages' | 'posts' | 'reusable-blocks' | 'area'
 const KINDS: Kind[] = ['posts', 'reusable-blocks', 'area']
@@ -32,7 +35,9 @@ export default async function EditorPage({ params, searchParams }: { params: Pro
   if (!user) redirect('/admin/login?redirect=' + encodeURIComponent(`/editor/${id}${q.size ? `?${q}` : ''}`))
 
   const site = await loadSite(locale)
+  const lang = adminLang((await cookies()).get('payload-lng')?.value)
   const common = {
+    lang,
     themeName: site.theme.manifest.name,
     css: site.css,
     chrome: site.chrome,

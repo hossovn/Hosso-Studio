@@ -1,6 +1,8 @@
 'use client'
 import React from 'react'
 
+import { useAdminT } from '@/lib/use-admin-t'
+
 const AREAS = [
   ['beforeHeader', 'Trên đầu trang (trước header)'],
   ['afterHeader', 'Dưới header (trước nội dung)'],
@@ -10,9 +12,11 @@ const AREAS = [
 ]
 
 /** Mở trình dựng kéo thả cho từng vùng giao diện. */
-export const AreaLinks = () => (
+export const AreaLinks = () => {
+  const T = useAdminT()
+  return (
   <div style={{ marginBottom: 24 }}>
-    <p>Chọn một vùng để kéo thả khối nội dung vào. Nội dung hiện ở mọi trang của site (theo từng ngôn ngữ).</p>
+    <p>{T('Chọn một vùng để kéo thả khối nội dung vào. Nội dung hiện ở mọi trang của site (theo từng ngôn ngữ).')}</p>
     <ul style={{ display: 'grid', gap: 8, padding: 0, listStyle: 'none' }}>
       {AREAS.map(([name, label]) => (
         <li key={name}>
@@ -20,10 +24,11 @@ export const AreaLinks = () => (
             href={`/editor/${name}?c=area`}
             style={{ background: 'var(--hosso-brand)', color: '#fff', padding: '8px 14px', borderRadius: 4, display: 'inline-block', textDecoration: 'none', fontWeight: 600 }}
           >
-            Sửa: {label}
+            {T('Sửa:')} {T(label)}
           </a>
         </li>
       ))}
     </ul>
   </div>
-)
+  )
+}

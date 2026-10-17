@@ -2,6 +2,8 @@
 import { useField } from '@payloadcms/ui'
 import React, { useEffect, useRef, useState } from 'react'
 
+import { useAdminT } from '@/lib/use-admin-t'
+
 type Node = { id?: string; label: string; href: string; children?: Node[] }
 type Props = { path: string; field?: { label?: unknown }; maxDepth?: number }
 
@@ -17,6 +19,7 @@ const clone = (list: Node[]): Node[] => list.map((n) => ({ ...n, children: n.chi
  * Lưu dưới dạng JSON [{label, href, children?}] theo từng ngôn ngữ (đổi ngôn ngữ ở góc trên để sửa bản dịch).
  */
 export const MenuTreeField = ({ path, field, maxDepth = 2 }: Props) => {
+  const T = useAdminT()
   const { value, setValue } = useField<Node[] | null>({ path })
   const tree: Node[] = Array.isArray(value) ? value : []
   const [pages, setPages] = useState<{ title: string; slug: string }[]>([])
@@ -107,28 +110,28 @@ export const MenuTreeField = ({ path, field, maxDepth = 2 }: Props) => {
           }}
           style={{ ...box, padding: 6, display: 'flex', gap: 6, alignItems: 'center', background: 'var(--theme-bg)' }}
         >
-          <span title="Kéo để di chuyển" aria-hidden="true" style={{ cursor: 'grab', opacity: 0.6, padding: '0 4px' }}>
+          <span title={T('Kéo để di chuyển')} aria-hidden="true" style={{ cursor: 'grab', opacity: 0.6, padding: '0 4px' }}>
             ⠿
           </span>
-          <input style={{ ...input, flex: '1 1 140px' }} value={node.label} placeholder="Tên hiển thị" aria-label="Tên hiển thị" onChange={(e) => edit(at, { label: e.target.value })} />
-          <input style={{ ...input, flex: '1 1 160px' }} value={node.href} placeholder="/duong-dan hoặc https://…" aria-label="Đường dẫn" onChange={(e) => edit(at, { href: e.target.value })} />
-          <button type="button" style={mini} title="Lên" aria-label="Lên" disabled={i === 0} onClick={() => move(at, parent, i - 1)}>
+          <input style={{ ...input, flex: '1 1 140px' }} value={node.label} placeholder={T('Tên hiển thị')} aria-label={T('Tên hiển thị')} onChange={(e) => edit(at, { label: e.target.value })} />
+          <input style={{ ...input, flex: '1 1 160px' }} value={node.href} placeholder={T('/duong-dan hoặc https://…')} aria-label={T('Đường dẫn')} onChange={(e) => edit(at, { href: e.target.value })} />
+          <button type="button" style={mini} title={T('Lên')} aria-label={T('Lên')} disabled={i === 0} onClick={() => move(at, parent, i - 1)}>
             ↑
           </button>
-          <button type="button" style={mini} title="Xuống" aria-label="Xuống" disabled={i >= sibs.length - 1} onClick={() => move(at, parent, i + 2)}>
+          <button type="button" style={mini} title={T('Xuống')} aria-label={T('Xuống')} disabled={i >= sibs.length - 1} onClick={() => move(at, parent, i + 2)}>
             ↓
           </button>
           {maxDepth > 1 && at.length === 1 && (
-            <button type="button" style={mini} title="Thụt vào làm menu con của mục trên" aria-label="Thụt vào" disabled={i === 0 || (node.children?.length ?? 0) > 0} onClick={() => move(at, [i - 1], (tree[i - 1].children ?? []).length)}>
+            <button type="button" style={mini} title={T('Thụt vào làm menu con của mục trên')} aria-label={T('Thụt vào')} disabled={i === 0 || (node.children?.length ?? 0) > 0} onClick={() => move(at, [i - 1], (tree[i - 1].children ?? []).length)}>
               →
             </button>
           )}
           {at.length > 1 && (
-            <button type="button" style={mini} title="Đưa ra thành mục chính" aria-label="Đưa ra" onClick={() => move(at, [], at[0] + 1)}>
+            <button type="button" style={mini} title={T('Đưa ra thành mục chính')} aria-label={T('Đưa ra')} onClick={() => move(at, [], at[0] + 1)}>
               ←
             </button>
           )}
-          <button type="button" style={{ ...mini, color: '#d63638' }} title="Xóa" aria-label="Xóa" onClick={() => remove(at)}>
+          <button type="button" style={{ ...mini, color: '#d63638' }} title={T('Xóa')} aria-label={T('Xóa')} onClick={() => remove(at)}>
             ✕
           </button>
         </div>
@@ -160,20 +163,20 @@ export const MenuTreeField = ({ path, field, maxDepth = 2 }: Props) => {
 
   return (
     <div style={{ marginBottom: 24 }}>
-      <label style={{ display: 'block', fontWeight: 600, marginBottom: 8 }}>{typeof field?.label === 'string' ? field.label : 'Menu'}</label>
-      {tree.length === 0 && <p style={{ opacity: 0.7, margin: '0 0 8px' }}>Chưa có mục nào. Thêm trang bên dưới hoặc tạo mục tùy ý.</p>}
+      <label style={{ display: 'block', fontWeight: 600, marginBottom: 8 }}>{typeof field?.label === 'string' ? field.label : T('Menu')}</label>
+      {tree.length === 0 && <p style={{ opacity: 0.7, margin: '0 0 8px' }}>{T('Chưa có mục nào. Thêm trang bên dưới hoặc tạo mục tùy ý.')}</p>}
       <List list={tree} parent={[]} />
       <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
         <select
           style={input}
           value=""
-          aria-label="Thêm trang vào menu"
+          aria-label={T('Thêm trang vào menu')}
           onChange={(e) => {
             const p = pages.find((x) => x.slug === e.target.value)
             if (p) add(p.title, p.slug === 'home' ? '/' : `/${p.slug}`)
           }}
         >
-          <option value="">+ Thêm trang…</option>
+          <option value="">{T('+ Thêm trang…')}</option>
           {pages.map((p) => (
             <option key={p.slug} value={p.slug}>
               {p.title}
@@ -181,11 +184,12 @@ export const MenuTreeField = ({ path, field, maxDepth = 2 }: Props) => {
           ))}
         </select>
         <button type="button" style={{ ...input, cursor: 'pointer' }} onClick={() => add()}>
-          + Liên kết tùy ý
+          {T('+ Liên kết tùy ý')}
         </button>
       </div>
       <p style={{ fontSize: 12, opacity: 0.7, marginTop: 8 }}>
-        Kéo thả (⠿) hoặc dùng ↑ ↓ → ← để sắp xếp{maxDepth > 1 ? ' và tạo menu con (tối đa 2 cấp)' : ''}. Nhớ bấm Lưu. Bản dịch: đổi ngôn ngữ ở góc trên rồi sửa tên hiển thị.
+        {T('Kéo thả (⠿) hoặc dùng ↑ ↓ → ← để sắp xếp')}
+        {maxDepth > 1 ? ` ${T('và tạo menu con (tối đa 2 cấp)')}` : ''}. {T('Nhớ bấm Lưu. Bản dịch: đổi ngôn ngữ ở góc trên rồi sửa tên hiển thị.')}
       </p>
     </div>
   )

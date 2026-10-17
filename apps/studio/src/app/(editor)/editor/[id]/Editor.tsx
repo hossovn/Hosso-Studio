@@ -1,9 +1,11 @@
 'use client'
 import hosso from '@hosso-config'
-import { CORE_LOADER_TYPES, LocaleProvider, buildPuckConfig, coreBlocks, setLocale, type SiteChrome } from '@hosso/studio-blocks'
+import { AdminLangProvider, CORE_LOADER_TYPES, trLabel, LocaleProvider, buildPuckConfig, coreBlocks, setLocale, type SiteChrome } from '@hosso/studio-blocks'
 import { Puck, usePuck } from '@puckeditor/core'
 import '@puckeditor/core/puck.css'
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
+
+import { makeT, type AdminLang, type AdminT } from '@/lib/admin-i18n'
 
 import { withLiveData } from '@/components/admin/live-data'
 
@@ -25,7 +27,13 @@ type Props = {
   locale: string
   defaultLocale: string
   locales: { code: string; label: string }[]
+  lang: AdminLang
 }
+
+// Dịch chuỗi giao diện trình dựng theo ngôn ngữ admin (props.lang); các thành phần con lấy qua context.
+const pluginEn: Record<string, string> = Object.assign({}, ...hosso.plugins.map((p) => p.adminEn ?? {}))
+const TContext = createContext<AdminT>(makeT('vi'))
+const useET = () => useContext(TContext)
 
 const NOUN: Record<Kind, string> = { pages: 'trang', posts: 'bài viết', 'reusable-blocks': 'khối dùng lại', area: 'vùng' }
 const NEW_LABEL: Record<Kind, string> = { pages: 'Trang mới', posts: 'Bài mới', 'reusable-blocks': 'Khối mới', area: '' }
@@ -53,9 +61,10 @@ const editorUrl = (id: string, collection: Kind, locale: string, defaultLocale: 
 
 /** Chọn ngôn ngữ đang chỉnh. Bản dịch chưa có thì mở ra bản ngôn ngữ mặc định để dịch tiếp. */
 function LocaleSwitch({ id, collection, locale, defaultLocale, locales }: Pick<Props, 'id' | 'collection' | 'locale' | 'defaultLocale' | 'locales'>) {
+  const T = useET()
   if (locales.length < 2) return null
   return (
-    <select aria-label="Ngôn ngữ đang chỉnh" value={locale} onChange={(e) => (window.location.href = editorUrl(id, collection, e.target.value, defaultLocale))} style={{ ...input, padding: '7px 8px' }}>
+    <select aria-label={T('Ngôn ngữ đang chỉnh')} value={locale} onChange={(e) => (window.location.href = editorUrl(id, collection, e.target.value, defaultLocale))} style={{ ...input, padding: '7px 8px' }}>
       {locales.map((l) => (
         <option key={l.code} value={l.code}>
           {l.label}
@@ -67,7 +76,8 @@ function LocaleSwitch({ id, collection, locale, defaultLocale, locales }: Pick<P
 
 /** Danh sách, tạo mới, đổi tên/đường dẫn: làm ngay trong trình dựng. */
 function PageTools({ id, title, slug, collection, locale, defaultLocale }: Pick<Props, 'id' | 'title' | 'slug' | 'collection' | 'locale' | 'defaultLocale'>) {
-  const noun = NOUN[collection]
+  const T = useET()
+  const noun = T(NOUN[collection])
   const [pages, setPages] = useState<{ id: string | number; title: string; slug: string }[]>([])
   const [mode, setMode] = useState<'' | 'new' | 'edit'>('')
   const [error, setError] = useState('')
@@ -89,7 +99,7 @@ function PageTools({ id, title, slug, collection, locale, defaultLocale }: Pick<
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     const body = { title: form.title.trim(), slug: slugify(form.slug || form.title) }
-    if (!body.title || !body.slug) return setError('Cần tiêu đề và đường dẫn')
+    if (!body.title || !body.slug) return setError(T('Cần tiêu đề và đường dẫn'))
     const res =
       mode === 'new'
         ? await fetch(`/api/${collection}?locale=${locale}`, {
@@ -103,13 +113,13 @@ function PageTools({ id, title, slug, collection, locale, defaultLocale }: Pick<
             body: JSON.stringify({ ...body, _status: 'draft' }),
           })
     const j = await res.json().catch(() => ({}))
-    if (!res.ok) return setError(j?.errors?.[0]?.message ?? 'Không lưu được (đường dẫn có thể đã tồn tại)')
+    if (!res.ok) return setError(j?.errors?.[0]?.message ?? T('Không lưu được (đường dẫn có thể đã tồn tại)'))
     window.location.href = editorUrl(mode === 'new' ? j.doc.id : id, collection, locale, defaultLocale)
   }
 
   return (
     <div style={{ display: 'flex', gap: 6, alignItems: 'center', position: 'relative' }}>
-      <select aria-label={`Chuyển ${noun}`} value={id} onChange={(e) => (window.location.href = editorUrl(e.target.value, collection, locale, defaultLocale))} style={{ ...input, padding: '7px 8px', maxWidth: 180 }}>
+      <select aria-label={T('Chuyển {noun}', { noun })} value={id} onChange={(e) => (window.location.href = editorUrl(e.target.value, collection, locale, defaultLocale))} style={{ ...input, padding: '7px 8px', maxWidth: 180 }}>
         {!pages.some((p) => String(p.id) === id) && <option value={id}>{title}</option>}
         {pages.map((p) => (
           <option key={p.id} value={p.id}>
@@ -118,30 +128,30 @@ function PageTools({ id, title, slug, collection, locale, defaultLocale }: Pick<
         ))}
       </select>
       <button type="button" style={plain} onClick={() => open('new')}>
-        + {NEW_LABEL[collection]}
+        + {T(NEW_LABEL[collection])}
       </button>
       <button type="button" style={plain} onClick={() => open('edit')}>
-        Đổi tên / đường dẫn
+        {T('Đổi tên / đường dẫn')}
       </button>
       {mode && (
         <form onSubmit={submit} style={{ position: 'absolute', top: '110%', left: 0, zIndex: 50, background: '#fff', border: '1px solid #c9ccd1', borderRadius: 6, padding: 14, display: 'grid', gap: 10, width: 300, boxShadow: '0 8px 24px rgba(0,0,0,.15)' }}>
-          <strong>{mode === 'new' ? `Tạo ${noun} mới` : 'Đổi tên / đường dẫn'}</strong>
+          <strong>{mode === 'new' ? T('Tạo {noun} mới', { noun }) : T('Đổi tên / đường dẫn')}</strong>
           <label style={field}>
-            Tiêu đề {locale !== defaultLocale && `(${locale})`}
+            {T('Tiêu đề')} {locale !== defaultLocale && `(${locale})`}
             <input style={input} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required autoFocus />
           </label>
           <label style={field}>
-            Đường dẫn (dùng chung mọi ngôn ngữ; để trống = tự tạo từ tiêu đề)
+            {T('Đường dẫn (dùng chung mọi ngôn ngữ; để trống = tự tạo từ tiêu đề)')}
             <input style={input} value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder={slugify(form.title) || 'gioi-thieu'} />
           </label>
-          {mode === 'edit' && <span style={{ fontSize: 12, color: '#555' }}>Thay đổi được lưu nháp, có hiệu lực khi xuất bản.</span>}
+          {mode === 'edit' && <span style={{ fontSize: 12, color: '#555' }}>{T('Thay đổi được lưu nháp, có hiệu lực khi xuất bản.')}</span>}
           {error && <span style={{ color: '#b91c1c', fontSize: 13 }}>{error}</span>}
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <button type="button" style={plain} onClick={() => setMode('')}>
-              Hủy
+              {T('Hủy')}
             </button>
             <button type="submit" style={{ ...plain, background: '#d71920', borderColor: '#d71920', color: '#fff', fontWeight: 600 }}>
-              Lưu
+              {T('Lưu')}
             </button>
           </div>
         </form>
@@ -151,6 +161,7 @@ function PageTools({ id, title, slug, collection, locale, defaultLocale }: Pick<
 }
 
 function Actions({ id, collection, publicHref, canPublish, busy, locale, onSave }: Pick<Props, 'id' | 'collection' | 'publicHref' | 'canPublish' | 'locale'> & { busy: boolean; onSave: (data: unknown, publish: boolean) => void }) {
+  const T = useET()
   const { appState } = usePuck()
   const btn: React.CSSProperties = { padding: '8px 14px', borderRadius: 4, border: '1px solid #ccc', background: '#fff', cursor: 'pointer', font: 'inherit', whiteSpace: 'nowrap' }
   const primary: React.CSSProperties = { ...btn, background: '#d71920', borderColor: '#d71920', color: '#fff', fontWeight: 600 }
@@ -160,10 +171,10 @@ function Actions({ id, collection, publicHref, canPublish, busy, locale, onSave 
     return (
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <a style={{ ...btn, textDecoration: 'none', color: 'inherit' }} href={publicHref} target="_blank" rel="noreferrer">
-          Xem site
+          {T('Xem site')}
         </a>
-        <button style={canPublish ? primary : { ...btn, opacity: 0.5, cursor: 'not-allowed' }} disabled={busy || !canPublish} title={canPublish ? 'Lưu và hiển thị ngay trên site' : 'Chỉ quản trị viên và người xuất bản được lưu'} onClick={() => onSave(appState.data, true)}>
-          Lưu (hiển thị ngay)
+        <button style={canPublish ? primary : { ...btn, opacity: 0.5, cursor: 'not-allowed' }} disabled={busy || !canPublish} title={canPublish ? T('Lưu và hiển thị ngay trên site') : T('Chỉ quản trị viên và người xuất bản được lưu')} onClick={() => onSave(appState.data, true)}>
+          {T('Lưu (hiển thị ngay)')}
         </button>
       </div>
     )
@@ -172,25 +183,26 @@ function Actions({ id, collection, publicHref, canPublish, busy, locale, onSave 
     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
       {collection !== 'reusable-blocks' && (
         <a style={{ ...btn, textDecoration: 'none', color: 'inherit' }} href={`${publicHref}${publicHref.includes('?') ? '&' : '?'}preview=1`} target="_blank" rel="noreferrer">
-          Xem trước
+          {T('Xem trước')}
         </a>
       )}
       <a style={{ ...btn, textDecoration: 'none', color: 'inherit' }} href={`/admin/collections/${collection}/${id}/versions?locale=${locale}`} target="_blank" rel="noreferrer">
-        Lịch sử
+        {T('Lịch sử')}
       </a>
       <button style={btn} disabled={busy} onClick={() => onSave(appState.data, false)}>
-        Lưu nháp
+        {T('Lưu nháp')}
       </button>
-      <button style={canPublish ? primary : { ...btn, opacity: 0.5, cursor: 'not-allowed' }} disabled={busy || !canPublish} title={canPublish ? '' : 'Chỉ quản trị viên và người xuất bản được xuất bản'} onClick={() => onSave(appState.data, true)}>
-        Xuất bản
+      <button style={canPublish ? primary : { ...btn, opacity: 0.5, cursor: 'not-allowed' }} disabled={busy || !canPublish} title={canPublish ? '' : T('Chỉ quản trị viên và người xuất bản được xuất bản')} onClick={() => onSave(appState.data, true)}>
+        {T('Xuất bản')}
       </button>
     </div>
   )
 }
 
 export function Editor(props: Props) {
+  const T = useMemo(() => makeT(props.lang), [props.lang])
   setLocale(props.locale, props.defaultLocale) // chuỗi giao diện trong khung xem trước theo ngôn ngữ đang chỉnh
-  const [status, setStatus] = useState(props.collection === 'area' ? 'Vùng giao diện' : props.status === 'published' ? 'Đã xuất bản' : 'Bản nháp')
+  const [status, setStatus] = useState(props.collection === 'area' ? T('Vùng giao diện') : props.status === 'published' ? T('Đã xuất bản') : T('Bản nháp'))
   const [busy, setBusy] = useState(false)
   const [dirty, setDirty] = useState(false)
   const dataRef = useRef<unknown>(props.data)
@@ -225,11 +237,11 @@ export function Editor(props: Props) {
 
   const persist = async (data: unknown, publish: boolean, auto = false) => {
     if (lockedBy) {
-      setStatus(`Đang bị khóa: ${lockedBy} đang sửa`)
+      setStatus(T('Đang bị khóa: {who} đang sửa', { who: lockedBy }))
       return
     }
     setBusy(true)
-    setStatus(auto ? 'Đang tự lưu…' : 'Đang lưu…')
+    setStatus(auto ? T('Đang tự lưu…') : T('Đang lưu…'))
     const res = isArea
       ? await fetch(`/api/globals/site-areas?locale=${props.locale}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [props.id]: data }) })
       : await fetch(`/api/${props.collection}/${props.id}${publish ? `?locale=${props.locale}` : `?draft=true${auto ? '&autosave=true' : ''}&locale=${props.locale}`}`, {
@@ -241,9 +253,9 @@ export function Editor(props: Props) {
     if (res.ok) {
       savedJson.current = JSON.stringify(data)
       setDirty(JSON.stringify(dataRef.current) !== savedJson.current)
-      setStatus(isArea ? 'Đã lưu' : publish ? 'Đã xuất bản' : auto ? 'Đã tự lưu nháp' : 'Đã lưu nháp')
+      setStatus(isArea ? T('Đã lưu') : publish ? T('Đã xuất bản') : auto ? T('Đã tự lưu nháp') : T('Đã lưu nháp'))
     } else {
-      setStatus(`Lỗi: ${body?.errors?.[0]?.message ?? res.status}`)
+      setStatus(`${T('Lỗi')}: ${body?.errors?.[0]?.message ?? res.status}`)
     }
     setBusy(false)
   }
@@ -268,7 +280,7 @@ export function Editor(props: Props) {
   const config = useMemo(() => {
     const known = new Set(schemas.map((s) => s.type))
     const extraTypes = (props.data?.content ?? []).map((c: { type: string }) => c.type).filter((t: string) => !known.has(t))
-    const built = buildPuckConfig({ schemas, theme, plugins: hosso.plugins, mode: 'editor', extraTypes })
+    const built = buildPuckConfig({ schemas, theme, plugins: hosso.plugins, mode: 'editor', extraTypes, label: (vi) => trLabel(props.lang, vi, pluginEn) })
     const liveTypes = [...CORE_LOADER_TYPES, ...hosso.plugins.flatMap((p) => Object.keys(p.loaders ?? {}))]
     for (const type of liveTypes) {
       const c = built.components[type]
@@ -293,42 +305,43 @@ export function Editor(props: Props) {
         ),
       },
     }
-  }, [schemas, theme, props.data, props.fontClass, props.chrome, props.locale, props.defaultLocale])
+  }, [schemas, theme, props.lang, props.data, props.fontClass, props.chrome, props.locale, props.defaultLocale])
 
   return (
-    <>
+    <TContext.Provider value={T}>
+    <AdminLangProvider lang={props.lang} extra={pluginEn}>
       {/* Puck sao chép style của trang chủ vào iframe xem trước (syncHostStyles). */}
       <style>{props.css}</style>
       {lockedBy && (
         <div role="alert" style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 99999, background: '#b45309', color: '#fff', padding: '10px 16px', display: 'flex', gap: 12, alignItems: 'center', font: '14px Arial, sans-serif' }}>
           <span>
-            <strong>{lockedBy}</strong> đang sửa trang này. Bạn chỉ xem được; lưu bị chặn để tránh ghi đè.
+            <strong>{lockedBy}</strong> {T('đang sửa trang này. Bạn chỉ xem được; lưu bị chặn để tránh ghi đè.')}
           </span>
           <button
             style={{ marginLeft: 'auto', border: 0, borderRadius: 4, padding: '6px 12px', fontWeight: 700, cursor: 'pointer' }}
             onClick={async () => {
-              if (!window.confirm(`Tiếp quản? Thay đổi chưa lưu của ${lockedBy} có thể bị ghi đè.`)) return
+              if (!window.confirm(T('Tiếp quản? Thay đổi chưa lưu của {who} có thể bị ghi đè.', { who: lockedBy }))) return
               const j = await lock({ takeover: true })
               if (j.ok) setLockedBy('')
             }}
           >
-            Tiếp quản
+            {T('Tiếp quản')}
           </button>
         </div>
       )}
       <Puck
         config={config as any}
         data={props.data}
-        headerTitle={`${props.title} · ${status}${dirty && !busy ? ' · chưa lưu' : ''}`}
+        headerTitle={`${isArea ? T(props.title) : props.title} · ${status}${dirty && !busy ? ` · ${T('chưa lưu')}` : ''}`}
         headerPath={props.publicHref}
         onChange={(d) => {
           dataRef.current = d
           setDirty(JSON.stringify(d) !== savedJson.current)
         }}
         viewports={[
-          { width: 1280, height: 'auto', label: 'Máy tính', icon: 'Monitor' },
-          { width: 768, height: 'auto', label: 'Máy tính bảng', icon: 'Tablet' },
-          { width: 360, height: 'auto', label: 'Điện thoại', icon: 'Smartphone' },
+          { width: 1280, height: 'auto', label: T('Máy tính'), icon: 'Monitor' },
+          { width: 768, height: 'auto', label: T('Máy tính bảng'), icon: 'Tablet' },
+          { width: 360, height: 'auto', label: T('Điện thoại'), icon: 'Smartphone' },
         ]}
         iframe={{ enabled: true, syncHostStyles: true }}
         overrides={{
@@ -341,6 +354,7 @@ export function Editor(props: Props) {
           ),
         }}
       />
-    </>
+    </AdminLangProvider>
+    </TContext.Provider>
   )
 }

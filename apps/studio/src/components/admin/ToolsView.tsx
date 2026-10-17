@@ -3,6 +3,7 @@ import type { AdminViewServerProps } from 'payload'
 import React from 'react'
 
 import { hasRole } from '@/lib/access'
+import { adminLang, makeT } from '@/lib/admin-i18n'
 import { listBackups, listTemplates } from '@/lib/backup'
 import pkg from '../../../package.json'
 import { ToolsClient } from './ToolsClient'
@@ -29,17 +30,18 @@ const newer = (a: string, b: string) => {
 /** Trang Công cụ: sao lưu, khôi phục, mẫu site, phiên bản và cập nhật. Chỉ admin. */
 export const ToolsView = async ({ initPageResult }: AdminViewServerProps) => {
   const user = initPageResult.req.user as { roles?: string[] } | null
+  const T = makeT(adminLang(initPageResult.req.i18n?.language))
   if (!hasRole(user, 'admin'))
     return (
       <Gutter>
-        <h1>Công cụ</h1>
-        <p>Chỉ quản trị viên được dùng trang này.</p>
+        <h1>{T('Công cụ')}</h1>
+        <p>{T('Chỉ quản trị viên được dùng trang này.')}</p>
       </Gutter>
     )
   const latest = await latestVersion()
   return (
     <Gutter>
-      <h1>Công cụ</h1>
+      <h1>{T('Công cụ')}</h1>
       <ToolsClient
         version={pkg.version}
         latest={latest && newer(latest.version, pkg.version) ? latest : null}

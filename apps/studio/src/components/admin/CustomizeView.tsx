@@ -4,12 +4,13 @@ import type { AdminViewServerProps } from 'payload'
 import React from 'react'
 
 import { hasRole } from '@/lib/access'
+import { adminLang, makeT } from '@/lib/admin-i18n'
 import { CustomizeClient } from './CustomizeClient'
 
 /** Tùy biến giao diện (như Customizer của WordPress): chỉnh màu/font/bo góc và thấy ngay trên site thật, rồi lưu. Chỉ admin. */
 export const CustomizeView = async ({ initPageResult }: AdminViewServerProps) => {
   const { req } = initPageResult
-  if (!hasRole(req.user as { roles?: string[] } | null, 'admin')) return <p style={{ padding: 24 }}>Chỉ quản trị viên được tùy biến giao diện.</p>
+  if (!hasRole(req.user as { roles?: string[] } | null, 'admin')) return <p style={{ padding: 24 }}>{makeT(adminLang(req.i18n?.language))('Chỉ quản trị viên được tùy biến giao diện.')}</p>
   const settings = (await req.payload.findGlobal({ slug: 'site-settings', depth: 0 })) as Record<string, any>
   const themes = hosso.themes.map((t) => ({
     name: t.manifest.name,

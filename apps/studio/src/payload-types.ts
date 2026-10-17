@@ -153,16 +153,16 @@ export interface Page {
   id: number;
   title: string;
   /**
-   * "home" là trang chủ.
+   * "home" is the home page.
    */
   slug: string;
   description?: string | null;
   /**
-   * Để trống thì dùng tiêu đề và mô tả của trang.
+   * Leave empty to use the page title and description.
    */
   seo?: {
     /**
-     * Nên dưới 60 ký tự.
+     * Keep it under 60 characters.
      */
     title?: string | null;
     image?: (number | null) | Media;
@@ -207,7 +207,7 @@ export interface Post {
   title: string;
   slug: string;
   /**
-   * Hiện ở danh sách bài viết và làm mô tả SEO.
+   * Shown in post lists and used as the SEO description.
    */
   excerpt?: string | null;
   cover?: (number | null) | Media;
@@ -226,11 +226,11 @@ export interface Post {
     | null;
   createdBy?: (number | null) | User;
   /**
-   * Để trống thì dùng tiêu đề và mô tả của trang.
+   * Leave empty to use the page title and description.
    */
   seo?: {
     /**
-     * Nên dưới 60 ký tự.
+     * Keep it under 60 characters.
      */
     title?: string | null;
     image?: (number | null) | Media;
@@ -317,7 +317,7 @@ export interface Form {
   fields: {
     label: string;
     /**
-     * Chữ thường, số, gạch dưới (dùng chung mọi ngôn ngữ).
+     * Lowercase letters, digits and underscores (shared by all languages).
      */
     name?: string | null;
     type: 'text' | 'email' | 'tel' | 'number' | 'textarea' | 'select' | 'checkbox';
@@ -392,11 +392,11 @@ export interface ContactMessage {
 export interface Redirect {
   id: number;
   /**
-   * Ví dụ /bai-cu hoặc /2020/05/bai-cu (không gồm tên miền, không gồm tiền tố ngôn ngữ).
+   * For example /old-post or /2020/05/old-post (no domain, no language prefix).
    */
   from: string;
   /**
-   * Đường dẫn trong site (/bai-moi) hoặc địa chỉ đầy đủ https://…
+   * Path inside the site (/new-post) or a full address https://…
    */
   to: string;
   permanent?: boolean | null;
@@ -788,7 +788,7 @@ export interface SiteSetting {
   favicon?: (number | null) | Media;
   showSearch?: boolean | null;
   /**
-   * Một dòng ngắn ở đầu site, ví dụ "Ship COD toàn quốc". Để trống để ẩn.
+   * A short line at the top of the site, for example "Nationwide COD shipping". Leave empty to hide.
    */
   announcement?: string | null;
   headerMenu?:
@@ -820,18 +820,18 @@ export interface SiteSetting {
     | {
         label: string;
         /**
-         * Ví dụ /san-pham hoặc https://…
+         * For example /products or https://…
          */
         href: string;
         id?: string | null;
       }[]
     | null;
   /**
-   * Cần cấu hình SMTP bằng biến môi trường HOSSO_SMTP_URL (ví dụ smtp://user:pass@host:587). Chưa cấu hình thì nội dung email chỉ ghi ra nhật ký máy chủ.
+   * Configure SMTP with the HOSSO_SMTP_URL environment variable (for example smtp://user:pass@host:587). Until then, email content is only written to the server log.
    */
   notifications?: {
     /**
-     * Để trống để dùng email ở tab Liên hệ.
+     * Leave empty to use the email from the Contact tab.
      */
     to?: string | null;
     onForm?: boolean | null;
