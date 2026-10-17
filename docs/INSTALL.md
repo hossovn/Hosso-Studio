@@ -69,6 +69,10 @@ pnpm studio:import-wordpress export.xml --media --site-url https://site-cu.vn --
 - **Widget**: vùng "Cột bên cạnh bài viết" dựng bằng kéo thả (cùng các vùng trước/sau header, footer); menu có dòng tóm tắt "Tên → đường dẫn · n mục con" để sắp xếp bằng kéo thả.
 - **Cache trang**: Next trả `Cache-Control: private, no-store` cho trang động nên cache toàn trang nên đặt ở reverse proxy/CDN (ví dụ nginx `proxy_cache` 30–60 giây, bỏ qua khi có cookie `payload-token`). Đã đo TTFB 30–60 ms (SQLite, trang chủ) nên không bắt buộc.
 
+- **Menu dạng cây** (Cài đặt site → Menu): kéo thả để sắp xếp và tạo menu con, thêm nhanh từ danh sách trang; mỗi ngôn ngữ một menu.
+- **Widget** (Admin → Giao diện → Widget): thêm/sắp xếp widget cho cột bên bài viết và các vùng trước/sau header, footer.
+- **Nâng cấp từ DB PoC cũ (Postgres)**: chỉ cần `pnpm migrate`; dữ liệu cũ (trang, bài, cài đặt, menu) được giữ và đặt vào ngôn ngữ đầu tiên (vi). Với SQLite dev: xuất gói bằng bản cũ rồi `pnpm studio:import` vào DB mới.
+
 ## 3. Kết nối Hosso WIM (plugin, tùy chọn)
 
 Trong PoC dùng mock:
