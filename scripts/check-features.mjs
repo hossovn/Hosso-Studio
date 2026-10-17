@@ -207,6 +207,23 @@ await lockApi(T('editor'), { key: lk, release: true })
 assert.equal((await lockApi(T('moderator'), { key: lk })).status, 403); ok('moderator không dùng khóa sửa')
 assert.equal((await lockApi(T('editor'), { key: '../x' })).status, 400); ok('khóa sai định dạng bị từ chối')
 
+console.log('Menu dạng cây và widget')
+const cur = (await api(admin, 'GET', '/api/globals/site-settings?locale=vi&depth=0')).body
+const tree = [{ label: 'A-' + run, href: '/a', children: [{ label: 'A1', href: '/a1' }] }, { label: 'B', href: '/b' }]
+assert.equal((await api(T('publisher'), 'POST', '/api/globals/site-settings?locale=vi', { headerMenu: tree })).status, 403); ok('publisher không sửa menu (chỉ admin)')
+assert.equal((await api(admin, 'POST', '/api/globals/site-settings?locale=vi', { headerMenu: [{ label: 1 }] })).status, 400); ok('menu sai định dạng bị từ chối')
+assert.equal((await api(admin, 'POST', '/api/globals/site-settings?locale=vi', { headerMenu: tree })).status, 200)
+assert.match(await (await fetch(SITE + '/')).text(), new RegExp('A-' + run)); ok('menu cây lưu và hiện trên site')
+await api(admin, 'POST', '/api/globals/site-settings?locale=vi', { headerMenu: cur.headerMenu ?? null })
+assert.doesNotMatch(await (await fetch(SITE + '/')).text(), new RegExp('A-' + run)); ok('khôi phục menu cũ')
+const wid = { root: { props: {} }, content: [block('TermList', { heading: 'WG-' + run, kind: 'categories', showCount: 'yes' }), block('SearchBox', { heading: 'TK-' + run })] }
+assert.equal((await api(T('publisher'), 'POST', '/api/globals/site-areas?locale=vi', { postSidebar: wid })).status, 200)
+const pwid = await api(T('publisher'), 'POST', '/api/posts', { title: 'Bài widget', slug: 'bw-' + run, content: emptyContent, _status: 'published' }); del(admin, '/api/posts/' + pwid.body.doc.id)
+const wh = await (await fetch(SITE + '/bai-viet/bw-' + run)).text()
+assert.match(wh, new RegExp('WG-' + run)); assert.match(wh, new RegExp('TK-' + run)); ok('widget cột bên hiện cạnh bài viết')
+await api(T('publisher'), 'POST', '/api/globals/site-areas?locale=vi', { postSidebar: null })
+assert.doesNotMatch(await (await fetch(SITE + '/bai-viet/bw-' + run)).text(), new RegExp('WG-' + run)); ok('gỡ widget thì biến mất')
+
 for (const f of cleanup.reverse()) await f()
 for (const u of Object.values(users)) await api(admin, 'DELETE', `/api/users/${u.id}`)
 console.log(`\nTính năng OK (${n} kiểm tra).`)

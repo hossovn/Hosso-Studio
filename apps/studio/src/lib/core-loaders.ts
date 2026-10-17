@@ -43,6 +43,19 @@ export const coreLoaders: Record<string, BlockLoader> = {
     }
   },
 
+  TermList: async (props, ctx) => {
+    const tags = props.kind === 'tags'
+    const field = tags ? 'tags' : 'categories'
+    const res = await ctx.payload.find({ collection: tags ? 'post-tags' : 'post-categories', limit: 100, depth: 0, sort: 'name', locale: ctx.locale as any, overrideAccess: true })
+    const items = await Promise.all(
+      res.docs.map(async (term) => {
+        const count = props.showCount === 'no' ? undefined : (await ctx.payload.count({ collection: 'posts', where: { and: [{ _status: { equals: 'published' } }, { [field]: { contains: term.id } }] }, overrideAccess: true })).totalDocs
+        return { name: term.name, href: href(`/bai-viet/${tags ? 'the' : 'danh-muc'}/${term.slug}`, ctx.locale), count }
+      }),
+    )
+    return { status: 'ok', items: items.filter((i) => i.count !== 0) }
+  },
+
   Form: async (props, ctx) => {
     if (!props.form) return { status: 'error' }
     const found = await ctx.payload.find({ collection: 'forms', where: { slug: { equals: props.form } }, limit: 1, depth: 0, locale: ctx.locale as any, overrideAccess: true })

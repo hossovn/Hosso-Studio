@@ -145,7 +145,7 @@ const manifest = read('manifest.json')
         await payload.updateGlobal({
           slug: 'site-settings',
           locale: l as any,
-          data: { ...t, headerMenu: withIds(saved.headerMenu, t.headerMenu), footerMenu: withIds(saved.footerMenu, t.footerMenu), social: withIds(saved.social, t.social) },
+          data: { ...t, social: withIds(saved.social, t.social) },
         })
       }
     } catch (e: any) {
