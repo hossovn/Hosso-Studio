@@ -35,8 +35,11 @@ export const Users: CollectionConfig = {
       saveToJWT: true,
       label: 'Vai trò',
       options: [
-        { label: 'Quản trị viên (được xuất bản)', value: 'admin' },
-        { label: 'Biên tập viên (chỉ lưu nháp)', value: 'editor' },
+        { label: 'Quản trị viên (toàn quyền)', value: 'admin' },
+        { label: 'Người xuất bản (xuất bản nội dung, không sửa cài đặt)', value: 'publisher' },
+        { label: 'Biên tập viên (sửa trang và bài, chỉ lưu nháp)', value: 'editor' },
+        { label: 'Tác giả (chỉ viết bài của mình, lưu nháp)', value: 'author' },
+        { label: 'Kiểm duyệt (bình luận và biểu mẫu)', value: 'moderator' },
       ],
       access: { create: adminOnlyField, update: adminOnlyField },
     },

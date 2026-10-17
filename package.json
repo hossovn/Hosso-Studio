@@ -18,7 +18,8 @@
     "mock:wim": "pnpm --filter @hosso/mock-wim start",
     "studio:export": "pnpm --filter @hosso/studio studio:export",
     "studio:import": "pnpm --filter @hosso/studio studio:import",
-    "migrate": "pnpm --filter @hosso/studio migrate"
+    "migrate": "pnpm --filter @hosso/studio migrate",
+    "studio:import-wordpress": "pnpm --filter @hosso/studio studio:import-wordpress"
   },
   "pnpm": {
     "overrides": {

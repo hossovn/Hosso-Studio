@@ -13,6 +13,11 @@ export default defineHossoConfig({
     mark: '/brand/mark.svg',
     favicon: '/brand/wordmark.svg',
   },
+  // Ngôn ngữ đầu tiên là mặc định (URL không có tiền tố); ngôn ngữ khác có tiền tố /en, ...
+  locales: [
+    { code: 'vi', label: 'Tiếng Việt' },
+    { code: 'en', label: 'English' },
+  ],
   themes: [defaultTheme, altTheme, shopTheme],
   // Plugin (ví dụ kết nối Hosso WIM) khai báo ở đây. Bản công khai không kèm plugin nào.
   plugins: [],

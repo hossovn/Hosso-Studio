@@ -6,41 +6,153 @@ import path from 'path'
 import { getPayload } from 'payload'
 
 // pnpm studio:export [tệp.zip]
-// Gói gồm: nội dung và cấu trúc trang, cấu hình theme/site, cấu hình plugin (KHÔNG có khóa/bí mật), media.
-// Không gồm: tài khoản người dùng, tin nhắn liên hệ, đơn hàng (do WIM làm chủ).
+// Gói (định dạng 2) gồm: trang, bài viết, chuyên mục/thẻ, biểu mẫu, khối dùng lại, vùng giao diện, cài đặt site (theme, token, menu),
+// cấu hình plugin (KHÔNG có khóa/bí mật) và media; mọi nội dung dịch được xuất theo từng ngôn ngữ.
+// Không gồm: tài khoản, bình luận, biểu mẫu khách đã gửi, tin nhắn liên hệ, đơn hàng (do WIM làm chủ).
 const out = path.resolve(process.env.INIT_CWD || process.cwd(), process.argv[2] || `hosso-site-${new Date().toISOString().slice(0, 10)}.zip`)
 
 const payload = await getPayload({ config })
 const files: Record<string, Uint8Array> = {}
 const json = (name: string, data: unknown) => (files[name] = strToU8(JSON.stringify(data, null, 2)))
 
-// Ảnh liên kết (cover, seo.image) xuất theo tên tệp media vì id khác nhau giữa các cài đặt.
+const LOCALES = hosso.locales.map((l) => l.code)
+const D = LOCALES[0]
 const fileOf = (m: any) => (m && typeof m === 'object' && m.filename ? { filename: m.filename } : null)
-const seoOf = (d: any) => (d.seo ? { title: d.seo.title ?? null, noindex: d.seo.noindex ?? false, image: fileOf(d.seo.image) } : undefined)
+const slugsOf = (list: any) => ((list ?? []) as any[]).filter((x) => x && typeof x === 'object' && x.slug).map((x) => x.slug as string)
 
-// Trang và bài viết: bản đã xuất bản (hoặc bản nháp nếu chưa từng xuất bản).
-const pages = await payload.find({ collection: 'pages', limit: 1000, depth: 1, pagination: false, draft: false, overrideAccess: true })
+/** Đọc một bản ghi ở từng ngôn ngữ (không dùng bản dự phòng để chỉ lấy phần đã dịch thật). */
+async function forEachLocale<T>(read: (locale: string) => Promise<T>): Promise<Record<string, T>> {
+  const res: Record<string, T> = {}
+  for (const l of LOCALES) res[l] = await read(l)
+  return res
+}
+const pick = (o: any, keys: string[]) => Object.fromEntries(keys.filter((k) => o?.[k] != null && o[k] !== '').map((k) => [k, o[k]]))
+const find = (collection: any, locale: string, extra: Record<string, unknown> = {}) =>
+  payload.find({ collection, limit: 2000, depth: 1, pagination: false, locale: locale as any, fallbackLocale: false, overrideAccess: true, ...extra })
+
+// ---------- Trang, bài viết ----------
+const pagesByLocale = await forEachLocale((l) => find('pages', l, { draft: false }))
+const pages = pagesByLocale[D].docs
 json(
   'data/pages.json',
-  pages.docs.map((p) => ({ title: p.title, slug: p.slug, description: p.description, content: p.content, seo: seoOf(p), status: p._status ?? 'draft' })),
-)
-const posts = await payload.find({ collection: 'posts', limit: 1000, depth: 1, pagination: false, draft: false, overrideAccess: true })
-json(
-  'data/posts.json',
-  posts.docs.map((p) => ({ title: p.title, slug: p.slug, excerpt: p.excerpt, publishedAt: p.publishedAt, cover: fileOf(p.cover), content: p.content, seo: seoOf(p), status: p._status ?? 'draft' })),
+  pages.map((p: any) => ({
+    slug: p.slug,
+    status: p._status ?? 'draft',
+    seo: { noindex: p.seo?.noindex ?? false, image: fileOf(p.seo?.image) },
+    translations: Object.fromEntries(
+      LOCALES.flatMap((l) => {
+        const d: any = pagesByLocale[l].docs.find((x: any) => x.slug === p.slug)
+        return d?.title ? [[l, { ...pick(d, ['title', 'description', 'content']), seoTitle: d.seo?.title ?? undefined }]] : []
+      }),
+    ),
+  })),
 )
 
-// Cấu hình site (theme + token). Bỏ các trường hệ thống.
+const postsByLocale = await forEachLocale((l) => find('posts', l, { draft: false }))
+const posts = postsByLocale[D].docs
+json(
+  'data/posts.json',
+  posts.map((p: any) => ({
+    slug: p.slug,
+    status: p._status ?? 'draft',
+    publishedAt: p.publishedAt,
+    commentsEnabled: p.commentsEnabled,
+    cover: fileOf(p.cover),
+    categories: slugsOf(p.categories),
+    tags: slugsOf(p.tags),
+    seo: { noindex: p.seo?.noindex ?? false, image: fileOf(p.seo?.image) },
+    translations: Object.fromEntries(
+      LOCALES.flatMap((l) => {
+        const d: any = postsByLocale[l].docs.find((x: any) => x.slug === p.slug)
+        return d?.title ? [[l, { ...pick(d, ['title', 'excerpt', 'content']), seoTitle: d.seo?.title ?? undefined }]] : []
+      }),
+    ),
+  })),
+)
+
+// ---------- Chuyên mục, thẻ ----------
+const terms = async (collection: 'post-categories' | 'post-tags') => {
+  const byLocale = await forEachLocale((l) => find(collection, l))
+  return byLocale[D].docs.map((t: any) => ({
+    slug: t.slug,
+    translations: Object.fromEntries(
+      LOCALES.flatMap((l) => {
+        const d: any = byLocale[l].docs.find((x: any) => x.slug === t.slug)
+        return d?.name ? [[l, pick(d, ['name', 'description'])]] : []
+      }),
+    ),
+  }))
+}
+json('data/terms.json', { categories: await terms('post-categories'), tags: await terms('post-tags') })
+
+// ---------- Biểu mẫu ----------
+const formsByLocale = await forEachLocale((l) => find('forms', l))
+json(
+  'data/forms.json',
+  formsByLocale[D].docs.map((f: any) => ({
+    slug: f.slug,
+    fields: (f.fields ?? []).map((fl: any, i: number) => ({
+      name: fl.name,
+      type: fl.type,
+      required: !!fl.required,
+      translations: Object.fromEntries(
+        LOCALES.flatMap((l) => {
+          const x: any = (formsByLocale[l].docs.find((d: any) => d.slug === f.slug)?.fields ?? [])[i]
+          return x?.label ? [[l, pick(x, ['label', 'placeholder', 'options'])]] : []
+        }),
+      ),
+    })),
+    translations: Object.fromEntries(
+      LOCALES.flatMap((l) => {
+        const d: any = formsByLocale[l].docs.find((x: any) => x.slug === f.slug)
+        return d?.title ? [[l, pick(d, ['title', 'submitLabel', 'successMessage'])]] : []
+      }),
+    ),
+  })),
+)
+
+// ---------- Khối dùng lại ----------
+const reusableByLocale = await forEachLocale((l) => find('reusable-blocks', l, { draft: false }))
+json(
+  'data/reusable-blocks.json',
+  reusableByLocale[D].docs.map((b: any) => ({
+    slug: b.slug,
+    title: b.title,
+    status: b._status ?? 'draft',
+    translations: Object.fromEntries(
+      LOCALES.flatMap((l) => {
+        const d: any = reusableByLocale[l].docs.find((x: any) => x.slug === b.slug)
+        return d?.content ? [[l, { content: d.content }]] : []
+      }),
+    ),
+  })),
+)
+
+// ---------- Vùng giao diện ----------
+const AREA_KEYS = ['beforeHeader', 'afterHeader', 'beforeFooter', 'afterFooter']
+const areas = await forEachLocale((l) => payload.findGlobal({ slug: 'site-areas', locale: l as any, fallbackLocale: false, depth: 0, overrideAccess: true }) as Promise<any>)
+json('data/site-areas.json', { translations: Object.fromEntries(LOCALES.map((l) => [l, pick(areas[l], AREA_KEYS)])) })
+
+// ---------- Cài đặt site ----------
 const strip = (doc: Record<string, any>) => {
   const { id, createdAt, updatedAt, globalType, ...rest } = doc
   return rest
 }
-// logo/favicon xuất theo tên tệp media (id khác nhau giữa các cài đặt).
-const site = strip(await payload.findGlobal({ slug: 'site-settings', overrideAccess: true, depth: 1 }))
-for (const k of ['logo', 'favicon']) site[k] = site[k] && typeof site[k] === 'object' ? { filename: site[k].filename } : null
-json('data/site-settings.json', site)
+const sites = await forEachLocale((l) => payload.findGlobal({ slug: 'site-settings', locale: l as any, fallbackLocale: false, depth: 1, overrideAccess: true }) as Promise<any>)
+const shared = strip(sites[D])
+const LOCALIZED = ['siteName', 'announcement', 'footerText', 'headerMenu', 'footerMenu', 'social', 'contact']
+for (const k of ['logo', 'favicon']) shared[k] = fileOf(shared[k])
+json('data/site-settings.json', {
+  shared: Object.fromEntries(Object.entries(shared).filter(([k]) => !LOCALIZED.includes(k) || k === 'contact')),
+  translations: Object.fromEntries(
+    LOCALES.map((l) => {
+      const s = strip(sites[l])
+      return [l, pick(s, ['siteName', 'announcement', 'footerText', 'headerMenu', 'footerMenu', 'social', 'contact'])]
+    }),
+  ),
+})
 
-// Cấu hình plugin: chỉ các global plugin khai báo là "portable"; trường bí mật bị bỏ khỏi gói.
+// ---------- Cấu hình plugin (không có bí mật) ----------
 const secretsOmitted: string[] = []
 for (const plugin of hosso.plugins) {
   for (const g of plugin.portable?.globals ?? []) {
@@ -53,8 +165,8 @@ for (const plugin of hosso.plugins) {
   }
 }
 
-// Media: metadata + tệp.
-const media = await payload.find({ collection: 'media', limit: 1000, depth: 0, pagination: false, overrideAccess: true })
+// ---------- Media ----------
+const media = await payload.find({ collection: 'media', limit: 2000, depth: 0, pagination: false, overrideAccess: true })
 const mediaDir = path.resolve(process.env.HOSSO_MEDIA_DIR || path.join(process.cwd(), 'media'))
 const mediaMeta = []
 for (const m of media.docs) {
@@ -67,16 +179,17 @@ for (const m of media.docs) {
 json('data/media.json', mediaMeta)
 
 json('manifest.json', {
-  format: 1,
+  format: 2,
   product: hosso.brand.name,
   exportedAt: new Date().toISOString(),
+  locales: LOCALES,
   themes: hosso.themes.map((t) => `${t.manifest.name}@${t.manifest.version}`),
   plugins: hosso.plugins.map((p) => p.id),
-  counts: { pages: pages.docs.length, posts: posts.docs.length, media: mediaMeta.length },
+  counts: { pages: pages.length, posts: posts.length, media: mediaMeta.length },
   secretsOmitted,
 })
 
 fs.writeFileSync(out, zipSync(files))
-console.log(`Đã xuất ${pages.docs.length} trang, ${posts.docs.length} bài viết, ${mediaMeta.length} media -> ${out}`)
+console.log(`Đã xuất ${pages.length} trang, ${posts.length} bài viết, ${mediaMeta.length} media (${LOCALES.join(', ')}) -> ${out}`)
 if (secretsOmitted.length) console.log(`Không kèm bí mật: ${secretsOmitted.join(', ')} (nhập lại trong admin hoặc đặt bằng biến môi trường HOSSO_WIM_*).`)
 process.exit(0)

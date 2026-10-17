@@ -10,9 +10,15 @@ import { fileURLToPath } from 'url'
 import hosso from '@hosso-config'
 import { ContactMessages } from './collections/ContactMessages'
 import { Media } from './collections/Media'
+import { Comments } from './collections/Comments'
+import { Forms, FormSubmissions } from './collections/Forms'
 import { Pages } from './collections/Pages'
 import { Posts } from './collections/Posts'
+import { ReusableBlocks } from './collections/ReusableBlocks'
+import { PostCategories, PostTags } from './collections/Taxonomies'
+import { SiteAreas } from './globals/SiteAreas'
 import { SiteSettings } from './globals/SiteSettings'
+import { commentSubmit, formExport, formSubmit } from './lib/endpoints'
 import { Users } from './collections/Users'
 import { ensureAdmin, seedIfEmpty } from './lib/seed'
 
@@ -37,13 +43,16 @@ const base: Config = {
     },
     components: {
       graphics: { Logo: '/components/admin/Logo#Logo', Icon: '/components/admin/Logo#Icon' },
+      Nav: '/components/admin/Nav#Nav',
       providers: ['/components/admin/BrandStyle#BrandStyle'],
       beforeDashboard: ['/components/admin/GettingStarted#GettingStarted'],
     },
   },
   i18n: { supportedLanguages: { vi, en }, fallbackLanguage: 'vi' },
-  collections: [Pages, Posts, Media, ContactMessages, Users],
-  globals: [SiteSettings],
+  collections: [Pages, Posts, PostCategories, PostTags, Comments, Forms, FormSubmissions, ReusableBlocks, Media, ContactMessages, Users],
+  globals: [SiteSettings, SiteAreas],
+  // Ngôn ngữ nội dung: ngôn ngữ đầu tiên trong hosso.config.ts là mặc định; thiếu bản dịch thì dùng ngôn ngữ mặc định.
+  localization: { locales: hosso.locales.map((l) => ({ code: l.code, label: l.label })), defaultLocale: hosso.locales[0].code, fallback: true },
   typescript: { outputFile: path.resolve(dirname, 'payload-types.ts') },
   db: isPostgres
     ? postgresAdapter({ pool: { connectionString: databaseUrl }, migrationDir: path.resolve(dirname, 'migrations') })
@@ -54,6 +63,9 @@ const base: Config = {
       }),
   // Health check cho Docker/dịch vụ deploy: GET /api/health
   endpoints: [
+    formSubmit,
+    formExport,
+    commentSubmit,
     {
       path: '/health',
       method: 'get',
