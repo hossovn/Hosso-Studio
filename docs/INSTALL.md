@@ -36,6 +36,24 @@ Lần đầu `pnpm dev` tạo `apps/studio/.env` (khóa ngẫu nhiên, tài kho�
 - **Hướng dẫn bắt đầu** hiện ở dashboard admin cho đến khi hoàn tất các bước (tên và logo, menu, trang chủ, ít nhất 3 trang, kết nối WIM nếu có plugin).
 - **Theme**: "Sáng & Sạch", "Kỹ thuật tối" và "Cửa hàng phụ tùng" (header hai tầng có tìm kiếm, hotline, giỏ hàng và thanh menu màu nhấn).
 
+### Tính năng quen thuộc kiểu WordPress (đợt 5)
+
+- **Sidebar admin**: nền tối, biểu tượng, nhóm menu và mục con; huy hiệu số thật (bình luận chờ duyệt, bản nháp, lượt gửi biểu mẫu 24 giờ), nút "+" thêm nhanh, ô tìm lệnh (phím `/`), thu gọn thành thanh biểu tượng (menu con bung khi rê chuột), chỉ hiện mục hợp với vai trò. Plugin thêm mục qua `HossoPlugin.adminNav`.
+- **Sửa ảnh** trong thư viện Media (xoay, lật, cắt, đổi cỡ, độ sáng/tương phản/bão hòa, trắng đen; lưu thành ảnh mới hoặc thay ảnh cũ).
+- **Chuyên mục và thẻ** cho bài viết (`/bai-viet/danh-muc/<slug>`, `/bai-viet/the/<slug>`), block Danh sách bài viết lọc theo chuyên mục/thẻ.
+- **Bình luận**: gửi từ trang bài viết (`POST /api/site/comments`), có kiểm duyệt, bẫy bot, giới hạn tần suất; bật/tắt ở Cài đặt site và từng bài.
+- **Biểu mẫu** tự dựng (Admin → Biểu mẫu), nhúng bằng block Biểu mẫu; lượt gửi xem trong "Đã gửi", xuất CSV (`/api/site/forms-export/<id>`).
+- **Nhiều ngôn ngữ**: khai báo `locales` trong `hosso.config.ts` (mặc định `vi`, thêm `en`); URL tiền tố `/en`, hreflang và sitemap theo ngôn ngữ, nội dung dịch theo từng ngôn ngữ trong trình dựng.
+- **Khu vực dùng chung** (trước/sau header, trước/sau footer) dựng bằng kéo thả, và **Khối dùng lại** (block Reusable chèn vào nhiều trang).
+- **Phân quyền**: `admin`, `publisher` (xuất bản), `editor`, `author` (chỉ bài của mình), `moderator` (bình luận, biểu mẫu).
+- **Nhập từ WordPress**: xuất WXR từ WordPress rồi chạy
+
+```bash
+pnpm studio:import-wordpress export.xml --media --site-url https://site-cu.vn --locale vi   # thêm --dry-run để chạy thử
+```
+
+  Trang, bài viết, chuyên mục, thẻ, bình luận, ảnh đại diện được chuyển; link nội bộ được viết lại, video YouTube thành block Video.
+
 ## 3. Kết nối Hosso WIM (plugin, tùy chọn)
 
 Trong PoC dùng mock:

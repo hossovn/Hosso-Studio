@@ -78,3 +78,10 @@ Mục tiêu: tạo được một site hoàn chỉnh như WordPress. Đợt 1 l�
 - Export/import mang theo bài viết, ảnh đại diện, SEO, logo/favicon (ánh xạ theo tên tệp). Migration Postgres chạy chuỗi 3 bước trên Postgres 17.
 
 Còn lại / giới hạn: chưa có phân loại bài viết (danh mục, thẻ), bình luận, nhiều ngôn ngữ, xem trước bản nháp chia sẻ bằng liên kết công khai; SQLite dev dùng "push" nên đổi schema trên DB cũ có thể xung đột (xóa `apps/studio/data` hoặc dùng export/import); ảnh sản phẩm của WIM chưa hiển thị vì hợp đồng mock không trả ảnh.
+
+## 7. Đợt 5 (17/10/2026): tính năng quen thuộc kiểu WordPress
+
+- Đã làm và kiểm: sửa ảnh trong Media, chuyên mục/thẻ, bình luận có kiểm duyệt + chống spam + giới hạn tần suất, biểu mẫu tự dựng + xuất CSV, nhiều ngôn ngữ (vi/en, hreflang, sitemap), khu vực header/footer kéo thả, khối dùng lại, 5 vai trò, nhập WordPress (WXR), sidebar admin kiểu WordPress (font Arial, thu gọn, tìm lệnh).
+- Kiểm tự động: luồng đặt đơn 16/16, hợp đồng mock 25/25, tính năng 47/47; migration Postgres `20261017_031543_i18n_nav` chạy trên Postgres 17 sạch sau 3 migration cũ.
+- Gói mẫu `seed/sites/phu-tung-o-to.hosso-site.zip` định dạng 2 (9 trang, 3 bài, 11 ảnh, vi + en).
+- Giới hạn: giới hạn tần suất là bộ nhớ trong một tiến trình; chưa kiểm lại Lighthouse và docker compose sau đợt này.
