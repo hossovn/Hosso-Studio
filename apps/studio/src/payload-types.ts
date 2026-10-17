@@ -112,12 +112,10 @@ export interface Config {
   globals: {
     'site-settings': SiteSetting;
     'site-areas': SiteArea;
-    'wim-settings': WimSetting;
   };
   globalsSelect: {
     'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
     'site-areas': SiteAreasSelect<false> | SiteAreasSelect<true>;
-    'wim-settings': WimSettingsSelect<false> | WimSettingsSelect<true>;
   };
   locale: 'vi' | 'en';
   widgets: {
@@ -1033,42 +1031,6 @@ export interface SiteArea {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "wim-settings".
- */
-export interface WimSetting {
-  id: number;
-  /**
-   * For example http://localhost:4010. The HOSSO_WIM_API_URL environment variable (if set) takes priority.
-   */
-  apiUrl?: string | null;
-  /**
-   * The HOSSO_WIM_API_KEY environment variable (if set) takes priority. Stored encrypted; leave the masked value as is to keep the current one.
-   */
-  apiKey?: string | null;
-  /**
-   * Used to verify webhook signatures; optional. The HOSSO_WIM_WEBHOOK_SECRET variable takes priority. Stored encrypted; leave the masked value as is to keep the current one.
-   */
-  webhookSecret?: string | null;
-  timeoutMs?: number | null;
-  /**
-   * The site is always correct within this TTL; webhooks only refresh faster.
-   */
-  cacheTtl?: number | null;
-  /**
-   * Give WIM categories their own display names (empty = use the WIM name).
-   */
-  categoryMap?:
-    | {
-        wimCategoryId: string;
-        label: string;
-        id?: string | null;
-      }[]
-    | null;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site-settings_select".
  */
 export interface SiteSettingsSelect<T extends boolean = true> {
@@ -1167,27 +1129,6 @@ export interface SiteAreasSelect<T extends boolean = true> {
   beforeFooter?: T;
   afterFooter?: T;
   postSidebar?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  globalType?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "wim-settings_select".
- */
-export interface WimSettingsSelect<T extends boolean = true> {
-  apiUrl?: T;
-  apiKey?: T;
-  webhookSecret?: T;
-  timeoutMs?: T;
-  cacheTtl?: T;
-  categoryMap?:
-    | T
-    | {
-        wimCategoryId?: T;
-        label?: T;
-        id?: T;
-      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
