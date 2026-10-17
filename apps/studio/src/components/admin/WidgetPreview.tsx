@@ -78,11 +78,11 @@ export function WidgetPreview({ content, themeName, css, fontClass, locale, defa
       ref={frame}
       title="Xem trước"
       style={{ width: layout === 'sidebar' ? 332 : '100%', maxWidth: '100%', height, border: '1px solid var(--theme-elevation-150)', borderRadius: 6, background: '#fff' }}
-      sandbox="allow-same-origin allow-scripts"
+      sandbox="allow-same-origin allow-scripts allow-forms"
     >
       {body &&
         createPortal(
-          <LocaleProvider locale={locale} defaultLocale={defaultLocale}>
+          <LocaleProvider locale={locale} defaultLocale={defaultLocale} preview>
             <div className="hs-theme">{layout === 'sidebar' ? <div className="ss-post-grid" style={{ padding: 16 }}><aside>{inner}</aside></div> : inner}</div>
           </LocaleProvider>,
           body,

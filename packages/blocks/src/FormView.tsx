@@ -13,7 +13,7 @@ export type FormDef = {
 /** Biểu mẫu tùy chỉnh: kiểm tra phía server theo định nghĩa trong admin; có ô bẫy bot. */
 export function FormView({ form }: { form: FormDef }) {
   const t = useT()
-  const { locale } = useLocale()
+  const { locale, preview } = useLocale()
   const [state, setState] = useState<'idle' | 'busy' | 'sent' | 'error'>('idle')
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -22,8 +22,24 @@ export function FormView({ form }: { form: FormDef }) {
     const f = new FormData(e.currentTarget)
     const values: Record<string, unknown> = {}
     for (const field of form.fields) values[field.name] = field.type === 'checkbox' ? f.get(field.name) === 'on' : f.get(field.name)
-    setState('busy')
     setErrors({})
+    if (preview) {
+      // Xem trước trong admin: kiểm tra giống máy chủ nhưng không gửi và không lưu gì.
+      const errs: Record<string, string> = {}
+      for (const field of form.fields) {
+        const v = String(values[field.name] ?? '').trim()
+        if (field.type === 'checkbox') {
+          if (field.required && !values[field.name]) errs[field.name] = 'required'
+        } else if (!v) {
+          if (field.required) errs[field.name] = 'required'
+        } else if (field.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) errs[field.name] = 'invalid'
+        else if (field.type === 'tel' && !/^[+\d][\d\s.()-]{5,20}$/.test(v)) errs[field.name] = 'invalid'
+        else if (field.type === 'number' && !Number.isFinite(Number(v))) errs[field.name] = 'invalid'
+      }
+      setErrors(errs)
+      return setState(Object.keys(errs).length ? 'error' : 'sent')
+    }
+    setState('busy')
     try {
       const res = await fetch(`/api/site/forms/${encodeURIComponent(form.slug)}`, {
         method: 'POST',
@@ -41,13 +57,23 @@ export function FormView({ form }: { form: FormDef }) {
 
   if (state === 'sent') {
     return (
-      <p className="ss-form-sent" role="status">
-        {form.successMessage || t('form.sent')}
-      </p>
+      <div>
+        <p className="ss-form-sent" role="status">
+          {form.successMessage || t('form.sent')}
+        </p>
+        {preview && (
+          <p className="ss-muted">
+            {t('form.previewNote')}{' '}
+            <button type="button" className="ss-btn" onClick={() => setState('idle')}>
+              {t('form.previewAgain')}
+            </button>
+          </p>
+        )}
+      </div>
     )
   }
   return (
-    <form className="ss-form" onSubmit={submit} noValidate={false}>
+    <form className="ss-form" onSubmit={submit} noValidate={preview}>
       {form.fields.map((f) => {
         const id = `f-${form.slug}-${f.name}`
         const err = errors[f.name]

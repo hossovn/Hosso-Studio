@@ -283,7 +283,7 @@ export function Editor(props: Props) {
       root: {
         fields: {},
         render: ({ children }: { children: React.ReactNode }) => (
-          <LocaleProvider locale={props.locale} defaultLocale={props.defaultLocale}>
+          <LocaleProvider locale={props.locale} defaultLocale={props.defaultLocale} preview>
             <div className={`hs-theme ${props.fontClass}`}>
               {Header && <Header chrome={props.chrome} actions={slots.length ? slots : undefined} />}
               <main>{children}</main>
