@@ -59,7 +59,7 @@ const alternates = (path: string, locale: string) => ({
 async function Content({ content, locale, sp }: { content: unknown; locale: string; sp: SP }) {
   const { theme } = await loadSite(locale)
   const puckConfig = renderConfig(theme)
-  let data = stripUnknown((content ?? { content: [] }) as PageData, puckConfig)
+  let data = stripUnknown((content ?? { content: [], root: { props: {} } }) as PageData, puckConfig)
   data = await expandReusable(data, locale)
   data = await attachBlockData(data, sp, locale)
   return <Render config={puckConfig as any} data={data as any} />

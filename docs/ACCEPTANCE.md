@@ -89,7 +89,9 @@ Còn lại / giới hạn: chưa có phân loại bài viết (danh mục, thẻ
 ## 8. Đợt 6 (17/10/2026): vận hành, biên tập, SEO
 
 - Đã làm: email thông báo, link xem trước bản nháp, chuyển hướng 308/307, JSON-LD và breadcrumb, trang Công cụ (sao lưu, khôi phục, mẫu site, báo bản mới), `studio:backup`/`studio:update` và service backup trong compose, vùng widget cạnh bài viết, thanh quản trị trên site, khóa sửa, Tùy biến giao diện có xem trước trực tiếp, sửa chữ trực tiếp trên canvas Puck, header bảo mật, CSRF.
-- Kiểm tự động (`scripts/check-features.mjs`): 73 kiểm tra, gồm xuất/nhập vòng tròn qua API (phát hiện và sửa 2 lỗi: trùng slug khi bản ghi chỉ có ở bảng chính, biểu mẫu thiếu nhãn khi nhập bản dịch).
+- Kiểm tự động (`scripts/check-features.mjs`): 74 kiểm tra, gồm xuất/nhập vòng tròn qua API (phát hiện và sửa 2 lỗi: trùng slug khi bản ghi chỉ có ở bảng chính, biểu mẫu thiếu nhãn khi nhập bản dịch).
 - Lighthouse (bản build production, SQLite, máy phát triển): trang chủ vi 94, trang chủ en 94, bài viết 91; trợ năng, thực hành tốt, SEO đều 100; CLS 0.
 - Không làm (có lý do): cài theme/plugin từ trình duyệt (chạy mã lạ trên máy chủ); cache toàn trang trong ứng dụng (Next ghi đè Cache-Control của trang động, nên đặt ở reverse proxy/CDN).
 - Giới hạn: sửa chữ trực tiếp mới bật cho vài trường đơn giản (Banner, tiêu đề Văn bản/Lưới tính năng), nội dung Văn bản vẫn sửa ở bảng bên vì có định dạng; menu vẫn sắp xếp bằng danh sách kéo thả của Payload, chưa phải cây trực quan; kiểm tải thực và kiểm thử xâm nhập chưa làm.
+- Docker/Postgres (volume mới): compose lên được cùng service backup, cài mẫu site qua admin API thành công, `check-features` 74/74 (3 lần liên tiếp; một lần chạy đầu tiên ngay sau khi cài mẫu có 1 kiểm tra lỗi 200 thay vì 404 chưa tái hiện được). Phát hiện và sửa khi kiểm: thư mục backups trong image thiếu quyền, rule header rỗng làm build Docker lỗi, trang xuất bản chưa có nội dung gây lỗi 500.
+- Nâng cấp từ DB PoC cũ: migration chỉ đổi schema, không chuyển dữ liệu sang bảng bản dịch; cài đặt đã có dữ liệu trước đợt i18n nên xuất gói bằng bản cũ rồi nhập vào DB mới.

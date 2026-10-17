@@ -16,7 +16,7 @@ const api = async (token, method, path, body, headers = {}) => {
 }
 const login = async (email, password) => (await api(null, 'POST', '/api/users/login', { email, password })).body.token
 
-const admin = await login(env.HOSSO_ADMIN_EMAIL, env.HOSSO_ADMIN_PASSWORD)
+const admin = await login(process.env.HOSSO_ADMIN_EMAIL || env.HOSSO_ADMIN_EMAIL, process.env.HOSSO_ADMIN_PASSWORD || env.HOSSO_ADMIN_PASSWORD)
 assert.ok(admin, 'không đăng nhập được admin')
 
 // ---- tạo người dùng cho từng vai trò ----
@@ -164,6 +164,9 @@ assert.equal((await fetch(local(shareUrl).replace(/.$/, 'x'))).status, 404); ok(
 const dr2 = await api(T('editor'), 'POST', '/api/pages', page(`dr2-${run}`)); del(admin, `/api/pages/${dr2.body.doc.id}`)
 assert.equal((await fetch(local(shareUrl).replace(`dr-${run}`, `dr2-${run}`))).status, 404); ok('link của trang này không mở được trang khác')
 
+const empty = await api(T('publisher'), 'POST', '/api/pages', { title: 'Trống', slug: 'trong-' + run, _status: 'published' })
+assert.equal(empty.status, 201); del(admin, '/api/pages/' + empty.body.doc.id)
+assert.equal((await fetch(SITE + '/trong-' + run)).status, 200); ok('trang xuất bản chưa có nội dung vẫn hiển thị (không lỗi 500)')
 const rd = await api(T('publisher'), 'POST', '/api/redirects', { from: `/cu-${run}`, to: `/ml-${run}`, permanent: true })
 assert.equal(rd.status, 201); del(admin, `/api/redirects/${rd.body.doc.id}`)
 const rr = await fetch(`${SITE}/cu-${run}`, { redirect: 'manual' })
