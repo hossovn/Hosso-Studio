@@ -1,4 +1,5 @@
 // Lõi, blocks và theme không được tham chiếu plugin-wim.
+import { say } from './lib/say.mjs'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, sep } from 'node:path'
 
@@ -22,4 +23,4 @@ if (bad.length) {
   console.error('Vi phạm ranh giới (nhắc đến plugin-wim):\n' + bad.join('\n'))
   process.exit(1)
 }
-console.log('OK: lõi, blocks, theme không tham chiếu plugin-wim.')
+console.log(say('OK: lõi, blocks, theme không tham chiếu plugin-wim.'))

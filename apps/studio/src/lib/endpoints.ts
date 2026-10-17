@@ -5,6 +5,8 @@ import fs from 'fs'
 
 import { canModerate, hasRole } from './access'
 import { backupPath, createBackup, listBackups, templatePath } from './backup'
+import { adminLang } from './admin-i18n'
+import { both, msg } from './lang'
 import { notify } from './notify'
 import { makeShareToken } from './share'
 import { importSitePackage } from './site-import'
@@ -65,7 +67,7 @@ export const formSubmit: Endpoint = {
       data: { form: form.id, formTitle: form.title, data, locale },
       overrideAccess: true,
     })
-    await notify(req.payload, 'form', `Biểu mẫu mới: ${form.title}`, [...Object.entries(data).map(([k, v]) => `${k}: ${v}`), '', 'Xem trong Admin → Biểu mẫu → Đã gửi.'])
+    await notify(req.payload, 'form', both(`Biểu mẫu mới: ${form.title}`, `New form submission: ${form.title}`), [...Object.entries(data).map(([k, v]) => `${k}: ${v}`), '', both('Xem trong Admin → Biểu mẫu → Đã gửi.', 'See Admin → Forms → Submissions.')])
     return json({ ok: true })
   },
 }
@@ -82,7 +84,7 @@ export const formExport: Endpoint = {
     const id = String(req.routeParams?.id ?? '')
     const res = await req.payload.find({ collection: 'form-submissions', where: { form: { equals: id } }, sort: 'createdAt', limit: 10000, depth: 0, overrideAccess: true })
     const keys = [...new Set(res.docs.flatMap((d) => Object.keys((d.data ?? {}) as object)))]
-    const rows = [['Thời gian', 'Ngôn ngữ', ...keys], ...res.docs.map((d) => [d.createdAt, d.locale ?? '', ...keys.map((k) => String(((d.data ?? {}) as Record<string, unknown>)[k] ?? ''))])]
+    const rows = [[msg(req, 'Thời gian', 'Time'), msg(req, 'Ngôn ngữ', 'Language'), ...keys], ...res.docs.map((d) => [d.createdAt, d.locale ?? '', ...keys.map((k) => String(((d.data ?? {}) as Record<string, unknown>)[k] ?? ''))])]
     return new Response(csv(rows), { headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="form-${id}.csv"` } })
   },
 }
@@ -121,7 +123,7 @@ export const commentSubmit: Endpoint = {
       data: { post: post.id, authorName: name, authorEmail: email || undefined, content, status, locale: str(body?.locale, 8) },
       overrideAccess: true,
     })
-    if (status !== 'spam') await notify(req.payload, 'comment', `Bình luận mới (${status === 'approved' ? 'đã duyệt' : 'chờ duyệt'}) trên "${post.title}"`, [`${name}${email ? ` <${email}>` : ''}`, '', content, '', 'Duyệt trong Admin → Bình luận.'])
+    if (status !== 'spam') await notify(req.payload, 'comment', both(`Bình luận mới (${status === 'approved' ? 'đã duyệt' : 'chờ duyệt'}) trên "${post.title}"`, `New comment (${status === 'approved' ? 'approved' : 'pending'}) on "${post.title}"`), [`${name}${email ? ` <${email}>` : ''}`, '', content, '', both('Duyệt trong Admin → Bình luận.', 'Moderate in Admin → Comments.')])
     return json({ ok: true, status: status === 'spam' ? 'pending' : status })
   },
 }
@@ -186,7 +188,7 @@ export const packageImport: Endpoint = {
     if (!buf.length || buf.length > MAX_PACKAGE) return json({ ok: false, error: 'bad_size' }, 400)
     const lines: string[] = []
     try {
-      const r = await importSitePackage(req.payload, buf, (m) => lines.push(m))
+      const r = await importSitePackage(req.payload, buf, (m) => lines.push(m), adminLang(req.i18n?.language))
       return json({ ok: true, log: lines, stats: r.stats })
     } catch (e) {
       return json({ ok: false, error: (e as Error).message, log: lines }, 400)
@@ -205,7 +207,7 @@ export const templateInstall: Endpoint = {
     if (!p || !fs.existsSync(p)) return json({ ok: false, error: 'not_found' }, 404)
     const lines: string[] = []
     try {
-      const r = await importSitePackage(req.payload, new Uint8Array(fs.readFileSync(p)), (m) => lines.push(m))
+      const r = await importSitePackage(req.payload, new Uint8Array(fs.readFileSync(p)), (m) => lines.push(m), adminLang(req.i18n?.language))
       return json({ ok: true, log: lines, stats: r.stats })
     } catch (e) {
       return json({ ok: false, error: (e as Error).message, log: lines }, 400)
@@ -234,7 +236,7 @@ export const editLock: Endpoint = {
       if (cur && cur.userId === me) await req.payload.delete({ collection: 'edit-locks', id: cur.id, overrideAccess: true })
       return json({ ok: true })
     }
-    if (held && !body.takeover) return json({ ok: false, holder: cur.email || 'người khác' })
+    if (held && !body.takeover) return json({ ok: false, holder: cur.email || 'người khác / someone else' })
     const data = { key, userId: me, email: user!.email ?? '', expiresAt: new Date(Date.now() + LOCK_TTL).toISOString() }
     if (cur) await req.payload.update({ collection: 'edit-locks', id: cur.id, data, overrideAccess: true })
     else await req.payload.create({ collection: 'edit-locks', data, overrideAccess: true })

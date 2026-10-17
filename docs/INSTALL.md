@@ -1,4 +1,5 @@
 # Hướng dẫn cài đặt Hosso Studio
+**Tiếng Việt** | [English](en/INSTALL.md)
 
 Một cài đặt = một website. Yêu cầu: Node ≥ 22.15 (khuyến nghị 24 LTS), pnpm ≥ 10. Docker chỉ cần khi chạy bằng container.
 
@@ -56,7 +57,7 @@ pnpm studio:import-wordpress export.xml --media --site-url https://site-cu.vn --
 
 ### Vận hành, biên tập và SEO (đợt 6)
 
-- **Công cụ** (Admin → Công cụ, chỉ admin): tải gói site về máy, sao lưu ngay trên máy chủ (giữ `HOSSO_BACKUP_KEEP` bản trong `HOSSO_BACKUP_DIR`), khôi phục từ gói zip, cài **mẫu site** (các tệp `*.hosso-site.zip` trong `HOSSO_TEMPLATES_DIR`, mặc định `seed/sites`), xem phiên bản và báo có bản mới (đặt `HOSSO_UPDATE_URL`).
+- **Công cụ** (Admin → Công cụ, chỉ admin): tải gói site về máy, sao lưu ngay trên máy chủ (giữ `HOSSO_BACKUP_KEEP` bản trong `HOSSO_BACKUP_DIR`), khôi phục từ gói zip, cài **mẫu site** (các tệp `*.hosso-site.zip` trong `HOSSO_TEMPLATES_DIR`, mặc định `seed/sites` và `packages/*/templates`), xem phiên bản và báo có bản mới (đặt `HOSSO_UPDATE_URL`).
 - **Sao lưu tự động**: `pnpm studio:backup` (chạy bằng cron), hoặc service `backup` trong docker-compose (mỗi 24 giờ). Gói chứa nội dung, cấu hình và media, không chứa tài khoản/bình luận/bí mật; sao lưu cả CSDL bằng `pg_dump` (xem chú thích trong docker-compose.yml).
 - **Cập nhật một lệnh**: `pnpm studio:update` (cài từ git: sao lưu, `git pull --ff-only`, cài phụ thuộc, migrate, build; dừng nếu có lỗi hoặc có thay đổi chưa commit). Docker: `docker compose pull && docker compose up -d` (migration chạy khi khởi động). Theme và plugin là mã nguồn: thêm package vào `hosso.config.ts` rồi build lại, không cài từ trình duyệt (cố ý, để không chạy mã lạ trên máy chủ).
 - **Email thông báo** khi có biểu mẫu/bình luận mới (Cài đặt site → Thông báo; người nhận mặc định là email liên hệ). Cần `HOSSO_SMTP_URL` (ví dụ `smtp://user:pass@host:587`) và `HOSSO_MAIL_FROM`; chưa cấu hình thì email chỉ ghi ra nhật ký.
@@ -87,7 +88,7 @@ Admin → Kết nối Hosso WIM: nhập địa chỉ API, khóa API, bí mật w
 
 Có thể đặt toàn bộ bằng biến môi trường (ưu tiên hơn giá trị trong admin): `HOSSO_WIM_API_URL`, `HOSSO_WIM_API_KEY`, `HOSSO_WIM_WEBHOOK_SECRET`, `HOSSO_WIM_TIMEOUT_MS`, `HOSSO_WIM_CACHE_TTL`.
 
-Các block thương mại (Bộ chọn xe, Ô tìm, Lưới sản phẩm, Chi tiết sản phẩm, Giỏ hàng, Thanh toán, Trạng thái đơn) xuất hiện trong trình dựng khi plugin được cài. Site mẫu hoàn chỉnh (theme Cửa hàng phụ tùng, 8 trang, 3 bài viết, ảnh, menu, kết nối WIM mock): `seed/sites/phu-tung-o-to.hosso-site.zip`, nhập bằng `pnpm studio:import seed/sites/phu-tung-o-to.hosso-site.zip` (xem mục 5).
+Các block thương mại (Bộ chọn xe, Ô tìm, Lưới sản phẩm, Chi tiết sản phẩm, Giỏ hàng, Thanh toán, Trạng thái đơn) xuất hiện trong trình dựng khi plugin được cài. Site mẫu hoàn chỉnh (theme Cửa hàng phụ tùng, 8 trang, 3 bài viết, ảnh, menu, kết nối WIM mock): `packages/plugin-wim/templates/phu-tung-o-to.hosso-site.zip`, nhập bằng `pnpm studio:import packages/plugin-wim/templates/phu-tung-o-to.hosso-site.zip` (xem mục 5).
 
 Điều khiển mock để thử lỗi (không mở thêm endpoint):
 

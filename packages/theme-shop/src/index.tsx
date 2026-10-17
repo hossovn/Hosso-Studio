@@ -67,7 +67,7 @@ const Footer = ({ chrome }: { chrome: SiteChrome }) => {
           )}
         </div>
         {!!chrome.footerMenu.length && (
-          <nav aria-label="Liên kết nhanh">
+          <nav aria-label={t('nav.quick')}>
             <h2>{t('shop.quicklinks')}</h2>
             <ul>
               {chrome.footerMenu.map((i, n) => (

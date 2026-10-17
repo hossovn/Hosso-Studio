@@ -1,4 +1,5 @@
 import { APIError, type CollectionBeforeChangeHook, type Field } from 'payload'
+import { msg } from './lang'
 
 import { canPublish } from './access'
 
@@ -18,7 +19,7 @@ export const seoFields: Field = {
 /** Chỉ quản trị viên và người xuất bản được xuất bản; vai trò khác chỉ lưu nháp. */
 export const onlyPublishersPublish: CollectionBeforeChangeHook = ({ data, req }) => {
   if (req.user && data._status === 'published' && !canPublish(req.user as { roles?: string[] })) {
-    throw new APIError('Bạn không có quyền xuất bản.', 403)
+    throw new APIError(msg(req, 'Bạn không có quyền xuất bản.', 'You do not have permission to publish.'), 403)
   }
   return data
 }

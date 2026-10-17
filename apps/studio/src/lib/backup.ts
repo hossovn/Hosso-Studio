@@ -28,16 +28,27 @@ export function listBackups() {
 
 export const backupPath = (name: string) => (/^hosso-backup-[\w-]+\.zip$/.test(name) ? path.join(dir(), name) : null)
 
-/** Mẫu site cài một lệnh: các tệp .hosso-site.zip trong HOSSO_TEMPLATES_DIR (mặc định seed/sites của repo). */
-export const templatesDir = () => path.resolve(process.env.HOSSO_TEMPLATES_DIR || path.join(process.cwd(), '..', '..', 'seed', 'sites'))
-
-export function listTemplates() {
-  const d = templatesDir()
-  if (!fs.existsSync(d)) return []
-  return fs
-    .readdirSync(d)
-    .filter((f) => f.endsWith('.hosso-site.zip'))
-    .map((f) => ({ id: f.replace(/\.hosso-site\.zip$/, ''), size: fs.statSync(path.join(d, f)).size }))
+/**
+ * Mẫu site cài một lệnh: các tệp .hosso-site.zip trong HOSSO_TEMPLATES_DIR (mặc định seed/sites của repo)
+ * và trong thư mục `templates` của từng package (packages/<tên>/templates, do plugin/theme đi kèm).
+ */
+export const templatesDirs = () => {
+  if (process.env.HOSSO_TEMPLATES_DIR) return [path.resolve(process.env.HOSSO_TEMPLATES_DIR)]
+  const root = path.join(process.cwd(), '..', '..')
+  const pkgs = path.join(root, 'packages')
+  const fromPackages = fs.existsSync(pkgs) ? fs.readdirSync(pkgs).map((n) => path.join(pkgs, n, 'templates')) : []
+  return [path.join(root, 'seed', 'sites'), ...fromPackages].filter((d) => fs.existsSync(d))
 }
 
-export const templatePath = (id: string) => (/^[\w-]+$/.test(id) ? path.join(templatesDir(), `${id}.hosso-site.zip`) : null)
+export function listTemplates() {
+  const seen = new Map<string, { id: string; size: number }>()
+  for (const d of templatesDirs())
+    for (const f of fs.readdirSync(d).filter((f) => f.endsWith('.hosso-site.zip')))
+      seen.set(f.replace(/\.hosso-site\.zip$/, ''), { id: f.replace(/\.hosso-site\.zip$/, ''), size: fs.statSync(path.join(d, f)).size })
+  return [...seen.values()]
+}
+
+export const templatePath = (id: string) => {
+  if (!/^[\w-]+$/.test(id)) return null
+  return templatesDirs().map((d) => path.join(d, `${id}.hosso-site.zip`)).find((p) => fs.existsSync(p)) ?? null
+}

@@ -16,7 +16,7 @@ export class VehiclesController {
 
   private data() {
     const v = this.catalog.vehicles()
-    if (!v) throw new ApiError(404, 'not_available', 'WIM chưa cung cấp dữ liệu xe')
+    if (!v) throw new ApiError(404, 'not_available', 'WIM does not provide vehicle data')
     return v
   }
 
@@ -26,13 +26,13 @@ export class VehiclesController {
 
   @Get('makes/:make/models') models(@Param('make') make: string) {
     const items = this.data().models[make]
-    if (!items) throw new ApiError(404, 'not_found', `Không có hãng ${make}`)
+    if (!items) throw new ApiError(404, 'not_found', `Unknown make ${make}`)
     return { items }
   }
 
   @Get('models/:model/years') years(@Param('model') model: string) {
     const items = this.data().years[model]
-    if (!items) throw new ApiError(404, 'not_found', `Không có dòng xe ${model}`)
+    if (!items) throw new ApiError(404, 'not_found', `Unknown model ${model}`)
     return { items }
   }
 }
@@ -47,13 +47,13 @@ export class CatalogController {
 
   @Get('products/:id') product(@Param('id') id: string) {
     const p = this.catalog.product(id)
-    if (!p) throw new ApiError(404, 'not_found', `Không có sản phẩm ${id}`)
+    if (!p) throw new ApiError(404, 'not_found', `Unknown product ${id}`)
     return p
   }
 
   @Get('products/:id/availability') availability(@Param('id') id: string) {
     const p = this.catalog.product(id)
-    if (!p) throw new ApiError(404, 'not_found', `Không có sản phẩm ${id}`)
+    if (!p) throw new ApiError(404, 'not_found', `Unknown product ${id}`)
     const stock = this.catalog.stock(id)
     return { productId: id, price: p.price, branches: Object.entries(stock).map(([branchId, available]) => ({ branchId, available })) }
   }
@@ -77,14 +77,14 @@ export class OrdersController {
   @Post()
   @HttpCode(201)
   create(@Body() dto: CreateOrderDto, @Headers('idempotency-key') key: string | undefined, @Res({ passthrough: true }) res: Response): Order {
-    if (!key || key.length < 8 || key.length > 128) throw new ApiError(400, 'bad_request', 'Thiếu hoặc sai header Idempotency-Key')
+    if (!key || key.length < 8 || key.length > 128) throw new ApiError(400, 'bad_request', 'Missing or invalid Idempotency-Key header')
     const state = this.store.get()
 
     // Cùng key + cùng nội dung: trả lại đơn cũ, không tạo đơn mới.
     const fingerprint = createHash('sha256').update(JSON.stringify(dto)).digest('hex')
     const seen = state.idempotency[key]
     if (seen) {
-      if (seen.fingerprint !== fingerprint) throw new ApiError(422, 'idempotency_conflict', 'Idempotency-Key đã dùng cho nội dung khác')
+      if (seen.fingerprint !== fingerprint) throw new ApiError(422, 'idempotency_conflict', 'Idempotency-Key already used for a different body')
       res.status(200)
       return state.orders[seen.orderId]
     }
@@ -92,20 +92,20 @@ export class OrdersController {
     const { fulfillment } = dto
     if (fulfillment.type === 'pickup') {
       if (!fulfillment.branchId || !this.catalog.branches().some((b) => b.id === fulfillment.branchId))
-        throw new ApiError(400, 'bad_request', 'Nhận tại chi nhánh cần branchId hợp lệ')
+        throw new ApiError(400, 'bad_request', 'Pickup requires a valid branchId')
     } else if (!dto.customer.address) {
-      throw new ApiError(400, 'bad_request', 'Giao tận nơi cần địa chỉ')
+      throw new ApiError(400, 'bad_request', 'Delivery requires an address')
     }
 
     const lines: components['schemas']['OrderLine'][] = []
     let total = 0
     for (const line of dto.items) {
       const p = this.catalog.product(line.productId)
-      if (!p) throw new ApiError(404, 'not_found', `Không có sản phẩm ${line.productId}`)
+      if (!p) throw new ApiError(404, 'not_found', `Unknown product ${line.productId}`)
       const stock = this.catalog.stock(line.productId)
       const available = fulfillment.type === 'pickup' ? (stock[fulfillment.branchId!] ?? 0) : Object.values(stock).reduce((a, b) => a + b, 0)
       if (available < line.quantity)
-        throw new ApiError(409, 'out_of_stock', `Không đủ hàng: ${p.name}`, { productId: p.id })
+        throw new ApiError(409, 'out_of_stock', `Not enough stock: ${p.name}`, { productId: p.id })
       lines.push({ productId: p.id, quantity: line.quantity, name: p.name, unitPrice: p.price })
       total += p.price * line.quantity
     }
@@ -142,7 +142,7 @@ export class OrdersController {
   @Get(':id')
   get(@Param('id') id: string): Order {
     const o = this.store.get().orders[id]
-    if (!o) throw new ApiError(404, 'not_found', `Không có đơn ${id}`)
+    if (!o) throw new ApiError(404, 'not_found', `Unknown order ${id}`)
     return o
   }
 }

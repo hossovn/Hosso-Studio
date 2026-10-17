@@ -1,13 +1,14 @@
-# Hosso Studio + Postgres. Cấu hình qua biến môi trường (xem .env.example): cp .env.example .env rồi điền.
+# Hosso Studio + Postgres. Configure with environment variables (see .env.example): cp .env.example .env and fill it in.
+# Cấu hình qua biến môi trường (xem .env.example): cp .env.example .env rồi điền.
 #   docker compose up --build
-# Nhập gói site đã xuất:  docker compose run --rm -v "$PWD:/pkg" studio-tools pnpm studio:import /pkg/site.zip
+# Import an exported site package / Nhập gói site đã xuất:  docker compose run --rm -v "$PWD:/pkg" studio-tools pnpm studio:import /pkg/site.zip
 services:
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: hosso
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Đặt POSTGRES_PASSWORD trong .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env / Đặt POSTGRES_PASSWORD trong .env}
       POSTGRES_DB: hosso
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -19,15 +20,15 @@ services:
 
   studio: &studio
     build: .
-    image: hosso-studio:latest # studio-tools dùng chung image này
+    image: hosso-studio:latest # studio-tools shares this image / studio-tools dùng chung image này
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     environment: &studio-env
       HOSSO_DATABASE_URL: postgres://hosso:${POSTGRES_PASSWORD}@postgres:5432/hosso
-      HOSSO_SECRET: ${HOSSO_SECRET:?Đặt HOSSO_SECRET trong .env}
-      HOSSO_ENCRYPTION_KEY: ${HOSSO_ENCRYPTION_KEY:?Đặt HOSSO_ENCRYPTION_KEY trong .env}
+      HOSSO_SECRET: ${HOSSO_SECRET:?Set HOSSO_SECRET in .env / Đặt HOSSO_SECRET trong .env}
+      HOSSO_ENCRYPTION_KEY: ${HOSSO_ENCRYPTION_KEY:?Set HOSSO_ENCRYPTION_KEY in .env / Đặt HOSSO_ENCRYPTION_KEY trong .env}
       HOSSO_PUBLIC_URL: ${HOSSO_PUBLIC_URL:-http://localhost:3000}
       HOSSO_ADMIN_EMAIL: ${HOSSO_ADMIN_EMAIL:-}
       HOSSO_ADMIN_PASSWORD: ${HOSSO_ADMIN_PASSWORD:-}
@@ -47,9 +48,9 @@ services:
       - media:/app/media
       - backups:/app/backups
     extra_hosts:
-      - 'host.docker.internal:host-gateway' # để container gọi mock WIM chạy trên máy host
+      - 'host.docker.internal:host-gateway' # lets the container call a mock WIM running on the host / để container gọi mock WIM chạy trên máy host
 
-  # Công cụ một lần (nhập/xuất gói site): docker compose run --rm studio-tools pnpm studio:export /pkg/site.zip
+  # One-off tools (import/export a site package) / Công cụ một lần (nhập/xuất gói site): docker compose run --rm studio-tools pnpm studio:export /pkg/site.zip
   studio-tools:
     <<: *studio
     profiles: ['tools']
@@ -59,7 +60,7 @@ services:
       disable: true
     ports: []
 
-  # Sao lưu tự động mỗi 24 giờ vào volume backups (giữ HOSSO_BACKUP_KEEP bản). Sao lưu cả DB: docker compose exec postgres pg_dump -U hosso hosso > hosso.sql
+  # Automatic backup every 24 hours into the backups volume (keeps HOSSO_BACKUP_KEEP copies). Back up the database too / Sao lưu tự động mỗi 24 giờ; sao lưu cả DB: docker compose exec postgres pg_dump -U hosso hosso > hosso.sql
   backup:
     <<: *studio
     restart: unless-stopped

@@ -34,7 +34,7 @@ export class ErrorFilter implements ExceptionFilter {
       return res.status(status).json({ error: { code, message } })
     }
     console.error(e)
-    return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: { code: 'internal', message: 'Lỗi máy chủ' } })
+    return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: { code: 'internal', message: 'Internal server error' } })
   }
 }
 
@@ -43,7 +43,7 @@ export class ApiKeyGuard implements CanActivate {
   canActivate(ctx: ExecutionContext) {
     const req = ctx.switchToHttp().getRequest<Request>()
     const expected = process.env.MOCK_WIM_API_KEY || 'mock-wim-key'
-    if (req.header('x-api-key') !== expected) throw new ApiError(401, 'unauthorized', 'Khóa API không hợp lệ')
+    if (req.header('x-api-key') !== expected) throw new ApiError(401, 'unauthorized', 'Invalid API key')
     return true
   }
 }
@@ -65,7 +65,7 @@ export class ChaosInterceptor implements NestInterceptor {
     const delay = mode === 'slow' ? Number(process.env.MOCK_WIM_SLOW_MS || 6000) : mode === 'timeout' ? 60_000 : 0
     return from(sleep(delay)).pipe(
       switchMap(() => {
-        if (mode === 'error') throw new ApiError(503, 'unavailable', 'WIM tạm thời không khả dụng')
+        if (mode === 'error') throw new ApiError(503, 'unavailable', 'WIM is temporarily unavailable')
         return next.handle()
       }),
     )

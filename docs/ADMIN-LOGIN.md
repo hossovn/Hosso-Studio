@@ -1,4 +1,5 @@
 # Đăng nhập quản trị Hosso Studio
+**Tiếng Việt** | [English](en/ADMIN-LOGIN.md)
 
 Hosso Studio dùng Payload CMS làm lớp quản trị. Bạn **không cần đăng ký**: tài khoản admin đầu tiên do hệ thống tự tạo khi khởi động lần đầu.
 

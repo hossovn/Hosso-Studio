@@ -1,5 +1,7 @@
 # Giấy phép các thư viện chính
 
+**Tiếng Việt** | [English](en/LICENSES.md)
+
 Kiểm tra trực tiếp từ metadata của từng gói (npm registry / repo) và bằng `pnpm licenses list --prod` trên cây phụ thuộc đã cài (cập nhật ở lát 1; cập nhật lại mỗi lát thêm phụ thuộc).
 
 | Thư viện | Phiên bản | Giấy phép |

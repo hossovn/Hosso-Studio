@@ -36,7 +36,7 @@ async function main() {
   switch (cmd) {
     case 'chaos': {
       const mode = pos[0] as ChaosMode
-      if (!MODES.includes(mode)) throw new Error(`chế độ: ${MODES.join(' | ')}`)
+      if (!MODES.includes(mode)) throw new Error(`modes: ${MODES.join(' | ')}`)
       state.chaos = mode
       store.save()
       return console.log(`chaos = ${mode}`)
@@ -44,20 +44,20 @@ async function main() {
     case 'price':
       state.priceOverrides[pos[0]] = Number(pos[1])
       store.save()
-      return console.log(`giá ${pos[0]} = ${pos[1]}`)
+      return console.log(`price ${pos[0]} = ${pos[1]}`)
     case 'stock': {
       const [id, branch, qty] = pos
       const base = store.seed<Record<string, Record<string, number>>>('stock.json')[id] ?? {}
       state.stockOverrides[id] = { ...base, ...state.stockOverrides[id], [branch]: Number(qty) }
       store.save()
-      return console.log(`tồn ${id}@${branch} = ${qty}`)
+      return console.log(`stock ${id}@${branch} = ${qty}`)
     }
     case 'order-status': {
       const o = state.orders[pos[0]]
-      if (!o) throw new Error('không có đơn')
+      if (!o) throw new Error('no such order')
       o.status = pos[1] as typeof o.status
       store.save()
-      return console.log(`đơn ${o.id} -> ${o.status}`)
+      return console.log(`order ${o.id} -> ${o.status}`)
     }
     case 'webhook':
       return webhook(pos[0], pos[1])
@@ -65,9 +65,9 @@ async function main() {
       return console.log(JSON.stringify(Object.values(state.orders), null, 2))
     case 'reset':
       if (existsSync(stateFile())) rmSync(stateFile())
-      return console.log('đã xóa trạng thái mock')
+      return console.log('mock state cleared')
     default:
-      console.log('Lệnh: chaos <mode> | price <id> <vnd> | stock <id> <branch> <qty> | order-status <id> <status> | webhook <event> <id> [--bad-signature|--old-timestamp] | orders | reset')
+      console.log('Commands: chaos <mode> | price <id> <vnd> | stock <id> <branch> <qty> | order-status <id> <status> | webhook <event> <id> [--bad-signature|--old-timestamp] | orders | reset')
   }
 }
 
