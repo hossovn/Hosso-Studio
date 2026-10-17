@@ -793,33 +793,21 @@ export interface SiteSetting {
   announcement?: string | null;
   headerMenu?:
     | {
-        label: string;
-        /**
-         * Ví dụ /san-pham hoặc https://…
-         */
-        href: string;
-        children?:
-          | {
-              label: string;
-              /**
-               * Ví dụ /san-pham hoặc https://…
-               */
-              href: string;
-              id?: string | null;
-            }[]
-          | null;
-        id?: string | null;
-      }[]
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
     | null;
   footerMenu?:
     | {
-        label: string;
-        /**
-         * Ví dụ /san-pham hoặc https://…
-         */
-        href: string;
-        id?: string | null;
-      }[]
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
     | null;
   footerText?: string | null;
   contact?: {
@@ -1051,27 +1039,8 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   favicon?: T;
   showSearch?: T;
   announcement?: T;
-  headerMenu?:
-    | T
-    | {
-        label?: T;
-        href?: T;
-        children?:
-          | T
-          | {
-              label?: T;
-              href?: T;
-              id?: T;
-            };
-        id?: T;
-      };
-  footerMenu?:
-    | T
-    | {
-        label?: T;
-        href?: T;
-        id?: T;
-      };
+  headerMenu?: T;
+  footerMenu?: T;
   footerText?: T;
   contact?:
     | T

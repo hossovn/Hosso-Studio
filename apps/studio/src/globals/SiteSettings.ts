@@ -45,7 +45,16 @@ const link = (name: string, label: string, extra: Field[] = []): Field => ({
   ],
 })
 
-const submenu = link('children', 'Menu con (dropdown)')
+// Menu dạng cây (JSON theo ngôn ngữ) sửa bằng kéo thả; footer chỉ 1 cấp.
+const menu = (name: string, label: string, maxDepth: number): Field => ({
+  name,
+  type: 'json',
+  localized: true,
+  label,
+  admin: { components: { Field: { path: '/components/admin/MenuTreeField#MenuTreeField', clientProps: { maxDepth } } } },
+  validate: (v: unknown) =>
+    v == null || (Array.isArray(v) && v.every((n) => n && typeof n.label === 'string' && typeof n.href === 'string')) || 'Menu không hợp lệ: mỗi mục cần tên hiển thị và đường dẫn',
+})
 
 export const SiteSettings: GlobalConfig = {
   slug: 'site-settings',
@@ -68,7 +77,7 @@ export const SiteSettings: GlobalConfig = {
         },
         {
           label: 'Menu',
-          fields: [link('headerMenu', 'Menu đầu trang', [submenu]), link('footerMenu', 'Menu chân trang'), { name: 'footerText', type: 'text', localized: true, label: 'Dòng chân trang' }],
+          fields: [menu('headerMenu', 'Menu đầu trang', 2), menu('footerMenu', 'Menu chân trang', 1), { name: 'footerText', type: 'text', localized: true, label: 'Dòng chân trang' }],
         },
         {
           label: 'Liên hệ',

@@ -142,7 +142,39 @@ export const postList: BlockSchema<{ heading: string; count: number; paginate: s
   defaultProps: { heading: 'Bài viết mới', count: 6, paginate: 'no', category: '', tag: '' },
 }
 
-/** Block của lõi cần dữ liệu server (xem lib/core-loaders.ts trong app). */
-export const CORE_LOADER_TYPES = ['PostList', 'Form']
+export const searchBox: BlockSchema<{ heading: string }> = {
+  type: 'SearchBox',
+  label: 'Ô tìm kiếm (widget)',
+  fields: { heading: { type: 'text', label: 'Tiêu đề' } },
+  defaultProps: { heading: 'Tìm kiếm' },
+}
 
-export const coreBlocks: BlockSchema<any>[] = [hero, text, image, video, features, categoryGrid, trustBar, postList, contactForm, formBlock, reusable, footer]
+export const termList: BlockSchema<{ heading: string; kind: string; showCount: string }> = {
+  type: 'TermList',
+  label: 'Danh sách chuyên mục / thẻ (widget)',
+  fields: {
+    heading: { type: 'text', label: 'Tiêu đề' },
+    kind: {
+      type: 'radio',
+      label: 'Hiện',
+      options: [
+        { label: 'Chuyên mục', value: 'categories' },
+        { label: 'Thẻ', value: 'tags' },
+      ],
+    },
+    showCount: {
+      type: 'radio',
+      label: 'Hiện số bài',
+      options: [
+        { label: 'Có', value: 'yes' },
+        { label: 'Không', value: 'no' },
+      ],
+    },
+  },
+  defaultProps: { heading: 'Chuyên mục', kind: 'categories', showCount: 'yes' },
+}
+
+/** Block của lõi cần dữ liệu server (xem lib/core-loaders.ts trong app). */
+export const CORE_LOADER_TYPES = ['PostList', 'Form', 'TermList']
+
+export const coreBlocks: BlockSchema<any>[] = [hero, text, image, video, features, categoryGrid, trustBar, postList, searchBox, termList, contactForm, formBlock, reusable, footer]

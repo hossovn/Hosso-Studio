@@ -59,6 +59,7 @@ const base: Config = {
       views: {
         tools: { Component: '/components/admin/ToolsView#ToolsView', path: '/tools' },
         customize: { Component: '/components/admin/CustomizeView#CustomizeView', path: '/customize' },
+        widgets: { Component: '/components/admin/WidgetsView#WidgetsView', path: '/widgets' },
       },
       providers: ['/components/admin/BrandStyle#BrandStyle'],
       beforeDashboard: ['/components/admin/GettingStarted#GettingStarted'],

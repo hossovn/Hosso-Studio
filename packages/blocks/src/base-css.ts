@@ -44,6 +44,8 @@ export const baseCss = `
 .ss-chips{list-style:none;margin:.5rem 0 0;padding:0;display:flex;gap:.4rem;flex-wrap:wrap}
 .ss-chips a{display:inline-block;border:1px solid var(--hs-border);border-radius:999px;padding:.15rem .7rem;font-size:.85rem;color:var(--hs-muted);text-decoration:none}.ss-chips a:hover{border-color:var(--hs-primary);color:var(--hs-primary)}
 .ss-post-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:2rem}.ss-post-grid:has(aside:not(:empty)){grid-template-columns:minmax(0,1fr) 300px}.ss-post-grid aside:empty{display:none}@media(max-width:860px){.ss-post-grid:has(aside:not(:empty)){grid-template-columns:minmax(0,1fr)}}
+.ss-widget{margin:0 0 1.5rem}.ss-widget h3{font-size:1rem;margin:0 0 .5rem}.ss-termlist{list-style:none;margin:0;padding:0}.ss-termlist li{padding:.25rem 0;border-bottom:1px solid var(--hs-border)}
+.ss-post-grid aside .ss-posts{grid-template-columns:1fr}.ss-post-grid aside .ss-section{padding:0 0 1.5rem}.ss-post-grid aside .ss-wrap{padding:0}
 .ss-crumbs{font-size:.85rem;color:var(--hs-muted);padding-top:1rem}.ss-crumbs a{color:inherit}
 .ss-comments{margin-top:calc(var(--hs-space)*2);border-top:1px solid var(--hs-border);padding-top:var(--hs-space)}
 .ss-comment{border:1px solid var(--hs-border);border-radius:var(--hs-radius);padding:.8rem 1rem;margin:.75rem 0;background:var(--hs-surface)}.ss-comment p{margin:.3rem 0 0;white-space:pre-line}.ss-comment time{color:var(--hs-muted);font-size:.8rem}

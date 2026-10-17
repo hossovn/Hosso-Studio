@@ -1,6 +1,6 @@
 import React from 'react'
 import { FormView, type FormDef } from './FormView'
-import { t } from './i18n'
+import { getDefaultLocale, getLocale, localizeHref, t } from './i18n'
 import type { BlockRenderer } from './types'
 
 /** Thanh cam kết (hỗ trợ, giao hàng, chính hãng…). */
@@ -53,3 +53,40 @@ export const ReusablePlaceholder: BlockRenderer = ({ slug }) => (
     ↻ {slug ? `${slug}` : t('reusable.missing')}
   </div>
 )
+
+/** Widget: ô tìm kiếm (gửi tới trang tìm kiếm của site theo ngôn ngữ hiện tại). */
+export const SearchBox: BlockRenderer = ({ heading }) => (
+  <section className="ss-widget">
+    {heading && <h3>{heading}</h3>}
+    <form className="ss-search" action={localizeHref('/tim-kiem', getLocale(), getDefaultLocale())} role="search">
+      <input name="q" type="search" placeholder={t('search.placeholder')} aria-label={t('search.label')} />
+      <button className="ss-btn" type="submit">
+        {t('search.submit')}
+      </button>
+    </form>
+  </section>
+)
+
+/** Widget: danh sách chuyên mục hoặc thẻ (dữ liệu từ loader của lõi). */
+export const TermList: BlockRenderer = ({ heading, data }) => {
+  const d = data as { status: string; items?: { name: string; href: string; count?: number }[] } | undefined
+  return (
+    <section className="ss-widget">
+      {heading && <h3>{heading}</h3>}
+      {!d || d.status === 'loading' ? (
+        <p className="ss-muted">…</p>
+      ) : (d.items ?? []).length === 0 ? (
+        <p className="ss-muted">{t('post.empty')}</p>
+      ) : (
+        <ul className="ss-termlist">
+          {d.items!.map((i) => (
+            <li key={i.href}>
+              <a href={i.href}>{i.name}</a>
+              {i.count != null && <span className="ss-muted"> ({i.count})</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
