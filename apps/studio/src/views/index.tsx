@@ -8,9 +8,12 @@ import { notFound } from 'next/navigation'
 import { getPayload } from 'payload'
 import React from 'react'
 
+import { JsonLd } from '@/lib/jsonld'
+import { followRedirect } from '@/lib/redirects'
 import { CommentForm } from '@/components/CommentForm'
 import { PostList } from '@hosso/studio-blocks'
 import { publishedPostsWhere } from '@/lib/core-loaders'
+import { verifyShareToken } from '@/lib/share'
 import { attachBlockData, defaultLocale, expandReusable, href, loadSite, mediaUrl, renderConfig } from '@/lib/site'
 
 export type SP = { [k: string]: string | string[] | undefined }
@@ -32,6 +35,15 @@ export function resolveRoute(rest: string[]): Route | null {
   }
   return { kind: 'page', slug: rest.join('/') }
 }
+
+const base = () => (process.env.HOSSO_PUBLIC_URL || 'http://localhost:3000').replace(/\/$/, '')
+const absUrl = (path: string, locale: string) => base() + href(path, locale)
+const absAsset = (p: string) => (/^https?:/.test(p) ? p : base() + p)
+const crumbsLd = (items: [string, string][]) => ({
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: items.map(([name, item], i) => ({ '@type': 'ListItem', position: i + 1, name, item })),
+})
 
 const dateFmt = (iso: string, locale: string) => new Date(iso).toLocaleDateString(locale === 'vi' ? 'vi-VN' : locale, { timeZone: 'Asia/Ho_Chi_Minh' })
 
@@ -57,15 +69,25 @@ const previewUser = async (preview: string | undefined) => {
   return { payload, user }
 }
 
-// ---------- Trang ----------
-async function getPage(slug: string, locale: string, preview?: string) {
-  const { payload, user } = await previewUser(preview)
-  const { docs } = await payload.find({ collection: 'pages', where: { slug: { equals: slug } }, limit: 1, depth: 1, locale: locale as any, draft: Boolean(user), user, overrideAccess: false })
-  return docs[0]
+// Tìm theo slug; có share token hợp lệ (đúng tài liệu) thì cho xem bản nháp mà không cần đăng nhập.
+async function findDoc<C extends 'pages' | 'posts'>(collection: C, slug: string, locale: string, sp: SP) {
+  const { payload, user } = await previewUser(sp.preview as string | undefined)
+  const share = sp.share as string | undefined
+  const where = { slug: { equals: slug } }
+  const opts = { collection, where, limit: 1, depth: 1, locale: locale as any }
+  if (share) {
+    const { docs } = await payload.find({ ...opts, draft: true, overrideAccess: true })
+    if (docs[0] && verifyShareToken(share, collection, docs[0].id)) return { doc: docs[0], shared: true }
+  }
+  const { docs } = await payload.find({ ...opts, draft: Boolean(user), user, overrideAccess: false })
+  return { doc: docs[0], shared: false }
 }
 
+// ---------- Trang ----------
+const getPage = (slug: string, locale: string, sp: SP) => findDoc('pages', slug, locale, sp)
+
 export async function pageMeta(slug: string, locale: string, sp: SP): Promise<Metadata> {
-  const page = await getPage(slug, locale, sp.preview as string | undefined)
+  const { doc: page, shared } = await getPage(slug, locale, sp)
   if (!page) return {}
   const seo = (page.seo ?? {}) as { title?: string; image?: unknown; noindex?: boolean }
   const image = mediaUrl(seo.image)
@@ -74,27 +96,42 @@ export async function pageMeta(slug: string, locale: string, sp: SP): Promise<Me
   return {
     title: slug === 'home' ? { absolute: seo.title || (await loadSite(locale)).chrome.siteName } : title,
     description: page.description ?? undefined,
-    robots: seo.noindex ? { index: false, follow: false } : undefined,
+    robots: seo.noindex || shared ? { index: false, follow: false } : undefined,
     alternates: alternates(path, locale),
     openGraph: { title, description: page.description ?? undefined, type: 'website', images: image ? [image] : undefined, locale: locale === 'vi' ? 'vi_VN' : locale },
   }
 }
 
 export async function PageView({ slug, locale, sp }: { slug: string; locale: string; sp: SP }) {
-  const page = await getPage(slug, locale, sp.preview as string | undefined)
-  if (!page) notFound()
-  return <Content content={page.content} locale={locale} sp={sp} />
+  const { doc: page } = await getPage(slug, locale, sp)
+  if (!page) {
+    await followRedirect(slug === 'home' ? '/' : `/${slug}`)
+    notFound()
+  }
+  const { chrome } = await loadSite(locale)
+  const url = absUrl(slug === 'home' ? '/' : `/${slug}`, locale)
+  return (
+    <>
+      <JsonLd
+        data={
+          slug === 'home'
+            ? [
+                { '@context': 'https://schema.org', '@type': 'Organization', name: chrome.siteName, url: absUrl('/', locale), logo: chrome.logoUrl ? absAsset(chrome.logoUrl) : undefined },
+                { '@context': 'https://schema.org', '@type': 'WebSite', name: chrome.siteName, url: absUrl('/', locale), potentialAction: { '@type': 'SearchAction', target: `${absUrl('/tim-kiem', locale)}?q={q}`, 'query-input': 'required name=q' } },
+              ]
+            : crumbsLd([[t('breadcrumb.home'), absUrl('/', locale)], [page.title, url]])
+        }
+      />
+      <Content content={page.content} locale={locale} sp={sp} />
+    </>
+  )
 }
 
 // ---------- Bài viết ----------
-async function getPost(slug: string, locale: string, preview?: string) {
-  const { payload, user } = await previewUser(preview)
-  const { docs } = await payload.find({ collection: 'posts', where: { slug: { equals: slug } }, limit: 1, depth: 1, locale: locale as any, draft: Boolean(user), user, overrideAccess: false })
-  return docs[0]
-}
+const getPost = (slug: string, locale: string, sp: SP) => findDoc('posts', slug, locale, sp)
 
 export async function postMeta(slug: string, locale: string, sp: SP): Promise<Metadata> {
-  const post = await getPost(slug, locale, sp.preview as string | undefined)
+  const { doc: post, shared } = await getPost(slug, locale, sp)
   if (!post) return {}
   const seo = (post.seo ?? {}) as { title?: string; image?: unknown; noindex?: boolean }
   const image = mediaUrl(seo.image) ?? mediaUrl(post.cover)
@@ -102,15 +139,18 @@ export async function postMeta(slug: string, locale: string, sp: SP): Promise<Me
   return {
     title,
     description: post.excerpt ?? undefined,
-    robots: seo.noindex ? { index: false, follow: false } : undefined,
+    robots: seo.noindex || shared ? { index: false, follow: false } : undefined,
     alternates: alternates(`/bai-viet/${post.slug}`, locale),
     openGraph: { title, description: post.excerpt ?? undefined, type: 'article', publishedTime: post.publishedAt ?? undefined, images: image ? [image] : undefined },
   }
 }
 
 export async function PostView({ slug, locale, sp }: { slug: string; locale: string; sp: SP }) {
-  const post = await getPost(slug, locale, sp.preview as string | undefined)
-  if (!post) notFound()
+  const { doc: post } = await getPost(slug, locale, sp)
+  if (!post) {
+    await followRedirect(`/bai-viet/${slug}`)
+    notFound()
+  }
   const payload = await getPayload({ config })
   const settings = (await payload.findGlobal({ slug: 'site-settings', depth: 0 })) as Record<string, any>
   const commentsOn = settings.commentsEnabled !== false && post.commentsEnabled !== false
@@ -123,8 +163,28 @@ export async function PostView({ slug, locale, sp }: { slug: string; locale: str
   const cats = terms(post.categories, 'danh-muc')
   const tags = terms(post.tags, 'the')
 
+  const firstCat = cats[0]
+  const trail = [
+    { name: t('breadcrumb.home'), href: href('/', locale) },
+    { name: t('breadcrumb.posts'), href: href('/tim-kiem', locale) },
+    ...(firstCat ? [firstCat] : []),
+  ]
   return (
     <article>
+      <JsonLd
+        data={[
+          { '@context': 'https://schema.org', '@type': 'Article', headline: post.title, description: post.excerpt ?? undefined, image: cover ? absAsset(cover) : undefined, datePublished: post.publishedAt ?? undefined, dateModified: post.updatedAt, mainEntityOfPage: absUrl(`/bai-viet/${post.slug}`, locale) },
+          crumbsLd([...trail.map((c) => [c.name, absAsset(c.href)] as [string, string]), [post.title, absUrl(`/bai-viet/${post.slug}`, locale)]]),
+        ]}
+      />
+      <nav className="ss-wrap ss-crumbs" aria-label={t('breadcrumb.label')}>
+        {trail.map((c) => (
+          <span key={c.href}>
+            <a href={c.href}>{c.name}</a> ›{' '}
+          </span>
+        ))}
+        <span aria-current="page">{post.title}</span>
+      </nav>
       <header className="ss-wrap ss-article-head">
         <h1>{post.title}</h1>
         {post.publishedAt && <time dateTime={post.publishedAt}>{dateFmt(post.publishedAt, locale)}</time>}

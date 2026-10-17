@@ -77,6 +77,7 @@ export interface Config {
     'reusable-blocks': ReusableBlock;
     media: Media;
     'contact-messages': ContactMessage;
+    redirects: Redirect;
     users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -95,6 +96,7 @@ export interface Config {
     'reusable-blocks': ReusableBlocksSelect<false> | ReusableBlocksSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     'contact-messages': ContactMessagesSelect<false> | ContactMessagesSelect<true>;
+    redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -385,6 +387,24 @@ export interface ContactMessage {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "redirects".
+ */
+export interface Redirect {
+  id: number;
+  /**
+   * Ví dụ /bai-cu hoặc /2020/05/bai-cu (không gồm tên miền, không gồm tiền tố ngôn ngữ).
+   */
+  from: string;
+  /**
+   * Đường dẫn trong site (/bai-moi) hoặc địa chỉ đầy đủ https://…
+   */
+  to: string;
+  permanent?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -446,6 +466,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'contact-messages';
         value: number | ContactMessage;
+      } | null)
+    | ({
+        relationTo: 'redirects';
+        value: number | Redirect;
       } | null)
     | ({
         relationTo: 'users';
@@ -651,6 +675,17 @@ export interface ContactMessagesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "redirects_select".
+ */
+export interface RedirectsSelect<T extends boolean = true> {
+  from?: T;
+  to?: T;
+  permanent?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
@@ -774,6 +809,17 @@ export interface SiteSetting {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Cần cấu hình SMTP bằng biến môi trường HOSSO_SMTP_URL (ví dụ smtp://user:pass@host:587). Chưa cấu hình thì nội dung email chỉ ghi ra nhật ký máy chủ.
+   */
+  notifications?: {
+    /**
+     * Để trống để dùng email ở tab Liên hệ.
+     */
+    to?: string | null;
+    onForm?: boolean | null;
+    onComment?: boolean | null;
+  };
   commentsEnabled?: boolean | null;
   commentsAutoApprove?: boolean | null;
   theme: 'default' | 'alt' | 'shop';
@@ -1039,6 +1085,13 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         label?: T;
         href?: T;
         id?: T;
+      };
+  notifications?:
+    | T
+    | {
+        to?: T;
+        onForm?: T;
+        onComment?: T;
       };
   commentsEnabled?: T;
   commentsAutoApprove?: T;

@@ -1,6 +1,10 @@
 import type { Endpoint } from 'payload'
 
-import { canModerate } from './access'
+import hosso from '@hosso-config'
+
+import { canModerate, hasRole } from './access'
+import { notify } from './notify'
+import { makeShareToken } from './share'
 import { allow, clientIp } from './ratelimit'
 
 const json = (body: unknown, status = 200) => Response.json(body, { status })
@@ -57,6 +61,7 @@ export const formSubmit: Endpoint = {
       data: { form: form.id, formTitle: form.title, data, locale },
       overrideAccess: true,
     })
+    await notify(req.payload, 'form', `Biểu mẫu mới: ${form.title}`, [...Object.entries(data).map(([k, v]) => `${k}: ${v}`), '', 'Xem trong Admin → Biểu mẫu → Đã gửi.'])
     return json({ ok: true })
   },
 }
@@ -112,6 +117,25 @@ export const commentSubmit: Endpoint = {
       data: { post: post.id, authorName: name, authorEmail: email || undefined, content, status, locale: str(body?.locale, 8) },
       overrideAccess: true,
     })
+    if (status !== 'spam') await notify(req.payload, 'comment', `Bình luận mới (${status === 'approved' ? 'đã duyệt' : 'chờ duyệt'}) trên "${post.title}"`, [`${name}${email ? ` <${email}>` : ''}`, '', content, '', 'Duyệt trong Admin → Bình luận.'])
     return json({ ok: true, status: status === 'spam' ? 'pending' : status })
+  },
+}
+
+/** GET /api/site/share-link?c=pages|posts&id=..&locale=..: tạo link xem trước bản nháp (7 ngày) cho biên tập viên trở lên. */
+export const shareLink: Endpoint = {
+  path: '/site/share-link',
+  method: 'get',
+  handler: async (req) => {
+    if (!hasRole(req.user as { roles?: string[] }, 'admin', 'publisher', 'editor', 'author')) return json({ error: 'forbidden' }, 403)
+    const c = String(req.query?.c ?? '')
+    if (c !== 'pages' && c !== 'posts') return json({ error: 'bad_request' }, 400)
+    const doc = await req.payload.findByID({ collection: c, id: String(req.query?.id ?? ''), depth: 0, locale: (String(req.query?.locale ?? '') || undefined) as any, draft: true, user: req.user, overrideAccess: false }).catch(() => null)
+    if (!doc) return json({ error: 'not_found' }, 404)
+    const base = (process.env.HOSSO_PUBLIC_URL || new URL(req.url ?? 'http://localhost').origin).replace(/\/$/, '')
+    const locale = String(req.query?.locale ?? '')
+    const prefix = locale && locale !== hosso.locales[0]?.code ? `/${locale}` : ''
+    const path = c === 'posts' ? `/bai-viet/${doc.slug}` : doc.slug === 'home' ? '' : `/${doc.slug}`
+    return json({ url: `${base}${prefix}${path || '/'}?share=${makeShareToken(c, doc.id)}` })
   },
 }

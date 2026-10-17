@@ -43,6 +43,7 @@ export const baseCss = `
 .ss-hp{position:absolute;left:-999px}
 .ss-chips{list-style:none;margin:.5rem 0 0;padding:0;display:flex;gap:.4rem;flex-wrap:wrap}
 .ss-chips a{display:inline-block;border:1px solid var(--hs-border);border-radius:999px;padding:.15rem .7rem;font-size:.85rem;color:var(--hs-muted);text-decoration:none}.ss-chips a:hover{border-color:var(--hs-primary);color:var(--hs-primary)}
+.ss-crumbs{font-size:.85rem;color:var(--hs-muted);padding-top:1rem}.ss-crumbs a{color:inherit}
 .ss-comments{margin-top:calc(var(--hs-space)*2);border-top:1px solid var(--hs-border);padding-top:var(--hs-space)}
 .ss-comment{border:1px solid var(--hs-border);border-radius:var(--hs-radius);padding:.8rem 1rem;margin:.75rem 0;background:var(--hs-surface)}.ss-comment p{margin:.3rem 0 0;white-space:pre-line}.ss-comment time{color:var(--hs-muted);font-size:.8rem}
 .ss-lang{display:flex;gap:.5rem;list-style:none;margin:0;padding:0}.ss-lang a{text-decoration:none;font-size:.85rem;padding:.15rem .4rem;border-radius:var(--hs-radius)}.ss-lang a[aria-current=true]{font-weight:700;text-decoration:underline}

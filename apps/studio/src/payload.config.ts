@@ -1,5 +1,7 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { sqliteAdapter } from '@payloadcms/db-sqlite'
+import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
+import nodemailer from 'nodemailer'
 import { vi } from '@payloadcms/translations/languages/vi'
 import { en } from '@payloadcms/translations/languages/en'
 import fs from 'fs'
@@ -16,9 +18,10 @@ import { Pages } from './collections/Pages'
 import { Posts } from './collections/Posts'
 import { ReusableBlocks } from './collections/ReusableBlocks'
 import { PostCategories, PostTags } from './collections/Taxonomies'
+import { Redirects } from './collections/Redirects'
 import { SiteAreas } from './globals/SiteAreas'
 import { SiteSettings } from './globals/SiteSettings'
-import { commentSubmit, formExport, formSubmit } from './lib/endpoints'
+import { commentSubmit, formExport, formSubmit, shareLink } from './lib/endpoints'
 import { Users } from './collections/Users'
 import { ensureAdmin, seedIfEmpty } from './lib/seed'
 
@@ -31,7 +34,13 @@ if (!isPostgres && databaseUrl.startsWith('file:')) {
   fs.mkdirSync(path.dirname(databaseUrl.slice('file:'.length)), { recursive: true })
 }
 
+// Email: SMTP khi có HOSSO_SMTP_URL; không có thì Payload ghi email ra console.
+const email = process.env.HOSSO_SMTP_URL
+  ? nodemailerAdapter({ defaultFromAddress: process.env.HOSSO_MAIL_FROM || 'no-reply@localhost', defaultFromName: hosso.brand.name, transport: nodemailer.createTransport(process.env.HOSSO_SMTP_URL) })
+  : undefined
+
 const base: Config = {
+  ...(email ? { email } : {}),
   secret: process.env.HOSSO_SECRET || '',
   serverURL: process.env.HOSSO_PUBLIC_URL || undefined,
   admin: {
@@ -49,7 +58,7 @@ const base: Config = {
     },
   },
   i18n: { supportedLanguages: { vi, en }, fallbackLanguage: 'vi' },
-  collections: [Pages, Posts, PostCategories, PostTags, Comments, Forms, FormSubmissions, ReusableBlocks, Media, ContactMessages, Users],
+  collections: [Pages, Posts, PostCategories, PostTags, Comments, Forms, FormSubmissions, ReusableBlocks, Media, ContactMessages, Redirects, Users],
   globals: [SiteSettings, SiteAreas],
   // Ngôn ngữ nội dung: ngôn ngữ đầu tiên trong hosso.config.ts là mặc định; thiếu bản dịch thì dùng ngôn ngữ mặc định.
   localization: { locales: hosso.locales.map((l) => ({ code: l.code, label: l.label })), defaultLocale: hosso.locales[0].code, fallback: true },
@@ -66,6 +75,7 @@ const base: Config = {
     formSubmit,
     formExport,
     commentSubmit,
+    shareLink,
     {
       path: '/health',
       method: 'get',

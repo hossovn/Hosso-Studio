@@ -110,6 +110,7 @@ export const Nav = async ({ payload, user }: Props) => {
   const look: NavSection['items'] = []
   if (isAdmin(u)) look.push({ id: 'theme', label: 'Giao diện', href: '/admin/globals/site-settings', icon: 'brush', children: [{ label: 'Theme, màu và font', href: '/admin/globals/site-settings' }, ...(canPublish(u) ? [{ label: 'Header và footer (kéo thả)', href: '/admin/globals/site-areas' }] : [])] })
   else if (canPublish(u)) look.push({ id: 'theme', label: 'Giao diện', href: '/admin/globals/site-areas', icon: 'brush', children: [{ label: 'Header và footer (kéo thả)', href: '/admin/globals/site-areas' }] })
+  if (canPublish(u)) look.push({ id: 'seo', label: 'SEO', href: '/admin/collections/redirects', icon: 'sliders', children: [{ label: 'Chuyển hướng 301', href: '/admin/collections/redirects' }, { label: 'Sitemap', href: '/sitemap.xml', external: true }] })
   if (pluginItems.length)
     look.push({ id: 'plugins', label: 'Plugin', href: pluginItems[0].href, icon: 'plug', children: pluginItems.map((i) => ({ label: i.label, href: i.href })) })
 
