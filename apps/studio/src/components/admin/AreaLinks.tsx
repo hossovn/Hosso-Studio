@@ -6,6 +6,7 @@ const AREAS = [
   ['afterHeader', 'Dưới header (trước nội dung)'],
   ['beforeFooter', 'Trước chân trang (widget, đăng ký nhận tin, liên hệ…)'],
   ['afterFooter', 'Sau chân trang'],
+  ['postSidebar', 'Cột bên cạnh bài viết (widget)'],
 ]
 
 /** Mở trình dựng kéo thả cho từng vùng giao diện. */

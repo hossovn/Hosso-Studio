@@ -18,6 +18,8 @@
     "mock:wim": "pnpm --filter @hosso/mock-wim start",
     "studio:export": "pnpm --filter @hosso/studio studio:export",
     "studio:import": "pnpm --filter @hosso/studio studio:import",
+    "studio:backup": "pnpm --filter @hosso/studio studio:backup",
+    "studio:update": "node scripts/studio-update.mjs",
     "migrate": "pnpm --filter @hosso/studio migrate",
     "studio:import-wordpress": "pnpm --filter @hosso/studio studio:import-wordpress"
   },

@@ -215,7 +215,37 @@ export function Editor(props: Props) {
   const savedJson = useRef(JSON.stringify(props.data ?? null))
   const isArea = props.collection === 'area'
 
+  // Khóa sửa mềm: nếu người khác đang sửa cùng trang/ngôn ngữ thì chặn lưu để không ghi đè lẫn nhau (có thể tiếp quản).
+  const lockKey = `${props.collection}:${props.id}:${props.locale}`
+  const [lockedBy, setLockedBy] = useState('')
+  const lock = (extra: Record<string, unknown> = {}) =>
+    fetch('/api/site/lock', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: lockKey, ...extra }) })
+      .then((r) => r.json())
+      .catch(() => ({ ok: true }))
+  useEffect(() => {
+    let alive = true
+    const beat = async () => {
+      const j = await lock()
+      if (alive) setLockedBy(j.ok ? '' : String(j.holder))
+    }
+    beat()
+    const timer = setInterval(beat, 25000)
+    const release = () => navigator.sendBeacon('/api/site/lock', new Blob([JSON.stringify({ key: lockKey, release: true })], { type: 'application/json' }))
+    window.addEventListener('pagehide', release)
+    return () => {
+      alive = false
+      clearInterval(timer)
+      window.removeEventListener('pagehide', release)
+      release()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lockKey])
+
   const persist = async (data: unknown, publish: boolean, auto = false) => {
+    if (lockedBy) {
+      setStatus(`Đang bị khóa: ${lockedBy} đang sửa`)
+      return
+    }
     setBusy(true)
     setStatus(auto ? 'Đang tự lưu…' : 'Đang lưu…')
     const res = isArea
@@ -238,11 +268,11 @@ export function Editor(props: Props) {
 
   // Tự lưu nháp 4 giây sau thay đổi cuối (không áp dụng cho vùng giao diện vì lưu là hiển thị ngay); cảnh báo khi rời trang chưa lưu.
   useEffect(() => {
-    if (isArea || !dirty || busy) return
+    if (isArea || !dirty || busy || lockedBy) return
     const t = setTimeout(() => persist(dataRef.current, false, true), 4000)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dirty, busy, status])
+  }, [dirty, busy, status, lockedBy])
   useEffect(() => {
     const warn = (e: BeforeUnloadEvent) => {
       if (dirty) e.preventDefault()
@@ -287,6 +317,23 @@ export function Editor(props: Props) {
     <>
       {/* Puck sao chép style của trang chủ vào iframe xem trước (syncHostStyles). */}
       <style>{props.css}</style>
+      {lockedBy && (
+        <div role="alert" style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 99999, background: '#b45309', color: '#fff', padding: '10px 16px', display: 'flex', gap: 12, alignItems: 'center', font: '14px Arial, sans-serif' }}>
+          <span>
+            <strong>{lockedBy}</strong> đang sửa trang này. Bạn chỉ xem được; lưu bị chặn để tránh ghi đè.
+          </span>
+          <button
+            style={{ marginLeft: 'auto', border: 0, borderRadius: 4, padding: '6px 12px', fontWeight: 700, cursor: 'pointer' }}
+            onClick={async () => {
+              if (!window.confirm(`Tiếp quản? Thay đổi chưa lưu của ${lockedBy} có thể bị ghi đè.`)) return
+              const j = await lock({ takeover: true })
+              if (j.ok) setLockedBy('')
+            }}
+          >
+            Tiếp quản
+          </button>
+        </div>
+      )}
       <Puck
         config={config as any}
         data={props.data}

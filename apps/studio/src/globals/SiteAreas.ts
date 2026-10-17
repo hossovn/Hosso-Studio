@@ -7,6 +7,7 @@ export const AREAS = [
   { name: 'afterHeader', label: 'Dưới header (trước nội dung)' },
   { name: 'beforeFooter', label: 'Trước chân trang (khối widget, đăng ký nhận tin, liên hệ…)' },
   { name: 'afterFooter', label: 'Sau chân trang' },
+  { name: 'postSidebar', label: 'Cột bên cạnh bài viết (widget: danh mục, bài nổi bật, đăng ký nhận tin…)' },
 ] as const
 
 const area = (name: string): Field => ({ name, type: 'json', localized: true, admin: { hidden: true } })

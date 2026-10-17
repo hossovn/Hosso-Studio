@@ -12,6 +12,7 @@
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
     "studio:export": "cross-env HOSSO_SCRIPT=1 NODE_OPTIONS=--no-deprecation payload run scripts/studio-export.ts",
+    "studio:backup": "cross-env HOSSO_SCRIPT=1 NODE_OPTIONS=--no-deprecation payload run scripts/studio-backup.ts",
     "studio:import": "cross-env HOSSO_SCRIPT=1 NODE_OPTIONS=--no-deprecation payload run scripts/studio-import.ts",
     "studio:import-wordpress": "cross-env HOSSO_SCRIPT=1 NODE_OPTIONS=--no-deprecation payload run scripts/wordpress-import.ts --",
     "migrate": "cross-env NODE_OPTIONS=--no-deprecation payload migrate",

@@ -37,6 +37,7 @@ const link = (name: string, label: string, extra: Field[] = []): Field => ({
   type: 'array',
   label,
   labels: { singular: 'Mục', plural: 'Mục' },
+  admin: { initCollapsed: true, components: { RowLabel: '/components/admin/MenuRowLabel#MenuRowLabel' } },
   fields: [
     { name: 'label', type: 'text', localized: true, label: 'Tên hiển thị', required: true },
     { name: 'href', type: 'text', label: 'Đường dẫn', required: true, admin: { description: 'Ví dụ /san-pham hoặc https://…' } },
