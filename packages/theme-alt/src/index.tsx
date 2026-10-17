@@ -6,7 +6,8 @@ import { css } from './styles'
 // Bố cục khác hẳn theme sáng: hero nền lưới, tính năng dạng bảng đánh số, văn bản hai cột, form chia đôi.
 
 const Hero: BlockRenderer = ({ title, subtitle, ctaLabel, ctaHref, image }) => (
-  <section className="ha-hero" style={image ? { backgroundImage: `linear-gradient(rgba(11,15,20,.8), rgba(11,15,20,.8)), url("${image}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
+  <section className="ha-hero">
+    {image && <img className="ha-hero-bg" src={image} alt="" fetchPriority="high" decoding="async" />}
     <div className="ha-wrap">
       <p className="ha-eyebrow">{t('hero.eyebrow')}</p>
       <h1>{title}</h1>

@@ -6,7 +6,8 @@ import type { BlockRenderer } from './types'
 // Bộ renderer "sáng, thẻ" (class hs-*) dùng chung cho các theme cùng họ giao diện (theme-default, theme-shop).
 // Theme có thể dùng nguyên bộ này và chỉ tự vẽ header/footer, hoặc ghi đè từng block.
 const Hero: BlockRenderer = ({ title, subtitle, ctaLabel, ctaHref, image }) => (
-  <section className={`hs-hero${image ? ' has-image' : ''}`} style={image ? { backgroundImage: `linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.55)), url("${image}")` } : undefined}>
+  <section className={`hs-hero${image ? ' has-image' : ''}`}>
+    {image && <img className="hs-hero-bg" src={image} alt="" fetchPriority="high" decoding="async" />}
     <div className="hs-wrap">
       <h1>{title}</h1>
       {subtitle && <p>{subtitle}</p>}

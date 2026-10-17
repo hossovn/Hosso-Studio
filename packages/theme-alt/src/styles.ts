@@ -76,4 +76,5 @@ export const css = `
 .ha-video{margin:0}.ha-video-frame{position:relative;aspect-ratio:16/9;background:#000;border-radius:var(--hs-radius);overflow:hidden}.ha-video-frame iframe,.ha-video-frame video{position:absolute;inset:0;width:100%;height:100%;border:0}.ha-video figcaption{color:var(--hs-muted);font-size:.9rem;margin-top:.5rem}
 .ha-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.ha-search{order:3;flex:1 1 100%}.ha-search input{width:100%;font:inherit;padding:.5rem .8rem;border:1px solid var(--hs-border);border-radius:var(--hs-radius);background:var(--hs-bg);color:var(--hs-text)}
 @media(min-width:56rem){.ha-search{order:0;flex:0 1 16rem;margin-left:1rem}.ha-nav{margin-left:0}.ha-header-actions{margin-left:auto}}
+.ha-hero{position:relative;overflow:hidden}.ha-hero>.ha-wrap{position:relative;z-index:1}.ha-hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.35;z-index:0}
 `
