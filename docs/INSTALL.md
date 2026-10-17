@@ -73,6 +73,8 @@ pnpm studio:import-wordpress export.xml --media --site-url https://site-cu.vn --
 - **Widget** (Admin → Giao diện → Widget): thêm/sắp xếp widget cho cột bên bài viết và các vùng trước/sau header, footer.
 - **Nâng cấp từ DB PoC cũ (Postgres)**: chỉ cần `pnpm migrate`; dữ liệu cũ (trang, bài, cài đặt, menu) được giữ và đặt vào ngôn ngữ đầu tiên (vi). Với SQLite dev: xuất gói bằng bản cũ rồi `pnpm studio:import` vào DB mới.
 
+- **Admin song ngữ (vi/en)**: giao diện quản trị và trình dựng đổi theo ngôn ngữ người dùng chọn trong Payload (Tài khoản → Ngôn ngữ): sidebar, Công cụ, Widget, Tùy biến, menu cây, sửa ảnh, trình dựng (nút, trạng thái, nhãn block), tên collection/trường. Thêm chuỗi mới: viết tiếng Việt trong code (`T('…')`/`L('…')`) và thêm bản tiếng Anh vào `apps/studio/src/lib/admin-en/*.ts` (nhãn block: `packages/blocks/src/labels-en.ts`; plugin: `HossoPlugin.adminEn`); `pnpm check:i18n` báo chuỗi còn thiếu.
+
 ## 3. Kết nối Hosso WIM (plugin, tùy chọn)
 
 Trong PoC dùng mock:

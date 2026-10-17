@@ -6,14 +6,16 @@ import { PostList } from './PostList'
 import { t } from './i18n'
 import type { BlockField, BlockRenderer, BlockSchema, HossoPlugin, Theme } from './types'
 
-const toPuckField = (f: BlockField): any => {
-  if (f.type === 'media') return { type: 'custom', label: f.label, render: ({ value, onChange, readOnly }: any) => createElement(MediaField, { value, onChange, readOnly, kind: f.kind }) }
-  if (f.type === 'ref') return { type: 'custom', label: f.label, render: ({ value, onChange, readOnly }: any) => createElement(RefField, { value, onChange, readOnly, collection: f.collection }) }
-  if (f.type !== 'array') return f
+const toPuckField = (f: BlockField, L: (vi: string) => string = (v) => v): any => {
+  if (f.type === 'media') return { type: 'custom', label: f.label && L(f.label), render: ({ value, onChange, readOnly }: any) => createElement(MediaField, { value, onChange, readOnly, kind: f.kind }) }
+  if (f.type === 'ref') return { type: 'custom', label: f.label && L(f.label), render: ({ value, onChange, readOnly }: any) => createElement(RefField, { value, onChange, readOnly, collection: f.collection }) }
+  if (f.type === 'select' || f.type === 'radio') return { ...f, label: f.label && L(f.label), options: f.options.map((o) => ({ ...o, label: L(o.label) })) }
+  if (f.type !== 'array') return { ...f, label: f.label && L(f.label) }
   const first = Object.keys(f.arrayFields)[0]
   return {
     ...f,
-    arrayFields: Object.fromEntries(Object.entries(f.arrayFields).map(([k, v]) => [k, toPuckField(v)])),
+    label: f.label && L(f.label),
+    arrayFields: Object.fromEntries(Object.entries(f.arrayFields).map(([k, v]) => [k, toPuckField(v, L)])),
     getItemSummary: (item: Record<string, unknown>, i: number) => String(item?.[first] || `Mục ${i + 1}`),
   }
 }
@@ -36,8 +38,10 @@ export function buildPuckConfig(opts: {
   plugins?: HossoPlugin[]
   mode: 'editor' | 'render'
   extraTypes?: string[]
+  /** Dịch nhãn tiếng Việt của block/trường (trình dựng bản tiếng Anh). */
+  label?: (vi: string) => string
 }) {
-  const { schemas, theme, plugins = [], mode, extraTypes = [] } = opts
+  const { schemas, theme, plugins = [], mode, extraTypes = [], label: L = (v: string) => v } = opts
   const fallback = (type: string) => plugins.find((p) => p.fallbackRenderers?.[type])?.fallbackRenderers?.[type]
   const components: Record<string, any> = {}
 
@@ -45,12 +49,12 @@ export function buildPuckConfig(opts: {
     const render = theme.renderers[s.type] ?? coreFallback[s.type] ?? fallback(s.type)
     if (!render) {
       if (mode === 'render') continue
-      components[s.type] = { label: s.label, fields: {}, defaultProps: {}, render: () => createElement(Missing, { type: s.type }) }
+      components[s.type] = { label: L(s.label), fields: {}, defaultProps: {}, render: () => createElement(Missing, { type: s.type }) }
       continue
     }
     components[s.type] = {
-      label: s.label,
-      fields: Object.fromEntries(Object.entries(s.fields).map(([k, v]) => [k, toPuckField(v as BlockField)])),
+      label: L(s.label),
+      fields: Object.fromEntries(Object.entries(s.fields).map(([k, v]) => [k, toPuckField(v as BlockField, L)])),
       defaultProps: s.defaultProps,
       render,
     }

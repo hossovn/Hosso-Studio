@@ -118,6 +118,8 @@ export type HossoPlugin = {
   headerSlot?: ComponentType
   /** Mục hiện trong nhóm "Plugin" của sidebar admin. */
   adminNav?: { label: string; href: string; roles?: string[] }[]
+  /** Bản tiếng Anh cho nhãn tiếng Việt của plugin trong trình dựng và màn Widget (khóa = nhãn tiếng Việt). */
+  adminEn?: Record<string, string>
   /** CSS của renderer dự phòng, dùng biến --hs-*. */
   css?: string
   /** Thêm collection, global, endpoint vào Payload (chỉ chạy lúc dựng cấu hình Payload). */

@@ -5,6 +5,7 @@ import { CartLink } from './client/CartLink'
 import { wimGet, type ProductPage } from './client'
 import { getWimConfig } from './config'
 import { formatVnd } from './format'
+import { adminEn } from './admin-en'
 import { applyPayload } from './payload'
 import { fallbackRenderers } from './renderers'
 import { css } from './styles'
@@ -16,6 +17,7 @@ const plugin: HossoPlugin = {
   fallbackRenderers,
   css,
   headerSlot: CartLink,
+  adminEn,
   adminNav: [{ label: 'Kết nối Hosso WIM', href: '/admin/globals/wim-settings', roles: ['admin'] }],
   checklist: async (payload) => [{ label: 'Kết nối Hosso WIM (địa chỉ API và khóa)', done: Boolean(await getWimConfig(payload)), href: '/admin/globals/wim-settings' }],
   payload: applyPayload,

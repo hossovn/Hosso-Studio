@@ -5,6 +5,7 @@ import { Render } from '@puckeditor/core'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
+import { useAdminT } from '@/lib/use-admin-t'
 import { withLiveData } from './live-data'
 
 type Props = {
@@ -35,6 +36,7 @@ const copyFonts = (to: Document) => {
 
 /** Xem trước widget ngay trong màn Widget: dựng đúng renderer của theme, dữ liệu thật qua server action, trong khung iframe cô lập. */
 export function WidgetPreview({ content, themeName, css, fontClass, locale, defaultLocale, layout }: Props) {
+  const T = useAdminT()
   const frame = useRef<HTMLIFrameElement>(null)
   const [body, setBody] = useState<HTMLElement | null>(null)
   const [height, setHeight] = useState(120)
@@ -71,12 +73,12 @@ export function WidgetPreview({ content, themeName, css, fontClass, locale, defa
 
   setLocale(locale, defaultLocale)
   const data = stripUnknown({ root: { props: {} }, content } as unknown as PageData, config)
-  const inner = content.length ? <Render config={config as any} data={data as any} /> : <p style={{ font: '14px Arial', color: '#6b7280', padding: 12 }}>Chưa có widget nào để xem trước.</p>
+  const inner = content.length ? <Render config={config as any} data={data as any} /> : <p style={{ font: '14px Arial', color: '#6b7280', padding: 12 }}>{T('Chưa có widget nào để xem trước.')}</p>
 
   return (
     <iframe
       ref={frame}
-      title="Xem trước"
+      title={T('Xem trước')}
       style={{ width: layout === 'sidebar' ? 332 : '100%', maxWidth: '100%', height, border: '1px solid var(--theme-elevation-150)', borderRadius: 6, background: '#fff' }}
       sandbox="allow-same-origin allow-scripts allow-forms"
     >

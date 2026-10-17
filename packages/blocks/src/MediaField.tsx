@@ -1,4 +1,5 @@
 'use client'
+import { useLabel } from './admin-lang'
 import React, { useEffect, useState } from 'react'
 import { ImageEditor } from './ImageEditor'
 
@@ -15,6 +16,7 @@ const btn: React.CSSProperties = { padding: '6px 10px', border: '1px solid #c9cc
  * Giá trị lưu là URL (chuỗi) nên nội dung trang không phụ thuộc id media và export/import không cần ánh xạ lại.
  */
 export function MediaField({ value, onChange, readOnly, kind = 'image' }: { value?: string; onChange: (v: string) => void; readOnly?: boolean; kind?: 'image' | 'video' }) {
+  const L = useLabel()
   const [open, setOpen] = useState(false)
   const [docs, setDocs] = useState<Doc[]>([])
   const [busy, setBusy] = useState(false)
@@ -38,7 +40,7 @@ export function MediaField({ value, onChange, readOnly, kind = 'image' }: { valu
     const res = await fetch('/api/media', { method: 'POST', body: form })
     const body = await res.json().catch(() => ({}))
     setBusy(false)
-    if (!res.ok) return setError(body?.errors?.[0]?.message ?? 'Không tải lên được')
+    if (!res.ok) return setError(body?.errors?.[0]?.message ?? L('Không tải lên được'))
     onChange(urlOf(body.doc))
     setOpen(false)
   }
@@ -50,7 +52,7 @@ export function MediaField({ value, onChange, readOnly, kind = 'image' }: { valu
     form.append('_payload', JSON.stringify({ alt: name.replace(/\.[^.]+$/, '') }))
     const res = await fetch('/api/media', { method: 'POST', body: form })
     const body = await res.json().catch(() => ({}))
-    if (!res.ok) throw new Error(body?.errors?.[0]?.message ?? 'Không lưu được ảnh')
+    if (!res.ok) throw new Error(body?.errors?.[0]?.message ?? L('Không lưu được ảnh'))
     onChange(urlOf(body.doc))
   }
 
@@ -64,33 +66,33 @@ export function MediaField({ value, onChange, readOnly, kind = 'image' }: { valu
         type="text"
         value={value ?? ''}
         readOnly={readOnly}
-        placeholder={kind === 'video' ? 'Link YouTube/Vimeo hoặc tệp video' : '/api/media/file/anh.jpg hoặc https://…'}
+        placeholder={kind === 'video' ? L('Link YouTube/Vimeo hoặc tệp video') : L('/api/media/file/anh.jpg hoặc https://…')}
         onChange={(e) => onChange(e.target.value)}
         style={{ padding: 8, border: '1px solid #c9ccd1', borderRadius: 4, font: 'inherit' }}
       />
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
         <button type="button" style={btn} onClick={() => setOpen(!open)}>
-          {open ? 'Đóng thư viện' : 'Chọn từ thư viện'}
+          {open ? L('Đóng thư viện') : L('Chọn từ thư viện')}
         </button>
         <label style={{ ...btn, display: 'inline-block' }}>
-          {busy ? 'Đang tải lên…' : kind === 'video' ? 'Tải video lên' : 'Tải ảnh lên'}
+          {busy ? L('Đang tải lên…') : kind === 'video' ? L('Tải video lên') : L('Tải ảnh lên')}
           <input type="file" accept={kind === 'video' ? 'video/*' : 'image/*'} hidden disabled={busy} onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
         </label>
         {editable && (
           <button type="button" style={btn} onClick={() => setEditing(true)}>
-            Sửa ảnh
+            {L('Sửa ảnh')}
           </button>
         )}
         {value && (
           <button type="button" style={btn} onClick={() => onChange('')}>
-            Bỏ ảnh
+            {L('Bỏ ảnh')}
           </button>
         )}
       </div>
       {error && <p style={{ color: '#b91c1c', margin: 0, fontSize: 13 }}>{error}</p>}
       {open && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, maxHeight: 240, overflow: 'auto' }}>
-          {docs.length === 0 && <span style={{ gridColumn: '1 / -1', fontSize: 13 }}>Thư viện trống.</span>}
+          {docs.length === 0 && <span style={{ gridColumn: '1 / -1', fontSize: 13 }}>{L('Thư viện trống.')}</span>}
           {docs.filter((d) => matches(d, kind)).map((d) => (
             <button
               key={d.id}

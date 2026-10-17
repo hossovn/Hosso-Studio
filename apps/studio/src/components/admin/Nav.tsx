@@ -5,11 +5,25 @@ import type { Payload } from 'payload'
 import React from 'react'
 
 import { canModerate, canPublish, hasRole, isAdmin } from '@/lib/access'
+import { adminLang, makeT, type AdminT } from '@/lib/admin-i18n'
 import { NavClient, type NavSection } from './NavClient'
 
-type Props = { payload: Payload; user?: { email?: string; roles?: string[] | null } | null }
+type Props = { payload: Payload; user?: { email?: string; roles?: string[] | null } | null; i18n?: { language?: string } }
 
 const ROLE_LABEL: Record<string, string> = { admin: 'Quản trị viên', publisher: 'Người xuất bản', editor: 'Biên tập viên', author: 'Tác giả', moderator: 'Kiểm duyệt' }
+
+// Dịch mọi nhãn của sidebar một lần ở đây (nhãn gốc là tiếng Việt).
+const translateSections = (sections: NavSection[], T: AdminT): NavSection[] =>
+  sections.map((s) => ({
+    title: s.title && T(s.title),
+    items: s.items.map((i) => ({
+      ...i,
+      label: T(i.label),
+      badgeTitle: i.badgeTitle && T(i.badgeTitle),
+      quick: i.quick && { ...i.quick, label: T(i.quick.label) },
+      children: i.children?.map((c) => ({ ...c, label: T(c.label) })),
+    })),
+  }))
 
 const count = async (payload: Payload, collection: any, where: any) => (await payload.count({ collection, where, overrideAccess: true }).catch(() => ({ totalDocs: 0 }))).totalDocs
 
@@ -18,7 +32,8 @@ const count = async (payload: Payload, collection: any, where: any) => (await pa
  * huy hiệu số liệu thật (bình luận chờ duyệt, bản nháp, lượt gửi biểu mẫu hôm nay), nút "+" thêm nhanh, ô tìm lệnh (phím /),
  * thu gọn thành thanh biểu tượng có menu bung khi rê chuột, và chỉ hiện mục phù hợp với vai trò của người dùng.
  */
-export const Nav = async ({ payload, user }: Props) => {
+export const Nav = async ({ payload, user, i18n }: Props) => {
+  const T = makeT(adminLang(i18n?.language))
   const u = user ?? null
   const today = new Date(Date.now() - 24 * 3600_000).toISOString()
   const [pendingComments, draftPages, draftPosts, formsToday] = await Promise.all([
@@ -121,19 +136,18 @@ export const Nav = async ({ payload, user }: Props) => {
 
   if (isAdmin(u)) admin.push({ id: 'tools', label: 'Công cụ', href: '/admin/tools', icon: 'wrench' })
 
-  const sections: NavSection[] = [
-    { items: content },
-    ...(look.length ? [{ title: 'Giao diện', items: look }] : []),
-    { title: 'Quản trị', items: admin },
-  ]
+  const sections = translateSections(
+    [{ items: content }, ...(look.length ? [{ title: 'Giao diện', items: look }] : []), { title: 'Quản trị', items: admin }],
+    T,
+  )
 
   return (
     <NavWrapper baseClass="nav">
-      <nav className="nav__wrap hn-wrap" aria-label="Menu quản trị">
+      <nav className="nav__wrap hn-wrap" aria-label={T('Menu quản trị')}>
         <NavClient
           sections={sections}
           brand={{ name: hosso.brand.name, mark: hosso.brand.mark }}
-          user={{ email: u?.email ?? '', role: ROLE_LABEL[(u?.roles ?? [])[0] ?? ''] ?? '' }}
+          user={{ email: u?.email ?? '', role: T(ROLE_LABEL[(u?.roles ?? [])[0] ?? ''] ?? '') }}
           logout={<Logout />}
         />
       </nav>

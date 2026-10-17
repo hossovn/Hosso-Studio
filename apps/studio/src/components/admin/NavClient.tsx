@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 
+import { useAdminT } from '@/lib/use-admin-t'
+
 export type NavChild = { label: string; href: string; exact?: boolean; badge?: number; external?: boolean }
 export type NavItem = {
   id: string
@@ -57,6 +59,7 @@ export function NavClient({
   user: { email: string; role: string }
   logout: React.ReactNode
 }) {
+  const T = useAdminT()
   const pathname = usePathname() || '/admin'
   const [collapsed, setCollapsed] = useState(false)
   const [open, setOpen] = useState<Record<string, boolean>>({})
@@ -105,13 +108,13 @@ export function NavClient({
         <img src={brand.mark} alt="" width={30} height={30} />
         <span className="hn-label">
           <strong>{brand.name}</strong>
-          <small>Quản trị</small>
+          <small>{T('Quản trị')}</small>
         </span>
       </a>
 
       <label className="hn-search">
         <Icon name="search" size={16} />
-        <span className="hn-sr">Tìm lệnh</span>
+        <span className="hn-sr">{T('Tìm lệnh')}</span>
         <input
           ref={search}
           value={q}
@@ -120,15 +123,15 @@ export function NavClient({
             if (e.key === 'Escape') setQ('')
             if (e.key === 'Enter' && matches[0]) window.location.href = matches[0].href
           }}
-          placeholder="Tìm lệnh…  /"
+          placeholder={T('Tìm lệnh…  /')}
           autoComplete="off"
         />
       </label>
 
       <div className="hn-scroll">
         {matches.length > 0 || q.trim() ? (
-          <ul className="hn-list" aria-label="Kết quả tìm lệnh">
-            {matches.length === 0 && <li className="hn-empty">Không có lệnh phù hợp</li>}
+          <ul className="hn-list" aria-label={T('Kết quả tìm lệnh')}>
+            {matches.length === 0 && <li className="hn-empty">{T('Không có lệnh phù hợp')}</li>}
             {matches.map((m) => (
               <li key={m.href + m.label} className="hn-item">
                 <Link className="hn-link" href={m.href} onClick={() => setQ('')}>
@@ -164,7 +167,7 @@ export function NavClient({
                           </Link>
                         )}
                         {it.children && (
-                          <button type="button" className="hn-toggle" aria-expanded={expanded} aria-label={`Mở mục con của ${it.label}`} onClick={() => setOpen({ ...open, [it.id]: !expanded })}>
+                          <button type="button" className="hn-toggle" aria-expanded={expanded} aria-label={T('Mở mục con của {label}', { label: it.label })} onClick={() => setOpen({ ...open, [it.id]: !expanded })}>
                             <Icon name="chevron" size={14} />
                           </button>
                         )}
@@ -201,9 +204,9 @@ export function NavClient({
       </div>
 
       <div className="hn-foot">
-        <a className="hn-site" href="/" target="_blank" rel="noreferrer" title="Xem website">
+        <a className="hn-site" href="/" target="_blank" rel="noreferrer" title={T('Xem website')}>
           <Icon name="external" size={16} />
-          <span className="hn-label">Xem website</span>
+          <span className="hn-label">{T('Xem website')}</span>
         </a>
         <div className="hn-user" title={user.email}>
           <span className="hn-avatar" aria-hidden="true">
@@ -217,7 +220,7 @@ export function NavClient({
         </div>
         <button type="button" className="hn-collapse" onClick={() => setCollapsed(!collapsed)} aria-pressed={collapsed}>
           <Icon name="collapse" size={16} />
-          <span className="hn-label">Thu gọn menu</span>
+          <span className="hn-label">{T('Thu gọn menu')}</span>
         </button>
       </div>
     </div>

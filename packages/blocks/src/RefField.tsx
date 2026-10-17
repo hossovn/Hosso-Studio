@@ -1,10 +1,12 @@
 'use client'
+import { useLabel } from './admin-lang'
 import React, { useEffect, useState } from 'react'
 
 type Doc = { id: string | number; title?: string; slug?: string }
 
 /** Trường chọn một bản ghi (biểu mẫu, khối dùng lại…) theo `slug`, lấy danh sách từ REST của admin. */
 export function RefField({ value, onChange, collection, readOnly }: { value?: string; onChange: (v: string) => void; collection: string; readOnly?: boolean }) {
+  const L = useLabel()
   const [docs, setDocs] = useState<Doc[] | null>(null)
   useEffect(() => {
     let on = true
@@ -23,7 +25,7 @@ export function RefField({ value, onChange, collection, readOnly }: { value?: st
       onChange={(e) => onChange(e.target.value)}
       style={{ padding: 8, border: '1px solid #c9ccd1', borderRadius: 4, font: 'inherit', width: '100%' }}
     >
-      <option value="">{docs === null ? 'Đang tải…' : '— Chọn —'}</option>
+      <option value="">{docs === null ? L('Đang tải…') : L('— Chọn —')}</option>
       {(docs ?? []).map((d) => (
         <option key={d.id} value={d.slug}>
           {d.title ?? d.slug}
