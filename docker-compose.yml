@@ -19,6 +19,7 @@ services:
 
   studio: &studio
     build: .
+    image: hosso-studio:latest # studio-tools dùng chung image này
     restart: unless-stopped
     depends_on:
       postgres:

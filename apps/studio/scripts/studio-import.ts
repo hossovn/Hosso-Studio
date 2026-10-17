@@ -82,7 +82,12 @@ if (site) {
     const found = filename ? await payload.find({ collection: 'media', where: { filename: { equals: filename } }, limit: 1, depth: 0 }) : null
     site[k] = found?.docs[0]?.id ?? null
   }
-  await payload.updateGlobal({ slug: 'site-settings', data: site })
+  try {
+    await payload.updateGlobal({ slug: 'site-settings', data: site })
+  } catch (e: any) {
+    console.error('Không nhập được cài đặt site:', JSON.stringify(e?.data?.errors ?? e?.message), 'giá trị theme =', site.theme)
+    throw e
+  }
 }
 for (const plugin of hosso.plugins) {
   for (const g of plugin.portable?.globals ?? []) {

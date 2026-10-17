@@ -29,5 +29,5 @@ export const hsContentCss = `
 .hs-footer a{color:var(--hs-bg)}.hs-footer ul{list-style:none;padding:0;margin:0 0 1rem;display:flex;gap:1.25rem;flex-wrap:wrap}
 .hs-missing{border:1px dashed var(--hs-border);padding:1rem;color:var(--hs-muted)}
 .hs-video{margin:0}.hs-video-frame{position:relative;aspect-ratio:16/9;background:#000;border-radius:var(--hs-radius);overflow:hidden}.hs-video-frame iframe,.hs-video-frame video{position:absolute;inset:0;width:100%;height:100%;border:0}.hs-video figcaption{color:var(--hs-muted);font-size:.9rem;margin-top:.5rem}
-.hs-hero.has-image{background-size:cover;background-position:center;color:#fff}.hs-hero.has-image h1{color:#fff}.hs-hero.has-image p{color:#e5e7eb}
+.hs-hero{position:relative;overflow:hidden}.hs-hero>.hs-wrap{position:relative;z-index:1}.hs-hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}.hs-hero.has-image::after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.55);z-index:0}.hs-hero.has-image{color:#fff}.hs-hero.has-image h1{color:#fff}.hs-hero.has-image p{color:#e5e7eb}
 `
