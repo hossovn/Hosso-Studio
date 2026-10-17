@@ -87,6 +87,22 @@ export const SiteSettings: GlobalConfig = {
           ],
         },
         {
+          label: 'Thông báo',
+          fields: [
+            {
+              name: 'notifications',
+              type: 'group',
+              label: 'Email thông báo cho chủ site',
+              admin: { description: 'Cần cấu hình SMTP bằng biến môi trường HOSSO_SMTP_URL (ví dụ smtp://user:pass@host:587). Chưa cấu hình thì nội dung email chỉ ghi ra nhật ký máy chủ.' },
+              fields: [
+                { name: 'to', type: 'email', label: 'Gửi tới', admin: { description: 'Để trống để dùng email ở tab Liên hệ.' } },
+                { name: 'onForm', type: 'checkbox', label: 'Khi có biểu mẫu mới được gửi', defaultValue: true },
+                { name: 'onComment', type: 'checkbox', label: 'Khi có bình luận mới', defaultValue: true },
+              ],
+            },
+          ],
+        },
+        {
           label: 'Bình luận',
           fields: [
             { name: 'commentsEnabled', type: 'checkbox', label: 'Bật bình luận trên bài viết', defaultValue: true },

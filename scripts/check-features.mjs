@@ -148,6 +148,31 @@ assert.match(await (await fetch(`${SITE}/en/tim-kiem?q=zzzz`)).text(), /No match
 assert.match(await (await fetch(`${SITE}/en/khong-ton-tai-${run}`)).text(), /Page not found/); ok('404 theo ngôn ngữ')
 assert.match(await (await fetch(`${SITE}/sitemap.xml`)).text(), new RegExp(`/en/ml-${run}`)); ok('sitemap có URL theo ngôn ngữ')
 
+console.log('Xem trước chia sẻ, chuyển hướng, SEO')
+const dr = await api(T('editor'), 'POST', '/api/pages', page(`dr-${run}`, { root: { props: {} }, content: [block('Text', { heading: `BẢN-NHÁP-${run}`, body: 'chưa xuất bản' })] }))
+del(admin, `/api/pages/${dr.body.doc.id}`)
+assert.equal((await fetch(`${SITE}/dr-${run}`)).status, 404); ok('trang nháp không xem được công khai')
+assert.equal((await fetch(`${SITE}/api/site/share-link?c=pages&id=${dr.body.doc.id}`)).status, 403); ok('không đăng nhập thì không tạo được link chia sẻ')
+const sl = await fetch(`${SITE}/api/site/share-link?c=pages&id=${dr.body.doc.id}`, { headers: { Authorization: `JWT ${T('editor')}` } })
+const shareUrl = (await sl.json()).url
+const local = (u) => SITE + new URL(u).pathname + new URL(u).search
+assert.match(shareUrl, /[?]share=/)
+const sh = await fetch(local(shareUrl))
+const shHtml = await sh.text()
+assert.equal(sh.status, 200); assert.match(shHtml, new RegExp(`BẢN-NHÁP-${run}`)); assert.match(shHtml, /noindex/); ok('link chia sẻ xem được bản nháp, có noindex')
+assert.equal((await fetch(local(shareUrl).replace(/.$/, 'x'))).status, 404); ok('link bị sửa chữ ký thì không xem được')
+const dr2 = await api(T('editor'), 'POST', '/api/pages', page(`dr2-${run}`)); del(admin, `/api/pages/${dr2.body.doc.id}`)
+assert.equal((await fetch(local(shareUrl).replace(`dr-${run}`, `dr2-${run}`))).status, 404); ok('link của trang này không mở được trang khác')
+
+const rd = await api(T('publisher'), 'POST', '/api/redirects', { from: `/cu-${run}`, to: `/ml-${run}`, permanent: true })
+assert.equal(rd.status, 201); del(admin, `/api/redirects/${rd.body.doc.id}`)
+const rr = await fetch(`${SITE}/cu-${run}`, { redirect: 'manual' })
+assert.equal(rr.status, 308); assert.match(rr.headers.get('location') ?? '', new RegExp(`/ml-${run}`)); ok('đường dẫn cũ chuyển hướng vĩnh viễn')
+assert.equal((await api(T('editor'), 'POST', '/api/redirects', { from: `/x-${run}`, to: '/' })).status, 403); ok('chỉ publisher trở lên tạo chuyển hướng')
+const home = await (await fetch(`${SITE}/`)).text()
+assert.match(home, /"@type":"Organization"/); assert.match(home, /"@type":"WebSite"/); ok('trang chủ có schema Organization + WebSite')
+assert.match(await (await fetch(`${SITE}/ml-${run}`)).text(), /"@type":"BreadcrumbList"/); ok('trang có breadcrumb schema')
+
 for (const f of cleanup.reverse()) await f()
 for (const u of Object.values(users)) await api(admin, 'DELETE', `/api/users/${u.id}`)
 console.log(`\nTính năng OK (${n} kiểm tra).`)
