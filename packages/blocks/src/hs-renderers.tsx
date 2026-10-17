@@ -1,6 +1,7 @@
 import React from 'react'
+import { Rich } from './Rich'
 import { VideoEmbed } from './VideoEmbed'
-import { t } from './strings.vi'
+import { t } from './i18n'
 import type { BlockRenderer } from './types'
 
 // Bộ renderer "sáng, thẻ" (class hs-*) dùng chung cho các theme cùng họ giao diện (theme-default, theme-shop).
@@ -25,12 +26,7 @@ const Text: BlockRenderer = ({ heading, body }) => (
     <div className="hs-wrap">
       <div className="hs-text">
         {heading && <h2>{heading}</h2>}
-        {String(body ?? '')
-          .split(/\n\s*\n/)
-          .filter(Boolean)
-          .map((p, i) => (
-            <p key={i}>{p}</p>
-          ))}
+        <Rich text={String(body ?? '')} />
       </div>
     </div>
   </section>

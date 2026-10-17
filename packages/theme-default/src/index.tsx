@@ -9,12 +9,12 @@ const Header = ({ chrome, actions }: { chrome: SiteChrome; actions?: React.React
   <header className="hs-header">
     {chrome.announcement && <div className="hs-announce">{chrome.announcement}</div>}
     <div className="hs-wrap hs-header-row">
-      <a className="hs-brand" href="/">
+      <a className="hs-brand" href={chrome.homeHref}>
         {chrome.logoUrl ? <img src={chrome.logoUrl} alt={chrome.siteName} height={40} /> : chrome.siteName}
       </a>
       <SiteNav items={chrome.headerMenu} cls="hs-nav" />
       {chrome.search && (
-        <form className="hs-search" action="/tim-kiem" role="search">
+        <form className="hs-search" action={chrome.searchHref} role="search">
           <label className="hs-sr" htmlFor="hs-q">{t('search.label')}</label>
           <input id="hs-q" name="q" type="search" placeholder={t('search.placeholder')} />
         </form>

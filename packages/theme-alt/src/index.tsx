@@ -1,4 +1,4 @@
-import { SiteNav, VideoEmbed, t, type BlockRenderer, type SiteChrome, type Theme, type ThemeManifest } from '@hosso/studio-blocks'
+import { Rich, SiteNav, VideoEmbed, t, type BlockRenderer, type SiteChrome, type Theme, type ThemeManifest } from '@hosso/studio-blocks'
 import type React from 'react'
 import manifest from '../theme.json'
 import { css } from './styles'
@@ -28,12 +28,7 @@ const Text: BlockRenderer = ({ heading, body }) => (
     <div className="ha-wrap ha-cols">
       <h2>{heading}</h2>
       <div>
-        {String(body ?? '')
-          .split(/\n\s*\n/)
-          .filter(Boolean)
-          .map((p, i) => (
-            <p key={i}>{p}</p>
-          ))}
+        <Rich text={String(body ?? '')} />
       </div>
     </div>
   </section>
@@ -126,12 +121,12 @@ const Header = ({ chrome, actions }: { chrome: SiteChrome; actions?: React.React
   <header className="ha-header">
     {chrome.announcement && <div className="ha-announce">{chrome.announcement}</div>}
     <div className="ha-wrap ha-header-row">
-      <a className="ha-brand" href="/">
+      <a className="ha-brand" href={chrome.homeHref}>
         {chrome.logoUrl ? <img src={chrome.logoUrl} alt={chrome.siteName} height={36} /> : chrome.siteName}
       </a>
       <SiteNav items={chrome.headerMenu} cls="ha-nav" />
       {chrome.search && (
-        <form className="ha-search" action="/tim-kiem" role="search">
+        <form className="ha-search" action={chrome.searchHref} role="search">
           <label className="ha-sr" htmlFor="ha-q">{t('search.label')}</label>
           <input id="ha-q" name="q" type="search" placeholder={t('search.placeholder')} />
         </form>

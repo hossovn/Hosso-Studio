@@ -6,6 +6,7 @@ import type { Config, Payload } from 'payload'
 export type BlockField =
   | { type: 'text' | 'textarea' | 'number'; label?: string }
   | { type: 'media'; label?: string; kind?: 'image' | 'video' }
+  | { type: 'ref'; label?: string; collection: string }
   | { type: 'select' | 'radio'; label?: string; options: { label: string; value: string | number | boolean }[] }
   | { type: 'array'; label?: string; arrayFields: Record<string, BlockField>; defaultItemProps?: Record<string, unknown> }
 
@@ -32,6 +33,9 @@ export type SiteChrome = {
   social: { label: string; href: string }[]
   /** Hiện ô tìm kiếm trên header. */
   search: boolean
+  /** Liên kết trang chủ và trang tìm kiếm theo ngôn ngữ hiện tại (ví dụ "/" hoặc "/en"). */
+  homeHref: string
+  searchHref: string
 }
 
 /** Header/footer do theme cung cấp. `actions` là phần do plugin chèn thêm (ví dụ giỏ hàng). */
@@ -95,6 +99,8 @@ export type LoadContext = {
   payload: Payload
   searchParams: Record<string, string | string[] | undefined>
   cookies: Record<string, string>
+  /** Ngôn ngữ của yêu cầu (mã trong hosso.config.ts). */
+  locale: string
 }
 
 export type BlockLoader = (props: Record<string, any>, ctx: LoadContext) => Promise<unknown>
@@ -110,6 +116,8 @@ export type HossoPlugin = {
   fallbackRenderers?: Record<string, BlockRenderer>
   /** Phần chèn vào header (ví dụ liên kết giỏ hàng); chạy ở trình duyệt. */
   headerSlot?: ComponentType
+  /** Mục hiện trong nhóm "Plugin" của sidebar admin. */
+  adminNav?: { label: string; href: string; roles?: string[] }[]
   /** CSS của renderer dự phòng, dùng biến --hs-*. */
   css?: string
   /** Thêm collection, global, endpoint vào Payload (chỉ chạy lúc dựng cấu hình Payload). */
@@ -124,8 +132,12 @@ export type HossoPlugin = {
   loaders?: Record<string, BlockLoader>
 }
 
+export type HossoLocale = { code: string; label: string }
+
 export type HossoConfig = {
   brand: HossoBrand
+  /** Ngôn ngữ của site; ngôn ngữ đầu tiên là mặc định (URL không có tiền tố). */
+  locales: HossoLocale[]
   themes: Theme[]
   plugins: HossoPlugin[]
 }

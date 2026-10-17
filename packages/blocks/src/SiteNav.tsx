@@ -1,13 +1,14 @@
 'use client'
 import React, { useId, useState } from 'react'
 import type { MenuItem } from './types'
-import { t } from './strings.vi'
+import { useT } from './locale-client'
 
 /**
  * Menu đầu trang dùng chung cho mọi theme: nút bật/tắt trên di động, dropdown mở bằng hover hoặc bàn phím trên máy tính.
  * Theme tự tạo kiểu qua tiền tố class `cls` (ví dụ `hs-nav`, `hs-nav-toggle`, `hs-nav-list`, `hs-nav-sub`).
  */
 export function SiteNav({ items, cls }: { items: MenuItem[]; cls: string }) {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const id = useId()
   if (!items.length) return null

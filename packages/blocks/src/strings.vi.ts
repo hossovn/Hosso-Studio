@@ -1,4 +1,4 @@
-// Chuỗi giao diện storefront (tiếng Việt). Đa ngôn ngữ sau này: thêm file strings.<lang>.ts cùng khóa.
+// Chuỗi giao diện storefront (tiếng Việt, ngôn ngữ mặc định). Ngôn ngữ khác: strings.<lang>.ts cùng khóa, đăng ký trong i18n.ts.
 export const strings = {
   'contact.name': 'Họ và tên',
   'contact.phone': 'Số điện thoại',
@@ -11,6 +11,25 @@ export const strings = {
   'post.pager': 'Phân trang',
   'post.prev': 'Trang trước',
   'post.next': 'Trang sau',
+  'post.categories': 'Chuyên mục',
+  'post.tags': 'Thẻ',
+  'post.byCategory': 'Chuyên mục',
+  'post.byTag': 'Thẻ',
+  'comments.title': 'Bình luận',
+  'comments.none': 'Chưa có bình luận. Hãy là người đầu tiên.',
+  'comments.leave': 'Để lại bình luận',
+  'comments.name': 'Tên của bạn',
+  'comments.email': 'Email (không hiển thị)',
+  'comments.text': 'Bình luận',
+  'comments.submit': 'Gửi bình luận',
+  'comments.sent': 'Cảm ơn bạn! Bình luận đang chờ duyệt.',
+  'comments.sentLive': 'Cảm ơn bạn! Bình luận đã được đăng.',
+  'comments.error': 'Không gửi được bình luận, vui lòng thử lại.',
+  'form.submit': 'Gửi',
+  'form.sent': 'Cảm ơn bạn, chúng tôi đã nhận được thông tin.',
+  'form.error': 'Không gửi được, vui lòng kiểm tra biểu mẫu và thử lại.',
+  'form.required': 'Trường này là bắt buộc',
+  'form.choose': 'Chọn…',
   'search.title': 'Tìm kiếm',
   'search.label': 'Từ khóa',
   'search.placeholder': 'Tìm trang, bài viết, sản phẩm…',
@@ -27,13 +46,13 @@ export const strings = {
   'nav.skip': 'Bỏ qua đến nội dung chính',
   'nav.main': 'Menu chính',
   'nav.menu': 'Menu',
+  'nav.language': 'Ngôn ngữ',
   'footer.contact': 'Liên hệ',
   'footer.follow': 'Theo dõi',
   'contact.call': 'Gọi điện',
   'contact.zalo': 'Zalo',
   'block.missing': 'Thiếu plugin hoặc block không còn được hỗ trợ',
+  'reusable.missing': 'Không tìm thấy khối dùng lại',
 } as const
 
 export type StringKey = keyof typeof strings
-
-export const t = (key: StringKey) => strings[key]
