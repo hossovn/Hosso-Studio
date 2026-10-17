@@ -17,11 +17,12 @@ import { Forms, FormSubmissions } from './collections/Forms'
 import { Pages } from './collections/Pages'
 import { Posts } from './collections/Posts'
 import { ReusableBlocks } from './collections/ReusableBlocks'
+import { EditLocks } from './collections/EditLocks'
 import { PostCategories, PostTags } from './collections/Taxonomies'
 import { Redirects } from './collections/Redirects'
 import { SiteAreas } from './globals/SiteAreas'
 import { SiteSettings } from './globals/SiteSettings'
-import { commentSubmit, formExport, formSubmit, shareLink } from './lib/endpoints'
+import { backupCreate, backupDownload, commentSubmit, editLock, formExport, formSubmit, packageImport, shareLink, templateInstall } from './lib/endpoints'
 import { Users } from './collections/Users'
 import { ensureAdmin, seedIfEmpty } from './lib/seed'
 
@@ -53,12 +54,13 @@ const base: Config = {
     components: {
       graphics: { Logo: '/components/admin/Logo#Logo', Icon: '/components/admin/Logo#Icon' },
       Nav: '/components/admin/Nav#Nav',
+      views: { tools: { Component: '/components/admin/ToolsView#ToolsView', path: '/tools' } },
       providers: ['/components/admin/BrandStyle#BrandStyle'],
       beforeDashboard: ['/components/admin/GettingStarted#GettingStarted'],
     },
   },
   i18n: { supportedLanguages: { vi, en }, fallbackLanguage: 'vi' },
-  collections: [Pages, Posts, PostCategories, PostTags, Comments, Forms, FormSubmissions, ReusableBlocks, Media, ContactMessages, Redirects, Users],
+  collections: [Pages, Posts, PostCategories, PostTags, Comments, Forms, FormSubmissions, ReusableBlocks, Media, ContactMessages, Redirects, EditLocks, Users],
   globals: [SiteSettings, SiteAreas],
   // Ngôn ngữ nội dung: ngôn ngữ đầu tiên trong hosso.config.ts là mặc định; thiếu bản dịch thì dùng ngôn ngữ mặc định.
   localization: { locales: hosso.locales.map((l) => ({ code: l.code, label: l.label })), defaultLocale: hosso.locales[0].code, fallback: true },
@@ -76,6 +78,11 @@ const base: Config = {
     formExport,
     commentSubmit,
     shareLink,
+    editLock,
+    backupDownload,
+    backupCreate,
+    packageImport,
+    templateInstall,
     {
       path: '/health',
       method: 'get',

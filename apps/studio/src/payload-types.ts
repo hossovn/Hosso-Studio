@@ -78,6 +78,7 @@ export interface Config {
     media: Media;
     'contact-messages': ContactMessage;
     redirects: Redirect;
+    'edit-locks': EditLock;
     users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -97,6 +98,7 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     'contact-messages': ContactMessagesSelect<false> | ContactMessagesSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
+    'edit-locks': EditLocksSelect<false> | EditLocksSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -405,6 +407,19 @@ export interface Redirect {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "edit-locks".
+ */
+export interface EditLock {
+  id: number;
+  key: string;
+  userId: string;
+  email?: string | null;
+  expiresAt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -470,6 +485,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'redirects';
         value: number | Redirect;
+      } | null)
+    | ({
+        relationTo: 'edit-locks';
+        value: number | EditLock;
       } | null)
     | ({
         relationTo: 'users';
@@ -681,6 +700,18 @@ export interface RedirectsSelect<T extends boolean = true> {
   from?: T;
   to?: T;
   permanent?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "edit-locks_select".
+ */
+export interface EditLocksSelect<T extends boolean = true> {
+  key?: T;
+  userId?: T;
+  email?: T;
+  expiresAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1000,6 +1031,15 @@ export interface SiteArea {
     | number
     | boolean
     | null;
+  postSidebar?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1157,6 +1197,7 @@ export interface SiteAreasSelect<T extends boolean = true> {
   afterHeader?: T;
   beforeFooter?: T;
   afterFooter?: T;
+  postSidebar?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

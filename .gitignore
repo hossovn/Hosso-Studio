@@ -17,3 +17,4 @@ apps/studio/src/app/(payload)/admin/importMap.js
 # Tài liệu nội bộ, chỉ giữ local
 docs/ACCEPTANCE.md
 docs/PLAN.md
+apps/studio/backups/

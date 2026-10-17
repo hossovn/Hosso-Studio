@@ -9,7 +9,14 @@ export function proxy(request: NextRequest) {
   const locale = hosso.locales.some((l) => l.code === first) ? first : defaultLocale.code
   const headers = new Headers(request.headers)
   headers.set('x-hosso-locale', locale)
-  return NextResponse.next({ request: { headers } })
+  const res = NextResponse.next({ request: { headers } })
+  // Khách ẩn danh xem trang công khai: cho CDN/reverse proxy cache ngắn (HOSSO_CACHE_TTL giây, 0 = tắt). Bản nháp/đăng nhập thì không cache.
+  const ttl = Number(process.env.HOSSO_CACHE_TTL ?? 60)
+  const { searchParams } = request.nextUrl
+  if (ttl > 0 && request.method === 'GET' && !request.cookies.has('payload-token') && !searchParams.has('preview') && !searchParams.has('share')) {
+    res.headers.set('Cache-Control', `public, s-maxage=${ttl}, stale-while-revalidate=${ttl * 5}`)
+  }
+  return res
 }
 
 // Chỉ trang công khai; bỏ qua admin, editor, api và tệp tĩnh.

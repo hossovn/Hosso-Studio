@@ -7,7 +7,7 @@ import React from 'react'
 import { attachBlockData, expandReusable, loadSite, renderConfig } from '@/lib/site'
 
 /** Vùng giao diện kéo thả (trước/sau header và footer), nội dung lấy từ global site-areas theo ngôn ngữ. */
-export async function Area({ name, locale }: { name: 'beforeHeader' | 'afterHeader' | 'beforeFooter' | 'afterFooter'; locale: string }) {
+export async function Area({ name, locale }: { name: 'beforeHeader' | 'afterHeader' | 'beforeFooter' | 'afterFooter' | 'postSidebar'; locale: string }) {
   const payload = await getPayload({ config })
   const areas = (await payload.findGlobal({ slug: 'site-areas', locale: locale as any, depth: 0 })) as Record<string, any>
   const raw = areas[name] as PageData | null

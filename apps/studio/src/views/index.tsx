@@ -8,6 +8,8 @@ import { notFound } from 'next/navigation'
 import { getPayload } from 'payload'
 import React from 'react'
 
+import { Area } from '@/components/Area'
+import { AdminBar } from '@/components/AdminBar'
 import { JsonLd } from '@/lib/jsonld'
 import { followRedirect } from '@/lib/redirects'
 import { CommentForm } from '@/components/CommentForm'
@@ -112,6 +114,7 @@ export async function PageView({ slug, locale, sp }: { slug: string; locale: str
   const url = absUrl(slug === 'home' ? '/' : `/${slug}`, locale)
   return (
     <>
+      <AdminBar collection="pages" id={page.id} locale={locale} />
       <JsonLd
         data={
           slug === 'home'
@@ -166,11 +169,11 @@ export async function PostView({ slug, locale, sp }: { slug: string; locale: str
   const firstCat = cats[0]
   const trail = [
     { name: t('breadcrumb.home'), href: href('/', locale) },
-    { name: t('breadcrumb.posts'), href: href('/tim-kiem', locale) },
     ...(firstCat ? [firstCat] : []),
   ]
   return (
     <article>
+      <AdminBar collection="posts" id={post.id} locale={locale} />
       <JsonLd
         data={[
           { '@context': 'https://schema.org', '@type': 'Article', headline: post.title, description: post.excerpt ?? undefined, image: cover ? absAsset(cover) : undefined, datePublished: post.publishedAt ?? undefined, dateModified: post.updatedAt, mainEntityOfPage: absUrl(`/bai-viet/${post.slug}`, locale) },
@@ -199,7 +202,14 @@ export async function PostView({ slug, locale, sp }: { slug: string; locale: str
         )}
         {cover && <img className="ss-cover" src={cover} alt="" />}
       </header>
-      <Content content={post.content} locale={locale} sp={sp} />
+      <div className="ss-wrap ss-post-grid">
+        <div>
+          <Content content={post.content} locale={locale} sp={sp} />
+        </div>
+        <aside aria-label={t('post.sidebar')}>
+          <Area name="postSidebar" locale={locale} />
+        </aside>
+      </div>
       {!!tags.length && (
         <div className="ss-wrap">
           <ul className="ss-chips" aria-label={t('post.tags')}>

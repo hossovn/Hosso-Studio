@@ -37,10 +37,16 @@ services:
       HOSSO_WIM_WEBHOOK_SECRET: ${HOSSO_WIM_WEBHOOK_SECRET:-}
       HOSSO_WIM_TIMEOUT_MS: ${HOSSO_WIM_TIMEOUT_MS:-}
       HOSSO_WIM_CACHE_TTL: ${HOSSO_WIM_CACHE_TTL:-}
+      HOSSO_SMTP_URL: ${HOSSO_SMTP_URL:-}
+      HOSSO_MAIL_FROM: ${HOSSO_MAIL_FROM:-}
+      HOSSO_CACHE_TTL: ${HOSSO_CACHE_TTL:-60}
+      HOSSO_UPDATE_URL: ${HOSSO_UPDATE_URL:-}
+      HOSSO_BACKUP_DIR: /app/backups
     ports:
       - '${HOSSO_PORT:-3000}:3000'
     volumes:
       - media:/app/media
+      - backups:/app/backups
     extra_hosts:
       - 'host.docker.internal:host-gateway' # để container gọi mock WIM chạy trên máy host
 
@@ -54,6 +60,16 @@ services:
       disable: true
     ports: []
 
+  # Sao lưu tự động mỗi 24 giờ vào volume backups (giữ HOSSO_BACKUP_KEEP bản). Sao lưu cả DB: docker compose exec postgres pg_dump -U hosso hosso > hosso.sql
+  backup:
+    <<: *studio
+    restart: unless-stopped
+    ports: []
+    entrypoint: ['sh', '-c', 'sleep 120; while true; do pnpm studio:backup || true; sleep 86400; done']
+    healthcheck:
+      disable: true
+
 volumes:
+  backups:
   pgdata:
   media:

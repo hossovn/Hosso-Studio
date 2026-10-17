@@ -117,7 +117,9 @@ export const Nav = async ({ payload, user }: Props) => {
   const admin: NavSection['items'] = []
   admin.push({ id: 'users', label: 'Người dùng', href: isAdmin(u) ? '/admin/collections/users' : '/admin/account', icon: 'users', quick: isAdmin(u) ? { href: '/admin/collections/users/create', label: 'Thêm người dùng' } : undefined, children: isAdmin(u) ? [{ label: 'Tất cả người dùng', href: '/admin/collections/users', exact: true }, { label: 'Thêm mới', href: '/admin/collections/users/create' }, { label: 'Hồ sơ của tôi', href: '/admin/account' }] : [{ label: 'Hồ sơ của tôi', href: '/admin/account' }] })
   if (isAdmin(u))
-    admin.push({ id: 'settings', label: 'Cài đặt', href: '/admin/globals/site-settings', icon: 'sliders', children: [{ label: 'Site, menu và liên hệ', href: '/admin/globals/site-settings' }, { label: 'Sức khỏe hệ thống', href: '/api/health', external: true }] })
+    admin.push({ id: 'settings', label: 'Cài đặt', href: '/admin/globals/site-settings', icon: 'sliders', children: [{ label: 'Site, menu và liên hệ', href: '/admin/globals/site-settings' }, { label: 'Công cụ: sao lưu, mẫu site, cập nhật', href: '/admin/tools' }, { label: 'Sức khỏe hệ thống', href: '/api/health', external: true }] })
+
+  if (isAdmin(u)) admin.push({ id: 'tools', label: 'Công cụ', href: '/admin/tools', icon: 'wrench' })
 
   const sections: NavSection[] = [
     { items: content },
