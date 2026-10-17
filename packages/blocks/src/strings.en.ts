@@ -17,6 +17,8 @@ export const strings: Record<StringKey, string> = {
   'breadcrumb.posts': 'Posts',
   'breadcrumb.label': 'Breadcrumb',
   'post.sidebar': 'Sidebar',
+  'form.previewNote': 'Preview only: nothing was sent or saved.',
+  'form.previewAgain': 'Try again',
   'post.categories': 'Categories',
   'post.tags': 'Tags',
   'post.byCategory': 'Category',

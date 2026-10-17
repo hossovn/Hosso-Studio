@@ -15,6 +15,8 @@ export const strings = {
   'breadcrumb.posts': 'Bài viết',
   'breadcrumb.label': 'Đường dẫn',
   'post.sidebar': 'Cột bên cạnh',
+  'form.previewNote': 'Đây là xem trước: dữ liệu chưa được gửi hay lưu.',
+  'form.previewAgain': 'Thử lại',
   'post.categories': 'Chuyên mục',
   'post.tags': 'Thẻ',
   'post.byCategory': 'Chuyên mục',
