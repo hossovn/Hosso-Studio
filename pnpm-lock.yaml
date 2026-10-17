@@ -15,9 +15,6 @@ importers:
 
   apps/studio:
     dependencies:
-      '@hosso/plugin-wim':
-        specifier: workspace:*
-        version: link:../../packages/plugin-wim
       '@hosso/studio-blocks':
         specifier: workspace:*
         version: link:../../packages/blocks
@@ -88,31 +85,6 @@ importers:
       '@types/react':
         specifier: 19.3.0
         version: 19.3.0
-      payload:
-        specifier: 3.91.0
-        version: 3.91.0(graphql@16.14.2)(typescript@5.9.3)
-      react:
-        specifier: 19.3.1
-        version: 19.3.1
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
-
-  packages/plugin-wim:
-    dependencies:
-      '@hosso/studio-blocks':
-        specifier: workspace:*
-        version: link:../blocks
-    devDependencies:
-      '@payloadcms/ui':
-        specifier: 3.91.0
-        version: 3.91.0(@types/react@19.3.0)(monaco-editor@0.57.0)(next@16.4.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.77.4))(payload@3.91.0(graphql@16.14.2)(typescript@5.9.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@5.9.3)
-      '@types/react':
-        specifier: 19.3.0
-        version: 19.3.0
-      openapi-typescript:
-        specifier: 7.13.0
-        version: 7.13.0(typescript@5.9.3)
       payload:
         specifier: 3.91.0
         version: 3.91.0(graphql@16.14.2)(typescript@5.9.3)

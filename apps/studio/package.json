@@ -18,7 +18,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@hosso/plugin-wim": "workspace:*",
     "@hosso/studio-blocks": "workspace:*",
     "@hosso/theme-alt": "workspace:*",
     "@hosso/theme-default": "workspace:*",

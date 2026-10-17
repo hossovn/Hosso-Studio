@@ -1,5 +1,4 @@
 import { defineHossoConfig } from '@hosso/studio-blocks'
-import wim from '@hosso/plugin-wim'
 import altTheme from '@hosso/theme-alt'
 import defaultTheme from '@hosso/theme-default'
 import shopTheme from '@hosso/theme-shop'
@@ -15,6 +14,6 @@ export default defineHossoConfig({
     favicon: '/brand/wordmark.svg',
   },
   themes: [defaultTheme, altTheme, shopTheme],
-  // Gỡ plugin: xóa dòng import ở trên và `wim` ở đây; Studio vẫn chạy, block của plugin bị bỏ qua.
-  plugins: [wim],
+  // Plugin (ví dụ kết nối Hosso WIM) khai báo ở đây. Bản công khai không kèm plugin nào.
+  plugins: [],
 })
