@@ -25,8 +25,16 @@ seed/                  Trang mẫu, dữ liệu mock WIM, gói site mẫu
 - **Webhook**: `POST /api/plugins/wim/webhook`; chữ ký HMAC-SHA256(secret, `timestamp.thân`) trong `X-Hosso-Signature`, `X-Hosso-Timestamp` lệch quá 5 phút thì từ chối.
 - **Bí mật**: khóa API và bí mật webhook mã hóa AES-256-GCM (`HOSSO_ENCRYPTION_KEY`) khi lưu; API/admin chỉ trả dạng che; mã plugin dùng Web Crypto nên không kéo module Node vào bundle trình duyệt.
 
+## Đa ngôn ngữ, quyền và endpoint (đợt 5)
+
+- Ngôn ngữ: `src/proxy.ts` đọc tiền tố `/en` và đặt header `x-hosso-locale`; `lib/locale.ts` và store theo request của `@hosso/studio-blocks` (`i18n.ts`) cấp ngôn ngữ cho server; client dùng `LocaleProvider`/`useT`. Trường nội dung dùng `localization` của Payload (mảng không localize, nhãn bên trong có localize).
+- Quyền: `lib/access.ts` (admin, publisher, editor, author, moderator).
+- Endpoint tùy biến (`lib/endpoints.ts`): `/api/site/forms/:slug`, `/api/site/forms-export/:id`, `/api/site/comments`; giới hạn tần suất trong `lib/ratelimit.ts`.
+- Định tuyến công khai gom về `app/(site)/[[...slug]]` + `views/` (trang, bài viết, chuyên mục/thẻ, tìm kiếm).
+- Sidebar admin: `components/admin/Nav*.tsx` (thay `admin.components.Nav`), mục plugin qua `HossoPlugin.adminNav`.
+
 ## Giới hạn đã biết
 
 - Giỏ hàng nằm ở trình duyệt (localStorage); cache là bộ nhớ trong một tiến trình (đủ cho một cài đặt = một site).
-- Chưa có giới hạn tần suất cho form liên hệ và checkout (chỉ có ô bẫy bot).
-- Puck còn ở 0.x; xem `docs/GATE2-REPORT.md`.
+- Giới hạn tần suất là bộ nhớ trong một tiến trình (form, bình luận); checkout chỉ có ô bẫy bot.
+- Puck còn ở 0.x.
