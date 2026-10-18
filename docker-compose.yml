@@ -19,7 +19,10 @@ services:
       retries: 10
 
   studio: &studio
-    build: .
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_HOSSO_PLUGINS: ${NEXT_PUBLIC_HOSSO_PLUGINS:-} # build time: ids of enabled plugins, empty = all / lúc build: id plugin được bật, để trống là bật tất cả
     image: hosso-studio:latest # studio-tools shares this image / studio-tools dùng chung image này
     restart: unless-stopped
     depends_on:
@@ -38,6 +41,10 @@ services:
       HOSSO_WIM_WEBHOOK_SECRET: ${HOSSO_WIM_WEBHOOK_SECRET:-}
       HOSSO_WIM_TIMEOUT_MS: ${HOSSO_WIM_TIMEOUT_MS:-}
       HOSSO_WIM_CACHE_TTL: ${HOSSO_WIM_CACHE_TTL:-}
+      HOSSO_GHN_TOKEN: ${HOSSO_GHN_TOKEN:-}
+      HOSSO_GHN_API_URL: ${HOSSO_GHN_API_URL:-}
+      HOSSO_GHN_WEBHOOK_KEY: ${HOSSO_GHN_WEBHOOK_KEY:-}
+      HOSSO_SEPAY_KEY: ${HOSSO_SEPAY_KEY:-}
       HOSSO_SMTP_URL: ${HOSSO_SMTP_URL:-}
       HOSSO_MAIL_FROM: ${HOSSO_MAIL_FROM:-}
       HOSSO_UPDATE_URL: ${HOSSO_UPDATE_URL:-}

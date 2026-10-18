@@ -1,5 +1,6 @@
 import React from 'react'
 import { FormView, type FormDef } from './FormView'
+import { SliderView } from './SliderView'
 import { getDefaultLocale, getLocale, localizeHref, t } from './i18n'
 import type { BlockRenderer } from './types'
 
@@ -118,4 +119,10 @@ export const NavMenu: BlockRenderer = ({ heading, source, links, data }) => {
       {items === null ? <p className="ss-muted">…</p> : items.length ? <nav aria-label={String(heading || '')}><NavTree items={items} /></nav> : <p className="ss-muted">{t('post.empty')}</p>}
     </section>
   )
+}
+
+/** Băng chuyền banner (ảnh có thể bấm). */
+export const Slider: BlockRenderer = ({ slides, seconds }) => {
+  const list = ((slides ?? []) as { image: string; href?: string; alt?: string }[]).filter((s) => s.image)
+  return list.length ? <SliderView slides={list} seconds={Number(seconds) || 0} /> : null
 }

@@ -2,7 +2,7 @@ import type { BlockSchema, HossoPlugin, PluginManifest } from '@hosso/studio-blo
 import manifest from '../hosso.json'
 import type { CollectionConfig, Config, Endpoint, GlobalConfig, Payload } from 'payload'
 import React from 'react'
-import { FINAL, GHN_NAME, createGhnOrder, getGhnConfig, getGhnStatus, mapStatus, type Shipment } from './ghn'
+import { FINAL, GHN_NAME, createGhnOrder, getGhnConfig, getGhnFee, getGhnStatus, mapStatus, type Shipment } from './ghn'
 import { Track } from './Track'
 
 const isAdmin = ({ req }: { req: { user?: unknown } }) => Boolean((req.user as { roles?: string[] } | null)?.roles?.includes('admin'))
@@ -33,6 +33,15 @@ const Settings: GlobalConfig = {
       fields: [
         { name: 'name', type: 'text', required: true, label: bi('Tên', 'Name') },
         { name: 'trackingUrl', type: 'text', label: bi('Đường dẫn theo dõi', 'Tracking URL'), admin: { description: bi('Dùng {code} cho mã vận đơn. Để trống nếu không có.', 'Use {code} for the tracking number. Leave empty if none.') } },
+      ],
+    },
+    {
+      type: 'collapsible',
+      label: bi('Phí vận chuyển ở bước thanh toán', 'Shipping fee at checkout'),
+      fields: [
+        { name: 'flatFee', type: 'number', min: 0, defaultValue: 0, label: bi('Phí cố định mỗi đơn giao tận nơi (đ)', 'Flat fee per delivery order (VND)'), admin: { description: bi('0 là không thu phí. Dùng khi không tính phí qua GHN hoặc khi GHN không tính được.', '0 means no fee. Used when the GHN fee is off or GHN cannot calculate it.') } },
+        { name: 'freeShipOver', type: 'number', min: 0, defaultValue: 0, label: bi('Miễn phí vận chuyển cho đơn từ (đ)', 'Free shipping for orders from (VND)'), admin: { description: bi('0 là không áp dụng.', '0 means off.') } },
+        { name: 'useGhnFee', type: 'checkbox', defaultValue: false, label: bi('Tính phí theo GHN (cần bật GHN bên dưới)', 'Use the GHN fee (requires GHN below)') },
       ],
     },
     {
@@ -100,6 +109,7 @@ const Shipments: CollectionConfig = {
     { name: 'phone', type: 'text', label: bi('Điện thoại', 'Phone') },
     { name: 'address', type: 'textarea', label: bi('Địa chỉ giao', 'Delivery address') },
     { name: 'orderTotal', type: 'number', label: bi('Giá trị đơn', 'Order total') },
+    { name: 'paymentMethod', type: 'text', label: bi('Cách thanh toán', 'Payment method'), admin: { description: bi('cod: shipper thu hộ; khác: đã trả trước, COD = 0.', 'cod: the courier collects; other: prepaid, COD = 0.') } },
     { name: 'carrier', type: 'text', label: bi('Đơn vị vận chuyển', 'Carrier'), admin: { description: bi('Nhập đúng tên trong mục "Đơn vị vận chuyển" để khách có link theo dõi.', 'Use a name from "Carriers" so the customer gets a tracking link.') } },
     { name: 'trackingCode', type: 'text', label: bi('Mã vận đơn', 'Tracking number') },
     { name: 'status', type: 'select', defaultValue: 'pending', label: bi('Trạng thái', 'Status'), options: STATUSES.map((value) => ({ value, label: statusLabels[value] })) },
@@ -201,13 +211,30 @@ const plugin: HossoPlugin = {
     endpoints: [...(config.endpoints ?? []), ...endpoints],
   }),
   hooks: {
-    onOrderPlaced: async ({ payload, order, customer, fulfillment }) => {
+    // Thêm phí vận chuyển vào tổng đơn giao tận nơi: GHN (nếu bật) hoặc phí cố định; miễn phí khi đủ giá trị đơn.
+    beforeOrder: async ({ payload, draft }) => {
+      if (draft.fulfillment.type !== 'delivery') return
+      const cfg = (await payload.findGlobal({ slug: SETTINGS as any, depth: 0, overrideAccess: true }).catch(() => null)) as { flatFee?: number; freeShipOver?: number; useGhnFee?: boolean } | null
+      if (!cfg) return
+      if (cfg.freeShipOver && draft.subtotal >= cfg.freeShipOver) return
+      let fee = cfg.flatFee ?? 0
+      const ghn = cfg.useGhnFee && draft.customer.address ? await getGhnConfig(payload) : null
+      if (ghn) {
+        try {
+          fee = await getGhnFee(ghn, draft.customer.address!, draft.subtotal)
+        } catch {
+          // GHN không tính được (địa chỉ chưa nhận ra, lỗi mạng): dùng phí cố định.
+        }
+      }
+      if (fee > 0) draft.adjustments.push({ label: draft.meta.locale === 'en' ? 'Shipping fee' : 'Phí vận chuyển', amount: fee, source: 'shipping' })
+    },
+    onOrderPlaced: async ({ payload, order, customer, fulfillment, payment }) => {
       if (fulfillment.type !== 'delivery') return
       try {
         const created = (await payload.create({
           collection: 'shipments' as any,
           overrideAccess: true,
-          data: { orderId: order.id, customerName: customer.name, phone: customer.phone, address: customer.address, orderTotal: order.total },
+          data: { orderId: order.id, customerName: customer.name, phone: customer.phone, address: customer.address, orderTotal: order.total, paymentMethod: payment },
         })) as unknown as Shipment
         await tryCreateGhn(payload, created)
       } catch {

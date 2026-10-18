@@ -109,18 +109,61 @@ export type BlockLoader = (props: Record<string, any>, ctx: LoadContext) => Prom
  * Plugin đăng ký qua hosso.config.ts. Phần này chạy được ở cả server và trình duyệt (editor),
  * nên mã plugin không được import module chỉ có ở Node lúc chạy (dùng Web Crypto, fetch).
  */
-/** Sự kiện đặt đơn thành công. Plugin bán hàng (ví dụ WIM) phát ra, plugin khác (affiliate, giao vận...) lắng nghe qua `hooks`. */
+/** Một dòng hàng trong đơn. */
+export type OrderLine = { productId: string; variantId?: string; name: string; code?: string; price: number; quantity: number }
+
+/** Khoản cộng/trừ vào tổng đơn do plugin thêm (phí ship > 0, giảm giá < 0). */
+export type OrderAdjustment = { label: string; amount: number; source: string }
+
+export type OrderCustomer = { name: string; phone: string; address?: string; email?: string }
+
+/** Đơn đang soạn lúc thanh toán (chưa lưu). Plugin bán hàng tạo, các plugin khác điều chỉnh qua `hooks.beforeOrder`. */
+export type OrderDraft = {
+  items: OrderLine[]
+  subtotal: number
+  adjustments: OrderAdjustment[]
+  customer: OrderCustomer
+  fulfillment: { type: 'delivery' | 'pickup' }
+  /** Cách thanh toán khách chọn: 'cod', 'bank', ... (plugin thanh toán có thể thêm). */
+  payment: string
+  /** Dữ liệu thô từ trình duyệt cho plugin đọc (ví dụ mã giảm giá: meta.voucher). */
+  meta: Record<string, unknown>
+}
+
+/** Hook `beforeOrder` có thể từ chối đơn (ví dụ mã giảm giá sai) bằng cách trả `{ reject }`. */
+export type BeforeOrderResult = void | { reject: { code: string; message: string } }
+export type BeforeOrderEvent = { payload: Payload; headers: Headers; draft: OrderDraft; source: string }
+
+/** Sự kiện đặt đơn thành công. Plugin bán hàng (WIM, Cửa hàng) phát ra, plugin khác (affiliate, giao vận, thanh toán...) lắng nghe qua `hooks`. */
 export type OrderPlacedEvent = {
   payload: Payload
   /** Yêu cầu đặt đơn gốc: đọc cookie, header (ví dụ mã giới thiệu). */
   headers: Headers
   order: { id: string; total: number; status: string }
-  customer: { name: string; phone: string; address?: string }
+  customer: OrderCustomer
   /** Nhận tại chi nhánh hay giao tận nơi. */
   fulfillment: { type: 'delivery' | 'pickup' }
+  items?: OrderLine[]
+  subtotal?: number
+  adjustments?: OrderAdjustment[]
+  payment?: string
+  /** Dữ liệu thô từ trình duyệt (xem OrderDraft.meta). */
+  meta?: Record<string, unknown>
   /** Plugin phát sự kiện. */
   source: string
 }
+
+/** Hook `onOrderPlaced` có thể trả `{ redirectUrl }` để đưa khách sang cổng thanh toán. */
+export type OrderPlacedResult = void | { redirectUrl?: string }
+
+export type OrderStatusChangedEvent = { payload: Payload; order: { id: string; total: number; status: string; customer?: OrderCustomer }; from: string; to: string; source: string }
+
+/** Plugin thanh toán báo đơn đã được thanh toán. Plugin bán hàng đánh dấu đơn, plugin thông báo gửi tin. */
+export type OrderPaidEvent = { payload: Payload; orderNo: string; amount: number; reference?: string; source: string }
+
+/** Plugin bổ sung thông tin hiển thị cho khách khi tra cứu đơn (ví dụ mã QR chuyển khoản). */
+export type DescribeOrderEvent = { payload: Payload; order: { id: string; total: number; status: string; payment: string; paymentStatus: string } }
+export type OrderExtras = { payment?: { qrUrl?: string; note?: string } }
 
 export type HossoPlugin = {
   id: string
@@ -140,13 +183,25 @@ export type HossoPlugin = {
   /** Thêm collection, global, endpoint vào Payload (chỉ chạy lúc dựng cấu hình Payload). */
   payload?: (config: Config) => Config
   /** Global của plugin được đưa vào gói export/import; `secretFields` không bao giờ vào gói. */
-  portable?: { globals: { slug: string; secretFields: string[] }[] }
+  portable?: {
+    globals?: { slug: string; secretFields: string[] }[]
+    /** Dữ liệu riêng của plugin (ví dụ danh mục và sản phẩm của Cửa hàng): xuất ra `data/plugins/<id>.json` và nhập lại sau media. */
+    data?: { id: string; export: (payload: Payload) => Promise<unknown>; import: (payload: Payload, data: any) => Promise<void> }[]
+  }
   /** Các bước cài đặt hiện trên dashboard admin (ví dụ "Kết nối WIM"). */
   checklist?: (payload: Payload) => Promise<{ label: string; done: boolean; href: string }[]>
   /** Tìm kiếm trên site: trả kết quả của plugin (ví dụ sản phẩm). */
   search?: (query: string, payload: Payload) => Promise<{ title: string; href: string; description?: string }[]>
   /** Móc vào sự kiện của lõi/plugin khác. Lỗi trong hook chỉ được ghi log, không làm hỏng đơn hàng. */
-  hooks?: { onOrderPlaced?: (e: OrderPlacedEvent) => Promise<void> }
+  hooks?: {
+    beforeOrder?: (e: BeforeOrderEvent) => Promise<BeforeOrderResult>
+    onOrderPlaced?: (e: OrderPlacedEvent) => Promise<OrderPlacedResult>
+    onOrderStatusChanged?: (e: OrderStatusChangedEvent) => Promise<void>
+    onOrderPaid?: (e: OrderPaidEvent) => Promise<void>
+    describeOrder?: (e: DescribeOrderEvent) => Promise<OrderExtras | void>
+  }
+  /** Đường dẫn của plugin đưa vào sitemap.xml (ví dụ trang sản phẩm). */
+  sitemap?: (payload: Payload) => Promise<{ path: string; lastModified?: string }[]>
   /** Lấy dữ liệu server cho block: kết quả được truyền vào renderer qua prop `data`. */
   loaders?: Record<string, BlockLoader>
 }

@@ -1,0 +1,12 @@
+{
+  "name": "@hosso/plugin-notify",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Plugin thông báo đơn hàng bằng email cho Hosso Studio: báo chủ shop khi có đơn mới, báo khách khi đặt hàng, đổi trạng thái và đã nhận thanh toán.",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc -p ." },
+  "dependencies": { "@hosso/studio-blocks": "workspace:*" },
+  "peerDependencies": { "react": "19.3.1" },
+  "devDependencies": { "@types/react": "19.3.0", "payload": "3.91.0", "react": "19.3.1", "typescript": "5.9.3" }
+}

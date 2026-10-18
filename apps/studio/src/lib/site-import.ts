@@ -162,6 +162,10 @@ const manifest = read('manifest.json')
       const data = read(`data/plugins/${g.slug}.json`)
       if (data) await payload.updateGlobal({ slug: g.slug as any, data })
     }
+    for (const d of plugin.portable?.data ?? []) {
+      const data = read(`data/plugins/${d.id}.json`)
+      if (data) await d.import(payload, data)
+    }
   }
 
   log(M(`Đã nhập: ${stats.pages} trang mới, ${stats.pagesUpdated} trang cập nhật, ${stats.posts} bài viết, ${stats.terms} chuyên mục/thẻ, ${stats.forms} biểu mẫu, ${stats.blocks} khối dùng lại.`, `Imported: ${stats.pages} new pages, ${stats.pagesUpdated} updated pages, ${stats.posts} posts, ${stats.terms} categories/tags, ${stats.forms} forms, ${stats.blocks} reusable blocks.`))

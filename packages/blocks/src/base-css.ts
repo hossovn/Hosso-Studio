@@ -27,6 +27,14 @@ export const baseCss = `
 .ss-notfound h1{font-size:clamp(3rem,12vw,6rem);margin:0;color:var(--hs-primary)}
 .ss-notfound .ss-search{margin:1.5rem auto}
 .ss-center{text-align:center}
+.ss-slider{position:relative;max-width:76rem;margin:0 auto}
+.ss-slider ul{list-style:none;margin:0;padding:0;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.ss-slider ul::-webkit-scrollbar{display:none}
+.ss-slider li{flex:0 0 100%;scroll-snap-align:start}
+.ss-slider img{display:block;width:100%;height:auto}
+.ss-slider-dots{position:absolute;left:0;right:0;bottom:.6rem;display:flex;justify-content:center;gap:.5rem}
+.ss-slider-dots button{width:.65rem;height:.65rem;padding:0;border-radius:50%;border:0;background:rgba(0,0,0,.35);cursor:pointer}
+.ss-slider-dots button[aria-current=true]{background:var(--hs-primary)}
 .ss-trust{background:var(--hs-surface);border-top:1px solid var(--hs-border);border-bottom:1px solid var(--hs-border)}
 .ss-trust ul{list-style:none;margin:0 auto;padding:.7rem var(--hs-space);display:flex;gap:.5rem 2rem;flex-wrap:wrap;justify-content:center;font-size:.9rem;font-weight:600}
 .ss-trust li::before{content:"✓ ";color:var(--hs-primary)}

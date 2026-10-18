@@ -1,0 +1,12 @@
+{
+  "id": "accounts",
+  "type": "plugin",
+  "name": { "vi": "Tài khoản khách hàng", "en": "Customer accounts" },
+  "description": {
+    "vi": "Khách đăng ký và đăng nhập, xem lịch sử đơn hàng, lưu địa chỉ giao hàng và được tự điền thông tin khi thanh toán. Tách biệt với tài khoản quản trị. Hoạt động với plugin Cửa hàng.",
+    "en": "Customers sign up and log in, see their order history, save delivery addresses and get checkout prefilled. Kept separate from admin accounts. Works with the Shop plugin."
+  },
+  "version": "0.1.0",
+  "settings": "/admin/collections/customers",
+  "needsBuild": true
+}

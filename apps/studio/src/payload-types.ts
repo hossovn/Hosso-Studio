@@ -80,9 +80,17 @@ export interface Config {
     redirects: Redirect;
     'edit-locks': EditLock;
     users: User;
+    'shop-categories': ShopCategory;
+    'shop-products': ShopProduct;
+    'shop-reviews': ShopReview;
+    'shop-orders': ShopOrder;
     affiliates: Affiliate;
     'affiliate-referrals': AffiliateReferral;
     shipments: Shipment;
+    vouchers: Voucher;
+    payments: Payment;
+    customers: Customer;
+    'customer-orders': CustomerOrder;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -103,9 +111,17 @@ export interface Config {
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     'edit-locks': EditLocksSelect<false> | EditLocksSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    'shop-categories': ShopCategoriesSelect<false> | ShopCategoriesSelect<true>;
+    'shop-products': ShopProductsSelect<false> | ShopProductsSelect<true>;
+    'shop-reviews': ShopReviewsSelect<false> | ShopReviewsSelect<true>;
+    'shop-orders': ShopOrdersSelect<false> | ShopOrdersSelect<true>;
     affiliates: AffiliatesSelect<false> | AffiliatesSelect<true>;
     'affiliate-referrals': AffiliateReferralsSelect<false> | AffiliateReferralsSelect<true>;
     shipments: ShipmentsSelect<false> | ShipmentsSelect<true>;
+    vouchers: VouchersSelect<false> | VouchersSelect<true>;
+    payments: PaymentsSelect<false> | PaymentsSelect<true>;
+    customers: CustomersSelect<false> | CustomersSelect<true>;
+    'customer-orders': CustomerOrdersSelect<false> | CustomerOrdersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -119,13 +135,21 @@ export interface Config {
     'site-settings': SiteSetting;
     'site-areas': SiteArea;
     'wim-settings': WimSetting;
+    'shop-settings': ShopSetting;
     'shipping-settings': ShippingSetting;
+    'payment-settings': PaymentSetting;
+    'notify-settings': NotifySetting;
+    'analytics-settings': AnalyticsSetting;
   };
   globalsSelect: {
     'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
     'site-areas': SiteAreasSelect<false> | SiteAreasSelect<true>;
     'wim-settings': WimSettingsSelect<false> | WimSettingsSelect<true>;
+    'shop-settings': ShopSettingsSelect<false> | ShopSettingsSelect<true>;
     'shipping-settings': ShippingSettingsSelect<false> | ShippingSettingsSelect<true>;
+    'payment-settings': PaymentSettingsSelect<false> | PaymentSettingsSelect<true>;
+    'notify-settings': NotifySettingsSelect<false> | NotifySettingsSelect<true>;
+    'analytics-settings': AnalyticsSettingsSelect<false> | AnalyticsSettingsSelect<true>;
   };
   locale: 'vi' | 'en';
   widgets: {
@@ -428,6 +452,132 @@ export interface EditLock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shop-categories".
+ */
+export interface ShopCategory {
+  id: number;
+  name: string;
+  /**
+   * Generated from the name if left empty.
+   */
+  slug?: string | null;
+  parent?: (number | null) | ShopCategory;
+  image?: (number | null) | Media;
+  order?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shop-products".
+ */
+export interface ShopProduct {
+  id: number;
+  name: string;
+  slug?: string | null;
+  code?: string | null;
+  active?: boolean | null;
+  category?: (number | null) | ShopCategory;
+  brand?: string | null;
+  price: number;
+  /**
+   * Leave empty for no discount. Must be lower than the price.
+   */
+  salePrice?: number | null;
+  /**
+   * Ignored when the product has variants (each variant has its own stock).
+   */
+  stock: number;
+  /**
+   * When variants exist, customers must pick one. An empty price uses the product price.
+   */
+  variants?:
+    | {
+        name: string;
+        sku?: string | null;
+        price?: number | null;
+        stock?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Lowercase, no accents (for example toyota, kia). Used by the ?make= filter.
+   */
+  makes?: string[] | null;
+  images?:
+    | {
+        image: number | Media;
+        id?: string | null;
+      }[]
+    | null;
+  description?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shop-reviews".
+ */
+export interface ShopReview {
+  id: number;
+  product: number | ShopProduct;
+  name: string;
+  rating: number;
+  comment?: string | null;
+  status?: ('pending' | 'approved' | 'rejected') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shop-orders".
+ */
+export interface ShopOrder {
+  id: number;
+  orderNo?: string | null;
+  cartId?: string | null;
+  status: 'new' | 'confirmed' | 'shipping' | 'completed' | 'cancelled';
+  subtotal?: number | null;
+  /**
+   * Shipping fees (positive) and discounts (negative) added by plugins.
+   */
+  adjustments?:
+    | {
+        label?: string | null;
+        amount?: number | null;
+        source?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  total?: number | null;
+  paymentStatus?: ('unpaid' | 'paid' | 'refunded') | null;
+  email?: string | null;
+  /**
+   * cod = cash on delivery, bank = bank transfer.
+   */
+  paymentMethod?: string | null;
+  fulfillmentType?: ('delivery' | 'pickup') | null;
+  customerName?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  note?: string | null;
+  items?:
+    | {
+        productId: string;
+        variantId?: string | null;
+        name?: string | null;
+        code?: string | null;
+        price?: number | null;
+        quantity?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  restocked?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "affiliates".
  */
 export interface Affiliate {
@@ -481,6 +631,10 @@ export interface Shipment {
   address?: string | null;
   orderTotal?: number | null;
   /**
+   * cod: the courier collects; other: prepaid, COD = 0.
+   */
+  paymentMethod?: string | null;
+  /**
    * Use a name from "Carriers" so the customer gets a tracking link.
    */
   carrier?: string | null;
@@ -495,6 +649,76 @@ export interface Shipment {
   ghnStatus?: string | null;
   ghnError?: string | null;
   syncedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "vouchers".
+ */
+export interface Voucher {
+  id: number;
+  /**
+   * Customers enter this at checkout (case-insensitive).
+   */
+  code: string;
+  type: 'percent' | 'fixed' | 'freeship';
+  value?: number | null;
+  minTotal?: number | null;
+  /**
+   * 0 means unlimited.
+   */
+  maxUses?: number | null;
+  usedCount?: number | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payments".
+ */
+export interface Payment {
+  id: number;
+  orderNo: string;
+  amount: number;
+  status?: ('pending' | 'paid' | 'underpaid') | null;
+  paidAmount?: number | null;
+  transactionId?: string | null;
+  paidAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customers".
+ */
+export interface Customer {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string | null;
+  passwordHash?: string | null;
+  addresses?:
+    | {
+        label?: string | null;
+        address: string;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-orders".
+ */
+export interface CustomerOrder {
+  id: number;
+  customer: number | Customer;
+  orderNo: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -575,6 +799,22 @@ export interface PayloadLockedDocument {
         value: number | User;
       } | null)
     | ({
+        relationTo: 'shop-categories';
+        value: number | ShopCategory;
+      } | null)
+    | ({
+        relationTo: 'shop-products';
+        value: number | ShopProduct;
+      } | null)
+    | ({
+        relationTo: 'shop-reviews';
+        value: number | ShopReview;
+      } | null)
+    | ({
+        relationTo: 'shop-orders';
+        value: number | ShopOrder;
+      } | null)
+    | ({
         relationTo: 'affiliates';
         value: number | Affiliate;
       } | null)
@@ -585,6 +825,22 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'shipments';
         value: number | Shipment;
+      } | null)
+    | ({
+        relationTo: 'vouchers';
+        value: number | Voucher;
+      } | null)
+    | ({
+        relationTo: 'payments';
+        value: number | Payment;
+      } | null)
+    | ({
+        relationTo: 'customers';
+        value: number | Customer;
+      } | null)
+    | ({
+        relationTo: 'customer-orders';
+        value: number | CustomerOrder;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -833,6 +1089,107 @@ export interface UsersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shop-categories_select".
+ */
+export interface ShopCategoriesSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  parent?: T;
+  image?: T;
+  order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shop-products_select".
+ */
+export interface ShopProductsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  code?: T;
+  active?: T;
+  category?: T;
+  brand?: T;
+  price?: T;
+  salePrice?: T;
+  stock?: T;
+  variants?:
+    | T
+    | {
+        name?: T;
+        sku?: T;
+        price?: T;
+        stock?: T;
+        id?: T;
+      };
+  makes?: T;
+  images?:
+    | T
+    | {
+        image?: T;
+        id?: T;
+      };
+  description?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shop-reviews_select".
+ */
+export interface ShopReviewsSelect<T extends boolean = true> {
+  product?: T;
+  name?: T;
+  rating?: T;
+  comment?: T;
+  status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shop-orders_select".
+ */
+export interface ShopOrdersSelect<T extends boolean = true> {
+  orderNo?: T;
+  cartId?: T;
+  status?: T;
+  subtotal?: T;
+  adjustments?:
+    | T
+    | {
+        label?: T;
+        amount?: T;
+        source?: T;
+        id?: T;
+      };
+  total?: T;
+  paymentStatus?: T;
+  email?: T;
+  paymentMethod?: T;
+  fulfillmentType?: T;
+  customerName?: T;
+  phone?: T;
+  address?: T;
+  note?: T;
+  items?:
+    | T
+    | {
+        productId?: T;
+        variantId?: T;
+        name?: T;
+        code?: T;
+        price?: T;
+        quantity?: T;
+        id?: T;
+      };
+  restocked?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "affiliates_select".
  */
 export interface AffiliatesSelect<T extends boolean = true> {
@@ -876,6 +1233,7 @@ export interface ShipmentsSelect<T extends boolean = true> {
   phone?: T;
   address?: T;
   orderTotal?: T;
+  paymentMethod?: T;
   carrier?: T;
   trackingCode?: T;
   status?: T;
@@ -885,6 +1243,66 @@ export interface ShipmentsSelect<T extends boolean = true> {
   ghnStatus?: T;
   ghnError?: T;
   syncedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "vouchers_select".
+ */
+export interface VouchersSelect<T extends boolean = true> {
+  code?: T;
+  type?: T;
+  value?: T;
+  minTotal?: T;
+  maxUses?: T;
+  usedCount?: T;
+  startsAt?: T;
+  endsAt?: T;
+  active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payments_select".
+ */
+export interface PaymentsSelect<T extends boolean = true> {
+  orderNo?: T;
+  amount?: T;
+  status?: T;
+  paidAmount?: T;
+  transactionId?: T;
+  paidAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customers_select".
+ */
+export interface CustomersSelect<T extends boolean = true> {
+  name?: T;
+  email?: T;
+  phone?: T;
+  passwordHash?: T;
+  addresses?:
+    | T
+    | {
+        label?: T;
+        address?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-orders_select".
+ */
+export interface CustomerOrdersSelect<T extends boolean = true> {
+  customer?: T;
+  orderNo?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -990,7 +1408,7 @@ export interface SiteSetting {
   };
   commentsEnabled?: boolean | null;
   commentsAutoApprove?: boolean | null;
-  theme: 'default' | 'alt' | 'shop';
+  theme: 'default' | 'alt' | 'shop' | 'auto';
   tokens_default?: {
     /**
      * Mặc định: #ffffff
@@ -1123,6 +1541,58 @@ export interface SiteSetting {
     radius?: string | null;
     spacing?: string | null;
   };
+  tokens_auto?: {
+    /**
+     * Mặc định: #ffffff
+     */
+    color_bg?: string | null;
+    /**
+     * Mặc định: #f5f5f5
+     */
+    color_surface?: string | null;
+    /**
+     * Mặc định: #111111
+     */
+    color_text?: string | null;
+    /**
+     * Mặc định: #555555
+     */
+    color_muted?: string | null;
+    /**
+     * Mặc định: #b45309
+     */
+    color_primary?: string | null;
+    /**
+     * Mặc định: #ffffff
+     */
+    color_onPrimary?: string | null;
+    /**
+     * Mặc định: #e4e4e7
+     */
+    color_border?: string | null;
+    /**
+     * Mặc định: #f5a31a
+     */
+    color_accent?: string | null;
+    /**
+     * Mặc định: #111111
+     */
+    color_onAccent?: string | null;
+    /**
+     * Mặc định: #0a0a0a
+     */
+    color_dark?: string | null;
+    /**
+     * Mặc định: Be Vietnam Pro
+     */
+    fontBody?: ('be-vietnam-pro' | 'barlow' | 'jetbrains-mono') | null;
+    /**
+     * Mặc định: Be Vietnam Pro
+     */
+    fontHeading?: ('be-vietnam-pro' | 'barlow' | 'jetbrains-mono') | null;
+    radius?: string | null;
+    spacing?: string | null;
+  };
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1218,6 +1688,19 @@ export interface WimSetting {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shop-settings".
+ */
+export interface ShopSetting {
+  id: number;
+  /**
+   * Shown when the customer picks bank transfer. Leave empty to offer COD only.
+   */
+  bankInfo?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "shipping-settings".
  */
 export interface ShippingSetting {
@@ -1232,11 +1715,68 @@ export interface ShippingSetting {
         id?: string | null;
       }[]
     | null;
+  /**
+   * 0 means no fee. Used when the GHN fee is off or GHN cannot calculate it.
+   */
+  flatFee?: number | null;
+  /**
+   * 0 means off.
+   */
+  freeShipOver?: number | null;
+  useGhnFee?: boolean | null;
   ghnEnabled?: boolean | null;
   ghnSandbox?: boolean | null;
   ghnShopId?: number | null;
   ghnWeight?: number | null;
   ghnRequiredNote?: ('CHOTHUHANG' | 'CHOXEMHANGKHONGTHU' | 'KHONGCHOXEMHANG') | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-settings".
+ */
+export interface PaymentSetting {
+  id: number;
+  /**
+   * Short name or BIN as used by VietQR, for example MB, VCB, TCB, ACB, 970422.
+   */
+  bank?: string | null;
+  accountNumber?: string | null;
+  accountName?: string | null;
+  /**
+   * For example: the order is confirmed a few minutes after the money arrives.
+   */
+  note?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "notify-settings".
+ */
+export interface NotifySetting {
+  id: number;
+  /**
+   * Several addresses separated by commas. Leave empty to skip owner notifications.
+   */
+  adminEmail?: string | null;
+  toCustomer?: boolean | null;
+  onStatus?: boolean | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-settings".
+ */
+export interface AnalyticsSetting {
+  id: number;
+  ga4Id?: string | null;
+  /**
+   * Digits only.
+   */
+  fbPixelId?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1326,6 +1866,24 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         radius?: T;
         spacing?: T;
       };
+  tokens_auto?:
+    | T
+    | {
+        color_bg?: T;
+        color_surface?: T;
+        color_text?: T;
+        color_muted?: T;
+        color_primary?: T;
+        color_onPrimary?: T;
+        color_border?: T;
+        color_accent?: T;
+        color_onAccent?: T;
+        color_dark?: T;
+        fontBody?: T;
+        fontHeading?: T;
+        radius?: T;
+        spacing?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -1367,6 +1925,16 @@ export interface WimSettingsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shop-settings_select".
+ */
+export interface ShopSettingsSelect<T extends boolean = true> {
+  bankInfo?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "shipping-settings_select".
  */
 export interface ShippingSettingsSelect<T extends boolean = true> {
@@ -1377,11 +1945,50 @@ export interface ShippingSettingsSelect<T extends boolean = true> {
         trackingUrl?: T;
         id?: T;
       };
+  flatFee?: T;
+  freeShipOver?: T;
+  useGhnFee?: T;
   ghnEnabled?: T;
   ghnSandbox?: T;
   ghnShopId?: T;
   ghnWeight?: T;
   ghnRequiredNote?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-settings_select".
+ */
+export interface PaymentSettingsSelect<T extends boolean = true> {
+  bank?: T;
+  accountNumber?: T;
+  accountName?: T;
+  note?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "notify-settings_select".
+ */
+export interface NotifySettingsSelect<T extends boolean = true> {
+  adminEmail?: T;
+  toCustomer?: T;
+  onStatus?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-settings_select".
+ */
+export interface AnalyticsSettingsSelect<T extends boolean = true> {
+  ga4Id?: T;
+  fbPixelId?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

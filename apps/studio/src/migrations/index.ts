@@ -6,6 +6,7 @@ import * as migration_20261017_031543_i18n_nav from './20261017_031543_i18n_nav'
 import * as migration_20261017_034617_ops_features from './20261017_034617_ops_features';
 import * as migration_20261017_042751_menu_tree from './20261017_042751_menu_tree';
 import * as migration_20261017_050000_poc_data_restore from './20261017_050000_poc_data_restore';
+import * as migration_20261018_103453_commerce_plugins from './20261018_103453_commerce_plugins';
 
 export const migrations = [
   {
@@ -47,5 +48,10 @@ export const migrations = [
     up: migration_20261017_050000_poc_data_restore.up,
     down: migration_20261017_050000_poc_data_restore.down,
     name: '20261017_050000_poc_data_restore',
+  },
+  {
+    up: migration_20261018_103453_commerce_plugins.up,
+    down: migration_20261018_103453_commerce_plugins.down,
+    name: '20261018_103453_commerce_plugins'
   },
 ];

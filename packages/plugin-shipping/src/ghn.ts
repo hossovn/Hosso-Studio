@@ -16,6 +16,7 @@ export type Shipment = {
   phone?: string
   address?: string
   orderTotal?: number
+  paymentMethod?: string
   districtId?: number
   wardCode?: string
   carrier?: string
@@ -108,7 +109,8 @@ export async function createGhnOrder(cfg: GhnConfig, s: Shipment) {
     to_address: s.address,
     to_district_id: where.districtId,
     to_ward_code: where.wardCode,
-    cod_amount: Math.round(s.orderTotal ?? 0),
+    // Đơn đã trả trước (chuyển khoản) thì shipper không thu tiền.
+    cod_amount: s.paymentMethod && s.paymentMethod !== 'cod' ? 0 : Math.round(s.orderTotal ?? 0),
     weight: cfg.weight,
     items: [{ name: `Đơn hàng ${s.orderId}`, quantity: 1, weight: cfg.weight }],
   })
@@ -131,3 +133,16 @@ export function mapStatus(ghn: string): string | undefined {
 }
 
 export const FINAL = ['delivered', 'returned', 'cancelled']
+
+/** Phí vận chuyển GHN cho địa chỉ nhập tay (tự nhận mã quận/phường như khi tạo đơn). */
+export async function getGhnFee(cfg: GhnConfig, address: string, insuranceValue: number) {
+  const where = await resolveAddress(cfg, address)
+  const data = await call<{ total: number }>(cfg, '/v2/shipping-order/fee', {
+    service_type_id: 2,
+    to_district_id: where.districtId,
+    to_ward_code: where.wardCode,
+    weight: cfg.weight,
+    insurance_value: Math.round(insuranceValue),
+  })
+  return Math.round(data.total)
+}

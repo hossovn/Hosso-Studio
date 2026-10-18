@@ -162,6 +162,7 @@ export async function buildSitePackage(payload: Payload) {
       }
       json(`data/plugins/${g.slug}.json`, doc)
     }
+    for (const d of plugin.portable?.data ?? []) json(`data/plugins/${d.id}.json`, await d.export(payload))
   }
 
   // ---------- Media ----------

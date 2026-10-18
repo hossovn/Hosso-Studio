@@ -29,6 +29,7 @@ http
       orders.set(code, { ...b, status: 'ready_to_pick' })
       return send(res, { order_code: code })
     }
+    if (p === '/v2/shipping-order/fee') return b.to_district_id && b.to_ward_code ? send(res, { total: 22000 }) : send(res, null, 400, 'missing address')
     if (p === '/v2/shipping-order/detail') return orders.has(b.order_code) ? send(res, { order_code: b.order_code, status: orders.get(b.order_code).status }) : send(res, null, 400, 'order not found')
     if (p === '/_mock/status') { orders.get(b.order_code).status = b.status; return send(res, {}) }
     if (p === '/_mock/orders') return send(res, [...orders])
