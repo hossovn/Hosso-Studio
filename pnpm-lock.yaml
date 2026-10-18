@@ -15,6 +15,12 @@ importers:
 
   apps/studio:
     dependencies:
+      '@hosso/plugin-affiliate':
+        specifier: workspace:*
+        version: link:../../packages/plugin-affiliate
+      '@hosso/plugin-shipping':
+        specifier: workspace:*
+        version: link:../../packages/plugin-shipping
       '@hosso/plugin-wim':
         specifier: workspace:*
         version: link:../../packages/plugin-wim
@@ -96,6 +102,44 @@ importers:
         version: 5.9.3
 
   packages/blocks:
+    devDependencies:
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
+      payload:
+        specifier: 3.91.0
+        version: 3.91.0(graphql@16.14.2)(typescript@5.9.3)
+      react:
+        specifier: 19.3.1
+        version: 19.3.1
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/plugin-affiliate:
+    dependencies:
+      '@hosso/studio-blocks':
+        specifier: workspace:*
+        version: link:../blocks
+    devDependencies:
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
+      payload:
+        specifier: 3.91.0
+        version: 3.91.0(graphql@16.14.2)(typescript@5.9.3)
+      react:
+        specifier: 19.3.1
+        version: 19.3.1
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/plugin-shipping:
+    dependencies:
+      '@hosso/studio-blocks':
+        specifier: workspace:*
+        version: link:../blocks
     devDependencies:
       '@types/react':
         specifier: 19.3.0

@@ -80,6 +80,9 @@ export interface Config {
     redirects: Redirect;
     'edit-locks': EditLock;
     users: User;
+    affiliates: Affiliate;
+    'affiliate-referrals': AffiliateReferral;
+    shipments: Shipment;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -100,6 +103,9 @@ export interface Config {
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     'edit-locks': EditLocksSelect<false> | EditLocksSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    affiliates: AffiliatesSelect<false> | AffiliatesSelect<true>;
+    'affiliate-referrals': AffiliateReferralsSelect<false> | AffiliateReferralsSelect<true>;
+    shipments: ShipmentsSelect<false> | ShipmentsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -113,11 +119,13 @@ export interface Config {
     'site-settings': SiteSetting;
     'site-areas': SiteArea;
     'wim-settings': WimSetting;
+    'shipping-settings': ShippingSetting;
   };
   globalsSelect: {
     'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
     'site-areas': SiteAreasSelect<false> | SiteAreasSelect<true>;
     'wim-settings': WimSettingsSelect<false> | WimSettingsSelect<true>;
+    'shipping-settings': ShippingSettingsSelect<false> | ShippingSettingsSelect<true>;
   };
   locale: 'vi' | 'en';
   widgets: {
@@ -420,6 +428,78 @@ export interface EditLock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliates".
+ */
+export interface Affiliate {
+  id: number;
+  name: string;
+  /**
+   * Referral link: https://your-site/?ref=CODE
+   */
+  code: string;
+  email: string;
+  passwordHash?: string | null;
+  bankInfo?: string | null;
+  /**
+   * Picked by the partner in the partner portal.
+   */
+  picks?:
+    | {
+        title: string;
+        href: string;
+        id?: string | null;
+      }[]
+    | null;
+  commissionPct?: number | null;
+  active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliate-referrals".
+ */
+export interface AffiliateReferral {
+  id: number;
+  affiliate: number | Affiliate;
+  orderId: string;
+  orderTotal?: number | null;
+  commission?: number | null;
+  status?: ('pending' | 'approved' | 'paid' | 'cancelled') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shipments".
+ */
+export interface Shipment {
+  id: number;
+  orderId: string;
+  customerName?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  orderTotal?: number | null;
+  /**
+   * Use a name from "Carriers" so the customer gets a tracking link.
+   */
+  carrier?: string | null;
+  trackingCode?: string | null;
+  status?: ('pending' | 'handed_over' | 'delivering' | 'delivered' | 'returned' | 'cancelled') | null;
+  note?: string | null;
+  /**
+   * Detected from the address; fill in manually if GHN could not detect it, then save to retry.
+   */
+  districtId?: number | null;
+  wardCode?: string | null;
+  ghnStatus?: string | null;
+  ghnError?: string | null;
+  syncedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -493,6 +573,18 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'users';
         value: number | User;
+      } | null)
+    | ({
+        relationTo: 'affiliates';
+        value: number | Affiliate;
+      } | null)
+    | ({
+        relationTo: 'affiliate-referrals';
+        value: number | AffiliateReferral;
+      } | null)
+    | ({
+        relationTo: 'shipments';
+        value: number | Shipment;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -738,6 +830,63 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliates_select".
+ */
+export interface AffiliatesSelect<T extends boolean = true> {
+  name?: T;
+  code?: T;
+  email?: T;
+  passwordHash?: T;
+  bankInfo?: T;
+  picks?:
+    | T
+    | {
+        title?: T;
+        href?: T;
+        id?: T;
+      };
+  commissionPct?: T;
+  active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliate-referrals_select".
+ */
+export interface AffiliateReferralsSelect<T extends boolean = true> {
+  affiliate?: T;
+  orderId?: T;
+  orderTotal?: T;
+  commission?: T;
+  status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shipments_select".
+ */
+export interface ShipmentsSelect<T extends boolean = true> {
+  orderId?: T;
+  customerName?: T;
+  phone?: T;
+  address?: T;
+  orderTotal?: T;
+  carrier?: T;
+  trackingCode?: T;
+  status?: T;
+  note?: T;
+  districtId?: T;
+  wardCode?: T;
+  ghnStatus?: T;
+  ghnError?: T;
+  syncedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1069,6 +1218,30 @@ export interface WimSetting {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shipping-settings".
+ */
+export interface ShippingSetting {
+  id: number;
+  carriers?:
+    | {
+        name: string;
+        /**
+         * Use {code} for the tracking number. Leave empty if none.
+         */
+        trackingUrl?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  ghnEnabled?: boolean | null;
+  ghnSandbox?: boolean | null;
+  ghnShopId?: number | null;
+  ghnWeight?: number | null;
+  ghnRequiredNote?: ('CHOTHUHANG' | 'CHOXEMHANGKHONGTHU' | 'KHONGCHOXEMHANG') | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site-settings_select".
  */
 export interface SiteSettingsSelect<T extends boolean = true> {
@@ -1188,6 +1361,27 @@ export interface WimSettingsSelect<T extends boolean = true> {
         label?: T;
         id?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shipping-settings_select".
+ */
+export interface ShippingSettingsSelect<T extends boolean = true> {
+  carriers?:
+    | T
+    | {
+        name?: T;
+        trackingUrl?: T;
+        id?: T;
+      };
+  ghnEnabled?: T;
+  ghnSandbox?: T;
+  ghnShopId?: T;
+  ghnWeight?: T;
+  ghnRequiredNote?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

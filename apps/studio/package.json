@@ -20,6 +20,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@hosso/plugin-affiliate": "workspace:*",
+    "@hosso/plugin-shipping": "workspace:*",
     "@hosso/plugin-wim": "workspace:*",
     "@hosso/studio-blocks": "workspace:*",
     "@hosso/theme-alt": "workspace:*",

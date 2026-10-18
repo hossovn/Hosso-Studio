@@ -135,6 +135,7 @@ export const Nav = async ({ payload, user, i18n }: Props) => {
     admin.push({ id: 'settings', label: 'Cài đặt', href: '/admin/globals/site-settings', icon: 'sliders', children: [{ label: 'Site, menu và liên hệ', href: '/admin/globals/site-settings' }, { label: 'Công cụ: sao lưu, mẫu site, cập nhật', href: '/admin/tools' }, { label: 'Sức khỏe hệ thống', href: '/api/health', external: true }] })
 
   if (isAdmin(u)) admin.push({ id: 'tools', label: 'Công cụ', href: '/admin/tools', icon: 'wrench' })
+  if (isAdmin(u)) admin.push({ id: 'plugin-list', label: 'Quản lý plugin', href: '/admin/plugins', icon: 'plug' })
 
   const sections = translateSections(
     [{ items: content }, ...(look.length ? [{ title: 'Giao diện', items: look }] : []), { title: 'Quản trị', items: admin }],

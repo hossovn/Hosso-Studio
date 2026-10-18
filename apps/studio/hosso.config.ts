@@ -1,4 +1,6 @@
 import { defineHossoConfig } from '@hosso/studio-blocks'
+import affiliate from '@hosso/plugin-affiliate'
+import shipping from '@hosso/plugin-shipping'
 import wim from '@hosso/plugin-wim'
 import altTheme from '@hosso/theme-alt'
 import defaultTheme from '@hosso/theme-default'
@@ -21,5 +23,5 @@ export default defineHossoConfig({
   ],
   themes: [defaultTheme, altTheme, shopTheme],
   // Gỡ plugin: xóa dòng import ở trên và `wim` ở đây; Studio vẫn chạy, block của plugin bị bỏ qua.
-  plugins: [wim],
+  plugins: [wim, affiliate, shipping],
 })

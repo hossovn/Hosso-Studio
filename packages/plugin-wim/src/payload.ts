@@ -1,3 +1,4 @@
+import { emitOrderPlaced } from '@hosso/studio-blocks'
 import type { Config, Endpoint, FieldHook, GlobalConfig, PayloadRequest } from 'payload'
 import { wimGet } from './client'
 import { MASK, SETTINGS_SLUG, clearConfigMemo, getWimConfig } from './config'
@@ -105,6 +106,10 @@ const endpoints: Endpoint[] = [
         return json({ ok: false, code: 'bad_request', message: msg(req, 'Yêu cầu không hợp lệ', 'Invalid request') }, 400)
       }
       const result = await placeOrder(req.payload, body ?? {})
+      if (result.body.ok) {
+        const c = body?.customer
+        await emitOrderPlaced(req.payload, { headers: req.headers, order: result.body.order, customer: { name: String(c?.name ?? ''), phone: String(c?.phone ?? ''), address: String(c?.address ?? '') }, fulfillment: { type: body?.fulfillment?.type === 'pickup' ? 'pickup' : 'delivery' }, source: 'wim' })
+      }
       return json(result.body, result.status)
     },
   },

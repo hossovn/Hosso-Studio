@@ -252,6 +252,12 @@ pnpm dev
 
 `pnpm dev` tự chạy `generate:importmap` của Payload trước khi khởi động.
 
+### Phiếu thông tin và bật/tắt plugin
+
+Mỗi plugin có tệp `hosso.json` ở thư mục gốc (id, loại `plugin`, tên và mô tả vi/en, version, trang quản lý, `needsBuild`). Plugin nạp tệp này vào `manifest` của đối tượng plugin; trang **Quản lý plugin** trong admin (`/admin/plugins`) liệt kê plugin đã cài từ đó. Xem mẫu ở `packages/plugin-affiliate`.
+
+Biến `NEXT_PUBLIC_HOSSO_PLUGINS` (id cách nhau bằng dấu phẩy, ví dụ `wim,shipping`) chọn plugin nào bật; để trống là bật tất cả. Next nhúng biến này lúc build nên đổi giá trị cần dựng lại. Tắt một plugin giống gỡ nó: ở chế độ dev Payload hỏi xác nhận xóa bảng của plugin lúc khởi động.
+
 ### Gỡ plugin
 
 Xóa dòng import và mục trong `plugins` ở `hosso.config.ts`. Site vẫn chạy, block của plugin bị bỏ qua. Ở chế độ dev, Payload có thể hỏi xác nhận xóa bảng cài đặt của plugin lúc khởi động. Đây là hành vi mong muốn: hãy thử cả việc gỡ plugin của bạn để chắc chắn site không sập.

@@ -1,4 +1,5 @@
 export * from './types'
+export { emitOrderPlaced } from './events'
 export * from './core-blocks'
 export { strings } from './strings.vi'
 export { DEFAULT_LOCALE, getDefaultLocale, getLocale, localizeHref, setLocale, t, translate, type StringKey } from './i18n'
