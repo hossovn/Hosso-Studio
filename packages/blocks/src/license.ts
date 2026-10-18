@@ -3,13 +3,14 @@ import type { HossoPlugin } from './types'
 // Giấy phép cho plugin thương mại (mã đóng, phân phối riêng). Key là chuỗi đã ký số Ed25519, kiểm tra OFFLINE bằng khóa công khai bên dưới:
 //   HLK1.<payload JSON base64url>.<chữ ký base64url>
 // payload: { v: 1, tenant, plugins: ["payment", ...] | "*", exp (giây Unix), hosts?: ["shop.vn"] }
+// Tùy chọn: đặt HOSSO_LICENSE_SERVER=https://<máy chủ cấp phát> để hỏi online key (có trường id) đã bị thu hồi chưa. Máy chủ không trả lời thì vẫn cho chạy; kết quả được nhớ 5 phút.
 // Khách đặt key vào biến môi trường HOSSO_LICENSE_KEY. Khóa riêng (để cấp key) nằm trong repo private của plugin, không nằm ở đây.
 // Chạy production (hoặc HOSSO_LICENSE_ENFORCE=1) thì plugin không có giấy phép hợp lệ sẽ tự vô hiệu; chạy dev thì cho dùng thử và chỉ ghi cảnh báo.
 
 const PUBLIC_KEY = '4360E+JcVQWq2pP7iL8BSfekRX+erao2+PWBsCPj3x0='
 
-export type LicenseResult = { ok: boolean; reason?: 'missing' | 'invalid' | 'expired' | 'plugin' | 'host'; tenant?: string; exp?: number }
-type Claims = { v?: number; tenant?: string; plugins?: string[] | '*'; exp?: number; hosts?: string[] }
+export type LicenseResult = { ok: boolean; reason?: 'missing' | 'invalid' | 'expired' | 'plugin' | 'host' | 'revoked'; tenant?: string; exp?: number }
+type Claims = { v?: number; id?: string; tenant?: string; plugins?: string[] | '*'; exp?: number; hosts?: string[] }
 
 const b64 = (s: string) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0))
 
@@ -50,6 +51,15 @@ async function verify(pluginId: string, key: string | undefined, now: number): P
     const local = host === 'localhost' || host === '127.0.0.1'
     if (!local && !claims.hosts.some((h) => host === h || host.endsWith(`.${h}`))) return { ok: false, reason: 'host', ...base }
   }
+  const server = process.env.HOSSO_LICENSE_SERVER?.replace(/\/+$/, '')
+  if (server && claims.id) {
+    try {
+      const res = await fetch(`${server}/api/check/${encodeURIComponent(claims.id)}`, { signal: AbortSignal.timeout(3000) })
+      if (res.ok && ((await res.json()) as { revoked?: boolean }).revoked) return { ok: false, reason: 'revoked', ...base }
+    } catch {
+      /* máy chủ cấp phát không trả lời: không phạt khách */
+    }
+  }
   return { ok: true, ...base }
 }
 
@@ -67,7 +77,7 @@ export async function licensed(pluginId: string): Promise<boolean> {
   return true
 }
 
-const WHY: Record<string, string> = { missing: 'chưa có HOSSO_LICENSE_KEY', invalid: 'key không hợp lệ', expired: 'key đã hết hạn', plugin: 'key không gồm plugin này', host: 'key không dùng cho tên miền này' }
+const WHY: Record<string, string> = { missing: 'chưa có HOSSO_LICENSE_KEY', invalid: 'key không hợp lệ', expired: 'key đã hết hạn', plugin: 'key không gồm plugin này', host: 'key không dùng cho tên miền này', revoked: 'key đã bị thu hồi' }
 
 /**
  * Bọc plugin thương mại bằng kiểm tra giấy phép: hook, endpoint, loader và tìm kiếm của plugin chỉ chạy khi `licensed(id)`;

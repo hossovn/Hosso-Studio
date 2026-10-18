@@ -48,6 +48,7 @@ Plugin thương mại (`promotions`, `shipping`, `payment`, `notify`, `analytics
 
 - Key là chuỗi `HLK1.<payload>.<chữ ký>` ký Ed25519, kiểm tra offline bằng khóa công khai nằm trong `packages/blocks/src/license.ts`. Payload gồm khách (`tenant`), danh sách plugin (hoặc `*`), hạn dùng và (tùy chọn) tên miền.
 - Production (hoặc `HOSSO_LICENSE_ENFORCE=1`) mà không có key hợp lệ: hook, endpoint (trả 402), loader của plugin bị vô hiệu; site và các plugin mở vẫn chạy. Chạy dev thì cho dùng thử.
+- Tùy chọn `HOSSO_LICENSE_SERVER=<máy chủ cấp phát>`: Studio hỏi online (kết quả nhớ 5 phút) xem key có bị thu hồi chưa; máy chủ không trả lời thì vẫn chạy.
 - Admin → Quản lý plugin hiện tình trạng giấy phép; dashboard có bước "Giấy phép plugin ...".
 - Muốn mua giấy phép hoặc plugin: liên hệ Hosso. Người viết plugin thương mại bọc plugin bằng `withLicense(plugin)` từ `@hosso/studio-blocks`.
 

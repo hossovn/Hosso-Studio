@@ -48,6 +48,7 @@ Commercial plugins (`promotions`, `shipping`, `payment`, `notify`, `analytics`, 
 
 - The key is an Ed25519-signed string `HLK1.<payload>.<signature>`, verified offline with the public key in `packages/blocks/src/license.ts`. The payload holds the customer (`tenant`), the plugin list (or `*`), the expiry date and (optionally) hostnames.
 - In production (or with `HOSSO_LICENSE_ENFORCE=1`) without a valid key, the plugin's hooks, endpoints (they return 402) and loaders are disabled; the site and the open plugins keep working. In dev they run as a trial.
+- Optional `HOSSO_LICENSE_SERVER=<license server>`: Studio asks online (result cached for 5 minutes) whether the key was revoked; if the server does not answer it keeps running.
 - Admin → Manage plugins shows the license status; the dashboard has a "Plugin license ..." step.
 - To buy a license or plugins, contact Hosso. Authors of commercial plugins wrap them with `withLicense(plugin)` from `@hosso/studio-blocks`.
 
