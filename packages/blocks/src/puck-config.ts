@@ -1,7 +1,7 @@
 import { createElement } from 'react'
 import { MediaField } from './MediaField'
 import { RefField } from './RefField'
-import { CategoryGrid, FormBlock, ReusablePlaceholder, NavMenu, SearchBox, TermList, TrustBar } from './CoreExtras'
+import { CategoryGrid, FormBlock, ReusablePlaceholder, NavMenu, SearchBox, Slider, TermList, TrustBar } from './CoreExtras'
 import { PostList } from './PostList'
 import { t } from './i18n'
 import type { BlockField, BlockRenderer, BlockSchema, HossoPlugin, Theme } from './types'
@@ -21,7 +21,7 @@ const toPuckField = (f: BlockField, L: (vi: string) => string = (v) => v): any =
 }
 
 // Renderer dự phòng của lõi khi theme không có renderer riêng.
-const coreFallback: Record<string, BlockRenderer> = { PostList, TrustBar, CategoryGrid, SearchBox, TermList, NavMenu, Form: FormBlock, Reusable: ReusablePlaceholder }
+const coreFallback: Record<string, BlockRenderer> = { PostList, Slider, TrustBar, CategoryGrid, SearchBox, TermList, NavMenu, Form: FormBlock, Reusable: ReusablePlaceholder }
 
 const Missing = ({ type }: { type?: string }) =>
   createElement('div', { className: 'hs-missing', role: 'note' }, `${t('block.missing')}: ${type ?? ''}`)

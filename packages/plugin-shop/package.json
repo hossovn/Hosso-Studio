@@ -1,0 +1,15 @@
+{
+  "name": "@hosso/plugin-shop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Plugin cửa hàng cho Hosso Studio: sản phẩm, danh mục, tồn kho, giỏ hàng, đặt hàng (COD/chuyển khoản), quản lý đơn và nhập/xuất CSV. Chạy độc lập, không cần WIM.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./admin": "./src/admin.tsx"
+  },
+  "scripts": { "typecheck": "tsc -p ." },
+  "dependencies": { "@hosso/studio-blocks": "workspace:*" },
+  "peerDependencies": { "react": "19.3.1" },
+  "devDependencies": { "@payloadcms/ui": "3.91.0", "@types/react": "19.3.0", "payload": "3.91.0", "react": "19.3.1", "typescript": "5.9.3" }
+}

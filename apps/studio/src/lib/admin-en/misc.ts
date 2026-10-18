@@ -98,6 +98,13 @@ export const misc: Record<string, string> = {
   'Thuộc tính và SEO': 'Properties and SEO',
   // Plugin
   'Plugin': 'Plugins',
+  'Quản lý plugin': 'Manage plugins',
+  'Mô tả': 'Description',
+  'Trạng thái': 'Status',
+  'Đang bật': 'Enabled',
+  'Đã tắt': 'Disabled',
+  'Mở trang quản lý': 'Open management page',
+  'Chọn plugin bật bằng biến NEXT_PUBLIC_HOSSO_PLUGINS (id cách nhau bằng dấu phẩy, để trống là bật tất cả). Thêm hoặc đổi plugin cần dựng lại (build) và triển khai lại.': 'Choose which plugins are enabled with the NEXT_PUBLIC_HOSSO_PLUGINS variable (comma-separated ids, empty enables all). Adding or changing plugins requires a rebuild and redeploy.',
   'Kết nối Hosso WIM': 'Hosso WIM connection',
   'Kết nối Hosso WIM (địa chỉ API và khóa)': 'Connect Hosso WIM (API address and key)',
 }

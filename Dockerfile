@@ -9,6 +9,8 @@ FROM base AS build
 COPY . .
 RUN pnpm install --frozen-lockfile
 # Placeholder values only for the build; the real configuration comes from environment variables at run time. / Giá trị giả chỉ để build.
+ARG NEXT_PUBLIC_HOSSO_PLUGINS=
+ENV NEXT_PUBLIC_HOSSO_PLUGINS=$NEXT_PUBLIC_HOSSO_PLUGINS
 ENV HOSSO_SECRET=build-time-placeholder HOSSO_DATABASE_URL=file:/tmp/build.db
 RUN pnpm --filter @hosso/studio build
 

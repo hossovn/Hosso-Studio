@@ -20,8 +20,18 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@hosso/plugin-accounts": "workspace:*",
+    "@hosso/plugin-affiliate": "workspace:*",
+    "@hosso/plugin-analytics": "workspace:*",
+    "@hosso/plugin-notify": "workspace:*",
+    "@hosso/plugin-payment": "workspace:*",
+    "@hosso/plugin-promotions": "workspace:*",
+    "@hosso/plugin-reports": "workspace:*",
+    "@hosso/plugin-shipping": "workspace:*",
+    "@hosso/plugin-shop": "workspace:*",
     "@hosso/studio-blocks": "workspace:*",
     "@hosso/theme-alt": "workspace:*",
+    "@hosso/theme-auto": "workspace:*",
     "@hosso/theme-default": "workspace:*",
     "@hosso/theme-shop": "workspace:*",
     "@payloadcms/db-postgres": "3.91.0",

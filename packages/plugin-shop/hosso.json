@@ -1,0 +1,12 @@
+{
+  "id": "shop",
+  "type": "plugin",
+  "name": { "vi": "Cửa hàng", "en": "Shop" },
+  "description": {
+    "vi": "Web bán hàng chạy độc lập, không cần WIM: sản phẩm, danh mục, tồn kho, giỏ hàng, đặt hàng COD hoặc chuyển khoản, quản lý đơn, nhập/xuất CSV. Kết hợp được với plugin Tiếp thị liên kết và Giao vận.",
+    "en": "A standalone online store that does not need WIM: products, categories, stock, cart, COD or bank-transfer checkout, order management and CSV import/export. Works with the Affiliate and Shipping plugins."
+  },
+  "version": "0.1.0",
+  "settings": "/admin/collections/shop-products",
+  "needsBuild": true
+}

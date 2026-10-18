@@ -109,7 +109,7 @@ docker compose up --build
 
 `HOSSO_DATABASE_URL` selects the database: `file:...` is SQLite, `postgres://...` is Postgres. The container runs the migrations (`payload migrate`) and then starts. Media lives in the `media` volume and backups in the `backups` volume. All sensitive configuration goes through environment variables; there are no hard-coded addresses or paths in the code.
 
-The Postgres migrations are already generated in `apps/studio/src/migrations` for the full distribution (with the WIM plugin). If you add a plugin with its own tables: `HOSSO_DATABASE_URL=postgres://... pnpm --filter @hosso/studio payload migrate:create <name>`.
+The Postgres migrations are already generated in `apps/studio/src/migrations` for the full distribution (with the Shop, Affiliate, Shipping, Promotions, Payment, Notify, Analytics, Reports and Accounts plugins). If you add a plugin with its own tables: `HOSSO_DATABASE_URL=postgres://... pnpm --filter @hosso/studio payload migrate:create <name>`.
 
 > Verified for real (17 Oct 2026, Docker Desktop 4.55): `docker compose up --build` builds the image, Postgres is healthy, the container runs the migrations by itself and reports healthy; importing a site package with `studio-tools` works; the mock WIM on the host is reached through `HOSSO_WIM_API_URL=http://host.docker.internal:4010`. Small note: the container still prints a Corepack message while downloading pnpm when you run `studio-tools`.
 

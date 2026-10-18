@@ -1,0 +1,12 @@
+{
+  "id": "shipping",
+  "type": "plugin",
+  "name": { "vi": "Giao vận", "en": "Shipping" },
+  "description": {
+    "vi": "Đơn giao tận nơi tự thành vận đơn, tự tạo đơn trên Giao Hàng Nhanh (GHN), cập nhật trạng thái và cho khách tra cứu. Hoạt động với mọi plugin bán hàng phát sự kiện đặt đơn (ví dụ WIM).",
+    "en": "Delivery orders become shipments automatically, are created on Giao Hàng Nhanh (GHN), get status updates, and customers can track them. Works with any sales plugin that emits the order-placed event (for example WIM)."
+  },
+  "version": "0.1.0",
+  "settings": "/admin/collections/shipments",
+  "needsBuild": true
+}

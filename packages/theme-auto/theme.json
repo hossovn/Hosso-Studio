@@ -1,0 +1,25 @@
+{
+  "name": "auto",
+  "title": "Phụ tùng ô tô (đen cam)",
+  "version": "0.1.0",
+  "studio": "^0.1.0",
+  "preview": "preview.svg",
+  "pluginBlocks": ["AffiliatePortal", "ShippingTrack", "ShopProductGrid", "ShopProductDetail", "ShopCategories", "ShopCart", "ShopCheckout", "ShopOrderStatus"],
+  "tokens": {
+    "colors": {
+      "bg": "#ffffff",
+      "surface": "#f5f5f5",
+      "text": "#111111",
+      "muted": "#555555",
+      "primary": "#b45309",
+      "onPrimary": "#ffffff",
+      "border": "#e4e4e7",
+      "accent": "#f5a31a",
+      "onAccent": "#111111",
+      "dark": "#0a0a0a"
+    },
+    "fonts": { "body": "be-vietnam-pro", "heading": "be-vietnam-pro" },
+    "radius": "6px",
+    "spacing": "1rem"
+  }
+}

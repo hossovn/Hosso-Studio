@@ -263,6 +263,12 @@ pnpm dev
 
 `pnpm dev` runs Payload's `generate:importmap` before starting.
 
+### Manifest and enabling/disabling plugins
+
+Each plugin has a `hosso.json` at its root (id, type `plugin`, vi/en name and description, version, management page, `needsBuild`). The plugin loads it into the `manifest` of the plugin object; the **Manage plugins** page in the admin (`/admin/plugins`) lists installed plugins from it. See `packages/plugin-affiliate` for an example.
+
+The `NEXT_PUBLIC_HOSSO_PLUGINS` variable (comma-separated ids, for example `shop,shipping`) chooses which plugins are enabled; empty enables all. Next inlines it at build time, so changing it requires a rebuild. Disabling a plugin is like removing it: in dev mode Payload asks to confirm dropping the plugin's tables on startup.
+
 ### Removing a plugin
 
 Delete the import line and the entry in `plugins` in `hosso.config.ts`. The site keeps working and the plugin's blocks are skipped. In dev, Payload may ask you to confirm dropping the plugin's settings table at startup. This is the intended behavior: also try removing your own plugin to make sure the site does not crash.

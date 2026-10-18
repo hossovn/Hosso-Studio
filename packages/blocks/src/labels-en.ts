@@ -1,6 +1,10 @@
 /** Nhãn block/trường trong trình dựng và màn Widget: khóa là nhãn tiếng Việt gốc. Thiếu bản dịch thì giữ tiếng Việt. */
 export const blockLabelsEn: Record<string, string> = {
   'Banner chính': 'Hero banner',
+  'Băng chuyền banner': 'Banner slider',
+  'Các banner': 'Banners',
+  'Liên kết (tùy chọn)': 'Link (optional)',
+  'Tự chuyển sau (giây, 0 là tắt)': 'Auto-advance after (seconds, 0 is off)',
   'Tiêu đề': 'Heading',
   'Mô tả': 'Description',
   'Nhãn nút': 'Button label',

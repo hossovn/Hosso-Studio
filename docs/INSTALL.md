@@ -110,7 +110,7 @@ docker compose up --build
 
 `HOSSO_DATABASE_URL` chọn database: `file:...` là SQLite, `postgres://...` là Postgres. Container tự chạy migration (`payload migrate`) rồi khởi động. Media nằm ở volume `media`. Mọi cấu hình nhạy cảm đi qua biến môi trường; không có địa chỉ hay đường dẫn cứng trong mã.
 
-Migration Postgres được sinh sẵn trong `apps/studio/src/migrations` cho bản phân phối đầy đủ (có plugin WIM). Nếu thêm plugin có bảng riêng: `HOSSO_DATABASE_URL=postgres://... pnpm --filter @hosso/studio payload migrate:create <tên>`.
+Migration Postgres được sinh sẵn trong `apps/studio/src/migrations` cho bản phân phối đầy đủ (có các plugin Cửa hàng, Tiếp thị liên kết, Giao vận, Khuyến mãi, Thanh toán, Thông báo, Theo dõi, Báo cáo, Tài khoản). Nếu thêm plugin có bảng riêng: `HOSSO_DATABASE_URL=postgres://... pnpm --filter @hosso/studio payload migrate:create <tên>`.
 
 > Đã kiểm tra thật (17/10/2026, Docker Desktop 4.55): `docker compose up --build` dựng image, Postgres healthy, container tự chạy migration và báo healthy; nhập gói site bằng `studio-tools` thành công; WIM mock ở máy host truy cập qua `HOSSO_WIM_API_URL=http://host.docker.internal:4010`. Lưu ý nhỏ: container vẫn in thông báo Corepack tải pnpm khi chạy `studio-tools`.
 

@@ -61,6 +61,7 @@ const base: Config = {
         tools: { Component: '/components/admin/ToolsView#ToolsView', path: '/tools' },
         customize: { Component: '/components/admin/CustomizeView#CustomizeView', path: '/customize' },
         widgets: { Component: '/components/admin/WidgetsView#WidgetsView', path: '/widgets' },
+        plugins: { Component: '/components/admin/PluginsView#PluginsView', path: '/plugins' },
       },
       providers: ['/components/admin/BrandStyle#BrandStyle'],
       beforeDashboard: ['/components/admin/GettingStarted#GettingStarted'],
@@ -110,9 +111,10 @@ const base: Config = {
 }
 
 // Plugin khai báo trong hosso.config.ts thêm collection/global/endpoint của chúng.
+// `custom.hossoPlugins` cho phép plugin này gọi hook của plugin khác (xem emitOrderPlaced).
 export default buildConfig(
   translateConfig(
-    hosso.plugins.reduce((config, plugin) => plugin.payload?.(config) ?? config, base),
+    { ...hosso.plugins.reduce((config, plugin) => plugin.payload?.(config) ?? config, base), custom: { hossoPlugins: hosso.plugins } },
     Object.assign({}, ...hosso.plugins.map((p) => p.adminEn ?? {})),
   ),
 )

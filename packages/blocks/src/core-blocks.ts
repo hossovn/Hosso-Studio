@@ -23,6 +23,21 @@ export const text: BlockSchema<{ heading: string; body: string }> = {
   defaultProps: { heading: '', body: '' },
 }
 
+export const slider: BlockSchema<{ slides: { image: string; href: string; alt: string }[]; seconds: number }> = {
+  type: 'Slider',
+  label: 'Băng chuyền banner',
+  fields: {
+    slides: {
+      type: 'array',
+      label: 'Các banner',
+      arrayFields: { image: { type: 'media', label: 'Ảnh' }, href: { type: 'text', label: 'Liên kết (tùy chọn)' }, alt: { type: 'text', label: 'Mô tả ảnh' } },
+      defaultItemProps: { image: '', href: '', alt: '' },
+    },
+    seconds: { type: 'number', label: 'Tự chuyển sau (giây, 0 là tắt)' },
+  },
+  defaultProps: { slides: [], seconds: 5 },
+}
+
 export const image: BlockSchema<{ src: string; alt: string; caption: string }> = {
   type: 'Image',
   label: 'Hình ảnh',
@@ -201,4 +216,4 @@ export const navMenu: BlockSchema<{ heading: string; source: string; links: { la
 /** Block của lõi cần dữ liệu server (xem lib/core-loaders.ts trong app). */
 export const CORE_LOADER_TYPES = ['PostList', 'Form', 'TermList', 'NavMenu']
 
-export const coreBlocks: BlockSchema<any>[] = [hero, text, image, video, features, categoryGrid, trustBar, postList, searchBox, termList, navMenu, contactForm, formBlock, reusable, footer]
+export const coreBlocks: BlockSchema<any>[] = [hero, slider, text, image, video, features, categoryGrid, trustBar, postList, searchBox, termList, navMenu, contactForm, formBlock, reusable, footer]

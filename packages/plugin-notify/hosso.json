@@ -1,0 +1,12 @@
+{
+  "id": "notify",
+  "type": "plugin",
+  "name": { "vi": "Thông báo đơn hàng", "en": "Order notifications" },
+  "description": {
+    "vi": "Gửi email báo chủ shop khi có đơn mới và báo khách khi đặt hàng, đổi trạng thái đơn, đã nhận thanh toán. Cần cấu hình SMTP (HOSSO_SMTP_URL), nếu không email chỉ ghi ra nhật ký.",
+    "en": "Emails the shop owner about new orders and the customer about order placement, status changes and received payments. Needs SMTP (HOSSO_SMTP_URL); otherwise emails are only written to the log."
+  },
+  "version": "0.1.0",
+  "settings": "/admin/globals/notify-settings",
+  "needsBuild": true
+}
