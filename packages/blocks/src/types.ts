@@ -226,6 +226,8 @@ export type PluginManifest = {
   version: string
   /** Đường dẫn trang cài đặt/quản lý trong admin. */
   settings?: string
+  /** Plugin thương mại (mã đóng, cần giấy phép HOSSO_LICENSE_KEY). Do `withLicense` tự đặt. */
+  commercial?: boolean
   /** Cài hoặc đổi plugin này có cần dựng lại (build) và triển khai lại không. */
   needsBuild: boolean
 }

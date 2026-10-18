@@ -102,6 +102,8 @@ export const misc: Record<string, string> = {
   'Mô tả': 'Description',
   'Trạng thái': 'Status',
   'Đang bật': 'Enabled',
+  'Giấy phép hợp lệ': 'License valid',
+  'Chưa có giấy phép hợp lệ (dev dùng thử được, production cần HOSSO_LICENSE_KEY)': 'No valid license (trial in dev, production needs HOSSO_LICENSE_KEY)',
   'Đã tắt': 'Disabled',
   'Mở trang quản lý': 'Open management page',
   'Chọn plugin bật bằng biến NEXT_PUBLIC_HOSSO_PLUGINS (id cách nhau bằng dấu phẩy, để trống là bật tất cả). Thêm hoặc đổi plugin cần dựng lại (build) và triển khai lại.': 'Choose which plugins are enabled with the NEXT_PUBLIC_HOSSO_PLUGINS variable (comma-separated ids, empty enables all). Adding or changing plugins requires a rebuild and redeploy.',

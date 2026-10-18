@@ -1,21 +1,21 @@
 # Commerce plugin suite
 [Tiếng Việt](../PLUGIN-COMMERCE.md) | **English**
 
-A standalone online store (no WIM needed) built from small plugins. Each plugin does one thing and they talk to each other through **core events** (see section 3), so you can enable or disable each as needed. Choose enabled plugins with `NEXT_PUBLIC_HOSSO_PLUGINS` (comma-separated ids, at build time) or edit `plugins` in `apps/studio/hosso.config.ts`.
+A standalone online store (no WIM needed) built from small plugins. **`shop` and `affiliate` are open plugins** (this repo). **The others are commercial, closed-source plugins sold under a license** (see section 5); this repo only contains the core they plug into. Each plugin does one thing and they talk to each other through **core events** (see section 3), so you can enable or disable each as needed. Choose enabled plugins with `NEXT_PUBLIC_HOSSO_PLUGINS` (comma-separated ids, at build time) or edit `plugins` in `apps/studio/hosso.config.ts`.
 
 ## 1. Plugins
 
-| Id | What it does | More |
-|---|---|---|
-| `shop` | Products, categories, variants, stock, cart, checkout, orders, reviews, CSV, order printing | [PLUGIN-SHOP.md](PLUGIN-SHOP.md) |
-| `promotions` | Discount codes (percentage, fixed amount, free shipping) with minimum order, validity and usage limit | Admin → Promotions |
-| `shipping` | Shipping fee at checkout (flat, free over X, or GHN), shipments, GHN order creation, shipment tracking | Admin → Shipping |
-| `payment` | VietQR code and automatic confirmation when the money arrives through the SePay webhook (or manual confirmation) | Admin → Payments |
-| `notify` | Emails the owner about new orders and the customer about placement, status changes and payment | Admin → Notifications |
-| `affiliate` | Partners sign up, referral links, per-order commission | Admin → Affiliate marketing |
-| `analytics` | Google Analytics 4 and Meta Pixel (view product, add to cart, purchase) | Admin → Marketing |
-| `reports` | Reports page: revenue per day, best sellers, order statuses, low stock | `/admin/shop-reports` |
-| `accounts` | Customer accounts: login, order history, saved addresses, checkout prefill | "Customer accounts" block |
+| Id | License | What it does | More |
+|---|---|---|---|
+| `shop` | Open | Products, categories, variants, stock, cart, checkout, orders, reviews, CSV, order printing | [PLUGIN-SHOP.md](PLUGIN-SHOP.md) |
+| `promotions` | Commercial | Discount codes (percentage, fixed amount, free shipping) with minimum order, validity and usage limit | Admin → Promotions |
+| `shipping` | Commercial | Shipping fee at checkout (flat, free over X, or GHN), shipments, GHN order creation, shipment tracking | Admin → Shipping |
+| `payment` | Commercial | VietQR code and automatic confirmation when the money arrives through the SePay webhook (or manual confirmation) | Admin → Payments |
+| `notify` | Commercial | Emails the owner about new orders and the customer about placement, status changes and payment | Admin → Notifications |
+| `affiliate` | Open | Partners sign up, referral links, per-order commission | Admin → Affiliate marketing |
+| `analytics` | Commercial | Google Analytics 4 and Meta Pixel (view product, add to cart, purchase) | Admin → Marketing |
+| `reports` | Commercial | Reports page: revenue per day, best sellers, order statuses, low stock | `/admin/shop-reports` |
+| `accounts` | Commercial | Customer accounts: login, order history, saved addresses, checkout prefill | "Customer accounts" block |
 
 **Order in `plugins` matters.** The `beforeOrder` hook runs in this order: put `shipping` BEFORE `promotions` so a free-shipping code can see the shipping fee. Current order: `shop, affiliate, shipping, promotions, payment, notify, analytics, reports, accounts`.
 
@@ -41,6 +41,15 @@ Plugins declare them under `hooks` on the plugin object (see `packages/blocks/sr
 An error in one hook is only logged and never breaks the order (except a deliberate `reject`). Sales plugins emit events with `emitBeforeOrder`, `emitOrderPlaced`, `emitOrderStatusChanged`, `emitOrderPaid` from `@hosso/studio-blocks`. Separate customer logins (partners, customer accounts) use the core `sessionOf(cookie-name)`, kept apart from admin users.
 
 Implicit contract between `accounts` and `shop`: `accounts` stores customer details in `localStorage` key `hs_customer` so `shop` prefills checkout; `shop` fires the browser events `hs:view_item`, `hs:add_to_cart`, `hs:purchase` for `analytics`.
+
+## 5. Licensing for commercial plugins
+
+Commercial plugins (`promotions`, `shipping`, `payment`, `notify`, `analytics`, `reports`, `accounts`) are installed into each customer's own build together with a **license key** set in the `HOSSO_LICENSE_KEY` environment variable.
+
+- The key is an Ed25519-signed string `HLK1.<payload>.<signature>`, verified offline with the public key in `packages/blocks/src/license.ts`. The payload holds the customer (`tenant`), the plugin list (or `*`), the expiry date and (optionally) hostnames.
+- In production (or with `HOSSO_LICENSE_ENFORCE=1`) without a valid key, the plugin's hooks, endpoints (they return 402) and loaders are disabled; the site and the open plugins keep working. In dev they run as a trial.
+- Admin → Manage plugins shows the license status; the dashboard has a "Plugin license ..." step.
+- To buy a license or plugins, contact Hosso. Authors of commercial plugins wrap them with `withLicense(plugin)` from `@hosso/studio-blocks`.
 
 ## 4. Known limits
 

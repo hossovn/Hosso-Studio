@@ -86,11 +86,6 @@ export interface Config {
     'shop-orders': ShopOrder;
     affiliates: Affiliate;
     'affiliate-referrals': AffiliateReferral;
-    shipments: Shipment;
-    vouchers: Voucher;
-    payments: Payment;
-    customers: Customer;
-    'customer-orders': CustomerOrder;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -117,11 +112,6 @@ export interface Config {
     'shop-orders': ShopOrdersSelect<false> | ShopOrdersSelect<true>;
     affiliates: AffiliatesSelect<false> | AffiliatesSelect<true>;
     'affiliate-referrals': AffiliateReferralsSelect<false> | AffiliateReferralsSelect<true>;
-    shipments: ShipmentsSelect<false> | ShipmentsSelect<true>;
-    vouchers: VouchersSelect<false> | VouchersSelect<true>;
-    payments: PaymentsSelect<false> | PaymentsSelect<true>;
-    customers: CustomersSelect<false> | CustomersSelect<true>;
-    'customer-orders': CustomerOrdersSelect<false> | CustomerOrdersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -135,19 +125,11 @@ export interface Config {
     'site-settings': SiteSetting;
     'site-areas': SiteArea;
     'shop-settings': ShopSetting;
-    'shipping-settings': ShippingSetting;
-    'payment-settings': PaymentSetting;
-    'notify-settings': NotifySetting;
-    'analytics-settings': AnalyticsSetting;
   };
   globalsSelect: {
     'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
     'site-areas': SiteAreasSelect<false> | SiteAreasSelect<true>;
     'shop-settings': ShopSettingsSelect<false> | ShopSettingsSelect<true>;
-    'shipping-settings': ShippingSettingsSelect<false> | ShippingSettingsSelect<true>;
-    'payment-settings': PaymentSettingsSelect<false> | PaymentSettingsSelect<true>;
-    'notify-settings': NotifySettingsSelect<false> | NotifySettingsSelect<true>;
-    'analytics-settings': AnalyticsSettingsSelect<false> | AnalyticsSettingsSelect<true>;
   };
   locale: 'vi' | 'en';
   widgets: {
@@ -619,109 +601,6 @@ export interface AffiliateReferral {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "shipments".
- */
-export interface Shipment {
-  id: number;
-  orderId: string;
-  customerName?: string | null;
-  phone?: string | null;
-  address?: string | null;
-  orderTotal?: number | null;
-  /**
-   * cod: the courier collects; other: prepaid, COD = 0.
-   */
-  paymentMethod?: string | null;
-  /**
-   * Use a name from "Carriers" so the customer gets a tracking link.
-   */
-  carrier?: string | null;
-  trackingCode?: string | null;
-  status?: ('pending' | 'handed_over' | 'delivering' | 'delivered' | 'returned' | 'cancelled') | null;
-  note?: string | null;
-  /**
-   * Detected from the address; fill in manually if GHN could not detect it, then save to retry.
-   */
-  districtId?: number | null;
-  wardCode?: string | null;
-  ghnStatus?: string | null;
-  ghnError?: string | null;
-  syncedAt?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "vouchers".
- */
-export interface Voucher {
-  id: number;
-  /**
-   * Customers enter this at checkout (case-insensitive).
-   */
-  code: string;
-  type: 'percent' | 'fixed' | 'freeship';
-  value?: number | null;
-  minTotal?: number | null;
-  /**
-   * 0 means unlimited.
-   */
-  maxUses?: number | null;
-  usedCount?: number | null;
-  startsAt?: string | null;
-  endsAt?: string | null;
-  active?: boolean | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "payments".
- */
-export interface Payment {
-  id: number;
-  orderNo: string;
-  amount: number;
-  status?: ('pending' | 'paid' | 'underpaid') | null;
-  paidAmount?: number | null;
-  transactionId?: string | null;
-  paidAt?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "customers".
- */
-export interface Customer {
-  id: number;
-  name: string;
-  email: string;
-  phone?: string | null;
-  passwordHash?: string | null;
-  addresses?:
-    | {
-        label?: string | null;
-        address: string;
-        id?: string | null;
-      }[]
-    | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "customer-orders".
- */
-export interface CustomerOrder {
-  id: number;
-  customer: number | Customer;
-  orderNo: string;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -819,26 +698,6 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'affiliate-referrals';
         value: number | AffiliateReferral;
-      } | null)
-    | ({
-        relationTo: 'shipments';
-        value: number | Shipment;
-      } | null)
-    | ({
-        relationTo: 'vouchers';
-        value: number | Voucher;
-      } | null)
-    | ({
-        relationTo: 'payments';
-        value: number | Payment;
-      } | null)
-    | ({
-        relationTo: 'customers';
-        value: number | Customer;
-      } | null)
-    | ({
-        relationTo: 'customer-orders';
-        value: number | CustomerOrder;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1223,89 +1082,6 @@ export interface AffiliateReferralsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "shipments_select".
- */
-export interface ShipmentsSelect<T extends boolean = true> {
-  orderId?: T;
-  customerName?: T;
-  phone?: T;
-  address?: T;
-  orderTotal?: T;
-  paymentMethod?: T;
-  carrier?: T;
-  trackingCode?: T;
-  status?: T;
-  note?: T;
-  districtId?: T;
-  wardCode?: T;
-  ghnStatus?: T;
-  ghnError?: T;
-  syncedAt?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "vouchers_select".
- */
-export interface VouchersSelect<T extends boolean = true> {
-  code?: T;
-  type?: T;
-  value?: T;
-  minTotal?: T;
-  maxUses?: T;
-  usedCount?: T;
-  startsAt?: T;
-  endsAt?: T;
-  active?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "payments_select".
- */
-export interface PaymentsSelect<T extends boolean = true> {
-  orderNo?: T;
-  amount?: T;
-  status?: T;
-  paidAmount?: T;
-  transactionId?: T;
-  paidAt?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "customers_select".
- */
-export interface CustomersSelect<T extends boolean = true> {
-  name?: T;
-  email?: T;
-  phone?: T;
-  passwordHash?: T;
-  addresses?:
-    | T
-    | {
-        label?: T;
-        address?: T;
-        id?: T;
-      };
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "customer-orders_select".
- */
-export interface CustomerOrdersSelect<T extends boolean = true> {
-  customer?: T;
-  orderNo?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
 export interface PayloadKvSelect<T extends boolean = true> {
@@ -1663,87 +1439,6 @@ export interface ShopSetting {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "shipping-settings".
- */
-export interface ShippingSetting {
-  id: number;
-  carriers?:
-    | {
-        name: string;
-        /**
-         * Use {code} for the tracking number. Leave empty if none.
-         */
-        trackingUrl?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * 0 means no fee. Used when the GHN fee is off or GHN cannot calculate it.
-   */
-  flatFee?: number | null;
-  /**
-   * 0 means off.
-   */
-  freeShipOver?: number | null;
-  useGhnFee?: boolean | null;
-  ghnEnabled?: boolean | null;
-  ghnSandbox?: boolean | null;
-  ghnShopId?: number | null;
-  ghnWeight?: number | null;
-  ghnRequiredNote?: ('CHOTHUHANG' | 'CHOXEMHANGKHONGTHU' | 'KHONGCHOXEMHANG') | null;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "payment-settings".
- */
-export interface PaymentSetting {
-  id: number;
-  /**
-   * Short name or BIN as used by VietQR, for example MB, VCB, TCB, ACB, 970422.
-   */
-  bank?: string | null;
-  accountNumber?: string | null;
-  accountName?: string | null;
-  /**
-   * For example: the order is confirmed a few minutes after the money arrives.
-   */
-  note?: string | null;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "notify-settings".
- */
-export interface NotifySetting {
-  id: number;
-  /**
-   * Several addresses separated by commas. Leave empty to skip owner notifications.
-   */
-  adminEmail?: string | null;
-  toCustomer?: boolean | null;
-  onStatus?: boolean | null;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "analytics-settings".
- */
-export interface AnalyticsSetting {
-  id: number;
-  ga4Id?: string | null;
-  /**
-   * Digits only.
-   */
-  fbPixelId?: string | null;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site-settings_select".
  */
 export interface SiteSettingsSelect<T extends boolean = true> {
@@ -1870,66 +1565,6 @@ export interface SiteAreasSelect<T extends boolean = true> {
  */
 export interface ShopSettingsSelect<T extends boolean = true> {
   bankInfo?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  globalType?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "shipping-settings_select".
- */
-export interface ShippingSettingsSelect<T extends boolean = true> {
-  carriers?:
-    | T
-    | {
-        name?: T;
-        trackingUrl?: T;
-        id?: T;
-      };
-  flatFee?: T;
-  freeShipOver?: T;
-  useGhnFee?: T;
-  ghnEnabled?: T;
-  ghnSandbox?: T;
-  ghnShopId?: T;
-  ghnWeight?: T;
-  ghnRequiredNote?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  globalType?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "payment-settings_select".
- */
-export interface PaymentSettingsSelect<T extends boolean = true> {
-  bank?: T;
-  accountNumber?: T;
-  accountName?: T;
-  note?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  globalType?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "notify-settings_select".
- */
-export interface NotifySettingsSelect<T extends boolean = true> {
-  adminEmail?: T;
-  toCustomer?: T;
-  onStatus?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  globalType?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "analytics-settings_select".
- */
-export interface AnalyticsSettingsSelect<T extends boolean = true> {
-  ga4Id?: T;
-  fbPixelId?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

@@ -1,5 +1,6 @@
 export * from './types'
 export { hashPassword, sessionOf, verifyPassword } from './session'
+export { checkLicense, licensed, withLicense, type LicenseResult } from './license'
 export { collectOrderExtras, collectSitemap, emitBeforeOrder, emitOrderPaid, emitOrderPlaced, emitOrderStatusChanged, orderTotal } from './events'
 export * from './core-blocks'
 export { strings } from './strings.vi'
