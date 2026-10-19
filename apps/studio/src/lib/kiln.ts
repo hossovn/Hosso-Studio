@@ -30,7 +30,7 @@ export const siteStatus: Endpoint = {
     }
     const plugins = await Promise.all(
       hosso.plugins.map(async (p) => {
-        const st = await p.status?.().catch((e: Error) => ({ ok: false, detail: e.message }))
+        const st = await p.status?.(req.payload).catch((e: Error) => ({ ok: false, detail: e.message }))
         return { id: p.id, version: p.manifest?.version, ok: st?.ok ?? true, ...(st?.detail ? { detail: st.detail } : {}) }
       }),
     )
