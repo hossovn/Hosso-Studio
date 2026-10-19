@@ -4,6 +4,7 @@ import hosso from '@hosso-config'
 import fs from 'fs'
 
 import { canModerate, hasRole } from './access'
+import { adminOrService } from './kiln'
 import { backupPath, createBackup, listBackups, templatePath } from './backup'
 import { adminLang } from './admin-i18n'
 import { both, msg } from './lang'
@@ -146,8 +147,8 @@ export const shareLink: Endpoint = {
   },
 }
 
-// ---------- Công cụ quản trị: sao lưu, khôi phục, mẫu site (chỉ admin) ----------
-const adminOnly = (req: { user?: unknown }) => hasRole(req.user as { roles?: string[] }, 'admin')
+// ---------- Công cụ quản trị: sao lưu, khôi phục, mẫu site (admin, hoặc Kiln với token dịch vụ) ----------
+const adminOnly = adminOrService
 
 /** GET /api/site/backup: tải gói site (zip) hiện tại. ?name=... tải một bản đã lưu. */
 export const backupDownload: Endpoint = {

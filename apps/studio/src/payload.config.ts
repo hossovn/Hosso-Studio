@@ -23,6 +23,7 @@ import { Redirects } from './collections/Redirects'
 import { SiteAreas } from './globals/SiteAreas'
 import { SiteSettings } from './globals/SiteSettings'
 import { backupCreate, backupDownload, commentSubmit, editLock, formExport, formSubmit, packageImport, shareLink, templateInstall } from './lib/endpoints'
+import { siteStatus, ssoLogin } from './lib/kiln'
 import { Users } from './collections/Users'
 import { ensureAdmin, seedIfEmpty } from './lib/seed'
 import { translateConfig } from './lib/translate-config'
@@ -91,6 +92,8 @@ const base: Config = {
     backupCreate,
     packageImport,
     templateInstall,
+    siteStatus,
+    ssoLogin,
     {
       path: '/health',
       method: 'get',

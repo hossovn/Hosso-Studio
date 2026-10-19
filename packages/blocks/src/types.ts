@@ -190,6 +190,8 @@ export type HossoPlugin = {
   }
   /** Các bước cài đặt hiện trên dashboard admin (ví dụ "Kết nối WIM"). */
   checklist?: (payload: Payload) => Promise<{ label: string; done: boolean; href: string }[]>
+  /** Tình trạng của plugin (ví dụ kết nối hệ thống ngoài), hiện trong GET /api/site/status cho Kiln giám sát. */
+  status?: () => Promise<{ ok: boolean; detail?: string }>
   /** Tìm kiếm trên site: trả kết quả của plugin (ví dụ sản phẩm). */
   search?: (query: string, payload: Payload) => Promise<{ title: string; href: string; description?: string }[]>
   /** Móc vào sự kiện của lõi/plugin khác. Lỗi trong hook chỉ được ghi log, không làm hỏng đơn hàng. */

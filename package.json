@@ -14,6 +14,8 @@
     "start": "pnpm --filter @hosso/studio start",
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "typecheck": "pnpm -r typecheck",
+    "check:manifests": "node scripts/check-manifests.mjs",
+    "test:kiln": "node --experimental-strip-types scripts/test-kiln.mjs",
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:order-flow": "node scripts/check-order-flow.mjs",
     "mock:wim": "pnpm --filter @hosso/mock-wim start",

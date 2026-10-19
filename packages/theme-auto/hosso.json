@@ -1,0 +1,8 @@
+{
+  "id": "auto",
+  "type": "theme",
+  "name": { "vi": "Phụ tùng ô tô (đen cam)", "en": "Auto parts (black and orange)" },
+  "description": { "vi": "Giao diện đen cam cho cửa hàng phụ tùng ô tô.", "en": "Black and orange theme for an auto parts store." },
+  "version": "0.1.0",
+  "needsBuild": true
+}

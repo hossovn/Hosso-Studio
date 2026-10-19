@@ -1,0 +1,8 @@
+{
+  "id": "shop",
+  "type": "theme",
+  "name": { "vi": "Cửa hàng phụ tùng", "en": "Parts store" },
+  "description": { "vi": "Giao diện cho web bán hàng, nổi bật danh mục và sản phẩm.", "en": "Theme for online stores that highlights categories and products." },
+  "version": "0.1.0",
+  "needsBuild": true
+}

@@ -115,6 +115,9 @@ const dict = {
   '\nLuồng đặt đơn OK ({n} kiểm tra).': '\nOrdering flow OK ({n} checks).',
   // check-boundaries
   'Vi phạm ranh giới (nhắc đến plugin-wim):\n': 'Boundary violations (mention plugin-wim):\n',
+  'OK: phiếu hosso.json hợp lệ.': 'OK: hosso.json manifests are valid.',
+  'OK: gói site SQLite -> Postgres giữ nguyên nội dung.': 'OK: the site package keeps its content from SQLite to Postgres.',
+  'OK: token dịch vụ và SSO.': 'OK: service token and SSO.',
   'OK: lõi, blocks, theme không tham chiếu plugin-wim.': 'OK: the core, blocks and themes do not reference plugin-wim.',
 }
 
