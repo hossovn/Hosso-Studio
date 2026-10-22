@@ -1,0 +1,8 @@
+{
+  "id": "alt",
+  "type": "theme",
+  "name": { "vi": "Kỹ thuật tối", "en": "Dark engineering" },
+  "description": { "vi": "Giao diện tối, nhấn cam, hợp web kỹ thuật.", "en": "Dark theme with an orange accent, suited to technical sites." },
+  "version": "0.1.0",
+  "needsBuild": true
+}

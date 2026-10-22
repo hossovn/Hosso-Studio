@@ -1,0 +1,81 @@
+# Stack cho Portainer: Hosso Studio + Postgres, dùng image dựng sẵn (không build trên máy chủ).
+# Bản này gồm plugin thương mại nên image phải để ở registry RIÊNG TƯ, không để công khai.
+# Biến môi trường điền trong Portainer (mục "Environment variables") hoặc nạp từ file .env: xem deploy/stack.env.example.
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hosso
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Đặt POSTGRES_PASSWORD}
+      POSTGRES_DB: hosso
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U hosso -d hosso']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+
+  studio:
+    image: ${HOSSO_IMAGE:?Đặt HOSSO_IMAGE, ví dụ ghcr.io/tai-khoan/hosso-tcap:1}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      HOSSO_DATABASE_URL: postgres://hosso:${POSTGRES_PASSWORD}@postgres:5432/hosso
+      HOSSO_SECRET: ${HOSSO_SECRET:?Đặt HOSSO_SECRET}
+      HOSSO_ENCRYPTION_KEY: ${HOSSO_ENCRYPTION_KEY:?Đặt HOSSO_ENCRYPTION_KEY (64 ký tự hex)}
+      HOSSO_PUBLIC_URL: ${HOSSO_PUBLIC_URL:?Đặt HOSSO_PUBLIC_URL, ví dụ https://thanhcuongauto.com}
+      HOSSO_ADMIN_EMAIL: ${HOSSO_ADMIN_EMAIL:-}
+      HOSSO_ADMIN_PASSWORD: ${HOSSO_ADMIN_PASSWORD:-}
+      HOSSO_SEED: ${HOSSO_SEED:-false}
+      HOSSO_LICENSE_KEY: ${HOSSO_LICENSE_KEY:-}
+      HOSSO_WIM_API_URL: ${HOSSO_WIM_API_URL:-}
+      HOSSO_WIM_API_KEY: ${HOSSO_WIM_API_KEY:-}
+      HOSSO_WIM_WEBHOOK_SECRET: ${HOSSO_WIM_WEBHOOK_SECRET:-}
+      HOSSO_SMTP_URL: ${HOSSO_SMTP_URL:-}
+      HOSSO_MAIL_FROM: ${HOSSO_MAIL_FROM:-}
+      HOSSO_SPAM_WORDS: ${HOSSO_SPAM_WORDS:-}
+      HOSSO_BACKUP_DIR: /app/backups
+    ports:
+      # Nếu dùng reverse proxy chạy trong Docker (Traefik, Nginx Proxy Manager...), bỏ mục ports và nối mạng "web" bên dưới.
+      - '${HOSSO_PORT:-3000}:3000'
+    volumes:
+      - media:/app/media
+      - backups:/app/backups
+    networks: [internal, web]
+
+  # Sao lưu nội dung, cấu hình, media mỗi 24 giờ vào volume backups (giữ HOSSO_BACKUP_KEEP bản). Sao lưu cả CSDL: xem ghi chú cuối file.
+  backup:
+    image: ${HOSSO_IMAGE}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      HOSSO_DATABASE_URL: postgres://hosso:${POSTGRES_PASSWORD}@postgres:5432/hosso
+      HOSSO_SECRET: ${HOSSO_SECRET}
+      HOSSO_ENCRYPTION_KEY: ${HOSSO_ENCRYPTION_KEY}
+      HOSSO_PUBLIC_URL: ${HOSSO_PUBLIC_URL}
+      HOSSO_BACKUP_DIR: /app/backups
+    entrypoint: ['sh', '-c', 'sleep 120; while true; do pnpm studio:backup || true; sleep 86400; done']
+    volumes:
+      - media:/app/media
+      - backups:/app/backups
+    networks: [internal]
+
+volumes:
+  pgdata:
+  media:
+  backups:
+
+networks:
+  internal:
+  # Đổi thành mạng của reverse proxy nếu bạn có (khai báo external: true và đúng tên mạng).
+  web:
+
+# Sao lưu CSDL (nên đặt cron trên máy chủ):
+#   docker exec <tên-container-postgres> pg_dump -U hosso hosso > hosso-$(date +%F).sql

@@ -1,0 +1,25 @@
+{
+  "name": "@hosso/theme-auto",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.tsx",
+    "./theme.json": "./theme.json"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@hosso/studio-blocks": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "react": "19.3.1",
+    "typescript": "5.9.3"
+  }
+}

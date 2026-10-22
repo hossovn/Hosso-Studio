@@ -1,0 +1,20 @@
+node_modules
+.next
+dist
+.env
+.env.local
+*.db
+*.db-*
+apps/studio/data
+apps/studio/media
+apps/studio/next-env.d.ts
+*.tsbuildinfo
+.codegraph
+apps/studio/AGENTS.md
+.tmp
+apps/studio/src/app/(payload)/admin/importMap.js
+
+# Tài liệu nội bộ, chỉ giữ local
+docs/ACCEPTANCE.md
+docs/PLAN.md
+apps/studio/backups/

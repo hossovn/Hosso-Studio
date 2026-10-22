@@ -1,0 +1,26 @@
+{
+  "name": "@hosso/plugin-shipping",
+  "version": "0.1.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "description": "Plugin giao vận cho Hosso Studio: tự lập vận đơn cho đơn giao tận nơi, quản lý mã vận đơn và cho khách tra cứu. Plugin thương mại, mã nguồn đóng, cần giấy phép (HOSSO_LICENSE_KEY).",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@hosso/studio-blocks": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "payload": "3.91.0",
+    "react": "19.3.1",
+    "typescript": "5.9.3"
+  }
+}

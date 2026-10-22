@@ -1,0 +1,8 @@
+{
+  "id": "default",
+  "type": "theme",
+  "name": { "vi": "Sáng & Sạch", "en": "Light and clean" },
+  "description": { "vi": "Giao diện sáng, gọn, dùng được cho mọi loại site.", "en": "Light, tidy theme that suits any kind of site." },
+  "version": "0.1.0",
+  "needsBuild": true
+}

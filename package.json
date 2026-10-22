@@ -1,0 +1,45 @@
+{
+  "name": "hosso-studio",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.34.6",
+  "engines": {
+    "node": ">=22.15",
+    "pnpm": ">=10"
+  },
+  "scripts": {
+    "dev": "node scripts/ensure-env.mjs && pnpm --filter @hosso/studio dev",
+    "build": "pnpm --filter @hosso/studio build",
+    "start": "pnpm --filter @hosso/studio start",
+    "check:boundaries": "node scripts/check-boundaries.mjs",
+    "typecheck": "pnpm -r typecheck",
+    "check:manifests": "node scripts/check-manifests.mjs",
+    "test:kiln": "node --experimental-strip-types scripts/test-kiln.mjs",
+    "test:canvas": "node --experimental-strip-types scripts/test-canvas.mjs",
+    "test:editor-preview": "node --experimental-strip-types scripts/test-editor-preview.mjs",
+    "test:site-package": "node scripts/test-site-package.mjs",
+    "check:i18n": "node scripts/check-i18n.mjs",
+    "check:order-flow": "node scripts/check-order-flow.mjs",
+    "mock:wim": "pnpm --filter @hosso/mock-wim start",
+    "studio:export": "pnpm --filter @hosso/studio studio:export",
+    "studio:import": "pnpm --filter @hosso/studio studio:import",
+    "studio:backup": "pnpm --filter @hosso/studio studio:backup",
+    "studio:update": "node scripts/studio-update.mjs",
+    "studio:update:check": "node scripts/studio-update.mjs --check",
+    "studio:update:auto": "node scripts/studio-update.mjs --auto",
+    "migrate": "pnpm --filter @hosso/studio migrate",
+    "studio:import-wordpress": "pnpm --filter @hosso/studio studio:import-wordpress"
+  },
+  "pnpm": {
+    "overrides": {
+      "react": "19.3.1",
+      "react-dom": "19.3.1",
+      "sharp": "-"
+    },
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "unrs-resolver"
+    ]
+  }
+}

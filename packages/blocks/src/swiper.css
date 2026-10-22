@@ -1,0 +1,4 @@
+/* Keep CSS outside the JS entry point loaded by Payload CLI commands. */
+@import 'swiper/css';
+@import 'swiper/css/navigation';
+@import 'swiper/css/pagination';

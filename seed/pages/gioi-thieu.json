@@ -1,0 +1,30 @@
+{
+  "title": "Giới thiệu",
+  "slug": "gioi-thieu",
+  "description": "Giới thiệu cửa hàng phụ tùng ô tô.",
+  "content": {
+    "root": {
+      "props": {}
+    },
+    "content": [
+      {
+        "type": "Hero",
+        "props": {
+          "id": "Hero-about",
+          "title": "Giới thiệu",
+          "subtitle": "Câu chuyện và cam kết của cửa hàng.",
+          "ctaLabel": "",
+          "ctaHref": ""
+        }
+      },
+      {
+        "type": "Text",
+        "props": {
+          "id": "Text-about",
+          "heading": "Cam kết",
+          "body": "Hàng chính hãng có nguồn gốc rõ ràng.\n\nHàng thay thế được ghi rõ thương hiệu và thời hạn bảo hành."
+        }
+      }
+    ]
+  }
+}

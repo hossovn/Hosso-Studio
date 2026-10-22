@@ -1,0 +1,5 @@
+⚠ Port 3000 is in use by process 16284, using available port 3001 instead.
+⨯ Another next dev server is already running.
+
+- Local:        http:/[license] Plugin thương mại "accounts" chạy thử ở chế độ dev, chưa có HOSSO_LICENSE_KEY hợp lệ. Production cần giấy phép.
+[license] Plugin thương mại "analytics" chạy thử ở chế độ dev, chưa có HOSSO_LICENSE_KEY hợp lệ. Production cần giấy phép.

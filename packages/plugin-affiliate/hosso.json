@@ -1,0 +1,12 @@
+{
+  "id": "affiliate",
+  "type": "plugin",
+  "name": { "vi": "Tiếp thị liên kết", "en": "Affiliate marketing" },
+  "description": {
+    "vi": "Cộng tác viên tự đăng ký, chọn sản phẩm để bán, nhận link giới thiệu riêng và hoa hồng theo đơn. Hoạt động với mọi plugin bán hàng phát sự kiện đặt đơn (ví dụ WIM).",
+    "en": "Partners sign up themselves, pick products to sell, and get their own referral links and per-order commission. Works with any sales plugin that emits the order-placed event (for example WIM)."
+  },
+  "version": "0.1.0",
+  "settings": "/admin/collections/affiliates",
+  "needsBuild": true
+}

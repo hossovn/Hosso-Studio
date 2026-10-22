@@ -1,0 +1,25 @@
+{
+  "name": "default",
+  "title": "Sáng & Sạch",
+  "version": "0.1.0",
+  "studio": "^0.1.0",
+  "preview": "preview.svg",
+  "pluginBlocks": [],
+  "tokens": {
+    "colors": {
+      "bg": "#ffffff",
+      "surface": "#f4f5f7",
+      "text": "#14181f",
+      "muted": "#4b5563",
+      "primary": "#b91c1c",
+      "onPrimary": "#ffffff",
+      "border": "#e2e5ea"
+    },
+    "fonts": {
+      "body": "be-vietnam-pro",
+      "heading": "be-vietnam-pro"
+    },
+    "radius": "10px",
+    "spacing": "1rem"
+  }
+}

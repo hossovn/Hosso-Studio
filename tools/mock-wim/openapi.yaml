@@ -1,0 +1,388 @@
+openapi: 3.1.0
+info:
+  title: Hosso WIM API (PoC contract) / Hosso WIM API (hợp đồng PoC)
+  version: 0.1.0
+  description: |
+    Contract between a Hosso Studio site and Hosso WIM. The mock (tools/mock-wim) and the plugin TypeScript types are both generated from this file. / Hợp đồng giữa site Hosso Studio và Hosso WIM. Mock (tools/mock-wim) và kiểu TypeScript của plugin đều sinh từ file này.
+    Authenticate with the API key in the `X-API-Key` header. Every path is prefixed with `/v1`. / Xác thực bằng khóa API trong header `X-API-Key`. Mọi đường dẫn có tiền tố `/v1`.
+
+    Optional fields (OEM, replacement code, vehicle fitment, images) may be absent; the site keeps working. / Trường tùy chọn (OEM, mã thay thế, tương thích xe, ảnh) có thể vắng; site vẫn chạy.
+
+    Webhooks (WIM calls the site): events `product.updated`, `stock.changed`, `order.status_changed`. / Webhook (WIM gọi site): sự kiện `product.updated`, `stock.changed`, `order.status_changed`.
+    Signature: header `X-Hosso-Timestamp` (epoch seconds) and `X-Hosso-Signature` = hex(HMAC-SHA256(secret, timestamp + "." + raw body)). / Chữ ký: header `X-Hosso-Timestamp` (giây epoch) và `X-Hosso-Signature` = hex(HMAC-SHA256(secret, timestamp + "." + thân thô)).
+    The site rejects the request when the signature is wrong or the timestamp is off by more than 5 minutes. / Site từ chối khi chữ ký sai hoặc timestamp lệch quá 5 phút.
+servers:
+  - url: http://localhost:4010
+security:
+  - ApiKey: []
+paths:
+  /v1/vehicles/makes:
+    get:
+      operationId: listMakes
+      summary: List of vehicle makes (optional) / Danh sách hãng xe (tùy chọn)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NamedList' }
+        '404': { $ref: '#/components/responses/NotAvailable' }
+  /v1/vehicles/makes/{make}/models:
+    get:
+      operationId: listModels
+      summary: Models of a make (optional) / Dòng xe của một hãng (tùy chọn)
+      parameters:
+        - { name: make, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NamedList' }
+        '404': { $ref: '#/components/responses/NotAvailable' }
+  /v1/vehicles/models/{model}/years:
+    get:
+      operationId: listYears
+      summary: Years of a model (optional) / Đời xe của một dòng (tùy chọn)
+      parameters:
+        - { name: model, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/YearList' }
+        '404': { $ref: '#/components/responses/NotAvailable' }
+  /v1/products:
+    get:
+      operationId: listProducts
+      summary: List of products (pagination, filters, search) / Danh sách sản phẩm (phân trang, lọc, tìm kiếm)
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 12 } }
+        - { name: make, in: query, schema: { type: string } }
+        - { name: model, in: query, schema: { type: string } }
+        - { name: year, in: query, schema: { type: integer } }
+        - { name: category, in: query, schema: { type: string } }
+        - { name: brand, in: query, schema: { type: string } }
+        - { name: condition, in: query, schema: { $ref: '#/components/schemas/Condition' } }
+        - { name: q, in: query, description: 'Search by code (product code, OEM, replacement code) or name / Tìm theo mã (mã sản phẩm, OEM, mã thay thế) hoặc tên', schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProductPage' }
+  /v1/products/{id}:
+    get:
+      operationId: getProduct
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/products/{id}/availability:
+    get:
+      operationId: getAvailability
+      summary: Sellable quantity per branch and the current price / Số lượng bán được theo chi nhánh và giá hiện hành
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Availability' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/categories:
+    get:
+      operationId: listCategories
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CategoryList' }
+  /v1/branches:
+    get:
+      operationId: listBranches
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BranchList' }
+  /v1/orders:
+    post:
+      operationId: createOrder
+      summary: Create an order (Idempotency-Key is required) / Tạo đơn hàng (bắt buộc Idempotency-Key)
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, minLength: 8, maxLength: 128 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateOrder' }
+      responses:
+        '201':
+          description: Order created / Đã tạo đơn
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '200':
+          description: Same Idempotency-Key and same body sent again; returns the existing order and does not create a new one / Gửi lại cùng Idempotency-Key và cùng nội dung; trả lại đơn đã tạo, không tạo đơn mới
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409':
+          description: Out of stock (code out_of_stock) / Hết hàng (code out_of_stock)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '422':
+          description: Idempotency-Key already used for a different body / Idempotency-Key đã dùng cho nội dung khác
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /v1/orders/{id}:
+    get:
+      operationId: getOrder
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '404': { $ref: '#/components/responses/NotFound' }
+webhooks:
+  product.updated:
+    post:
+      summary: Product (price, details) changed / Sản phẩm (giá, thông tin) thay đổi
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WebhookEvent' }
+      responses:
+        '200': { description: Received / Đã nhận }
+        '401': { description: Invalid signature or timestamp / Chữ ký hoặc timestamp không hợp lệ }
+  stock.changed:
+    post:
+      summary: Stock changed / Tồn kho thay đổi
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WebhookEvent' }
+      responses:
+        '200': { description: Received / Đã nhận }
+        '401': { description: Invalid signature or timestamp / Chữ ký hoặc timestamp không hợp lệ }
+  order.status_changed:
+    post:
+      summary: Order status changed / Trạng thái đơn thay đổi
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WebhookEvent' }
+      responses:
+        '200': { description: Received / Đã nhận }
+        '401': { description: Invalid signature or timestamp / Chữ ký hoặc timestamp không hợp lệ }
+components:
+  securitySchemes:
+    ApiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+  responses:
+    NotFound:
+      description: Not found / Không tìm thấy
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotAvailable:
+      description: WIM does not provide this data / Dữ liệu này WIM chưa cung cấp
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    BadRequest:
+      description: Invalid request / Yêu cầu không hợp lệ
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, examples: [out_of_stock, not_found, bad_request, unauthorized, idempotency_conflict] }
+            message: { type: string }
+            productId: { type: string }
+    Condition:
+      type: string
+      description: Condition / origin / Tình trạng/nguồn gốc
+      enum: [genuine, aftermarket]
+    Named:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+    NamedList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Named' }
+    YearList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { type: integer }
+    CategoryList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Named' }
+    Branch:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        address: { type: string }
+        phone: { type: string }
+    BranchList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Branch' }
+    Compatibility:
+      type: object
+      required: [make, model, yearFrom, yearTo]
+      properties:
+        make: { type: string }
+        model: { type: string }
+        yearFrom: { type: integer }
+        yearTo: { type: integer }
+        engine: { type: string }
+    Product:
+      type: object
+      required: [id, code, name, brand, condition, warrantyMonths, price]
+      properties:
+        id: { type: string }
+        code: { type: string, description: Product code / Mã sản phẩm }
+        name: { type: string }
+        brand: { type: string }
+        condition: { $ref: '#/components/schemas/Condition' }
+        warrantyMonths: { type: integer, minimum: 0 }
+        price: { type: integer, minimum: 0, description: 'VND, no decimals / VND, không thập phân' }
+        categoryId: { type: string }
+        oemCodes: { type: array, items: { type: string } }
+        altCodes: { type: array, items: { type: string } }
+        compatibility: { type: array, items: { $ref: '#/components/schemas/Compatibility' } }
+        images: { type: array, items: { type: string } }
+    ProductPage:
+      type: object
+      required: [items, page, pageSize, total]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Product' }
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+    Availability:
+      type: object
+      required: [productId, price, branches]
+      properties:
+        productId: { type: string }
+        price: { type: integer, minimum: 0 }
+        branches:
+          type: array
+          items:
+            type: object
+            required: [branchId, available]
+            properties:
+              branchId: { type: string }
+              available: { type: integer, minimum: 0 }
+    OrderLine:
+      type: object
+      required: [productId, quantity]
+      properties:
+        productId: { type: string }
+        quantity: { type: integer, minimum: 1, maximum: 999 }
+        name: { type: string, description: Only present in responses / Chỉ có trong phản hồi }
+        unitPrice: { type: integer, description: Only present in responses / Chỉ có trong phản hồi }
+    Customer:
+      type: object
+      required: [name, phone]
+      properties:
+        name: { type: string, maxLength: 120 }
+        phone: { type: string, maxLength: 20 }
+        address: { type: string, maxLength: 300 }
+        note: { type: string, maxLength: 500 }
+    Fulfillment:
+      type: object
+      required: [type]
+      properties:
+        type: { type: string, enum: [delivery, pickup] }
+        branchId: { type: string, description: Required when type = pickup / Bắt buộc khi type = pickup }
+    CreateOrder:
+      type: object
+      required: [items, customer, fulfillment]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/OrderLine' }
+        customer: { $ref: '#/components/schemas/Customer' }
+        fulfillment: { $ref: '#/components/schemas/Fulfillment' }
+    OrderStatus:
+      type: string
+      enum: [new, confirmed, ready_for_pickup, shipping, completed, cancelled]
+    Order:
+      type: object
+      required: [id, status, items, total, customer, fulfillment, createdAt]
+      properties:
+        id: { type: string }
+        status: { $ref: '#/components/schemas/OrderStatus' }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/OrderLine' }
+        total: { type: integer }
+        customer: { $ref: '#/components/schemas/Customer' }
+        fulfillment: { $ref: '#/components/schemas/Fulfillment' }
+        createdAt: { type: string, format: date-time }
+    WebhookEvent:
+      type: object
+      required: [id, type, occurredAt, data]
+      properties:
+        id: { type: string }
+        type: { type: string, enum: [product.updated, stock.changed, order.status_changed] }
+        occurredAt: { type: string, format: date-time }
+        data:
+          type: object
+          description: 'product.updated và stock.changed: { productId }. order.status_changed: { orderId, status }.'
+          properties:
+            productId: { type: string }
+            orderId: { type: string }
+            status: { $ref: '#/components/schemas/OrderStatus' }

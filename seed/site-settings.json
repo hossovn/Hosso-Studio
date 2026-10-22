@@ -1,0 +1,30 @@
+{
+  "siteName": "Cửa hàng phụ tùng mẫu",
+  "announcement": "Giao hàng toàn quốc, thanh toán khi nhận hàng (COD)",
+  "headerMenu": [
+    {
+      "label": "Trang chủ",
+      "href": "/"
+    },
+    {
+      "label": "Giới thiệu",
+      "href": "/gioi-thieu"
+    }
+  ],
+  "footerMenu": [
+    {
+      "label": "Trang chủ",
+      "href": "/"
+    },
+    {
+      "label": "Giới thiệu",
+      "href": "/gioi-thieu"
+    }
+  ],
+  "footerText": "© 2026 Cửa hàng phụ tùng mẫu",
+  "contact": {
+    "phone": "0900 000 000",
+    "email": "lienhe@example.com",
+    "address": "12 Phố Huế, Hai Bà Trưng, Hà Nội"
+  }
+}

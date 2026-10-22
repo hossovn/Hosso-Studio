@@ -1,0 +1,403 @@
+{
+  "logo": "logo.webp",
+  "banners": [
+    "banner-1.webp",
+    "banner-2.webp",
+    "banner-3.webp",
+    "banner-4.webp"
+  ],
+  "categories": [
+    {
+      "name": "Các loại phụ tùng khác",
+      "slug": "cac-loai-phu-tung-khac",
+      "siteSlug": "chua-phan-loai",
+      "image": "cat-cac-loai-phu-tung-khac.png"
+    },
+    {
+      "name": "Van hằng nhiệt",
+      "slug": "van-hang-nhiet",
+      "siteSlug": "van-hang-nhiet",
+      "image": "cat-van-hang-nhiet.jpg"
+    },
+    {
+      "name": "Thân vỏ",
+      "slug": "than-vo",
+      "siteSlug": "than-vo",
+      "image": "cat-than-vo.png"
+    },
+    {
+      "name": "Rô tuyn",
+      "slug": "ro-tuyn",
+      "siteSlug": "ro-tuyn",
+      "image": "cat-ro-tuyn.png"
+    },
+    {
+      "name": "Phụ tùng hệ thống điện",
+      "slug": "phu-tung-he-thong-dien",
+      "siteSlug": "phu-tung-he-thong-dien",
+      "image": "cat-phu-tung-he-thong-dien.png"
+    },
+    {
+      "name": "Phụ tùng đánh lửa",
+      "slug": "phu-tung-danh-lua",
+      "siteSlug": "phu-tung-danh-lua",
+      "image": "cat-phu-tung-danh-lua.png"
+    },
+    {
+      "name": "Mô tơ",
+      "slug": "mo-to",
+      "siteSlug": "mo-to",
+      "image": "cat-mo-to.jpg"
+    },
+    {
+      "name": "Lọc",
+      "slug": "loc",
+      "siteSlug": "loc",
+      "image": "cat-loc.png"
+    },
+    {
+      "name": "Hệ thống thắng",
+      "slug": "he-thong-thang",
+      "siteSlug": "he-thong-thang",
+      "image": "cat-he-thong-thang.png"
+    },
+    {
+      "name": "Đồ nghề",
+      "slug": "do-nghe",
+      "siteSlug": "do-nghe",
+      "image": "cat-do-nghe.jpg"
+    },
+    {
+      "name": "DÂY CÁP ĐIỀU KHIỂN",
+      "slug": "day-cap-dieu-khien",
+      "siteSlug": "day-cap-dieu-khien",
+      "image": "cat-day-cap-dieu-khien.png"
+    },
+    {
+      "name": "Dầu nhờn và mỡ bôi trơn",
+      "slug": "dau-nhon-va-mo-boi-tron",
+      "siteSlug": "dau-nhon-va-mo-boi-tron",
+      "image": "cat-dau-nhon-va-mo-boi-tron.png"
+    },
+    {
+      "name": "Curoa & tăng dây",
+      "slug": "curoa-tang-day",
+      "siteSlug": "curoa-tang-day",
+      "image": "cat-curoa-tang-day.jpg"
+    },
+    {
+      "name": "Chăm sóc xe",
+      "slug": "cham-soc-xe",
+      "siteSlug": "cham-soc-xe",
+      "image": "cat-cham-soc-xe.jpg"
+    },
+    {
+      "name": "Cảm biến",
+      "slug": "cam-bien",
+      "siteSlug": "cam-bien",
+      "image": "cat-cam-bien.png"
+    },
+    {
+      "name": "Bulon",
+      "slug": "bulon",
+      "siteSlug": "bulon",
+      "image": "cat-bulon.jpg"
+    },
+    {
+      "name": "Bóng đèn",
+      "slug": "bong-den",
+      "siteSlug": "bong-den",
+      "image": "cat-bong-den.jpg"
+    },
+    {
+      "name": "Bơm nước",
+      "slug": "bom-nuoc",
+      "siteSlug": "bom-nuoc",
+      "image": "cat-bom-nuoc.png"
+    },
+    {
+      "name": "Bạc đạn - Vòng bi",
+      "slug": "bac-dan-vong-bi",
+      "siteSlug": "bac-dan",
+      "image": "cat-bac-dan-vong-bi.jpg"
+    }
+  ],
+  "products": [
+    {
+      "name": "Bugi Đánh Lửa Xe Hyundai Grand i10, Accent, Elantran, Tucson,..Loại Xịn NGK Chân Bạch Kim Platinium (MÃ: LZKR6AGP-E )",
+      "slug": "bugi-danh-lua-xe-hyundai-grand-i10-accent-elantran-tucson-loai-xin-ngk-chan-bach",
+      "sku": "156bfaf65aa2",
+      "categories": [
+        "Bugi",
+        "Phụ tùng đánh lửa"
+      ],
+      "description": "***Thông tin sản phẩm: Bugi đánh lửa Hyundai Grand i10 Platinum NGK \nXuất xứ: Nhật Bản\nThương Hiệu: NGK\nCấu tạo: hợp kim cao cấp Platinum, gốm sứ cách điện cao cấp, điện cực bằng kim loại cao cấp chịu nhiệt cao \nỨng dụng: Sản phẩm dùng cho các dòng xe: \n– Hyundai grand i10\n– Hyundai Accent \n– Hyundai Tucson 1.6-2.0\n– Hyundai Elantra\n*** Thông số kỹ thuật\nĐường kính ren: 12mm\nBước ren: M12x1,25mm\nChiều dài ren: 26,5mm\nLục giác mở: 16mm\nKhe hở điện cực: 1mm \n*** Công dụng sản phẩm\n– Tăng cường khả năng đề máy\n– Gia tăng năng suất động cơ\n– Tiết kiệm nhiên liệu\n– Hạn chế sự tích tụ muội than cặn bám\n– Hoạt động ổn định trong điều kiện khắc nghiệt \n*** Hướng dẫn lắp đặt\n– Siết bugi bằng tay đến khi long đền chạm đến đầu xi lanh. Trong trường hợp gặp khó khăn khi siết bugi bằng tay thì có thể dùng đến công cụ hỗ trợ\n– Hạn chế sử dụng cờ lê hoặc tuýp ngay từ đầu vì nếu sai ren có thể dẫn đến hư hỏng phần ren \n– Đối với bugi có đường kính 12mm thì lực siết sẽ là 15-20Nm ( 1,5 – 2kgm )\n*** Thông tin liên hệ: Quý khách hàng có thể liên hệ tới hotline Thanh Cường Auto số 0902763181 để đặt hàng hoặc để được tư vẫn rõ hơn về sản phẩm. Hoặc tới trực tiếp cửa hàng để mua và trải nghiệm sản phẩm. Thanh Cường AUTO chuyên sỉ và lẻ phụ tùng oto Địa chỉ: 161 Hà Huy Giáp, P. Thạnh Lộc, Q.12, TP. Hồ Chí Minh.\n*** Chính Sách Bán Hàng: \n– Sản phẩm 100% giống mô tả \n– Giao hàng ngay khi nhận được đơn \n– Đổi trả theo đúng quy định: \n1. Điều kiện áp dụng (trong vòng 07 ngày kể từ khi nhận sản phẩm): \n",
+      "images": [
+        "sp-1-1.png",
+        "sp-1-2.jpg"
+      ]
+    },
+    {
+      "name": "Keo Sữa Dán Ron , Keo Thế Ron Sparko 1101 Thái Lan&#8230;Chuyên Dụng Cho Mặt Máy, Cate Xe Ô tô, Xe máy ( Típ 100g)",
+      "slug": "keo-sua-dan-ron-keo-the-ron-sparko-1101-thai-lan-chuyen-dung-cho-mat-may-cate-xe",
+      "sku": "ab1e4e455d63",
+      "categories": [
+        "Chăm sóc xe",
+        "Hóa chất"
+      ],
+      "description": "*** Thông Tin Sản Phẩm: Keo Sữa Dán Ron , Keo Thế Ron Sparko 1101 Thái Lan…Chuyên Dụng Cho Mặt Máy, Cate Xe Ô tô, Xe máy. \n– Tên sản Phẩm: Keo Dán Ron 1101\n– Thương Hiệu: SPARKO\n– Xuất Xứ: Thái Lan\n– Màu Sắc: Trắng Sữa.\n– Khối Lượng: 100g\n*** Thông Số Kỹ Thuât: Keo Sữa Dán Ron , Keo Thế Ron Sparko 1101 Thái Lan…Chuyên Dụng Cho Mặt Máy, Cate Xe Ô tô, Xe máy. \n– Phù hợp với MIL-S-451800 Loại I ORD. Khả năng chống chất lỏng: Xăng, dầu, dầu hỏa, nước, hơi nước, dầu nhiên liệu, dung dịch kiềm, muối. dầu nhờn, mỡ, hỗn hợp chống đông, dầu tổng hợp và axit nhẹ.\n– Chịu nhiệt độ: -65 ° F đến +425 F (-40 ° C đến + 150 ° C).\n– Khả năng chịu áp lực: Lên đến 5100 psi (360 kg / cm2).\n*** Ưu Điểm: \n– Keo Thế Ron Sparko 1101 dán nhanh và tạo thành một bề mặt cứng,có thể linh hoạt, chống rò rỉ.\n– Keo Thế Ron Sparko 1101 có tính đàn hồi, dẻo dai.\n– Keo Thế Ron Sparko 1101 chịu được sự lão hóa, thời tiết, và nhiệt độ; không bị cứng, co hoặc vỡ.\n– Keo Thế Ron Sparko 1101 Thái Lan keo này khô khi tiếp xúc với độ ẩm không khí tạo ra loại gioăng cao su silicon.\n*** Thông tin liên hệ: Quý khách hàng có thể liên hệ tới hotline Thanh Cường Auto số 0902763181 để đặt hàng hoặc để được tư vẫn rõ hơn về sản phẩm. Hoặc tới trực tiếp cửa hàng để mua và trải nghiệm sản phẩm. Thanh Cường AUTO chuyên sỉ và lẻ phụ tùng oto Địa chỉ: 161 Hà Huy Giáp, P. Thạnh Lộc, Q.12, TP. Hồ Chí Minh.\n*** Chính Sách Bán Hàng: Shop Cam Kết.\n– Sản phẩm 100% giống mô tả \n– Giao hàng ngay khi nhận được đơn \n– Đổi trả theo đúng quy đ",
+      "images": [
+        "sp-2-1.png",
+        "sp-2-2.png"
+      ]
+    },
+    {
+      "name": "BÓNG ĐÈN PHA Ô TÔ CAO CẤP CHO VINFAST VF3 & VF5 – CHIẾU SÁNG HIỆU QUẢ, AN TOÀN TUYỆT ĐỐI",
+      "slug": "bong-den-pha-o-to-cho-vinfast-vf3-vf5",
+      "sku": "",
+      "categories": [
+        "Bóng đèn"
+      ],
+      "description": "BÓNG ĐÈN MITSINBO H7 12V 55W\nTHÔNG SỐ KỸ THUẬT\nĐiện áp: 12V\nCông suất: 55W\nXuất xứ: Hàn Quốc\nỨng dụng: Đèn pha cốt chiếu sáng chuyên dụng cho xe Vinfast VF3 & VF5\nCấu tạo: Thủy tinh cao cấp, khí trơ, dây tóc vonfram bền bỉ\nĐẶC TÍNH NỔI BẬT\n✔️ Độ sáng vượt trội – Cung cấp ánh sáng mạnh mẽ, ổn định, giúp tăng tầm nhìn khi lái xe ban đêm.✔️ Tiết kiệm năng lượng – Công suất tối ưu 55W, hạn chế tiêu hao điện nhưng vẫn đảm bảo cường độ chiếu sáng tốt.✔️ Bền bỉ & an toàn – Dây tóc vonfram chịu nhiệt cao, kết hợp với khí trơ giúp tăng tuổi thọ bóng đèn.✔️ Chống chói, tăng an toàn – Ánh sáng tập trung, hạn chế chói mắt xe ngược chiều, đảm bảo an toàn khi di chuyển.✔️ Lắp đặt dễ dàng – Thiết kế tương thích hoàn hảo với Vinfast VF3 & VF5, dễ dàng thay thế mà không cần can thiệp hệ thống điện.\nLỢI ÍCH CHO NGƯỜI DÙNG\n✅ Cải thiện tầm nhìn ban đêm, giúp lái xe an toàn hơn trong điều kiện thiếu sáng.✅ Giảm mỏi mắt khi lái xe đường dài nhờ ánh sáng trắng gần với ánh sáng tự nhiên.✅ Độ bền cao, hạn chế hư hỏng và tiết kiệm chi phí thay thế.✅ Tương thích hoàn hảo với xe VF3 & VF5, đảm bảo hoạt động ổn định và tối ưu.\nTới ngay Thanh Cường Auto – Phụ tùng ô tô chất lượng để hành trình của bạn luôn an toàn và trọn vẹn!\n Trọng lượng\n 200 g\n Kích thước\n 10 &times; 10 &times; 10 cm",
+      "images": [
+        "sp-3-1.jpg",
+        "sp-3-2.jpg"
+      ]
+    },
+    {
+      "name": "Chai Đánh Bóng, làm Mới Da Ghế Nệm, Đồ Da Nỉ, Gỗ Nội Thất Ô tô, Gia Dụng, Giầy Dép,&#8230;Thương Hiệu WAXX ONE ( Chai 550ml)",
+      "slug": "chai-danh-bong-lam-moi-da-ghe-nem-do-da-ni-go-noi-that-o-to-gia-dung-giay-dep-th",
+      "sku": "8b2505b6c72c",
+      "categories": [
+        "Chăm sóc xe",
+        "Hóa chất"
+      ],
+      "description": "*** Thông tin sản phẩm: Chai xịt đa năng làm bóng bề mặt Wax one \n– Xuất xứ: Thái Lan \n– Thương Hiệu: WAXX ONE\n– Hình Thức: Dạng Xịt ( Tạng Kèm Miếng Xốp)\n– Hạn sử dụng: 3 năm \n-Dung tích: 550ml \nCông dụng \n– Sử dụng thường xuyên sẽ mang lại sự luôn mới mẻ, sạch sẽ, tạo sự sang trọng cho vật dụng và chống lại sự rạn nứt do ánh nắng mặt trời. \n– Sản phẩm sử dụng được cho tất cả các màu của vật dụng cần lau chùi. \n– Chai xịt Wax one là một phát minh mới, với công nghệ Nano dễ dàng lau sạch, đánh bóng, phục hồi và làm mới tất cả đồ da, đồ gỗ, cao su, nhựa… ở trong xe hơi, xe tay ga và nội thất trong nhà…, cho đồ dùng trở nên sạch, bóng đẹp như mới. \n– Sản phẩm tiện dụng để làm mới vật dụng, tạo sự sang trọng và chống lại rạn nứt do ánh sáng mặt trời. Đặc biệt có thể dùng cho tất cả các màu của đồ dùng. \n– Sản phẩm đã được kiểm định và đánh giá đạt tiêu chuẩn chất lượng của Mỹ. Với chai xịt Wax one, bạn không cần phải tốn thời gian và chi phí khi mang đồ dùng ra tiệm đánh bóng. \nCách sử dụng: \n– Lắc đều trước khi sử dụng \n– Trước tiên xịt dung dịch từ xa cách bề mặt 15cm, sau đó xịt trực tiếp lên bề mặt, sử dụng khăn mềm đề lau khô, có thể sử dụng miếng mút có sẵn trong nắp chai\n Trọng lượng\n 700 g\n Kích thước\n 30 &times; 10 &times; 10 cm",
+      "images": [
+        "sp-4-1.png",
+        "sp-4-2.png"
+      ]
+    },
+    {
+      "name": "Lọc gió điều hoà, lọc gió máy lạnh Hyundai Santafe 2015-2019, Kia Sedona 2014-2019 mã 97133-3SAA0",
+      "slug": "loc-gio-dieu-hoa-loc-gio-may-lanh-hyundai-santafe-2015-2019-kia-sedona-2014-2019",
+      "sku": "7110e59ad648",
+      "categories": [
+        "Lọc",
+        "Lọc gió điều hoà"
+      ],
+      "description": "Lọc gió điều hoà, lọc gió máy lạnh Hyundai Santafe 2015-2019, Kia Sedona 2014-2019 mã 97133-3SAA0\nMã OEM: 97133 3SAA0; 97133-2W000; 97133-A9000\nKích thước:\n– Dài: 255 mm\n– Rộng : 225 mm\n– Cao: 20 mm\nỨng dụng:\n– Hyundai Santafe 2012-2018\n– Kia Sedona 2014-2018\nCấu tạo: giấy lọc chất lượng cao, khung nhựa và keo độ bền cao\nCông dụng:\n– Lọc sạch luồng không khí vào hệ thống điều hoà\n– Bảo đảm luồng không khí đúng lưu lượng và chất lượng vào trong hệ thống làm mát\n– Bảo vệ hệ thống điều hoà tránh khỏi những bụi bẩn gây hại \n– Kéo dài tuổi thọ hệ thống làm mát \n– Bảo đảm hiệu suất làm mát\n– Giúp tiết kiệm nhiên liệu\nLọc gió điều hoà xe Kia, Hyundai là một phụ tùng không thể thiếu trong hệ thống điều hoà làm mát ô tô. Khi lái xe hàng ngày, không khí bên ngoài thường chứa đựng các hạt bụi, vi khuẩn và các chất gây ô nhiễm khác, có thể gây ra các vấn đề về sức khỏe và làm giảm chất lượng không khí trong khoang lái. Vì vậy, việc sử dụng lọc gió điều hoà là điều cực kỳ quan trọng để đảm bảo rằng không khí trong xe ô tô luôn sạch sẽ và an toàn.\nLọc gió điều hoà xe Kia, Hyundai không chỉ giúp loại bỏ các hạt bụi và vi khuẩn từ không khí, mà còn giữ cho hệ thống điều hòa hoạt động ổn định hơn. Từ đó giúp kéo dài tuổi thọ của các bộ phận liên quan trong hệ thống điều hoà như lốc lạnh, dàn lạnh… 1 lọc gió điều hoà sạch sẽ không những cung cấp luồng không khí sạch sẽ an toàn cho hành khách trên xe mà con giúp tiết kiệm nhiên liệu trong quá trình vận hành xe\nVới sự tiện dụng và dễ tháo lắp, l",
+      "images": [
+        "sp-5-1.jpg",
+        "sp-5-2.jpg"
+      ]
+    },
+    {
+      "name": "Bugi Đánh Lửa Xe MITSUBISHI JOLIE, LANCER, OUTLANDER, PAJERO, TRITON..Loại Xịn NGK Chân Bạch Kim Platinium (MÃ:BKR5EGP )",
+      "slug": "bugi-danh-lua-xe-mitsubishi-jolie-lancer-outlander-pajero-triton-loai-xin-ngk-ch",
+      "sku": "7c8d0c0b9e0e",
+      "categories": [
+        "Bugi",
+        "Phụ tùng đánh lửa"
+      ],
+      "description": "***Thông tin sản phẩm: Bugi đánh lửa Xe MITSUBISHI\nXuất xứ: Nhật Bản\nThương Hiệu: NGK\nMã sản Phẩm: BKR5EGP\nCấu tạo: hợp kim cao cấp Platinum, gốm sứ cách điện cao cấp, điện cực bằng kim loại cao cấp chịu nhiệt cao \nỨng dụng: Sản phẩm dùng cho các dòng xe:\n– MITSUBISHI JOLIE\n– MITSUBISHI LANCER\n– MITSUBISHI OUTLANDER\n– MITSUBISHI TRITON\n*** Thông số kỹ thuật\nĐường kính ren: 14 mm\nBước ren: M14x1,25mm\nChiều dài ren: 19mm\nLục giác mở: 16mm\nKhe hở điện cực: 1mm \n*** Công dụng sản phẩm\n– Tăng cường khả năng đề máy\n– Gia tăng năng suất động cơ\n– Tiết kiệm nhiên liệu\n– Hạn chế sự tích tụ muội than cặn bám\n– Hoạt động ổn định trong điều kiện khắc nghiệt \n*** Hướng dẫn lắp đặt\n– Siết bugi bằng tay đến khi long đền chạm đến đầu xi lanh. Trong trường hợp gặp khó khăn khi siết bugi bằng tay thì có thể dùng đến công cụ hỗ trợ\n– Hạn chế sử dụng cờ lê hoặc tuýp ngay từ đầu vì nếu sai ren có thể dẫn đến hư hỏng phần ren \n– Đối với bugi có đường kính 14mm thì lực siết sẽ là 25-30Nm ( 2.5 – 3kgm )\n*** Thông tin liên hệ: Quý khách hàng có thể liên hệ tới hotline Thanh Cường Auto số 0902763181 để đặt hàng hoặc để được tư vẫn rõ hơn về sản phẩm. Hoặc tới trực tiếp cửa hàng để mua và trải nghiệm sản phẩm. Thanh Cường AUTO chuyên sỉ và lẻ phụ tùng oto Địa chỉ: 161 Hà Huy Giáp, P. Thạnh Lộc, Q.12, TP. Hồ Chí Minh.\n*** Chính Sách Bán Hàng: Shop Cam Kết.\n– Sản phẩm 100% giống mô tả \n– Giao hàng ngay khi nhận được đơn \n– Đổi trả theo đúng quy định của Shopee: \n1. Điều kiện áp dụng (trong vòng 07 ngày k",
+      "images": [
+        "sp-6-1.png",
+        "sp-6-2.png"
+      ]
+    },
+    {
+      "name": "Chắn Bùn Xe Suzuki Super Carry 500kg, Suzuki APV, xe tải nhỏ&#8230;vật liệu Cao Su Có Bố Dẻo Bền (Kích thước: 24 X 29 cm)",
+      "slug": "chan-bun-xe-suzuki-super-carry-500kg-suzuki-apv-xe-tai-nho-vat-lieu-cao-su-co-bo",
+      "sku": "d7f13f397923",
+      "categories": [
+        "Chắn bùn",
+        "Thân vỏ"
+      ],
+      "description": "Chắn Bùn Xe Suzuki Super Carry 500kg, Suzuki APV, xe tải nhỏ…vật liệu Cao Su Có Bố Dẻo Bền (Kích thước: 24 X 29 cm)\n_ Xuất xứ: Đài Loan\n_ Vật liệu cấu tạo: cao su chất lượng cao không gây độc hại, bố cước chịu lực giúp tăng tuổi thọ sản phẩm\n_ Kích thước: 24 x 29 cm, dày 2mm\n_ Ứng dụng: \n + Lắp chắn bùn cho các loại xe tải nhỏ, xe van chở hàng từ 500kg đến dưới 1 tấn như Suzuki, Thaco Towner, Dongben…\n + Làm tấm lót sàn do có bề mặt thiết kế nhám chống trượt\n + Làm tấm lót giảm rung cho các máy công nghiệp\nTấm chắn bùn có kích thước 24 x29 cm, là kích thước rất phù hợp để lắp chắn bùn cho các dòng xe có phần bánh xe, lốp xe nhỏ như các dòng xe tải, xe van thùng chở hàng có tải trọng từ 500 kg đến dưới 1 tấn của các thương hiệu như Suzuki Super Carry, Suzuki APV, Thaco Towner Van 2S, Dongben X30, Terraco…\nSản phẩm có cấu tạo là cao su dẻo pha với bố nên rất bền, chịu được va đập, quăng quật, rất phù hợp với điều kiện sử dụng khắc nghiệt như là làm chắn bùn xe tải. Sản phẩm chắn bùn xe tải giúp xe không bị bắn bụi bẩn, sình đất lên thân xe, giúp tiệt kiệm chi phí vệ sinh dọn rửa sau mỗi chuyến hành trình\nSản phẩm có tính ứng dụng cao, ngoài việc làm chắn bùn thì cũng thích hợp làm miếng lót sàn do được thiết kế bề mặt nhám chống trơn trượt. Sản phẩm được ứng dụng rộng rãi trong việc làm miếng lót sàn ở các cơ sở công nghiệp hoặc miếng lót giảm rung cho các máy công nghiệp\n*** Chính Sách Bán Hàng: Shop Cam Kết.\n– Sản phẩm 100% giống mô tả \n– Giao hàng ngay khi nhận được đơn \n– Đ",
+      "images": [
+        "sp-7-1.jpg",
+        "sp-7-2.jpg"
+      ]
+    },
+    {
+      "name": "Bugi Đánh Lửa Xe Chevrolet Cruze, Captiva, Gentra, Nubira,&#8230;Hàng NGK Loại Xịn (MÃ:BKR5EGP )",
+      "slug": "bugi-danh-lua-xe-chevrolet-cruze-captiva-gentra-nubira-hang-ngk-loai-xin-mabkr5e",
+      "sku": "257eca7f20a5",
+      "categories": [
+        "Bugi",
+        "Phụ tùng đánh lửa"
+      ],
+      "description": "***Thông tin sản phẩm: Bugi đánh lửa Xe CHEVROLET\nXuất xứ: Nhật Bản\nThương Hiệu: NGK\nMã sản Phẩm: BKR5EGP\nCấu tạo: hợp kim cao cấp Platinum, gốm sứ cách điện cao cấp, điện cực bằng kim loại cao cấp chịu nhiệt cao \nỨng dụng: Sản phẩm dùng cho các dòng xe:\n– Chevrolet cruze\n– Chevrolet captiva\n– Deawoo Gentra\n– Deawoo Nubira\n*** Thông số kỹ thuật\nĐường kính ren: 14 mm\nBước ren: M14x1,25mm\nChiều dài ren: 19mm\nLục giác mở: 16mm\nKhe hở điện cực: 1mm \n*** Công dụng sản phẩm\n– Tăng cường khả năng đề máy\n– Gia tăng năng suất động cơ\n– Tiết kiệm nhiên liệu\n– Hạn chế sự tích tụ muội than cặn bám\n– Hoạt động ổn định trong điều kiện khắc nghiệt \n*** Hướng dẫn lắp đặt\n– Siết bugi bằng tay đến khi long đền chạm đến đầu xi lanh. Trong trường hợp gặp khó khăn khi siết bugi bằng tay thì có thể dùng đến công cụ hỗ trợ\n– Hạn chế sử dụng cờ lê hoặc tuýp ngay từ đầu vì nếu sai ren có thể dẫn đến hư hỏng phần ren \n– Đối với bugi có đường kính 14mm thì lực siết sẽ là 25-30Nm ( 2,5 – 3kgm )\n*** Thông tin liên hệ: Quý khách hàng có thể liên hệ tới hotline Thanh Cường Auto số 0902763181 để đặt hàng hoặc để được tư vẫn rõ hơn về sản phẩm. Hoặc tới trực tiếp cửa hàng để mua và trải nghiệm sản phẩm. Thanh Cường AUTO chuyên sỉ và lẻ phụ tùng oto Địa chỉ: 161 Hà Huy Giáp, P. Thạnh Lộc, Q.12, TP. Hồ Chí Minh.\n*** Chính Sách Bán Hàng: Shop Cam Kết.\n– Sản phẩm 100% giống mô tả \n– Giao hàng ngay khi nhận được đơn \n– Đổi trả theo đúng quy định của Shopee: \n1. Điều kiện áp dụng (trong vòng 07 ngày kể từ khi nhận",
+      "images": [
+        "sp-8-1.png",
+        "sp-8-2.png"
+      ]
+    },
+    {
+      "name": "Bugi Đánh Lửa Xe KIA Morning, Rio, K3, Cerato, Soluto, Carens..Loại Xịn NGK Chân Bạch Kim Platinium (MÃ: LZKR6AGP-E )",
+      "slug": "bugi-danh-lua-xe-kia-morning-rio-k3-cerato-soluto-carens-loai-xin-ngk-chan-bach-",
+      "sku": "dc967e9c3cf7",
+      "categories": [
+        "Bugi",
+        "Phụ tùng đánh lửa"
+      ],
+      "description": "***Thông tin sản phẩm: Bugi đánh lửa Xe KIA. \nXuất xứ: Nhật Bản\nThương Hiệu: NGK\nMã sản Phẩm: LZKR6AGP-E\nCấu tạo: hợp kim cao cấp Platinum, gốm sứ cách điện cao cấp, điện cực bằng kim loại cao cấp chịu nhiệt cao \nỨng dụng: Sản phẩm dùng cho các dòng xe:\n– Kia Rio\n– Kia Morning\n– Kia Soul\n– Kia Carens\n– Kia K3\n– Kia Cerato\n*** Thông số kỹ thuật\nĐường kính ren: 12mm\nBước ren: M12x1,25mm\nChiều dài ren: 26,5mm\nLục giác mở: 16mm\nKhe hở điện cực: 1mm \n*** Công dụng sản phẩm\n– Tăng cường khả năng đề máy\n– Gia tăng năng suất động cơ\n– Tiết kiệm nhiên liệu\n– Hạn chế sự tích tụ muội than cặn bám\n– Hoạt động ổn định trong điều kiện khắc nghiệt \n*** Hướng dẫn lắp đặt\n– Siết bugi bằng tay đến khi long đền chạm đến đầu xi lanh. Trong trường hợp gặp khó khăn khi siết bugi bằng tay thì có thể dùng đến công cụ hỗ trợ\n– Hạn chế sử dụng cờ lê hoặc tuýp ngay từ đầu vì nếu sai ren có thể dẫn đến hư hỏng phần ren \n– Đối với bugi có đường kính 12mm thì lực siết sẽ là 15-20Nm ( 1,5 – 2kgm )\n*** Thông tin liên hệ: Quý khách hàng có thể liên hệ tới hotline Thanh Cường Auto số 0902763181 để đặt hàng hoặc để được tư vẫn rõ hơn về sản phẩm. Hoặc tới trực tiếp cửa hàng để mua và trải nghiệm sản phẩm. Thanh Cường AUTO chuyên sỉ và lẻ phụ tùng oto Địa chỉ: 161 Hà Huy Giáp, P. Thạnh Lộc, Q.12, TP. Hồ Chí Minh.\n*** Chính Sách Bán Hàng: \n– Sản phẩm 100% giống mô tả \n– Giao hàng ngay khi nhận được đơn \n– Đổi trả theo đúng quy định.\n1. Điều kiện áp dụng (trong vòng 07 ngày kể từ khi nhận sản phẩm): \n– Hàng hoá v",
+      "images": [
+        "sp-9-1.png",
+        "sp-9-2.jpg"
+      ]
+    },
+    {
+      "name": "Lon Nước Xanh Làm Mát, Nước Giải Nhiệt Két Nước Động Cơ Xe Ô tô, Xe Máy&#8230;Thương Hiệu NASCA RADIATOR COOLANT Chai 500ml",
+      "slug": "lon-nuoc-xanh-lam-mat-nuoc-giai-nhiet-ket-nuoc-dong-co-xe-o-to-xe-may-thuong-hie",
+      "sku": "e50020df9c83",
+      "categories": [
+        "Chăm sóc xe",
+        "Hóa chất"
+      ],
+      "description": "NƯỚC MÁT XANH NASCA\nThông tin sản phẩm: Nước giải nhiệt làm mát động cơ Nasca màu xanh \nXuất xứ: US – đóng gói tại Việt Nam\nĐịnh dạng: CHất lỏng \nThành phần: nước, phụ gia chống đông chống ăn mòn, NaNO2, C7H7N3…\nDung tích: 500 ml\nỨng dụng: dùng giải nhiệt động cơ ô tô hoặc máy công nghiệp \nCông dụng sản phẩm\n– Kéo dài tuổi thọ hệ thống làm mát\n– Chống ăn mòn & bảo vệ hệ thống làm mát như két nước tản nhiệt, bơm nước….\n– Bảo vệ các chi tiết cao su trong hệ thống làm mát\n– Bôi trơn các chi tiết truyền động trong hệ thống làm mát\n– Giải nhiệt & làm mát nhanh cho động cơ\nHướng dẫn sử dụng:\n– Mở nắp két nước giải nhiệt hoặc nắp bình nước giải nhiệt khi động cơ nguội\n– Lắc đều chai và đổ vào\nNước giải nhiệt làm mát động cơ NASCA là sự lựa chọn hoàn hảo để bảo vệ và nâng cao hiệu suất của hệ thống làm mát động cơ. Với khả năng giải nhiệt nhanh chóng, sản phẩm không chỉ đảm bảo động cơ hoạt động ổn định mà còn giữ cho nhiệt độ hoạt động ở mức an toàn.\nĐặc biệt, nước giải nhiệt này được bổ sung với nhiều hoạt chất phụ gia tiên tiến, giúp tăng cường khả năng bôi trơn cho các chi tiết quan trọng trong hệ thống làm mát. Điều này không chỉ giảm ma sát mà còn bảo vệ các bộ phận trước hiện tượng mài mòn, kéo dài tuổi thọ cho hệ thống.\nKhông chỉ dừng lại ở đó, sản phẩm còn chứa các phụ gia chống đông, giúp hệ thống làm mát hoạt động trơn tru trong mọi điều kiện thời tiết. Đồng thời, với tính năng chống rỉ sét xuất sắc, nước giải nhiệt này giảm thiểu tối đa hiện tượng rò rỉ xì chảy, bảo vệ và",
+      "images": [
+        "sp-10-1.png",
+        "sp-10-2.png"
+      ]
+    },
+    {
+      "name": "Bugi Đánh Lửa Xe MAZDA 3, 323, 626, PERMACY,&#8230;Loại Xịn NGK Chân Bạch Kim Platinium (MÃ:BKR5EGP )",
+      "slug": "bugi-danh-lua-xe-mazda-3-323-626-permacy-loai-xin-ngk-chan-bach-kim-platinium-ma",
+      "sku": "65f81e588b89",
+      "categories": [
+        "Bugi",
+        "Phụ tùng đánh lửa"
+      ],
+      "description": "***Thông tin sản phẩm: Bugi đánh lửa Xe Mazda\nXuất xứ: Nhật Bản\nThương Hiệu: NGK\nMã sản Phẩm: BKR5EGP\nCấu tạo: hợp kim cao cấp Platinum, gốm sứ cách điện cao cấp, điện cực bằng kim loại cao cấp chịu nhiệt cao \nỨng dụng: Sản phẩm dùng cho các dòng xe:\n– MAZDA 3 2003-2013\n– MAZDA 323\n– MAZDA 626\n– MAZDA PREMACY\n*** Thông số kỹ thuật\nĐường kính ren: 14 mm\nBước ren: M14x1,25mm\nChiều dài ren: 19mm\nLục giác mở: 16mm\nKhe hở điện cực: 1mm \n*** Công dụng sản phẩm\n– Tăng cường khả năng đề máy\n– Gia tăng năng suất động cơ\n– Tiết kiệm nhiên liệu\n– Hạn chế sự tích tụ muội than cặn bám\n– Hoạt động ổn định trong điều kiện khắc nghiệt \n*** Hướng dẫn lắp đặt\n– Siết bugi bằng tay đến khi long đền chạm đến đầu xi lanh. Trong trường hợp gặp khó khăn khi siết bugi bằng tay thì có thể dùng đến công cụ hỗ trợ\n– Hạn chế sử dụng cờ lê hoặc tuýp ngay từ đầu vì nếu sai ren có thể dẫn đến hư hỏng phần ren \n– Đối với bugi có đường kính 14mm thì lực siết sẽ là 25-30Nm ( 2,5 – 3kgm )\n*** Thông tin liên hệ: Quý khách hàng có thể liên hệ tới hotline Thanh Cường Auto số 0902763181 để đặt hàng hoặc để được tư vẫn rõ hơn về sản phẩm. Hoặc tới trực tiếp cửa hàng để mua và trải nghiệm sản phẩm. Thanh Cường AUTO chuyên sỉ và lẻ phụ tùng oto Địa chỉ: 161 Hà Huy Giáp, P. Thạnh Lộc, Q.12, TP. Hồ Chí Minh.\n*** Chính Sách Bán Hàng: Shop Cam Kết.\n– Sản phẩm 100% giống mô tả \n– Giao hàng ngay khi nhận được đơn \n– Đổi trả theo đúng quy định của Shopee: \n1. Điều kiện áp dụng (trong vòng 07 ngày kể từ khi nhận sản phẩm): \n–",
+      "images": [
+        "sp-11-1.png",
+        "sp-11-2.png"
+      ]
+    },
+    {
+      "name": "Dầu phanh, Dầu thắng Mekong VH 3-2 gia tăng độ an toàn cho hệ thống phanh (Chai 1kg) – CS0000024",
+      "slug": "dau-phanh-dau-thang-mekong-vh-3-2-gia-tang-do-an-toan-cho-he-thong-phanh-chai-1k",
+      "sku": "09a2ac1505a1",
+      "categories": [
+        "Dầu nhờn và mỡ bôi trơn"
+      ],
+      "description": "Dầu phanh, Dầu thắng Mekong VH 3-2 gia tăng độ an toàn cho hệ thống thắng (Chai 1kg) – CS0000024\nTHÔNG TIN SẢN PHẨM:\n– Tên sản phẩm: Dầu Thắng Mekong VH 3-2\n– Trọng lượng: Chai 1kg\n– Thời gian sử dụng: 5 năm\nĐẶC ĐIỂM CỦA SẢN PHẨM:\n– Mekong VH 3-2 là loại dầu thắng (dầu phanh) tổng hợp đạt tiêu chuẩn quốc tế, dùng trong hệ thống thắng của các loại xe ôtô, xe tải các loại hoạt động ở vùng nhiệt đới với cupen do Việt Nam và nước ngoài sản xuất yêu cầu dầu thắng (phanh) đạt cấp độ DOT3, JIS.\n– Dầu thắng VH 3-2 có nhiệt độ sôi cao nên không gây hiện tượng nổi bọt khí trong đường ống dẫn dầu thắng khi xe hoạt động hệ thống thắng liên tục trong điều kiện thời tiết nắng nóng.\n– Sản phẩm có tính bôi trơn, đồng thời được tăng cường phụ gia EPA nhằm giúp giảm thiểu tối đa tình trạng cao su cuppen bị biến dạng trong quá trình sử dụng. Từ đó giúp gia tăng độ an toàn khi hoạt động hệ thống phanh.\nBẢO QUẢN VÀ TỒN TRỮ:\n– Tồn trữ nơi khô ráo, thoáng mát.\n– Vặn chặt nắp sau khi sử dụng.\n– Rất nguy hiểm nếu để da, mắt tiếp xúc dầu thắng, phải mang bảo hộ khi tiếp xúc.\nCAM KẾT VỚI KHÁCH HÀNG\n– Sản phẩm 100% giống mô tả \n– Giao hàng ngay khi nhận được đơn \n– Đổi trả theo đúng quy định của Shopee: \n1. Điều kiện áp dụng (trong vòng 07 ngày kể từ khi nhận sản phẩm):\n– Hàng hoá vẫn còn mới, chưa qua sử dụng \n– Hàng hoá bị lỗi hoặc hư hỏng do vận chuyển hoặc do nhà sản xuất\n 2. Trường hợp được chấp nhận: \n– Hàng không đúng chủng loại, mẫu mã như quý khách đặt hàng\n– Không đủ số lượng, không đủ bộ như ",
+      "images": [
+        "sp-12-1.png",
+        "sp-12-2.png"
+      ]
+    },
+    {
+      "name": "Tay mở cửa ngoài xe Thaco Towner: 950, 990",
+      "slug": "tay-mo-cua-ngoai-thaco-towner-950-990",
+      "sku": "",
+      "categories": [
+        "Thân vỏ",
+        "Tay mở cửa"
+      ],
+      "description": "Tay mở cửa ngoài THACO TOWNER 950, 990 được thiết kế đảm bảo độ khớp hoàn hảo với vị trí lắp đặt, giúp thao tác mở cửa trở nên dễ dàng và thuận tiện.\nSản phẩm được chế tạo từ vật liệu cao cấp, có độ bền cao, chống mài mòn và không phai màu theo thời gian. Đây là lựa chọn lý tưởng để thay thế tay nắm cửa bị hỏng, gãy hoặc xuống cấp, khôi phục tính thẩm mỹ và chức năng cho xe của bạn.\nTHÔNG SỐ KIỆN HÀNG:\nNặng 300gr\nKích thước 20x10x10cm\n✅ Lắp đặt dễ dàng\n✅ Thiết kế chắc chắn, chịu lực tốt\n✅ Màu sắc bền đẹp, không bạc màu theo thời gian\nỨng dụng\nPhù hợp cho các dòng xe THACO TOWNER 950, 990\nSử dụng thay thế cho tay nắm cửa ngoài bị hư hỏng, giúp khôi phục tính thẩm mỹ và tiện dụng cho xe\nhttps://thanhcuongauto.com/wp-content/uploads/2025/04/VID8-1.mp4",
+      "images": [
+        "sp-13-1.jpg",
+        "sp-13-2.jpg"
+      ]
+    },
+    {
+      "name": "Bugi Đánh Lửa Xe MITSUBISHI XPANDER, ATTRAGE, MIRAGE, GRANDIS..Loại Xịn NGK Chân Bạch Kim Platinium (MÃ:LFR5AGP )",
+      "slug": "bugi-danh-lua-xe-mitsubishi-xpander-attrage-mirage-grandis-loai-xin-ngk-chan-bac",
+      "sku": "52f12603bf0b",
+      "categories": [
+        "Bugi",
+        "Phụ tùng đánh lửa"
+      ],
+      "description": "***Thông tin sản phẩm: Bugi đánh lửa Xe MITSUBISHI\nXuất xứ: Nhật Bản\nThương Hiệu: NGK\nMã sản Phẩm: LFR5AGP\nCấu tạo: hợp kim cao cấp Platinum, gốm sứ cách điện cao cấp, điện cực bằng kim loại cao cấp chịu nhiệt cao \nỨng dụng: Sản phẩm dùng cho các dòng xe:\n– MITSUBISHI XPANDER\n– MITSUBISHI ATTRAGE\n– MITSUBISHI MIRAGE\n– MITSUBISHI GRANDIS\n*** Thông số kỹ thuật\nĐường kính ren: 14 mm\nBước ren: M14x1,25mm\nChiều dài ren: 26,5mm\nLục giác mở: 16mm\nKhe hở điện cực: 1mm \n*** Công dụng sản phẩm\n– Tăng cường khả năng đề máy\n– Gia tăng năng suất động cơ\n– Tiết kiệm nhiên liệu\n– Hạn chế sự tích tụ muội than cặn bám\n– Hoạt động ổn định trong điều kiện khắc nghiệt \n*** Hướng dẫn lắp đặt\n– Siết bugi bằng tay đến khi long đền chạm đến đầu xi lanh. Trong trường hợp gặp khó khăn khi siết bugi bằng tay thì có thể dùng đến công cụ hỗ trợ\n– Hạn chế sử dụng cờ lê hoặc tuýp ngay từ đầu vì nếu sai ren có thể dẫn đến hư hỏng phần ren \n– Đối với bugi có đường kính 14mm thì lực siết sẽ là 25-30Nm ( 2,5 – 3kgm )\n*** Thông tin liên hệ: Quý khách hàng có thể liên hệ tới hotline Thanh Cường Auto số 0902763181 để đặt hàng hoặc để được tư vẫn rõ hơn về sản phẩm. Hoặc tới trực tiếp cửa hàng để mua và trải nghiệm sản phẩm. Thanh Cường AUTO chuyên sỉ và lẻ phụ tùng oto Địa chỉ: 161 Hà Huy Giáp, P. Thạnh Lộc, Q.12, TP. Hồ Chí Minh.\n*** Chính Sách Bán Hàng: Shop Cam Kết.\n– Sản phẩm 100% giống mô tả \n– Giao hàng ngay khi nhận được đơn \n– Đổi trả theo đúng quy định của Shopee: \n1. Điều kiện áp dụng (trong vòng 07 ngà",
+      "images": [
+        "sp-14-1.png",
+        "sp-14-2.png"
+      ]
+    },
+    {
+      "name": "Tay quay bánh sơ cua, cây mở lốp dự phòng xe tải và xe du lịch&#8230;vât liệu thép bền bỉ ( dài 80 cm )",
+      "slug": "tay-quay-banh-so-cua-cay-mo-lop-du-phong-xe-tai-va-xe-du-lich-vat-lieu-thep-ben-",
+      "sku": "fedbfea4c198",
+      "categories": [
+        "Đồ nghề"
+      ],
+      "description": "Tay quay bánh sơ cua, cây mở lốp dự phòng xe tải và xe du lịch…vât liệu thép bền bỉ ( dài 80 cm )\nChất liệu: Thép đặc mạ kẽm chống oxi hoá\nChiều dài tổng thể: 80cm\nỨng dụng: Mở bánh sơ của, lốp dự phòng các dòng xe tải và du lịch \nXuất xứ: việt nam\nCây mở lốp dự phòng là một thiết bị quan trọng trong bộ công cụ sửa chữa xe hơi mà các tài xế nên có. Được thiết kế nhỏ gọn và tiện lợi, sản phẩm này là một phần không thể thiếu để giải quyết các sự cố xảy ra trên đường.\nVới vật liệu chất lượng cao và thiết kế chắc chắn, cây mở lốp đảm bảo tính an toàn và độ bền cao trong quá trình sử dụng. Đặc biệt, đầu mở lốp được thiết kế phù hợp với nhiều dòng xe từ xe tải đến xe du lịch, giúp xử lý hiệu quả và nhanh chóng các tình huống khẩn cấp như xì lốp, giúp tài xế tiết kiệm thời gian và nỗ lực khi phải tự mình thực hiện sửa chữa.\nCây mở lốp dự phòng là một sản phẩm không thể thiếu cho mỗi chiếc xe, đảm bảo cho tài xế một cảm giác an tâm hơn khi tham gia giao thông và duy trì sự sẵn sàng của xe trước mọi tình huống khó lường trên đường.\n*** Chính Sách Bán Hàng: Shop Cam Kết.\n– Sản phẩm 100% giống mô tả \n– Giao hàng ngay khi nhận được đơn \n– Đổi trả theo đúng quy định của Shop như sau : \n1. Điều kiện áp dụng (trong vòng 07 ngày kể từ khi nhận sản phẩm): \n– Hàng hoá vẫn còn mới, chưa qua sử dụng \n– Hàng hoá bị lỗi hoặc hư hỏng do vận chuyển hoặc do nhà sản xuất \n2. Trường hợp được chấp nhận:\n– Hàng không đúng chủng loại, mẫu mã như quý khách đặt hàng \n– Không đủ số lượng, không đủ bộ như tro",
+      "images": [
+        "sp-15-1.jpg",
+        "sp-15-2.jpg"
+      ]
+    },
+    {
+      "name": "LỌC GIÓ MÁY LẠNH FORD RANGER",
+      "slug": "loc-gio-may-lanh-ford-ranger",
+      "sku": "62e669f3b675",
+      "categories": [
+        "Lọc",
+        "Lọc gió điều hoà"
+      ],
+      "description": "Lọc gió máy lạnh Ford Ranger hay còn gọi là lọc gió điều hoà Ford Ranger có nhiệm vụ lọc không khí, ngăn cản bụi bẩn, dị vật từ bên ngoài, thậm chí là ở khoang máy vào trong khoang nội thất bên trong xe.\nĐối với các xe du lịch, hệ thống điều hoà luôn được bật, trong quá trình lấy gió ngoài, bụi bẩn bám vào màng lọc làm giảm đi lượng gió, không khí lấy từ ngoài vào rất có hại cho hệ thống điều hòa làm mát của xe.\nNgoài ra, việc bụi bẩn và tiếp xúc với môi trường đỗ xe ở những nơi ẩm thấp cũng là nơi nấm mốc, côn trùng đào thải hay xác chết côn trùng… khiến cho khoang nội thất xe sẽ có mùi hôi thối khó chịu, ảnh hưởng đến sức khỏe của lái xe và hành khách. Nhiều thợ kỹ thuật thay thế thường phát hiện xác côn trùng chết, phân chuột, nấm mốc, gián…Đặc biệt là với những xe đi trong phố, thường bật điều hòa lấy gió trong thì không khí tuần hoàn liên tục qua bộ lọc nên lúc này bộ lọc còn kiêm chức năng của thiết bị khử mùi trong xe. Nếu lọc gió quá bẩn thì ngoài việc mất chức năng lọc khí, bộ phận này còn có thể chứa vi khuẩn có hại. Vì vậy, việc kiểm tra thường xuyên, vệ sinh và thay thế kịp lúc sẽ là yếu tố quan trọng giúp bảo đảm sức khoẻ của người ngồi trên xe. \nLọc gió máy lạnh sẽ trở nên bẩn và nghẹt sau một thời gian sử dụng, về lâu dài sẽ gây ra tiếng động và hỏng hóc đối với các bộ phận khác của hệ thống điều hoà như dàn lạnh, mô tơ quạt dàn lạnh, đường ống ga… Vì vậy, việc thay thế thường xuyên lọc gió máy lạnh Ford Ranger sẽ giúp hạn chế phát sinh các tổn thất lớn của xe,",
+      "images": [
+        "sp-16-1.jpg",
+        "sp-16-2.jpg"
+      ]
+    },
+    {
+      "name": "Tấm chắn bùn Hyundai vât liệu từ cao su dẻo có bố, lắp cho Xe 1T25-2T5, Mighty, Porter, H100, H150&#8230;Kích Thước 27x37cm",
+      "slug": "tam-chan-bun-hyundai-vat-lieu-tu-cao-su-deo-co-bo-lap-cho-xe-1t25-2t5-mighty-por",
+      "sku": "cf77eb635766",
+      "categories": [
+        "Chắn bùn",
+        "Thân vỏ"
+      ],
+      "description": "Chắn bùn Hyundai vât liệu từ cao su dẻo có bố, lắp cho Xe 1T25-2T5, Mighty, Porter, H100, H150…Kích Thước 27x37cm\n_ Xuất xứ: Đài Loan\n_ Vật liệu cấu tạo: cao su chất lượng cao không gây độc hại, bố cước chịu lực giúp tăng tuổi thọ sản phẩm\n_ Kích thước: 27 x 37 cm, dày 2mm\n_ Ứng dụng: \n + Lắp chắn bùn cho các loại xe tải nhỏ, có tải trọng từ 1 tấn đến 2,5 tấn như Hyundai Porter, Hyundai Mighty, H100, H150\n + Làm tấm lót sàn do có bề mặt thiết kế nhám chống trượt\n + Làm tấm lót giảm rung cho các máy công nghiệp\nTấm chắn bùn có kích thước 27 x 37 cm, là kích thước rất phù hợp để lắp chắn bùn cho các dòng xe có phần bánh xe, lốp xe kích thước trung bình như các dòng xe tải có tải trọng từ 1 tấn đến 2,5 tấn của các thương hiệu như Hyundai Porter, Hyundai Mighty, H100, H150…\nSản phẩm có cấu tạo là cao su dẻo pha với bố nên rất bền, chịu được va đập, quăng quật, rất phù hợp với điều kiện sử dụng khắc nghiệt như là làm chắn bùn xe tải. Sản phẩm chắn bùn xe tải giúp xe không bị bắn bụi bẩn, sình đất lên thân xe, giúp tiệt kiệm chi phí vệ sinh dọn rửa sau mỗi chuyến hành trình\nSản phẩm có tính ứng dụng cao, ngoài việc làm chắn bùn thì cũng thích hợp làm miếng lót sàn do được thiết kế bề mặt nhám chống trơn trượt. Sản phẩm được ứng dụng rộng rãi trong việc làm miếng lót sàn ở các cơ sở công nghiệp hoặc miếng lót giảm rung cho các máy công nghiệp\n*** Chính Sách Bán Hàng: Shop Cam Kết.\n– Sản phẩm 100% giống mô tả \n– Giao hàng ngay khi nhận được đơn \n– Đổi trả theo đúng quy định của Shop:",
+      "images": [
+        "sp-17-1.jpeg",
+        "sp-17-2.jpg"
+      ]
+    },
+    {
+      "name": "Lọc dầu, lọc nhớt động cơ dành cho xe Kia Carens, Kia K3, Kia Cerato, Kia Rondo, Hyundai Elantra&#8230; ( Mã: 26300-35505)",
+      "slug": "loc-dau-loc-nhot-dong-co-danh-cho-xe-kia-carens-kia-k3-kia-cerato-kia-rondo-hyun",
+      "sku": "e92d7bc38984",
+      "categories": [
+        "Lọc",
+        "Lọc nhớt / lọc dầu nhờn"
+      ],
+      "description": "Thông tin sản phẩm:Lọc dầu, lọc nhớt động cơ dành cho xe Kia Morning, Hyundai Grand i10, Picanto, Getz, Accent, Kia Rio, Soluto 26300-35505\nThông số kỹ thuật \n– Cao 85 mm\n– Ngang 75 mm\n– Đường kính lỗ ren: 18,5 mm\n– Kích thước sin 63 – 71 mm\n– Đường kính ren vặn: M20X1,5\nỨng dụng: \n_ Hyundai: Elantra, Santafe …\n_ Kia: Carens, K3, Cerato, Rondo, Sorento…\n _ Mitsubishi: Pajero …\n _ Honda: Civic, CRV …\nMã OEM: 26300-35505\nCấu tạo: lõi giấy lọc cao cấp, khung vỏ hợp kim; sin chịu nhiệt và áp suất cao \nCông dụng\n– Loại bỏ tạp chất, cặn bẩn từ dầu nhớt \n– Bảo đảm cung cấp nguồn nhớt tinh khiết nhất cho động cơ \n– Duy trì hiệu suất động cơ \n– Kéo dài tuổi thọ động cơ \n– Giúp động cơ hoạt động mượt mà và ổn định \n– Bảo vệ động cơ khỏi các hư hại tiềm ẩn do tạp chất hoặc cặn bẩn gây ra \n– Hỗ trợ tiết kiệm nhiên liệu \n– Hỗ trợ giảm khí thải\nLọc nhớt là một bộ phận quan trọng trong hệ thống động cơ của xe KIA, Hyundai Mobis đóng vai trò then chốt trong việc duy trì hiệu suất và tuổi thọ của động cơ. Sản phẩm lọc nhớt dành cho xe KIA, Hyundai Mobis được thiết kế đặc biệt để đáp ứng nhu cầu khắt khe của động cơ xe bán tải mạnh mẽ này, giúp giữ cho dầu nhớt luôn sạch sẽ và hiệu quả.\nSản phẩm lọc nhớt cho xe KIA, Hyundai Mobis thường được sản xuất từ những vật liệu chất lượng cao, có khả năng chịu nhiệt và chịu áp suất tốt, đảm bảo hiệu suất lọc ổn định và bền bỉ trong điều kiện hoạt động khắc nghiệt. Các công nghệ tiên tiến được ứng dụng để tăng cường khả năng lọc và tăng lưu lượng dầu, gi",
+      "images": [
+        "sp-18-1.jpg",
+        "sp-18-2.jpg"
+      ]
+    },
+    {
+      "name": "Dầu Phanh, Dầu Thắng Dot 3 TOYOTA Chính Hãng Bình 500ml..Chuyên Dụng Cho Dòng Xe VIOS, INNOVA, FORTUNER, ALTIS, AVANZA..",
+      "slug": "dau-phanh-dau-thang-dot-3-toyota-chinh-hang-binh-500ml-chuyen-dung-cho-dong-xe-v",
+      "sku": "797319b1f1d0",
+      "categories": [
+        "Dầu nhờn và mỡ bôi trơn"
+      ],
+      "description": "*** THÔNG TIN SẢN PHẨM: \nDầu phanh, dầu thắng tiêu chuẩn DOT 3 hãng Toyota được thiết kế để sử dụng cho hệ thống truyền áp suất thuỷ lực của hệ thống phanh và hệ thống ly hợp, đặc biệt là hệ thống hoạt động trong điều kiện khắc nghiệt như ma sát cao, nhiệt độ cao \nDầu phanh, dầu thắng Toyota đạt tiêu chuẩn DOT 3, là tiêu chuẩn quốc tế thông dụng được khuyến nghị sử dụng trong hệ thống ly hợp và phanh thuỷ lực trong các phương tiện hiệu suất cao như ô tô, xe máy, xe khách… \nĐược sản xuất tại Nhật Bản theo tiêu chuẩn của hãng ô tô hàng đầu thế giới Toyota, dầu phanh/ dầu thắng Toyota bảo đảm độ nhớt và nhiệt độ dầu luôn ổn định trong suất quá trình hoạt động của hệ thống phanh hoặc ly hợp thuỷ lực. Từ đó đảm bảo hiệu suất truyền lực trong hệ thống gần như hoàn hảo tại mọi điểm trong hệ thống phanh và ly hợp thuỷ lực \nDung tích: 500ml\nỨng dụng: hệ thống phanh/ thắng, hệ thống ly hợp \nThương hiệu: ToyotO\n*** Thông tin liên hệ: Quý khách hàng có thể liên hệ tới hotline Thanh Cường Auto số 0902763181 để đặt hàng hoặc để được tư vẫn rõ hơn về sản phẩm. Hoặc tới trực tiếp cửa hàng để mua và trải nghiệm sản phẩm. Thanh Cường AUTO chuyên sỉ và lẻ phụ tùng oto Địa chỉ: 161 Hà Huy Giáp, P. Thạnh Lộc, Q.12, TP. Hồ Chí Minh.\n*** Chính Sách Bán Hàng: Shop Cam Kết.\n– Sản phẩm 100% giống mô tả \n– Giao hàng ngay khi nhận được đơn \n– Đổi trả theo đúng quy định của Shopee: \n1. Điều kiện áp dụng (trong vòng 07 ngày kể từ khi nhận sản phẩm): \n– Hàng hoá vẫn còn mới, chưa qua sử dụng \n– Hàng hoá bị",
+      "images": [
+        "sp-19-1.png",
+        "sp-19-2.png"
+      ]
+    },
+    {
+      "name": "Lọc gió động cơ, lọc gió máy Ford Ranger 2019-2022, Everest 2019-2022 mã EB3G-9601-AA",
+      "slug": "loc-gio-dong-co-loc-gio-may-ford-ranger-2019-2022-everest-2019-2022-ma-eb3g-9601",
+      "sku": "8148ccdee0fc",
+      "categories": [
+        "Lọc",
+        "Lọc gió động cơ"
+      ],
+      "description": "Lọc gió động cơ, lọc gió máy Ford Ranger 2019-2022, Everest 2019-2022 EB3G-9601-AA\nMã OEM: \nEB3G 9601 AA; EB3Z-9601-A; EB3Z-9601-B; H2MZ-9601-B\nThông số kỹ thuật\nDài : 296 mm\nRộng: 236 mm\nCao: 50 mm\nỨng dụng: \n– Ford Everest 2019-2022\n– Ford Ranger 2019-2022\nCấu tạo: giấy lọc cao cấp, khung nhựa chắc chắn chịu áp suất cao, keo chịu nhiệt\nCông dụng:\n– Lọc sạch luồng không khí vào buồng đốt\n– Bảo đảm luồng không khí đúng lưu lượng và chất lượng vào trong buồng đốt\n– Bảo vệ động cơ tránh khỏi những bụi bẩn gây hại \n– Kéo dài tuổi thọ động cơ \n– Bảo đảm hiệu suất động cơ luôn tối ưu, hoạt động mượt mà ổn định\n– Giúp tiết kiệm nhiên liệu\nLọc gió động cơ cho Ford Everest, Ranger không chỉ là một phần của hệ thống động cơ mà còn đóng vai trò quan trọng trong việc bảo vệ động cơ khỏi các hạt bụi, cặn bẩn và các chất độc hại khác. Với công nghệ tiên tiến, lọc gió này giúp duy trì sự sạch sẽ của không khí được cung cấp cho động cơ, từ đó tăng hiệu suất hoạt động và kéo dài tuổi thọ của động cơ.\nMột trong những công dụng chính của lọc gió là ngăn chặn các hạt bụi lớn và nhỏ từ tiếp cận và làm hỏng các bộ phận nhạy cảm bên trong động cơ. Điều này không chỉ giúp giữ cho động cơ hoạt động mượt mà mà còn giảm thiểu sự mài mòn và hao mòn của các bộ phận quan trọng.\nBên cạnh đó, lọc gió cũng giúp cải thiện chất lượng không khí thải ra từ động cơ, giảm thiểu tác động tiêu cực đến môi trường. Điều này phản ánh cam kết của Ford trong việc sản xuất các phương tiện vận tải cá nhân không chỉ là hiệ",
+      "images": [
+        "sp-20-1.jpg",
+        "sp-20-2.jpg"
+      ]
+    }
+  ]
+}

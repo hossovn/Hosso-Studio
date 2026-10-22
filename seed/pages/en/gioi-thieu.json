@@ -1,0 +1,21 @@
+{
+  "title": "About",
+  "description": "About our car parts store.",
+  "content": {
+    "root": { "props": {} },
+    "content": [
+      {
+        "type": "Hero",
+        "props": { "id": "Hero-about", "title": "About us", "subtitle": "The story and promises of our store.", "ctaLabel": "", "ctaHref": "" }
+      },
+      {
+        "type": "Text",
+        "props": {
+          "id": "Text-about",
+          "heading": "Our promise",
+          "body": "Genuine parts with a clear origin.\n\nAftermarket parts are labeled with their brand and warranty period."
+        }
+      }
+    ]
+  }
+}

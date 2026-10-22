@@ -1,0 +1,2418 @@
+[
+  {
+    "id": "P001",
+    "code": "TYMP001G",
+    "name": "Má phanh trước Toyota Vios / Camry",
+    "brand": "Toyota Genuine",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 858000,
+    "categoryId": "phanh",
+    "oemCodes": [
+      "TY-MP-10037"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "toyota",
+        "model": "toyota-vios",
+        "yearFrom": 2013,
+        "yearTo": 2022
+      },
+      {
+        "make": "toyota",
+        "model": "toyota-camry",
+        "yearFrom": 2012,
+        "yearTo": 2019
+      }
+    ]
+  },
+  {
+    "id": "P002",
+    "code": "BOSMP001A",
+    "name": "Má phanh trước Bosch cho Toyota Vios / Camry",
+    "brand": "Bosch",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 532000,
+    "categoryId": "phanh",
+    "oemCodes": [
+      "TY-MP-10037"
+    ],
+    "altCodes": [
+      "BO-20053",
+      "ALT0007"
+    ],
+    "compatibility": [
+      {
+        "make": "toyota",
+        "model": "toyota-vios",
+        "yearFrom": 2013,
+        "yearTo": 2022
+      },
+      {
+        "make": "toyota",
+        "model": "toyota-camry",
+        "yearFrom": 2012,
+        "yearTo": 2019
+      }
+    ]
+  },
+  {
+    "id": "P003",
+    "code": "TYLD002G",
+    "name": "Lọc dầu Toyota Vios / Camry",
+    "brand": "Toyota Genuine",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 144000,
+    "categoryId": "loc",
+    "oemCodes": [
+      "TY-LD-10074"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "toyota",
+        "model": "toyota-vios",
+        "yearFrom": 2013,
+        "yearTo": 2022
+      },
+      {
+        "make": "toyota",
+        "model": "toyota-camry",
+        "yearFrom": 2012,
+        "yearTo": 2019
+      }
+    ]
+  },
+  {
+    "id": "P004",
+    "code": "DENLD002A",
+    "name": "Lọc dầu Denso cho Toyota Vios / Camry",
+    "brand": "Denso",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 89000,
+    "categoryId": "loc",
+    "oemCodes": [
+      "TY-LD-10074"
+    ],
+    "altCodes": [
+      "DE-20106",
+      "ALT0014"
+    ],
+    "compatibility": [
+      {
+        "make": "toyota",
+        "model": "toyota-vios",
+        "yearFrom": 2013,
+        "yearTo": 2022
+      },
+      {
+        "make": "toyota",
+        "model": "toyota-camry",
+        "yearFrom": 2012,
+        "yearTo": 2019
+      }
+    ]
+  },
+  {
+    "id": "P005",
+    "code": "TYLG003G",
+    "name": "Lọc gió động cơ Toyota Vios / Camry",
+    "brand": "Toyota Genuine",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 273000,
+    "categoryId": "loc",
+    "oemCodes": [
+      "TY-LG-10111"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "toyota",
+        "model": "toyota-vios",
+        "yearFrom": 2013,
+        "yearTo": 2022
+      },
+      {
+        "make": "toyota",
+        "model": "toyota-camry",
+        "yearFrom": 2012,
+        "yearTo": 2019
+      }
+    ]
+  },
+  {
+    "id": "P006",
+    "code": "MAHLG003A",
+    "name": "Lọc gió động cơ Mahle cho Toyota Vios / Camry",
+    "brand": "Mahle",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 169000,
+    "categoryId": "loc",
+    "oemCodes": [
+      "TY-LG-10111"
+    ],
+    "altCodes": [
+      "MA-20159",
+      "ALT0021"
+    ],
+    "compatibility": [
+      {
+        "make": "toyota",
+        "model": "toyota-vios",
+        "yearFrom": 2013,
+        "yearTo": 2022
+      },
+      {
+        "make": "toyota",
+        "model": "toyota-camry",
+        "yearFrom": 2012,
+        "yearTo": 2019
+      }
+    ]
+  },
+  {
+    "id": "P007",
+    "code": "TYBG004G",
+    "name": "Bugi (bộ 4) Toyota Vios / Camry",
+    "brand": "Toyota Genuine",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 480000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "TY-BG-10148"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "toyota",
+        "model": "toyota-vios",
+        "yearFrom": 2013,
+        "yearTo": 2022,
+        "engine": "1.5L"
+      },
+      {
+        "make": "toyota",
+        "model": "toyota-camry",
+        "yearFrom": 2012,
+        "yearTo": 2019,
+        "engine": "1.5L"
+      }
+    ]
+  },
+  {
+    "id": "P008",
+    "code": "NGKBG004A",
+    "name": "Bugi (bộ 4) NGK cho Toyota Vios / Camry",
+    "brand": "NGK",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 298000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "TY-BG-10148"
+    ],
+    "altCodes": [
+      "NG-20212",
+      "ALT0028"
+    ],
+    "compatibility": [
+      {
+        "make": "toyota",
+        "model": "toyota-vios",
+        "yearFrom": 2013,
+        "yearTo": 2022,
+        "engine": "1.5L"
+      },
+      {
+        "make": "toyota",
+        "model": "toyota-camry",
+        "yearFrom": 2012,
+        "yearTo": 2019,
+        "engine": "1.5L"
+      }
+    ]
+  },
+  {
+    "id": "P009",
+    "code": "TYDC005G",
+    "name": "Dây curoa tổng Toyota Vios / Camry",
+    "brand": "Toyota Genuine",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 429000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "TY-DC-10185"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "toyota",
+        "model": "toyota-vios",
+        "yearFrom": 2013,
+        "yearTo": 2022
+      },
+      {
+        "make": "toyota",
+        "model": "toyota-camry",
+        "yearFrom": 2012,
+        "yearTo": 2019
+      }
+    ]
+  },
+  {
+    "id": "P010",
+    "code": "BANDC005A",
+    "name": "Dây curoa tổng Bando cho Toyota Vios / Camry",
+    "brand": "Bando",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 266000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "TY-DC-10185"
+    ],
+    "altCodes": [
+      "BA-20265",
+      "ALT0035"
+    ],
+    "compatibility": [
+      {
+        "make": "toyota",
+        "model": "toyota-vios",
+        "yearFrom": 2013,
+        "yearTo": 2022
+      },
+      {
+        "make": "toyota",
+        "model": "toyota-camry",
+        "yearFrom": 2012,
+        "yearTo": 2019
+      }
+    ]
+  },
+  {
+    "id": "P011",
+    "code": "TYBN006G",
+    "name": "Bơm nước Toyota Vios / Camry",
+    "brand": "Toyota Genuine",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 1140000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "TY-BN-10222"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "toyota",
+        "model": "toyota-vios",
+        "yearFrom": 2013,
+        "yearTo": 2022
+      },
+      {
+        "make": "toyota",
+        "model": "toyota-camry",
+        "yearFrom": 2012,
+        "yearTo": 2019
+      }
+    ]
+  },
+  {
+    "id": "P012",
+    "code": "AISBN006A",
+    "name": "Bơm nước Aisin cho Toyota Vios / Camry",
+    "brand": "Aisin",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 707000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "TY-BN-10222"
+    ],
+    "altCodes": [
+      "AI-20318",
+      "ALT0042"
+    ],
+    "compatibility": [
+      {
+        "make": "toyota",
+        "model": "toyota-vios",
+        "yearFrom": 2013,
+        "yearTo": 2022
+      },
+      {
+        "make": "toyota",
+        "model": "toyota-camry",
+        "yearFrom": 2012,
+        "yearTo": 2019
+      }
+    ]
+  },
+  {
+    "id": "P013",
+    "code": "TYGX007G",
+    "name": "Giảm xóc trước Toyota Vios / Camry",
+    "brand": "Toyota Genuine",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 2145000,
+    "categoryId": "treo",
+    "oemCodes": [
+      "TY-GX-10259"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "toyota",
+        "model": "toyota-vios",
+        "yearFrom": 2013,
+        "yearTo": 2022
+      },
+      {
+        "make": "toyota",
+        "model": "toyota-camry",
+        "yearFrom": 2012,
+        "yearTo": 2019
+      }
+    ]
+  },
+  {
+    "id": "P014",
+    "code": "MONGX007A",
+    "name": "Giảm xóc trước Monroe cho Toyota Vios / Camry",
+    "brand": "Monroe",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 1330000,
+    "categoryId": "treo",
+    "oemCodes": [
+      "TY-GX-10259"
+    ],
+    "altCodes": [
+      "MO-20371",
+      "ALT0049"
+    ],
+    "compatibility": [
+      {
+        "make": "toyota",
+        "model": "toyota-vios",
+        "yearFrom": 2013,
+        "yearTo": 2022
+      },
+      {
+        "make": "toyota",
+        "model": "toyota-camry",
+        "yearFrom": 2012,
+        "yearTo": 2019
+      }
+    ]
+  },
+  {
+    "id": "P015",
+    "code": "TYDP008G",
+    "name": "Bóng đèn pha LED Toyota Vios / Camry",
+    "brand": "Toyota Genuine",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 890000,
+    "categoryId": "dien",
+    "oemCodes": [
+      "TY-DP-10296"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "toyota",
+        "model": "toyota-vios",
+        "yearFrom": 2013,
+        "yearTo": 2022
+      },
+      {
+        "make": "toyota",
+        "model": "toyota-camry",
+        "yearFrom": 2012,
+        "yearTo": 2019
+      }
+    ]
+  },
+  {
+    "id": "P016",
+    "code": "PHIDP008A",
+    "name": "Bóng đèn pha LED Philips cho Toyota Vios / Camry",
+    "brand": "Philips",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 552000,
+    "categoryId": "dien",
+    "oemCodes": [
+      "TY-DP-10296"
+    ],
+    "altCodes": [
+      "PH-20424",
+      "ALT0056"
+    ],
+    "compatibility": [
+      {
+        "make": "toyota",
+        "model": "toyota-vios",
+        "yearFrom": 2013,
+        "yearTo": 2022
+      },
+      {
+        "make": "toyota",
+        "model": "toyota-camry",
+        "yearFrom": 2012,
+        "yearTo": 2019
+      }
+    ]
+  },
+  {
+    "id": "P017",
+    "code": "HDMP009G",
+    "name": "Má phanh trước Honda City / Civic",
+    "brand": "Honda Genuine",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 858000,
+    "categoryId": "phanh",
+    "oemCodes": [
+      "HD-MP-10333"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "honda",
+        "model": "honda-city",
+        "yearFrom": 2014,
+        "yearTo": 2020
+      },
+      {
+        "make": "honda",
+        "model": "honda-civic",
+        "yearFrom": 2016,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P018",
+    "code": "BOSMP009A",
+    "name": "Má phanh trước Bosch cho Honda City / Civic",
+    "brand": "Bosch",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 532000,
+    "categoryId": "phanh",
+    "oemCodes": [
+      "HD-MP-10333"
+    ],
+    "altCodes": [
+      "BO-20477",
+      "ALT0063"
+    ],
+    "compatibility": [
+      {
+        "make": "honda",
+        "model": "honda-city",
+        "yearFrom": 2014,
+        "yearTo": 2020
+      },
+      {
+        "make": "honda",
+        "model": "honda-civic",
+        "yearFrom": 2016,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P019",
+    "code": "HDLD010G",
+    "name": "Lọc dầu Honda City / Civic",
+    "brand": "Honda Genuine",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 144000,
+    "categoryId": "loc",
+    "oemCodes": [
+      "HD-LD-10370"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "honda",
+        "model": "honda-city",
+        "yearFrom": 2014,
+        "yearTo": 2020
+      },
+      {
+        "make": "honda",
+        "model": "honda-civic",
+        "yearFrom": 2016,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P020",
+    "code": "DENLD010A",
+    "name": "Lọc dầu Denso cho Honda City / Civic",
+    "brand": "Denso",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 89000,
+    "categoryId": "loc",
+    "oemCodes": [
+      "HD-LD-10370"
+    ],
+    "altCodes": [
+      "DE-20530",
+      "ALT0070"
+    ],
+    "compatibility": [
+      {
+        "make": "honda",
+        "model": "honda-city",
+        "yearFrom": 2014,
+        "yearTo": 2020
+      },
+      {
+        "make": "honda",
+        "model": "honda-civic",
+        "yearFrom": 2016,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P021",
+    "code": "HDLG011G",
+    "name": "Lọc gió động cơ Honda City / Civic",
+    "brand": "Honda Genuine",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 273000,
+    "categoryId": "loc",
+    "oemCodes": [
+      "HD-LG-10407"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "honda",
+        "model": "honda-city",
+        "yearFrom": 2014,
+        "yearTo": 2020
+      },
+      {
+        "make": "honda",
+        "model": "honda-civic",
+        "yearFrom": 2016,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P022",
+    "code": "MAHLG011A",
+    "name": "Lọc gió động cơ Mahle cho Honda City / Civic",
+    "brand": "Mahle",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 169000,
+    "categoryId": "loc",
+    "oemCodes": [
+      "HD-LG-10407"
+    ],
+    "altCodes": [
+      "MA-20583",
+      "ALT0077"
+    ],
+    "compatibility": [
+      {
+        "make": "honda",
+        "model": "honda-city",
+        "yearFrom": 2014,
+        "yearTo": 2020
+      },
+      {
+        "make": "honda",
+        "model": "honda-civic",
+        "yearFrom": 2016,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P023",
+    "code": "HDBG012G",
+    "name": "Bugi (bộ 4) Honda City / Civic",
+    "brand": "Honda Genuine",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 480000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "HD-BG-10444"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "honda",
+        "model": "honda-city",
+        "yearFrom": 2014,
+        "yearTo": 2020,
+        "engine": "1.5L"
+      },
+      {
+        "make": "honda",
+        "model": "honda-civic",
+        "yearFrom": 2016,
+        "yearTo": 2021,
+        "engine": "1.5L"
+      }
+    ]
+  },
+  {
+    "id": "P024",
+    "code": "NGKBG012A",
+    "name": "Bugi (bộ 4) NGK cho Honda City / Civic",
+    "brand": "NGK",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 298000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "HD-BG-10444"
+    ],
+    "altCodes": [
+      "NG-20636",
+      "ALT0084"
+    ],
+    "compatibility": [
+      {
+        "make": "honda",
+        "model": "honda-city",
+        "yearFrom": 2014,
+        "yearTo": 2020,
+        "engine": "1.5L"
+      },
+      {
+        "make": "honda",
+        "model": "honda-civic",
+        "yearFrom": 2016,
+        "yearTo": 2021,
+        "engine": "1.5L"
+      }
+    ]
+  },
+  {
+    "id": "P025",
+    "code": "HDDC013G",
+    "name": "Dây curoa tổng Honda City / Civic",
+    "brand": "Honda Genuine",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 429000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "HD-DC-10481"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "honda",
+        "model": "honda-city",
+        "yearFrom": 2014,
+        "yearTo": 2020
+      },
+      {
+        "make": "honda",
+        "model": "honda-civic",
+        "yearFrom": 2016,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P026",
+    "code": "BANDC013A",
+    "name": "Dây curoa tổng Bando cho Honda City / Civic",
+    "brand": "Bando",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 266000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "HD-DC-10481"
+    ],
+    "altCodes": [
+      "BA-20689",
+      "ALT0091"
+    ],
+    "compatibility": [
+      {
+        "make": "honda",
+        "model": "honda-city",
+        "yearFrom": 2014,
+        "yearTo": 2020
+      },
+      {
+        "make": "honda",
+        "model": "honda-civic",
+        "yearFrom": 2016,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P027",
+    "code": "HDBN014G",
+    "name": "Bơm nước Honda City / Civic",
+    "brand": "Honda Genuine",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 1140000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "HD-BN-10518"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "honda",
+        "model": "honda-city",
+        "yearFrom": 2014,
+        "yearTo": 2020
+      },
+      {
+        "make": "honda",
+        "model": "honda-civic",
+        "yearFrom": 2016,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P028",
+    "code": "AISBN014A",
+    "name": "Bơm nước Aisin cho Honda City / Civic",
+    "brand": "Aisin",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 707000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "HD-BN-10518"
+    ],
+    "altCodes": [
+      "AI-20742",
+      "ALT0098"
+    ],
+    "compatibility": [
+      {
+        "make": "honda",
+        "model": "honda-city",
+        "yearFrom": 2014,
+        "yearTo": 2020
+      },
+      {
+        "make": "honda",
+        "model": "honda-civic",
+        "yearFrom": 2016,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P029",
+    "code": "HDGX015G",
+    "name": "Giảm xóc trước Honda City / Civic",
+    "brand": "Honda Genuine",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 2145000,
+    "categoryId": "treo",
+    "oemCodes": [
+      "HD-GX-10555"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "honda",
+        "model": "honda-city",
+        "yearFrom": 2014,
+        "yearTo": 2020
+      },
+      {
+        "make": "honda",
+        "model": "honda-civic",
+        "yearFrom": 2016,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P030",
+    "code": "MONGX015A",
+    "name": "Giảm xóc trước Monroe cho Honda City / Civic",
+    "brand": "Monroe",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 1330000,
+    "categoryId": "treo",
+    "oemCodes": [
+      "HD-GX-10555"
+    ],
+    "altCodes": [
+      "MO-20795",
+      "ALT0105"
+    ],
+    "compatibility": [
+      {
+        "make": "honda",
+        "model": "honda-city",
+        "yearFrom": 2014,
+        "yearTo": 2020
+      },
+      {
+        "make": "honda",
+        "model": "honda-civic",
+        "yearFrom": 2016,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P031",
+    "code": "HDDP016G",
+    "name": "Bóng đèn pha LED Honda City / Civic",
+    "brand": "Honda Genuine",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 890000,
+    "categoryId": "dien",
+    "oemCodes": [
+      "HD-DP-10592"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "honda",
+        "model": "honda-city",
+        "yearFrom": 2014,
+        "yearTo": 2020
+      },
+      {
+        "make": "honda",
+        "model": "honda-civic",
+        "yearFrom": 2016,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P032",
+    "code": "PHIDP016A",
+    "name": "Bóng đèn pha LED Philips cho Honda City / Civic",
+    "brand": "Philips",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 552000,
+    "categoryId": "dien",
+    "oemCodes": [
+      "HD-DP-10592"
+    ],
+    "altCodes": [
+      "PH-20848",
+      "ALT0112"
+    ],
+    "compatibility": [
+      {
+        "make": "honda",
+        "model": "honda-city",
+        "yearFrom": 2014,
+        "yearTo": 2020
+      },
+      {
+        "make": "honda",
+        "model": "honda-civic",
+        "yearFrom": 2016,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P033",
+    "code": "HYMP017G",
+    "name": "Má phanh trước Hyundai Accent / Grand i10",
+    "brand": "Hyundai Mobis",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 858000,
+    "categoryId": "phanh",
+    "oemCodes": [
+      "HY-MP-10629"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "hyundai",
+        "model": "hyundai-accent",
+        "yearFrom": 2011,
+        "yearTo": 2020
+      },
+      {
+        "make": "hyundai",
+        "model": "hyundai-i10",
+        "yearFrom": 2014,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P034",
+    "code": "BOSMP017A",
+    "name": "Má phanh trước Bosch cho Hyundai Accent / Grand i10",
+    "brand": "Bosch",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 532000,
+    "categoryId": "phanh",
+    "oemCodes": [
+      "HY-MP-10629"
+    ],
+    "altCodes": [
+      "BO-20901",
+      "ALT0119"
+    ],
+    "compatibility": [
+      {
+        "make": "hyundai",
+        "model": "hyundai-accent",
+        "yearFrom": 2011,
+        "yearTo": 2020
+      },
+      {
+        "make": "hyundai",
+        "model": "hyundai-i10",
+        "yearFrom": 2014,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P035",
+    "code": "HYLD018G",
+    "name": "Lọc dầu Hyundai Accent / Grand i10",
+    "brand": "Hyundai Mobis",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 144000,
+    "categoryId": "loc",
+    "oemCodes": [
+      "HY-LD-10666"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "hyundai",
+        "model": "hyundai-accent",
+        "yearFrom": 2011,
+        "yearTo": 2020
+      },
+      {
+        "make": "hyundai",
+        "model": "hyundai-i10",
+        "yearFrom": 2014,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P036",
+    "code": "DENLD018A",
+    "name": "Lọc dầu Denso cho Hyundai Accent / Grand i10",
+    "brand": "Denso",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 89000,
+    "categoryId": "loc",
+    "oemCodes": [
+      "HY-LD-10666"
+    ],
+    "altCodes": [
+      "DE-20954",
+      "ALT0126"
+    ],
+    "compatibility": [
+      {
+        "make": "hyundai",
+        "model": "hyundai-accent",
+        "yearFrom": 2011,
+        "yearTo": 2020
+      },
+      {
+        "make": "hyundai",
+        "model": "hyundai-i10",
+        "yearFrom": 2014,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P037",
+    "code": "HYLG019G",
+    "name": "Lọc gió động cơ Hyundai Accent / Grand i10",
+    "brand": "Hyundai Mobis",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 273000,
+    "categoryId": "loc",
+    "oemCodes": [
+      "HY-LG-10703"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "hyundai",
+        "model": "hyundai-accent",
+        "yearFrom": 2011,
+        "yearTo": 2020
+      },
+      {
+        "make": "hyundai",
+        "model": "hyundai-i10",
+        "yearFrom": 2014,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P038",
+    "code": "MAHLG019A",
+    "name": "Lọc gió động cơ Mahle cho Hyundai Accent / Grand i10",
+    "brand": "Mahle",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 169000,
+    "categoryId": "loc",
+    "oemCodes": [
+      "HY-LG-10703"
+    ],
+    "altCodes": [
+      "MA-21007",
+      "ALT0133"
+    ],
+    "compatibility": [
+      {
+        "make": "hyundai",
+        "model": "hyundai-accent",
+        "yearFrom": 2011,
+        "yearTo": 2020
+      },
+      {
+        "make": "hyundai",
+        "model": "hyundai-i10",
+        "yearFrom": 2014,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P039",
+    "code": "HYBG020G",
+    "name": "Bugi (bộ 4) Hyundai Accent / Grand i10",
+    "brand": "Hyundai Mobis",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 480000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "HY-BG-10740"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "hyundai",
+        "model": "hyundai-accent",
+        "yearFrom": 2011,
+        "yearTo": 2020,
+        "engine": "1.5L"
+      },
+      {
+        "make": "hyundai",
+        "model": "hyundai-i10",
+        "yearFrom": 2014,
+        "yearTo": 2021,
+        "engine": "1.5L"
+      }
+    ]
+  },
+  {
+    "id": "P040",
+    "code": "NGKBG020A",
+    "name": "Bugi (bộ 4) NGK cho Hyundai Accent / Grand i10",
+    "brand": "NGK",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 298000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "HY-BG-10740"
+    ],
+    "altCodes": [
+      "NG-21060",
+      "ALT0140"
+    ],
+    "compatibility": [
+      {
+        "make": "hyundai",
+        "model": "hyundai-accent",
+        "yearFrom": 2011,
+        "yearTo": 2020,
+        "engine": "1.5L"
+      },
+      {
+        "make": "hyundai",
+        "model": "hyundai-i10",
+        "yearFrom": 2014,
+        "yearTo": 2021,
+        "engine": "1.5L"
+      }
+    ]
+  },
+  {
+    "id": "P041",
+    "code": "HYDC021G",
+    "name": "Dây curoa tổng Hyundai Accent / Grand i10",
+    "brand": "Hyundai Mobis",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 429000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "HY-DC-10777"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "hyundai",
+        "model": "hyundai-accent",
+        "yearFrom": 2011,
+        "yearTo": 2020
+      },
+      {
+        "make": "hyundai",
+        "model": "hyundai-i10",
+        "yearFrom": 2014,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P042",
+    "code": "BANDC021A",
+    "name": "Dây curoa tổng Bando cho Hyundai Accent / Grand i10",
+    "brand": "Bando",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 266000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "HY-DC-10777"
+    ],
+    "altCodes": [
+      "BA-21113",
+      "ALT0147"
+    ],
+    "compatibility": [
+      {
+        "make": "hyundai",
+        "model": "hyundai-accent",
+        "yearFrom": 2011,
+        "yearTo": 2020
+      },
+      {
+        "make": "hyundai",
+        "model": "hyundai-i10",
+        "yearFrom": 2014,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P043",
+    "code": "HYBN022G",
+    "name": "Bơm nước Hyundai Accent / Grand i10",
+    "brand": "Hyundai Mobis",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 1140000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "HY-BN-10814"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "hyundai",
+        "model": "hyundai-accent",
+        "yearFrom": 2011,
+        "yearTo": 2020
+      },
+      {
+        "make": "hyundai",
+        "model": "hyundai-i10",
+        "yearFrom": 2014,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P044",
+    "code": "AISBN022A",
+    "name": "Bơm nước Aisin cho Hyundai Accent / Grand i10",
+    "brand": "Aisin",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 707000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "HY-BN-10814"
+    ],
+    "altCodes": [
+      "AI-21166",
+      "ALT0154"
+    ],
+    "compatibility": [
+      {
+        "make": "hyundai",
+        "model": "hyundai-accent",
+        "yearFrom": 2011,
+        "yearTo": 2020
+      },
+      {
+        "make": "hyundai",
+        "model": "hyundai-i10",
+        "yearFrom": 2014,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P045",
+    "code": "HYGX023G",
+    "name": "Giảm xóc trước Hyundai Accent / Grand i10",
+    "brand": "Hyundai Mobis",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 2145000,
+    "categoryId": "treo",
+    "oemCodes": [
+      "HY-GX-10851"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "hyundai",
+        "model": "hyundai-accent",
+        "yearFrom": 2011,
+        "yearTo": 2020
+      },
+      {
+        "make": "hyundai",
+        "model": "hyundai-i10",
+        "yearFrom": 2014,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P046",
+    "code": "MONGX023A",
+    "name": "Giảm xóc trước Monroe cho Hyundai Accent / Grand i10",
+    "brand": "Monroe",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 1330000,
+    "categoryId": "treo",
+    "oemCodes": [
+      "HY-GX-10851"
+    ],
+    "altCodes": [
+      "MO-21219",
+      "ALT0161"
+    ],
+    "compatibility": [
+      {
+        "make": "hyundai",
+        "model": "hyundai-accent",
+        "yearFrom": 2011,
+        "yearTo": 2020
+      },
+      {
+        "make": "hyundai",
+        "model": "hyundai-i10",
+        "yearFrom": 2014,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P047",
+    "code": "HYDP024G",
+    "name": "Bóng đèn pha LED Hyundai Accent / Grand i10",
+    "brand": "Hyundai Mobis",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 890000,
+    "categoryId": "dien",
+    "oemCodes": [
+      "HY-DP-10888"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "hyundai",
+        "model": "hyundai-accent",
+        "yearFrom": 2011,
+        "yearTo": 2020
+      },
+      {
+        "make": "hyundai",
+        "model": "hyundai-i10",
+        "yearFrom": 2014,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P048",
+    "code": "PHIDP024A",
+    "name": "Bóng đèn pha LED Philips cho Hyundai Accent / Grand i10",
+    "brand": "Philips",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 552000,
+    "categoryId": "dien",
+    "oemCodes": [
+      "HY-DP-10888"
+    ],
+    "altCodes": [
+      "PH-21272",
+      "ALT0168"
+    ],
+    "compatibility": [
+      {
+        "make": "hyundai",
+        "model": "hyundai-accent",
+        "yearFrom": 2011,
+        "yearTo": 2020
+      },
+      {
+        "make": "hyundai",
+        "model": "hyundai-i10",
+        "yearFrom": 2014,
+        "yearTo": 2021
+      }
+    ]
+  },
+  {
+    "id": "P049",
+    "code": "KIMP025G",
+    "name": "Má phanh trước Kia Morning / Cerato",
+    "brand": "Kia Mobis",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 858000,
+    "categoryId": "phanh",
+    "oemCodes": [
+      "KI-MP-10925"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "kia",
+        "model": "kia-morning",
+        "yearFrom": 2011,
+        "yearTo": 2019
+      },
+      {
+        "make": "kia",
+        "model": "kia-cerato",
+        "yearFrom": 2013,
+        "yearTo": 2018
+      }
+    ]
+  },
+  {
+    "id": "P050",
+    "code": "BOSMP025A",
+    "name": "Má phanh trước Bosch cho Kia Morning / Cerato",
+    "brand": "Bosch",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 532000,
+    "categoryId": "phanh",
+    "oemCodes": [
+      "KI-MP-10925"
+    ],
+    "altCodes": [
+      "BO-21325",
+      "ALT0175"
+    ],
+    "compatibility": [
+      {
+        "make": "kia",
+        "model": "kia-morning",
+        "yearFrom": 2011,
+        "yearTo": 2019
+      },
+      {
+        "make": "kia",
+        "model": "kia-cerato",
+        "yearFrom": 2013,
+        "yearTo": 2018
+      }
+    ]
+  },
+  {
+    "id": "P051",
+    "code": "KILD026G",
+    "name": "Lọc dầu Kia Morning / Cerato",
+    "brand": "Kia Mobis",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 144000,
+    "categoryId": "loc",
+    "oemCodes": [
+      "KI-LD-10962"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "kia",
+        "model": "kia-morning",
+        "yearFrom": 2011,
+        "yearTo": 2019
+      },
+      {
+        "make": "kia",
+        "model": "kia-cerato",
+        "yearFrom": 2013,
+        "yearTo": 2018
+      }
+    ]
+  },
+  {
+    "id": "P052",
+    "code": "DENLD026A",
+    "name": "Lọc dầu Denso cho Kia Morning / Cerato",
+    "brand": "Denso",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 89000,
+    "categoryId": "loc",
+    "oemCodes": [
+      "KI-LD-10962"
+    ],
+    "altCodes": [
+      "DE-21378",
+      "ALT0182"
+    ],
+    "compatibility": [
+      {
+        "make": "kia",
+        "model": "kia-morning",
+        "yearFrom": 2011,
+        "yearTo": 2019
+      },
+      {
+        "make": "kia",
+        "model": "kia-cerato",
+        "yearFrom": 2013,
+        "yearTo": 2018
+      }
+    ]
+  },
+  {
+    "id": "P053",
+    "code": "KILG027G",
+    "name": "Lọc gió động cơ Kia Morning / Cerato",
+    "brand": "Kia Mobis",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 273000,
+    "categoryId": "loc",
+    "oemCodes": [
+      "KI-LG-10999"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "kia",
+        "model": "kia-morning",
+        "yearFrom": 2011,
+        "yearTo": 2019
+      },
+      {
+        "make": "kia",
+        "model": "kia-cerato",
+        "yearFrom": 2013,
+        "yearTo": 2018
+      }
+    ]
+  },
+  {
+    "id": "P054",
+    "code": "MAHLG027A",
+    "name": "Lọc gió động cơ Mahle cho Kia Morning / Cerato",
+    "brand": "Mahle",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 169000,
+    "categoryId": "loc",
+    "oemCodes": [
+      "KI-LG-10999"
+    ],
+    "altCodes": [
+      "MA-21431",
+      "ALT0189"
+    ],
+    "compatibility": [
+      {
+        "make": "kia",
+        "model": "kia-morning",
+        "yearFrom": 2011,
+        "yearTo": 2019
+      },
+      {
+        "make": "kia",
+        "model": "kia-cerato",
+        "yearFrom": 2013,
+        "yearTo": 2018
+      }
+    ]
+  },
+  {
+    "id": "P055",
+    "code": "KIBG028G",
+    "name": "Bugi (bộ 4) Kia Morning / Cerato",
+    "brand": "Kia Mobis",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 480000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "KI-BG-11036"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "kia",
+        "model": "kia-morning",
+        "yearFrom": 2011,
+        "yearTo": 2019,
+        "engine": "1.5L"
+      },
+      {
+        "make": "kia",
+        "model": "kia-cerato",
+        "yearFrom": 2013,
+        "yearTo": 2018,
+        "engine": "1.5L"
+      }
+    ]
+  },
+  {
+    "id": "P056",
+    "code": "NGKBG028A",
+    "name": "Bugi (bộ 4) NGK cho Kia Morning / Cerato",
+    "brand": "NGK",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 298000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "KI-BG-11036"
+    ],
+    "altCodes": [
+      "NG-21484",
+      "ALT0196"
+    ],
+    "compatibility": [
+      {
+        "make": "kia",
+        "model": "kia-morning",
+        "yearFrom": 2011,
+        "yearTo": 2019,
+        "engine": "1.5L"
+      },
+      {
+        "make": "kia",
+        "model": "kia-cerato",
+        "yearFrom": 2013,
+        "yearTo": 2018,
+        "engine": "1.5L"
+      }
+    ]
+  },
+  {
+    "id": "P057",
+    "code": "KIDC029G",
+    "name": "Dây curoa tổng Kia Morning / Cerato",
+    "brand": "Kia Mobis",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 429000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "KI-DC-11073"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "kia",
+        "model": "kia-morning",
+        "yearFrom": 2011,
+        "yearTo": 2019
+      },
+      {
+        "make": "kia",
+        "model": "kia-cerato",
+        "yearFrom": 2013,
+        "yearTo": 2018
+      }
+    ]
+  },
+  {
+    "id": "P058",
+    "code": "BANDC029A",
+    "name": "Dây curoa tổng Bando cho Kia Morning / Cerato",
+    "brand": "Bando",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 266000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "KI-DC-11073"
+    ],
+    "altCodes": [
+      "BA-21537",
+      "ALT0203"
+    ],
+    "compatibility": [
+      {
+        "make": "kia",
+        "model": "kia-morning",
+        "yearFrom": 2011,
+        "yearTo": 2019
+      },
+      {
+        "make": "kia",
+        "model": "kia-cerato",
+        "yearFrom": 2013,
+        "yearTo": 2018
+      }
+    ]
+  },
+  {
+    "id": "P059",
+    "code": "KIBN030G",
+    "name": "Bơm nước Kia Morning / Cerato",
+    "brand": "Kia Mobis",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 1140000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "KI-BN-11110"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "kia",
+        "model": "kia-morning",
+        "yearFrom": 2011,
+        "yearTo": 2019
+      },
+      {
+        "make": "kia",
+        "model": "kia-cerato",
+        "yearFrom": 2013,
+        "yearTo": 2018
+      }
+    ]
+  },
+  {
+    "id": "P060",
+    "code": "AISBN030A",
+    "name": "Bơm nước Aisin cho Kia Morning / Cerato",
+    "brand": "Aisin",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 707000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "KI-BN-11110"
+    ],
+    "altCodes": [
+      "AI-21590",
+      "ALT0210"
+    ],
+    "compatibility": [
+      {
+        "make": "kia",
+        "model": "kia-morning",
+        "yearFrom": 2011,
+        "yearTo": 2019
+      },
+      {
+        "make": "kia",
+        "model": "kia-cerato",
+        "yearFrom": 2013,
+        "yearTo": 2018
+      }
+    ]
+  },
+  {
+    "id": "P061",
+    "code": "KIGX031G",
+    "name": "Giảm xóc trước Kia Morning / Cerato",
+    "brand": "Kia Mobis",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 2145000,
+    "categoryId": "treo",
+    "oemCodes": [
+      "KI-GX-11147"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "kia",
+        "model": "kia-morning",
+        "yearFrom": 2011,
+        "yearTo": 2019
+      },
+      {
+        "make": "kia",
+        "model": "kia-cerato",
+        "yearFrom": 2013,
+        "yearTo": 2018
+      }
+    ]
+  },
+  {
+    "id": "P062",
+    "code": "MONGX031A",
+    "name": "Giảm xóc trước Monroe cho Kia Morning / Cerato",
+    "brand": "Monroe",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 1330000,
+    "categoryId": "treo",
+    "oemCodes": [
+      "KI-GX-11147"
+    ],
+    "altCodes": [
+      "MO-21643",
+      "ALT0217"
+    ],
+    "compatibility": [
+      {
+        "make": "kia",
+        "model": "kia-morning",
+        "yearFrom": 2011,
+        "yearTo": 2019
+      },
+      {
+        "make": "kia",
+        "model": "kia-cerato",
+        "yearFrom": 2013,
+        "yearTo": 2018
+      }
+    ]
+  },
+  {
+    "id": "P063",
+    "code": "KIDP032G",
+    "name": "Bóng đèn pha LED Kia Morning / Cerato",
+    "brand": "Kia Mobis",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 890000,
+    "categoryId": "dien",
+    "oemCodes": [
+      "KI-DP-11184"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "kia",
+        "model": "kia-morning",
+        "yearFrom": 2011,
+        "yearTo": 2019
+      },
+      {
+        "make": "kia",
+        "model": "kia-cerato",
+        "yearFrom": 2013,
+        "yearTo": 2018
+      }
+    ]
+  },
+  {
+    "id": "P064",
+    "code": "PHIDP032A",
+    "name": "Bóng đèn pha LED Philips cho Kia Morning / Cerato",
+    "brand": "Philips",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 552000,
+    "categoryId": "dien",
+    "oemCodes": [
+      "KI-DP-11184"
+    ],
+    "altCodes": [
+      "PH-21696",
+      "ALT0224"
+    ],
+    "compatibility": [
+      {
+        "make": "kia",
+        "model": "kia-morning",
+        "yearFrom": 2011,
+        "yearTo": 2019
+      },
+      {
+        "make": "kia",
+        "model": "kia-cerato",
+        "yearFrom": 2013,
+        "yearTo": 2018
+      }
+    ]
+  },
+  {
+    "id": "P065",
+    "code": "FDMP033G",
+    "name": "Má phanh trước Ford Ranger / Everest",
+    "brand": "Ford Motorcraft",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 858000,
+    "categoryId": "phanh",
+    "oemCodes": [
+      "FD-MP-11221"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "ford",
+        "model": "ford-ranger",
+        "yearFrom": 2012,
+        "yearTo": 2022
+      },
+      {
+        "make": "ford",
+        "model": "ford-everest",
+        "yearFrom": 2015,
+        "yearTo": 2022
+      }
+    ]
+  },
+  {
+    "id": "P066",
+    "code": "BOSMP033A",
+    "name": "Má phanh trước Bosch cho Ford Ranger / Everest",
+    "brand": "Bosch",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 532000,
+    "categoryId": "phanh",
+    "oemCodes": [
+      "FD-MP-11221"
+    ],
+    "altCodes": [
+      "BO-21749",
+      "ALT0231"
+    ],
+    "compatibility": [
+      {
+        "make": "ford",
+        "model": "ford-ranger",
+        "yearFrom": 2012,
+        "yearTo": 2022
+      },
+      {
+        "make": "ford",
+        "model": "ford-everest",
+        "yearFrom": 2015,
+        "yearTo": 2022
+      }
+    ]
+  },
+  {
+    "id": "P067",
+    "code": "FDLD034G",
+    "name": "Lọc dầu Ford Ranger / Everest",
+    "brand": "Ford Motorcraft",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 144000,
+    "categoryId": "loc",
+    "oemCodes": [
+      "FD-LD-11258"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "ford",
+        "model": "ford-ranger",
+        "yearFrom": 2012,
+        "yearTo": 2022
+      },
+      {
+        "make": "ford",
+        "model": "ford-everest",
+        "yearFrom": 2015,
+        "yearTo": 2022
+      }
+    ]
+  },
+  {
+    "id": "P068",
+    "code": "DENLD034A",
+    "name": "Lọc dầu Denso cho Ford Ranger / Everest",
+    "brand": "Denso",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 89000,
+    "categoryId": "loc",
+    "oemCodes": [
+      "FD-LD-11258"
+    ],
+    "altCodes": [
+      "DE-21802",
+      "ALT0238"
+    ],
+    "compatibility": [
+      {
+        "make": "ford",
+        "model": "ford-ranger",
+        "yearFrom": 2012,
+        "yearTo": 2022
+      },
+      {
+        "make": "ford",
+        "model": "ford-everest",
+        "yearFrom": 2015,
+        "yearTo": 2022
+      }
+    ]
+  },
+  {
+    "id": "P069",
+    "code": "FDLG035G",
+    "name": "Lọc gió động cơ Ford Ranger / Everest",
+    "brand": "Ford Motorcraft",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 273000,
+    "categoryId": "loc",
+    "oemCodes": [
+      "FD-LG-11295"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "ford",
+        "model": "ford-ranger",
+        "yearFrom": 2012,
+        "yearTo": 2022
+      },
+      {
+        "make": "ford",
+        "model": "ford-everest",
+        "yearFrom": 2015,
+        "yearTo": 2022
+      }
+    ]
+  },
+  {
+    "id": "P070",
+    "code": "MAHLG035A",
+    "name": "Lọc gió động cơ Mahle cho Ford Ranger / Everest",
+    "brand": "Mahle",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 169000,
+    "categoryId": "loc",
+    "oemCodes": [
+      "FD-LG-11295"
+    ],
+    "altCodes": [
+      "MA-21855",
+      "ALT0245"
+    ],
+    "compatibility": [
+      {
+        "make": "ford",
+        "model": "ford-ranger",
+        "yearFrom": 2012,
+        "yearTo": 2022
+      },
+      {
+        "make": "ford",
+        "model": "ford-everest",
+        "yearFrom": 2015,
+        "yearTo": 2022
+      }
+    ]
+  },
+  {
+    "id": "P071",
+    "code": "FDBG036G",
+    "name": "Bugi (bộ 4) Ford Ranger / Everest",
+    "brand": "Ford Motorcraft",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 480000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "FD-BG-11332"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "ford",
+        "model": "ford-ranger",
+        "yearFrom": 2012,
+        "yearTo": 2022,
+        "engine": "1.5L"
+      },
+      {
+        "make": "ford",
+        "model": "ford-everest",
+        "yearFrom": 2015,
+        "yearTo": 2022,
+        "engine": "1.5L"
+      }
+    ]
+  },
+  {
+    "id": "P072",
+    "code": "NGKBG036A",
+    "name": "Bugi (bộ 4) NGK cho Ford Ranger / Everest",
+    "brand": "NGK",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 298000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "FD-BG-11332"
+    ],
+    "altCodes": [
+      "NG-21908",
+      "ALT0252"
+    ],
+    "compatibility": [
+      {
+        "make": "ford",
+        "model": "ford-ranger",
+        "yearFrom": 2012,
+        "yearTo": 2022,
+        "engine": "1.5L"
+      },
+      {
+        "make": "ford",
+        "model": "ford-everest",
+        "yearFrom": 2015,
+        "yearTo": 2022,
+        "engine": "1.5L"
+      }
+    ]
+  },
+  {
+    "id": "P073",
+    "code": "FDDC037G",
+    "name": "Dây curoa tổng Ford Ranger / Everest",
+    "brand": "Ford Motorcraft",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 429000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "FD-DC-11369"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "ford",
+        "model": "ford-ranger",
+        "yearFrom": 2012,
+        "yearTo": 2022
+      },
+      {
+        "make": "ford",
+        "model": "ford-everest",
+        "yearFrom": 2015,
+        "yearTo": 2022
+      }
+    ]
+  },
+  {
+    "id": "P074",
+    "code": "BANDC037A",
+    "name": "Dây curoa tổng Bando cho Ford Ranger / Everest",
+    "brand": "Bando",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 266000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "FD-DC-11369"
+    ],
+    "altCodes": [
+      "BA-21961",
+      "ALT0259"
+    ],
+    "compatibility": [
+      {
+        "make": "ford",
+        "model": "ford-ranger",
+        "yearFrom": 2012,
+        "yearTo": 2022
+      },
+      {
+        "make": "ford",
+        "model": "ford-everest",
+        "yearFrom": 2015,
+        "yearTo": 2022
+      }
+    ]
+  },
+  {
+    "id": "P075",
+    "code": "FDBN038G",
+    "name": "Bơm nước Ford Ranger / Everest",
+    "brand": "Ford Motorcraft",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 1140000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "FD-BN-11406"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "ford",
+        "model": "ford-ranger",
+        "yearFrom": 2012,
+        "yearTo": 2022
+      },
+      {
+        "make": "ford",
+        "model": "ford-everest",
+        "yearFrom": 2015,
+        "yearTo": 2022
+      }
+    ]
+  },
+  {
+    "id": "P076",
+    "code": "AISBN038A",
+    "name": "Bơm nước Aisin cho Ford Ranger / Everest",
+    "brand": "Aisin",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 707000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "FD-BN-11406"
+    ],
+    "altCodes": [
+      "AI-22014",
+      "ALT0266"
+    ],
+    "compatibility": [
+      {
+        "make": "ford",
+        "model": "ford-ranger",
+        "yearFrom": 2012,
+        "yearTo": 2022
+      },
+      {
+        "make": "ford",
+        "model": "ford-everest",
+        "yearFrom": 2015,
+        "yearTo": 2022
+      }
+    ]
+  },
+  {
+    "id": "P077",
+    "code": "FDGX039G",
+    "name": "Giảm xóc trước Ford Ranger / Everest",
+    "brand": "Ford Motorcraft",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 2145000,
+    "categoryId": "treo",
+    "oemCodes": [
+      "FD-GX-11443"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "ford",
+        "model": "ford-ranger",
+        "yearFrom": 2012,
+        "yearTo": 2022
+      },
+      {
+        "make": "ford",
+        "model": "ford-everest",
+        "yearFrom": 2015,
+        "yearTo": 2022
+      }
+    ]
+  },
+  {
+    "id": "P078",
+    "code": "MONGX039A",
+    "name": "Giảm xóc trước Monroe cho Ford Ranger / Everest",
+    "brand": "Monroe",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 1330000,
+    "categoryId": "treo",
+    "oemCodes": [
+      "FD-GX-11443"
+    ],
+    "altCodes": [
+      "MO-22067",
+      "ALT0273"
+    ],
+    "compatibility": [
+      {
+        "make": "ford",
+        "model": "ford-ranger",
+        "yearFrom": 2012,
+        "yearTo": 2022
+      },
+      {
+        "make": "ford",
+        "model": "ford-everest",
+        "yearFrom": 2015,
+        "yearTo": 2022
+      }
+    ]
+  },
+  {
+    "id": "P079",
+    "code": "FDDP040G",
+    "name": "Bóng đèn pha LED Ford Ranger / Everest",
+    "brand": "Ford Motorcraft",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 890000,
+    "categoryId": "dien",
+    "oemCodes": [
+      "FD-DP-11480"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "ford",
+        "model": "ford-ranger",
+        "yearFrom": 2012,
+        "yearTo": 2022
+      },
+      {
+        "make": "ford",
+        "model": "ford-everest",
+        "yearFrom": 2015,
+        "yearTo": 2022
+      }
+    ]
+  },
+  {
+    "id": "P080",
+    "code": "PHIDP040A",
+    "name": "Bóng đèn pha LED Philips cho Ford Ranger / Everest",
+    "brand": "Philips",
+    "condition": "aftermarket",
+    "warrantyMonths": 6,
+    "price": 552000,
+    "categoryId": "dien",
+    "oemCodes": [
+      "FD-DP-11480"
+    ],
+    "altCodes": [
+      "PH-22120",
+      "ALT0280"
+    ],
+    "compatibility": [
+      {
+        "make": "ford",
+        "model": "ford-ranger",
+        "yearFrom": 2012,
+        "yearTo": 2022
+      },
+      {
+        "make": "ford",
+        "model": "ford-everest",
+        "yearFrom": 2015,
+        "yearTo": 2022
+      }
+    ]
+  },
+  {
+    "id": "P900",
+    "code": "LH900",
+    "name": "Bộ ly hợp Toyota Innova",
+    "brand": "Toyota Genuine",
+    "condition": "genuine",
+    "warrantyMonths": 12,
+    "price": 4850000,
+    "categoryId": "dong-co",
+    "oemCodes": [
+      "TY-LH-90001"
+    ],
+    "altCodes": [],
+    "compatibility": [
+      {
+        "make": "toyota",
+        "model": "toyota-innova",
+        "yearFrom": 2012,
+        "yearTo": 2020
+      }
+    ]
+  },
+  {
+    "id": "P901",
+    "code": "DN901",
+    "name": "Dầu nhớt tổng hợp 5W-30 (4 lít)",
+    "brand": "Castrol",
+    "condition": "genuine",
+    "warrantyMonths": 0,
+    "price": 760000,
+    "categoryId": "dau-nhot",
+    "oemCodes": [],
+    "altCodes": [
+      "CAS-5W30-4L"
+    ]
+  }
+]

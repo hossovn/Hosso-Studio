@@ -1,0 +1,12 @@
+{
+  "id": "wim",
+  "type": "plugin",
+  "name": { "vi": "Kết nối Hosso WIM", "en": "Hosso WIM connector" },
+  "description": {
+    "vi": "Nối Studio với Hosso WIM: hiển thị sản phẩm, danh mục và tồn kho, chọn xe, giỏ hàng và đặt hàng, tra cứu đơn. Làm mới cache bằng webhook của WIM. Cần một instance WIM.",
+    "en": "Connects Studio to Hosso WIM: products, categories and stock, vehicle selector, cart and checkout, order lookup. Refreshes its cache from WIM webhooks. Needs a WIM instance."
+  },
+  "version": "0.1.0",
+  "settings": "/admin/globals/wim-settings",
+  "needsBuild": true
+}
