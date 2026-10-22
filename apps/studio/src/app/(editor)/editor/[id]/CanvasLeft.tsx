@@ -200,7 +200,6 @@ export function CanvasLeft({
       <nav className="cv-rail" aria-label="Công cụ">
         {TABS.map((t) => {
           const on = open && t.id === tab
-          const ToolIcon = t.icon
           return (
             <button
               key={t.id}
@@ -215,7 +214,7 @@ export function CanvasLeft({
               onClick={() => showTab(t.id)}
             >
               <span className="cv-chip" aria-hidden="true">
-                <ToolIcon size={25} strokeWidth={1.7} />
+                <img src={`/editor-icons/${t.id}.png`} alt="" width={44} height={44} draggable={false} decoding="async" />
               </span>
               {t.title}
             </button>

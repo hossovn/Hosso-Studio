@@ -9,7 +9,8 @@
 .cv-editor-document::-webkit-scrollbar,.cv-editor-document *::-webkit-scrollbar,.cv-editor::-webkit-scrollbar,.cv-editor *::-webkit-scrollbar{display:none}
 .cv-editor button,.cv-editor select,.cv-editor a{ -webkit-tap-highlight-color:transparent }
 .cv-editor button:focus-visible,.cv-editor a:focus-visible,.cv-editor select:focus-visible{outline:2px solid var(--hosso-brand);outline-offset:2px}
-.cv-top,.cv-workbar,.cv-rail,.cv-panel,.cv-selection,.cv-right-slot{border:1px solid var(--cv-border);border-radius:8px;background:var(--cv-surface);box-shadow:var(--cv-shadow);backdrop-filter:blur(20px) saturate(140%)}
+.cv-top,.cv-workbar,.cv-panel,.cv-selection,.cv-right-slot{border:1px solid var(--cv-border);border-radius:8px;background:var(--cv-surface);box-shadow:var(--cv-shadow);backdrop-filter:blur(20px) saturate(140%)}
+.cv-top,.cv-workbar{background:linear-gradient(180deg,#fff,#f2f5f4);border-color:#d3ddd7;box-shadow:inset 0 1px 0 #fff,inset 0 -2px 0 #dce4df,0 3px 0 #c9d4cd,0 8px 18px #18233314}
 .cv-top{height:54px;flex:0 0 54px;display:flex;align-items:center;gap:14px;margin:12px 12px 0;padding:0 14px;z-index:3}
 .cv-brand{display:flex;align-items:baseline;gap:5px;font-size:15px;font-weight:800;white-space:nowrap;color:#202723}
 .cv-brand>span{font-size:10px;font-weight:500;color:#717873}
@@ -26,8 +27,8 @@
 .cv-file-actions .cv-act.is-primary{background:var(--hosso-brand);border-color:var(--hosso-brand);color:#fff;box-shadow:0 2px 4px #16704a20}
 .cv-file-actions .cv-act:disabled{opacity:.5;cursor:not-allowed}
 @media(max-width:1200px){.cv-top{height:auto;min-height:54px;flex-basis:auto;flex-wrap:wrap;padding-top:8px;padding-bottom:8px;row-gap:8px}.cv-top>.cv-dev{margin-left:auto}.cv-file-actions{order:1;flex:1 0 100%;flex-wrap:wrap;justify-content:flex-end}.cv-file-actions .cv-document-actions{justify-content:flex-end}}
-.cv-workbar{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px;width:max-content;max-width:calc(100% - 24px);min-height:68px;flex:0 0 auto;margin:12px auto 16px;padding:10px 14px;z-index:2;background:rgba(255,255,255,.97);border-color:#c8dcd1;outline:1px solid #fff;box-shadow:inset 0 2px 0 #16704a18,0 3px 6px #20242b08,0 12px 28px #20242b12;transition:border-color .16s ease-out,box-shadow .16s ease-out}
-.cv-workbar:focus-within{border-color:#6ea88a;box-shadow:inset 0 2px 0 #16704a30,0 3px 6px #20242b08,0 12px 28px #20242b18}
+.cv-workbar{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px;width:max-content;max-width:calc(100% - 24px);min-height:68px;flex:0 0 auto;margin:12px auto 16px;padding:10px 14px;z-index:2;outline:1px solid #fff;transition:border-color .16s ease-out,box-shadow .16s ease-out}
+.cv-workbar:focus-within{border-color:#6ea88a}
 .cv-history,.cv-panel-tools,.cv-selection-actions{display:flex;align-items:center;gap:2px}
 .cv-history{padding-right:12px;border-right:1px solid #dfe3e1}
 .cv-panel-tools{margin-left:auto}
@@ -74,17 +75,22 @@
 .cv-rail button[data-module=store]{--rail-color:#946318;--rail-tint:#faf2e3}
 .cv-rail button[data-module=text],.cv-rail button[data-module=input]{--rail-color:#8b5275;--rail-tint:#f7edf3}
 .cv-rail button[data-module=layers],.cv-rail button[data-module=more]{--rail-color:#586575;--rail-tint:#eef1f5}
-.cv-rail .cv-chip>svg{width:25px;height:25px}
 @keyframes cv-panel-open{from{opacity:.75;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
 @media(prefers-reduced-motion:no-preference){.cv-panel{animation:cv-panel-open .16s cubic-bezier(.16,1,.3,1)}}
 @media(hover:hover) and (prefers-reduced-motion:no-preference){.cv-rail button:hover .cv-chip{transform:translateY(-2px)}.cv-rail button:active .cv-chip{transform:scale(.94)}}
 .cv-rail button{position:relative;display:grid;justify-items:center;align-content:center;gap:6px;min-height:76px;padding:8px 2px;border:1px solid transparent;border-radius:7px;background:transparent;font:inherit;font-size:12px;font-weight:500;line-height:1.3;color:#56615b;cursor:pointer;flex-shrink:0;transition:background .16s ease-out,color .16s ease-out,border-color .16s ease-out,box-shadow .16s ease-out}
-.cv-rail .cv-chip{width:40px;height:36px;display:grid;place-items:center;border:1px solid color-mix(in srgb,var(--rail-color) 18%,white);border-radius:6px;background:linear-gradient(145deg,#fff,var(--rail-tint));color:var(--rail-color);box-shadow:inset 0 2px 1px #ffffffd9,0 3px 0 color-mix(in srgb,var(--rail-color) 30%,white),0 5px 7px #18233320;transition:background .16s ease-out,color .16s ease-out,transform .16s ease-out,box-shadow .16s ease-out}
-.cv-rail .cv-chip>svg{filter:drop-shadow(0 1px 0 #fff) drop-shadow(0 2px 1px #18233326)}
+.cv-rail .cv-chip{width:44px;height:44px;display:grid;place-items:center;transition:transform .16s ease-out}
+.cv-rail .cv-chip>img{display:block;width:44px;height:44px;object-fit:contain}
+@keyframes cv-icon-float{0%,100%{transform:translate(-2px,1px) rotate(-3deg)}50%{transform:translate(2px,-3px) rotate(3deg)}}
+@media(prefers-reduced-motion:no-preference){
+  .cv-rail .cv-chip>img{animation:cv-icon-float 4.8s cubic-bezier(.77,0,.175,1) infinite}
+  .cv-rail button:nth-child(3n+2) .cv-chip>img{animation-delay:-1.6s;animation-direction:reverse}
+  .cv-rail button:nth-child(3n) .cv-chip>img{animation-delay:-3.2s}
+  .cv-rail button:focus-visible .cv-chip>img{animation-play-state:paused}
+}
+@media(hover:hover) and (pointer:fine){.cv-rail button:hover .cv-chip>img{animation-play-state:paused}}
 .cv-rail button:hover{background:var(--rail-tint);color:var(--rail-color);border-color:color-mix(in srgb,var(--rail-color) 15%,transparent)}
 .cv-rail button[aria-pressed=true]{background:var(--rail-tint);color:var(--rail-color);border-color:color-mix(in srgb,var(--rail-color) 24%,transparent);font-weight:650;box-shadow:0 2px 6px #183c2610}
-.cv-rail button[aria-pressed=true] .cv-chip{background:linear-gradient(145deg,color-mix(in srgb,var(--rail-color) 75%,white),var(--rail-color));color:#fff;border-color:var(--rail-color);box-shadow:inset 0 1px 1px #ffffff70,0 3px 0 color-mix(in srgb,var(--rail-color) 75%,black),0 5px 8px color-mix(in srgb,var(--rail-color) 24%,transparent)}
-.cv-rail button[aria-pressed=true] .cv-chip>svg{filter:drop-shadow(0 2px 1px #0003)}
 .cv-rail button[aria-pressed=true]::before{content:'';position:absolute;left:-4px;top:24px;bottom:24px;width:3px;background:var(--rail-color);border-radius:2px}
 .cv-panel{position:absolute;left:96px;top:0;bottom:0;z-index:5;display:flex;flex-direction:column;width:320px;overflow:hidden}
 .cv-panel-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:64px;flex-shrink:0;padding:12px 16px;border-bottom:1px solid var(--cv-line);background:#fff}
@@ -256,7 +262,7 @@
 [data-canvas-drop=true]{outline:2px dashed #15803d;outline-offset:-3px}
 .cv-quick-add button,.cv-panel .he-card{min-width:0;overflow-wrap:anywhere}
 @media(prefers-reduced-motion:reduce){.cv-editor *{scroll-behavior:auto!important;transition:none!important;animation:none!important}.cv-workbar .cv-ib:hover,.cv-workbar .cv-ib:active,.cv-workbar .cv-dev button:active{transform:none!important}}
-@media(prefers-reduced-transparency:reduce){.cv-top,.cv-workbar,.cv-rail,.cv-panel,.cv-selection,.cv-right-slot{background:#fff;backdrop-filter:none}}
-@media(prefers-contrast:more){.cv-editor{--cv-surface:#fff;--cv-border:#68717d}.cv-top,.cv-workbar,.cv-rail,.cv-panel,.cv-selection,.cv-right-slot{backdrop-filter:none}}
+@media(prefers-reduced-transparency:reduce){.cv-top,.cv-workbar,.cv-panel,.cv-selection,.cv-right-slot{background:#fff;backdrop-filter:none}}
+@media(prefers-contrast:more){.cv-editor{--cv-surface:#fff;--cv-border:#68717d}.cv-top,.cv-workbar,.cv-panel,.cv-selection,.cv-right-slot{backdrop-filter:none}}
 @media(pointer:coarse){.cv-site-add,.cv-site-row>.cv-ib,.cv-panel-heading>.cv-ib,.cv-object-actions .cv-ib,.cv-state-field button{min-width:44px;min-height:44px}.cv-state-device button{width:44px;height:44px}.cv-state-picker button,.cv-state-clear,.cv-primary-command,.cv-destructive-command{min-height:44px}.cv-panel [data-compact=true]{grid-template-columns:repeat(auto-fill,minmax(44px,1fr))!important}}
 @media(pointer:coarse){.cv-workbar .cv-ib,.cv-workbar .cv-dev button{width:44px;height:44px;flex-basis:44px}.cv-workbar select,.cv-workbar .cv-scopes a{min-height:44px}}

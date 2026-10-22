@@ -284,7 +284,7 @@ export function InlineText({ el, scale, onDone }: { el: FreeElement; scale?: num
 // CSS nằm cùng component để chắc chắn có trong iframe xem trước.
 export const HF_CSS = `
 .hf-el:hover{outline:1px solid color-mix(in srgb,var(--hosso-brand,#15803d) 55%,transparent)}
-.hf-toolbar{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:8px;background:rgba(255,255,255,.94);backdrop-filter:blur(20px) saturate(140%);color:#303842;border:1px solid #d5dae2;border-radius:8px;box-shadow:0 1px 3px #1823330c,0 8px 24px #18233320;font:12px/1.3 system-ui,sans-serif;letter-spacing:0;box-sizing:border-box}
+.hf-toolbar{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:8px;background:linear-gradient(180deg,#fff,#f2f5f4);backdrop-filter:blur(20px) saturate(140%);color:#303842;border:1px solid #d3ddd7;border-radius:8px;box-shadow:inset 0 1px 0 #fff,inset 0 -2px 0 #dce4df,0 3px 0 #c9d4cd,0 8px 24px #18233320;font:12px/1.3 system-ui,sans-serif;letter-spacing:0;box-sizing:border-box}
 .hf-toolbar *{box-sizing:border-box}
 .hf-tool-button>svg{width:17px;height:17px}
 .hf-tool-button{display:inline-flex;align-items:center;justify-content:center;gap:6px;flex-shrink:0;min-width:36px;height:38px;padding:0 9px;border:0;border-radius:5px;background:transparent;color:#505863;cursor:pointer;font:500 12px/1 system-ui,sans-serif;white-space:nowrap;transition:background .12s,transform .12s}

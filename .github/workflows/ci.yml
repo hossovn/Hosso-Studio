@@ -21,6 +21,7 @@ jobs:
       - run: pnpm check:i18n
       - run: pnpm check:manifests
       - run: pnpm test:kiln
+      - run: pnpm test:editor-preview
       - run: pnpm test:site-package
 
   # Builds the image (includes `next build`) without pushing it. / Dựng image (đã gồm next build), không đẩy.

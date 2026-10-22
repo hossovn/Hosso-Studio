@@ -111,7 +111,15 @@ assert.match(catalogMarkup, /aria-label="Đoạn văn"/)
 assert.match(catalogMarkup, /class="cv-item-label"/)
 assert.ok((catalogMarkup.match(/class="cv-chip"/g) ?? []).length > 0)
 assert.match(catalogMarkup, /data-module="media"/)
-assert.doesNotMatch(catalogMarkup.match(/<nav class="cv-rail"[\s\S]*?<\/nav>/)?.[0] ?? '', /<img|cv-chip-photo/)
+const railMarkup = catalogMarkup.match(/<nav class="cv-rail"[\s\S]*?<\/nav>/)?.[0] ?? ''
+const railIcons = [...railMarkup.matchAll(/<img[^>]+src="([^"]+)"[^>]*>/g)]
+assert.equal(railIcons.length, 11)
+for (const [tag, src] of railIcons) {
+  assert.match(src, /^\/editor-icons\/[a-z]+\.png$/)
+  assert.ok(existsSync(new URL(`../apps/studio/public${src}`, import.meta.url)), `Missing toolbar icon: ${src}`)
+  assert.match(tag, /alt=""/)
+  assert.match(tag, /width="44" height="44"/)
+}
 const { StatePicker, DevicePicker } = compile('../apps/studio/src/app/(editor)/editor/[id]/StateStyleEditor.tsx', { '@hosso/studio-blocks': elementStates })
 let selectedState = 'normal'
 const states = StatePicker({ value: 'hover', supported: ['normal', 'hover'], onChange: (value) => { selectedState = value } }).props.children

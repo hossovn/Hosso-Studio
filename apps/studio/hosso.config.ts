@@ -9,7 +9,6 @@ import analytics from '@hosso/plugin-analytics'
 import accounts from '@hosso/plugin-accounts'
 import affiliate from '@hosso/plugin-affiliate'
 import shop from '@hosso/plugin-shop'
-import crossSell from '@hosso/plugin-cross-sell'
 import altTheme from '@hosso/theme-alt'
 import autoTheme from '@hosso/theme-auto'
 import defaultTheme from '@hosso/theme-default'
@@ -32,5 +31,5 @@ export default defineHossoConfig({
   themes: [defaultTheme, altTheme, autoTheme],
   // Gỡ plugin: xóa dòng import ở trên và tên plugin ở đây; Studio vẫn chạy, block của plugin bị bỏ qua.
   // Plugin thương mại (Giao vận, Khuyến mãi, Thanh toán, ...) cài riêng bằng giấy phép; thứ tự: shipping TRƯỚC promotions (xem docs/PLUGIN-COMMERCE.md).
-  plugins: [shop, affiliate, wim, shipping, promotions, payment, notify, analytics, reports, accounts, crossSell],
+  plugins: [shop, affiliate, wim, shipping, promotions, payment, notify, analytics, reports, accounts],
 })
