@@ -49,8 +49,10 @@ HOSSO_CROSS_SELL_WP_SECRET=cs_dien_consumer_secret_cua_ban_o_day
    - **Name:** Điền tên gợi nhớ (ví dụ: `Kho WordPress Đối Tác`)
    - **Kind:** Chọn **WooCommerce**
    - **Api url:** Điền địa chỉ website WordPress của bạn (ví dụ: `https://your-wordpress-site.com`, không cần đuôi `/wp-json`)
-   - **Credential env:** Điền đúng tên biến: `HOSSO_CROSS_SELL_WP_KEY`
-   - **Secret env:** Điền đúng tên biến: `HOSSO_CROSS_SELL_WP_SECRET`
+   - **Phương thức nhập khóa (Authentication method):** Chọn **Nhập trực tiếp trên Dashboard (Tiện lợi)**
+   - **WooCommerce Consumer Key:** Dán trực tiếp key `ck_...` vừa tạo ở bước trên vào đây
+   - **WooCommerce Consumer Secret:** Dán trực tiếp secret `cs_...` vừa tạo ở bước trên vào đây
+   - *(Hoặc nếu muốn dùng file .env, chọn "Đọc từ biến môi trường .env" rồi điền tên biến)*
    - **Commission pct (%):** Tỷ lệ hoa hồng thỏa thuận (ví dụ: `15`)
    - **Our business name:** Tên doanh nghiệp của bạn (ví dụ: `Hosso Test Shop`)
    - **Our business phone:** Số điện thoại liên hệ (ví dụ: `0901234567`)
@@ -66,32 +68,34 @@ HOSSO_CROSS_SELL_WP_SECRET=cs_dien_consumer_secret_cua_ban_o_day
 
 ---
 
-## 3. Kết nối Bán chéo với Web Chính (TCAP)
+## 3. Mạng lưới Bán chéo Ngang hàng (P2P) giữa MỌI Web Hosso Studio
 
-Hai web Hosso Studio kết nối với nhau qua cơ chế Token bảo mật dùng chung (`HOSSO_CROSS_SELL_TCAP_TOKEN`).
+Mọi website dựng từ Hosso Studio (không chỉ riêng TCAP) đều có thể kết nối bán chéo cho nhau bằng cơ chế Shared Token. Bất kỳ cặp web nào muốn liên kết (Web A và Web B) chỉ cần trao đổi một chuỗi Token bí mật chung (tối thiểu 32 ký tự).
 
-### Bước 3.1: Cấu hình Token dùng chung
-Cả Web Chính (TCAP) và Web Test đều phải khai báo cùng một token trong biến môi trường:
-```env
-HOSSO_CROSS_SELL_TCAP_TOKEN=tcap_shared_cross_sell_secret_key_2026
+### Bước 3.1: Thỏa thuận Token kết nối chung
+Ví dụ, Web A và Web B thống nhất một chuỗi khóa:
+```text
+hosso_p2p_network_secret_token_1234567890_abcdef
 ```
 
-### Bước 3.2: Thêm đối tác TCAP trên Web Test
-1. Vào `http://localhost:3001/admin` → **Cross-sell partners** → **Tạo mới**:
-   - **Name:** `TCAP Main Site`
+### Bước 3.2: Thêm đối tác trên Dashboard của từng Web
+Trên Web A (ví dụ: Web Test `http://localhost:3001/admin`):
+1. Vào **Cross-sell partners** → **Tạo mới**:
+   - **Name:** Tên gợi nhớ của Web đối tác (ví dụ: `Cửa hàng Ô tô B` hoặc `TCAP Main Site`)
    - **Kind:** Chọn **Hosso Studio (Shop / WIM)**
-   - **Api url:** Điền URL web chính (ví dụ: `https://thanhcuongauto.com`)
-   - **Credential env:** Điền `HOSSO_CROSS_SELL_TCAP_TOKEN`
-   - **Commission pct (%):** Tỷ lệ hoa hồng (ví dụ: `10`)
+   - **Api url:** Điền URL của Web B (ví dụ: `https://web-b.com` hoặc `http://localhost:3000`)
+   - **Phương thức nhập khóa:** Chọn **Nhập trực tiếp trên Dashboard (Tiện lợi)**
+   - **Shared Token bí mật:** Dán chuỗi token chung ở trên vào
    - **Our business name & phone:** Thông tin doanh nghiệp của bạn
    - **Active:** Tích chọn **Active**
 2. Bấm **Lưu**.
 
-### Bước 3.3: Cho phép xuất sản phẩm (Offers)
-- Trên Web Chính (TCAP), vào **Partner product permissions (Offers)**:
-  - Chọn sản phẩm mà TCAP đồng ý cho Web Test bán chéo.
-  - Chọn đối tác Web Test và bật **Active**.
-- Trên Web Test: Vào mục danh mục đối tác để thấy danh sách sản phẩm TCAP đã mở quyền và bấm Import về bán.
+Trên Web B (Web đối tác):
+1. Làm tương tự: Thêm đối tác trỏ về URL của Web A, và **dán cùng chuỗi Token bí mật ở trên** vào ô Token.
+
+### Bước 3.3: Cho phép xuất sản phẩm (Offers) và Bán hàng
+- Web nào muốn cho web kia bán sản phẩm của mình thì vào mục **Partner product permissions (Offers)** → Chọn sản phẩm → Chọn đối tác được phép bán → Bật **Active**.
+- Web bán lẻ chỉ cần vào **Cross-sell listings** → bấm Import các sản phẩm đã được đối tác cấp quyền về cửa hàng của mình!
 
 ---
 
