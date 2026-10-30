@@ -10,6 +10,7 @@
   },
   "scripts": {
     "dev": "node scripts/ensure-env.mjs && pnpm --filter @hosso/studio dev",
+    "dev:test": "node scripts/dev-test.mjs",
     "build": "pnpm --filter @hosso/studio build",
     "start": "pnpm --filter @hosso/studio start",
     "check:boundaries": "node scripts/check-boundaries.mjs",
