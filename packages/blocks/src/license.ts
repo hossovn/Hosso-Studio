@@ -97,6 +97,10 @@ export function withLicense(plugin: HossoPlugin): HossoPlugin {
       onOrderPaid: wrap(hooks.onOrderPaid, undefined),
       describeOrder: wrap(hooks.describeOrder, undefined),
     },
+    readOrder: plugin.readOrder && (async (...args) => {
+      if (!(await licensed(id))) throw new Error('Plugin license required for order reconciliation')
+      return plugin.readOrder!(...args)
+    }),
     search: wrap(plugin.search, []),
     sitemap: wrap(plugin.sitemap, []),
     loaders: plugin.loaders && Object.fromEntries(Object.entries(plugin.loaders).map(([k, fn]) => [k, async (...a: Parameters<typeof fn>) => ((await licensed(id)) ? fn(...a) : { status: 'unlicensed' })])),

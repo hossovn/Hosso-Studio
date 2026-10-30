@@ -41,14 +41,14 @@ export const sessionOf = (cookieName: string) => ({
   /** Giá trị cookie: `id.hạn.chữ-ký`. */
   async make(secret: string, id: string | number) {
     const exp = Date.now() + SESSION_DAYS * 86400_000
-    return `${id}.${exp}.${await mac(secret, `${id}.${exp}`)}`
+    return `${id}.${exp}.${await mac(secret, `${cookieName}:${id}.${exp}`)}`
   },
   /** Trả id nếu cookie hợp lệ và chưa hết hạn. */
   async read(secret: string, headers: Headers): Promise<string | null> {
     const raw = headers.get('cookie')?.split(/;\s*/).find((c) => c.startsWith(`${cookieName}=`))?.slice(cookieName.length + 1)
     const [id, exp, sig] = raw?.split('.') ?? []
-    if (!id || !exp || !sig || Number(exp) < Date.now()) return null
-    return same(await mac(secret, `${id}.${exp}`), sig) ? id : null
+    if (!id || !exp || !sig || !Number.isFinite(Number(exp)) || Number(exp) < Date.now()) return null
+    return same(await mac(secret, `${cookieName}:${id}.${exp}`), sig) ? id : null
   },
   /** Giá trị Set-Cookie; chuỗi rỗng để đăng xuất. */
   cookie: (value: string) => `${cookieName}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${value ? SESSION_DAYS * 86400 : 0}${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`,

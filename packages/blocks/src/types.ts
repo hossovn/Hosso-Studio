@@ -1,6 +1,6 @@
 import type React from 'react'
 import type { ComponentType } from 'react'
-import type { Config, Payload } from 'payload'
+import type { Config, Payload, PayloadRequest } from 'payload'
 
 /** Field của block: tập con tương thích với field của Puck (slice 2 truyền thẳng vào Puck). */
 export type BlockField =
@@ -125,7 +125,7 @@ export type BlockLoader = (props: Record<string, any>, ctx: LoadContext) => Prom
 export type OrderLine = { productId: string; variantId?: string; name: string; code?: string; price: number; quantity: number }
 
 /** Khoản cộng/trừ vào tổng đơn do plugin thêm (phí ship > 0, giảm giá < 0). */
-export type OrderAdjustment = { label: string; amount: number; source: string }
+export type OrderAdjustment = { label: string; amount: number; source: string; scope?: 'goods' | 'shipping' }
 
 export type OrderCustomer = { name: string; phone: string; address?: string; email?: string }
 
@@ -171,7 +171,7 @@ export type OrderPlacedResult = void | { redirectUrl?: string }
 export type OrderStatusChangedEvent = { payload: Payload; order: { id: string; total: number; status: string; customer?: OrderCustomer }; from: string; to: string; source: string }
 
 /** Plugin thanh toán báo đơn đã được thanh toán. Plugin bán hàng đánh dấu đơn, plugin thông báo gửi tin. */
-export type OrderPaidEvent = { payload: Payload; orderNo: string; amount: number; reference?: string; source: string }
+export type OrderPaidEvent = { payload: Payload; request?: PayloadRequest; orderNo: string; amount: number; reference?: string; source: string }
 
 /** Plugin bổ sung thông tin hiển thị cho khách khi tra cứu đơn (ví dụ mã QR chuyển khoản). */
 export type DescribeOrderEvent = { payload: Payload; order: { id: string; total: number; status: string; payment: string; paymentStatus: string } }
@@ -204,6 +204,8 @@ export type HossoPlugin = {
   checklist?: (payload: Payload) => Promise<{ label: string; done: boolean; href: string }[]>
   /** Tình trạng của plugin (ví dụ kết nối hệ thống ngoài), hiện trong GET /api/site/status cho Kiln giám sát. */
   status?: (payload: Payload) => Promise<{ ok: boolean; detail?: string }>
+  /** Server-side financial reconciliation; omit unknown payment facts rather than guessing. */
+  readOrder?: (payload: Payload, id: string) => Promise<{ id: string; total: number; status: string; paymentStatus?: string; refundedAmount?: number; customer?: OrderCustomer; items?: { productId: string; quantity: number }[] }>
   /** Tìm kiếm trên site: trả kết quả của plugin (ví dụ sản phẩm). */
   search?: (query: string, payload: Payload) => Promise<{ title: string; href: string; description?: string }[]>
   /** Móc vào sự kiện của lõi/plugin khác. Lỗi trong hook chỉ được ghi log, không làm hỏng đơn hàng. */

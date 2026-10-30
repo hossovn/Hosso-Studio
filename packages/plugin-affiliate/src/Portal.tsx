@@ -7,35 +7,37 @@ const S = {
     title: 'Cổng cộng tác viên',
     register: 'Đăng ký', login: 'Đăng nhập', logout: 'Đăng xuất',
     name: 'Họ tên', email: 'Email', password: 'Mật khẩu (từ 8 ký tự)', bank: 'Thông tin nhận tiền (ngân hàng, số tài khoản, chủ tài khoản)',
-    errors: { name: 'Nhập họ tên.', email: 'Email không hợp lệ.', password: 'Mật khẩu cần từ 8 ký tự.', exists: 'Email này đã đăng ký, hãy đăng nhập.', credentials: 'Sai email hoặc mật khẩu.', network: 'Lỗi mạng, thử lại.', bad_request: 'Yêu cầu không hợp lệ.' } as Record<string, string>,
+    errors: { name: 'Nhập họ tên.', email: 'Email không hợp lệ.', password: 'Mật khẩu cần từ 8 ký tự.', exists: 'Email này đã đăng ký, hãy đăng nhập.', credentials: 'Sai email hoặc mật khẩu.', network: 'Lỗi mạng, thử lại.', bad_request: 'Yêu cầu không hợp lệ.', rate_limit: 'Thử quá nhiều lần. Vui lòng chờ vài phút.' } as Record<string, string>,
     link: 'Link giới thiệu chung của bạn', copy: 'Sao chép', copied: 'Đã chép',
     pickTitle: 'Chọn sản phẩm để bán', search: 'Tìm sản phẩm theo tên hoặc mã', go: 'Tìm', add: 'Chọn', remove: 'Bỏ', picked: 'Sản phẩm bạn đang bán (mỗi sản phẩm có link riêng)', none: 'Chưa chọn sản phẩm nào.',
     earn: 'Hoa hồng', pending: 'Chờ duyệt', approved: 'Đã duyệt', paid: 'Đã chốt và trả', cancelled: 'Hủy',
     refs: 'Đơn bán được', order: 'Mã đơn', total: 'Giá trị', commission: 'Hoa hồng', status: 'Trạng thái', noRefs: 'Chưa có đơn nào.', save: 'Lưu thông tin nhận tiền', saved: 'Đã lưu',
-    rate: 'Mức hoa hồng của bạn',
+    rate: 'Mức hoa hồng của bạn', fixed: 'mỗi đơn', waiting: 'Tài khoản chưa được duyệt tham gia. Link chỉ ghi nhận hoa hồng sau khi chủ shop duyệt.', holding: 'Đang giữ', eligible: 'Đủ điều kiện', review: 'Cần đối soát', clicks: 'Lượt click', orders: 'Đơn giới thiệu', history: 'Lịch sử chi trả', reference: 'Mã giao dịch', date: 'Ngày', available: 'Ngày đủ điều kiện', prev: 'Trang trước', next: 'Trang sau', all: 'Tất cả trạng thái',
   },
   en: {
     title: 'Partner portal',
     register: 'Sign up', login: 'Log in', logout: 'Log out',
     name: 'Full name', email: 'Email', password: 'Password (8+ characters)', bank: 'Payout details (bank, account number, account holder)',
-    errors: { name: 'Enter your name.', email: 'Invalid email.', password: 'Password needs 8+ characters.', exists: 'This email is already registered, please log in.', credentials: 'Wrong email or password.', network: 'Network error, try again.', bad_request: 'Invalid request.' } as Record<string, string>,
+    errors: { name: 'Enter your name.', email: 'Invalid email.', password: 'Password needs 8+ characters.', exists: 'This email is already registered, please log in.', credentials: 'Wrong email or password.', network: 'Network error, try again.', bad_request: 'Invalid request.', rate_limit: 'Too many attempts. Please wait a few minutes.' } as Record<string, string>,
     link: 'Your general referral link', copy: 'Copy', copied: 'Copied',
     pickTitle: 'Choose products to sell', search: 'Search products by name or code', go: 'Search', add: 'Pick', remove: 'Remove', picked: 'Products you sell (each has its own link)', none: 'No products picked yet.',
     earn: 'Commission', pending: 'Pending', approved: 'Approved', paid: 'Settled and paid', cancelled: 'Cancelled',
     refs: 'Orders sold', order: 'Order', total: 'Total', commission: 'Commission', status: 'Status', noRefs: 'No orders yet.', save: 'Save payout details', saved: 'Saved',
-    rate: 'Your commission rate',
+    rate: 'Your commission rate', fixed: 'per order', waiting: 'Your account is not approved for participation. Links earn commission only after shop approval.', holding: 'Holding', eligible: 'Eligible', review: 'Needs review', clicks: 'Clicks', orders: 'Referred orders', history: 'Payout history', reference: 'Transfer reference', date: 'Date', available: 'Eligible on', prev: 'Previous', next: 'Next', all: 'All statuses',
   },
 }
 
 type Pick = { title: string; href: string }
 type Me = {
-  profile: { name: string; code: string; commissionPct: number; bankInfo: string; picks: Pick[] }
+  profile: { approval?: string; active?: boolean; commissionType?: string; commissionFixed?: number; name: string; code: string; commissionPct: number; bankInfo: string; picks: Pick[] }
   totals: Record<string, number>
-  referrals: { orderId: string; orderTotal: number; commission: number; status: string }[]
+  page?: number; hasNextPage?: boolean; payoutPage?: number; hasNextPayoutPage?: boolean; clicks?: number; orderCount?: number
+  payouts?: { id: string | number; amount: number; reference: string; evidence: string; paidAt: string }[]
+  referrals: { id?: string | number; source?: string; eligibleAt?: string; orderId: string; orderTotal: number; commission: number; status: string }[]
 }
 
 const vnd = (n: number) => `${Math.round(n || 0).toLocaleString('vi-VN')} đ`
-const PREVIEW_ME: Me = { profile: { name: 'Preview Partner', code: 'PREVIEW', commissionPct: 0, bankInfo: '', picks: [] }, totals: {}, referrals: [] }
+const PREVIEW_ME: Me = { profile: { approval: 'approved', name: 'Preview Partner', code: 'PREVIEW', commissionPct: 0, bankInfo: '', picks: [] }, totals: {}, referrals: [] }
 const api = async (path: string, body?: unknown) => {
   try {
     const r = await fetch(`/api/plugins/affiliate/${path}`, body === undefined ? undefined : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
@@ -44,7 +46,7 @@ const api = async (path: string, body?: unknown) => {
     return { status: 0, data: { message: 'network' } }
   }
 }
-const withRef = (href: string, code: string) => `${location.origin}${href}${href.includes('?') ? '&' : '?'}ref=${code}`
+const withRef = (href: string, code: string) => { const url = new URL(href, location.origin); url.searchParams.set('ref', code); return url.toString() }
 
 function Copy({ text, t }: { text: string; t: (typeof S)['vi'] }) {
   const [done, setDone] = useState(false)
@@ -67,14 +69,17 @@ export function Portal({ heading }: { heading?: string }) {
   const [found, setFound] = useState<(Pick & { description?: string })[]>([])
   const [bank, setBank] = useState('')
   const [saved, setSaved] = useState(false)
+  const [page, setPage] = useState(1)
+  const [payoutPage, setPayoutPage] = useState(1)
+  const [status, setStatus] = useState('')
 
   const load = useCallback(async () => {
-    const r = await api('me')
+    const r = await api(`me?page=${page}&payoutPage=${payoutPage}&status=${status}`)
     if (r.status === 200) {
       setMe(r.data)
       setBank(r.data.profile.bankInfo)
     } else setMe(null)
-  }, [])
+  }, [page, payoutPage, status])
   useEffect(() => { if (!preview) void load() }, [load, preview])
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
@@ -89,7 +94,8 @@ export function Portal({ heading }: { heading?: string }) {
 
   const savePicks = async (picks: Pick[]) => {
     if (preview) return
-    await api('profile', { picks })
+    const result = await api('profile', { picks })
+    if (!result.data.ok) { setError(t.errors.network); return }
     await load()
   }
 
@@ -118,17 +124,21 @@ export function Portal({ heading }: { heading?: string }) {
         ) : (
           <>
             <p className="wp-note">
-              {me.profile.name} · {t.rate}: {me.profile.commissionPct}%{' '}
+              {me.profile.name} · {t.rate}: {me.profile.commissionType === 'fixed' ? `${vnd(me.profile.commissionFixed ?? 0)} / ${t.fixed}` : `${me.profile.commissionPct}%`}{' '}
               <button type="button" className="wp-link" onClick={async () => { if (preview) return; await api('logout', {}); setMe(null) }}>{t.logout}</button>
             </p>
 
+            {error && <p role="alert">{error}</p>}
+            {me.profile.approval !== 'approved' && <p role="status" className="wp-note">{t.waiting}</p>}
+            <p>{t.clicks}: {me.clicks ?? 0} · {t.orders}: {me.orderCount ?? 0}</p>
             <h3>{t.earn}</h3>
             <ul className="wp-grid">
-              {(['pending', 'approved', 'paid'] as const).map((k) => (
+              {(['pending', 'holding', 'eligible', 'approved', 'paid', 'review'] as const).map((k) => (
                 <li key={k} className="wp-card"><span className="wp-meta">{t[k]}</span><strong className="wp-price">{vnd(me.totals[k])}</strong></li>
               ))}
             </ul>
 
+            {me.profile.approval === 'approved' && <>
             <h3>{t.link}</h3>
             <p><code>{`${origin}/?ref=${me.profile.code}`}</code> <Copy text={`${origin}/?ref=${me.profile.code}`} t={t} /></p>
 
@@ -159,15 +169,21 @@ export function Portal({ heading }: { heading?: string }) {
               </ul>
             )}
 
+            </>}
             <h3>{t.refs}</h3>
+            <label>{t.status} <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1) }}><option value="">{t.all}</option>{(['pending', 'holding', 'eligible', 'approved', 'paid', 'cancelled', 'review'] as const).map((k) => <option key={k} value={k}>{t[k]}</option>)}</select></label>
             {me.referrals.length === 0 ? <p className="wp-note">{t.noRefs}</p> : (
               <table>
-                <thead><tr><th>{t.order}</th><th>{t.total}</th><th>{t.commission}</th><th>{t.status}</th></tr></thead>
-                <tbody>{me.referrals.map((r) => <tr key={r.orderId}><td>{r.orderId}</td><td>{vnd(r.orderTotal)}</td><td>{vnd(r.commission)}</td><td>{t[r.status as 'pending'] ?? r.status}</td></tr>)}</tbody>
+                <thead><tr><th>{t.order}</th><th>{t.total}</th><th>{t.commission}</th><th>{t.status}</th><th>{t.available}</th></tr></thead>
+                <tbody>{me.referrals.map((r) => <tr key={r.id ?? `${r.source}:${r.orderId}`}><td>{r.orderId}</td><td>{vnd(r.orderTotal)}</td><td>{vnd(r.commission)}</td><td>{t[r.status as 'pending'] ?? r.status}</td><td>{r.eligibleAt ? new Date(r.eligibleAt).toLocaleDateString() : '—'}</td></tr>)}</tbody>
               </table>
             )}
 
-            <form className="wp-form" onSubmit={async (e) => { e.preventDefault(); if (preview) return; await api('profile', { bankInfo: bank }); setSaved(true) }}>
+            <nav aria-label={t.refs}><button type="button" disabled={page === 1} onClick={() => setPage(page - 1)}>{t.prev}</button> {page} <button type="button" disabled={!me.hasNextPage} onClick={() => setPage(page + 1)}>{t.next}</button></nav>
+            <h3>{t.history}</h3>
+            <table><thead><tr><th>{t.date}</th><th>{t.commission}</th><th>{t.reference}</th></tr></thead><tbody>{me.payouts?.map((p) => <tr key={p.id}><td>{new Date(p.paidAt).toLocaleDateString()}</td><td>{vnd(p.amount)}</td><td>{p.reference}</td></tr>)}</tbody></table>
+            <nav aria-label={t.history}><button type="button" disabled={payoutPage === 1} onClick={() => setPayoutPage(payoutPage - 1)}>{t.prev}</button> {payoutPage} <button type="button" disabled={!me.hasNextPayoutPage} onClick={() => setPayoutPage(payoutPage + 1)}>{t.next}</button></nav>
+            <form className="wp-form" onSubmit={async (e) => { e.preventDefault(); if (preview) return; const r = await api('profile', { bankInfo: bank }); if (r.data.ok) setSaved(true); else setError(t.errors.network) }}>
               <label>{t.bank}<textarea value={bank} onChange={(e) => { setBank(e.target.value); setSaved(false) }} rows={2} maxLength={500} /></label>
               <button className="wp-btn">{saved ? t.saved : t.save}</button>
             </form>

@@ -4,9 +4,24 @@
   "private": true,
   "type": "module",
   "description": "Plugin tiếp thị liên kết (affiliate) cho Hosso Studio: đối tác, link giới thiệu ?ref=, hoa hồng theo đơn.",
-  "exports": { ".": "./src/index.ts" },
-  "scripts": { "typecheck": "tsc -p ." },
-  "dependencies": { "@hosso/studio-blocks": "workspace:*" },
-  "peerDependencies": { "react": "19.3.1" },
-  "devDependencies": { "@types/react": "19.3.0", "payload": "3.91.0", "react": "19.3.1", "typescript": "5.9.3" }
+  "exports": {
+    ".": { "browser": "./src/client.ts", "default": "./src/index.ts" },
+    "./admin": "./src/admin.tsx"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "node --experimental-strip-types --import ./test/register.mjs --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@hosso/studio-blocks": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "payload": "3.91.0",
+    "react": "19.3.1",
+    "typescript": "5.9.3"
+  }
 }

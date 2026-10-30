@@ -84,10 +84,10 @@ const plugin: HossoPlugin = {
   portable: { globals: [{ slug: 'shop-settings', secretFields: [] }], data: [{ id: 'shop-catalog', export: exportCatalog, import: importCatalog }] },
   hooks: {
     // Plugin thanh toán báo đã nhận tiền: đánh dấu đã thanh toán và tự xác nhận đơn mới.
-    onOrderPaid: async ({ payload, orderNo, amount }) => {
+    onOrderPaid: async ({ payload, orderNo, amount, request }) => {
       const o = (await payload.find({ collection: 'shop-orders' as any, where: { orderNo: { equals: orderNo } }, limit: 1, depth: 0, overrideAccess: true })).docs[0] as { id: number | string; status: string; paymentStatus: string; total: number } | undefined
       if (!o || o.paymentStatus === 'paid' || amount < o.total) return
-      await payload.update({ collection: 'shop-orders' as any, id: o.id, data: { paymentStatus: 'paid', ...(o.status === 'new' && { status: 'confirmed' }) }, overrideAccess: true })
+      await payload.update({ collection: 'shop-orders' as any, id: o.id, req: request, data: { paymentStatus: 'paid', ...(o.status === 'new' && { status: 'confirmed' }) }, overrideAccess: true })
     },
   },
   loaders: { ShopReviewList: loadReviewList, ShopWishlistButton: loadWishlistButton, ShopProductGrid: loadGrid, ShopProductDetail: loadDetail, ShopCategories: loadCategories, ShopCheckout: loadCheckout },
