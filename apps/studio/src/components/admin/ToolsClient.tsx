@@ -10,8 +10,8 @@ type Props = {
   backups: { name: string; size: number }[]
 }
 
-const card: React.CSSProperties = { border: '1px solid var(--theme-elevation-150)', borderRadius: 8, padding: 20, marginBottom: 20 }
-const btn: React.CSSProperties = { background: 'var(--hosso-brand)', color: '#fff', border: 0, borderRadius: 4, padding: '9px 16px', fontWeight: 600, cursor: 'pointer', font: 'inherit', textDecoration: 'none', display: 'inline-block' }
+const card: React.CSSProperties = { border: '1px solid var(--theme-elevation-150)', background: 'var(--theme-elevation-0)', borderRadius: 14, padding: 20, marginBottom: 20 }
+const btn: React.CSSProperties = { background: 'var(--hosso-brand)', color: '#fff', border: 0, borderRadius: 10, padding: '9px 16px', minHeight: 44, fontWeight: 600, cursor: 'pointer', font: 'inherit', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }
 const ghost: React.CSSProperties = { ...btn, background: 'transparent', color: 'inherit', border: '1px solid var(--theme-elevation-300)' }
 const kb = (n: number) => (n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`)
 

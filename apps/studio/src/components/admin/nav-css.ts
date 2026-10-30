@@ -1,6 +1,6 @@
 // CSS sidebar admin (class hn-*). Ghi đè bố cục .nav mặc định của Payload; màu nhấn lấy từ --hosso-brand.
 export const navCss = `
-:root{--nav-width:240px;--hn-bg:#1d2327;--hn-bg2:#2c3338;--hn-sub:#141a1e;--hn-text:#f0f0f1;--hn-dim:#a7b0b7;--hn-line:#353c41}
+:root{--nav-width:260px;--hn-bg:var(--theme-elevation-0);--hn-bg2:var(--theme-elevation-100);--hn-sub:var(--theme-elevation-50);--hn-text:var(--theme-text);--hn-dim:var(--theme-elevation-650);--hn-line:var(--theme-elevation-150)}
 html[data-hn-collapsed="true"]{--nav-width:64px}
 .nav{background:var(--hn-bg)!important;color:var(--hn-text)!important;border-right:1px solid var(--hn-line)!important;padding:0!important;width:var(--nav-width)!important;overflow:visible!important}
 .nav__scroll{padding:0!important;height:100%!important;overflow:hidden!important}
@@ -14,7 +14,7 @@ html[data-hn-collapsed="true"]{--nav-width:64px}
 .hn-brand{display:flex;align-items:center;gap:10px;padding:16px 16px 12px;color:var(--hn-text)!important}
 .hn-brand img{border-radius:6px;flex-shrink:0}
 .hn-brand strong{display:block;font-size:15px}.hn-brand small{color:var(--hn-dim);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
-.hn-search{display:flex;align-items:center;gap:8px;margin:0 12px 8px;padding:8px 10px;background:var(--hn-bg2);border-radius:4px;color:var(--hn-dim);cursor:text}
+.hn-search{display:flex;align-items:center;gap:8px;min-height:44px;margin:0 12px 8px;padding:8px 10px;background:var(--hn-bg2);border-radius:10px;color:var(--hn-dim);cursor:text}
 .hn-search input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--hn-text);font:inherit;padding:0}
 .hn-search:focus-within{box-shadow:0 0 0 2px var(--hosso-brand)}
 .hn-scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 0 8px;scrollbar-width:none}.hn-scroll::-webkit-scrollbar{display:none}
@@ -22,30 +22,30 @@ html[data-hn-collapsed="true"]{--nav-width:64px}
 .hn-list,.hn-sub{list-style:none;margin:0;padding:0}
 .hn-empty{padding:10px 18px;color:var(--hn-dim)}
 .hn-item{position:relative}
-.hn-row{display:flex;align-items:center}
-.hn-link{flex:1;display:flex;align-items:center;gap:10px;padding:10px 12px 10px 16px;margin:0;border-radius:0;color:var(--hn-text)!important;min-width:0;border-left:0}
+.hn-row{display:flex;align-items:center;margin:2px 8px;border-radius:10px}
+.hn-link{flex:1;display:flex;align-items:center;gap:10px;min-height:44px;padding:10px 8px;margin:0;border-radius:10px;color:var(--hn-text)!important;min-width:0;border-left:0}
 .hn-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .hn-link .hn-label{flex:1}
 .hn-item:hover>.hn-row{background:var(--hn-bg2)}
-.hn-item:hover>.hn-row .hn-link,.hn-link:focus-visible{color:#fff!important}
-.hn-item.is-active>.hn-row{background:var(--hosso-brand)}
-.hn-item.is-active>.hn-row .hn-link{color:#fff!important;font-weight:600}
-.hn-item.is-active>.hn-row .hn-toggle,.hn-item.is-active>.hn-row .hn-quick{color:#fff!important}
-.hn-quick{display:grid;place-items:center;width:28px;height:28px;border-radius:4px;margin-right:2px;color:var(--hn-dim)!important;opacity:1;transition:background .15s}
-.hn-item:hover .hn-quick,.hn-quick:focus-visible{opacity:1}.hn-quick:hover{background:var(--hosso-brand);color:var(--hn-text)!important}
-.hn-toggle{display:grid;place-items:center;width:28px;height:28px;margin-right:8px;background:none;border:0;color:var(--hn-dim);cursor:pointer;border-radius:6px}
+.hn-item:hover>.hn-row .hn-link,.hn-link:focus-visible{color:var(--hn-text)!important}
+.hn-item.is-active>.hn-row{background:var(--hn-bg2);background:color-mix(in srgb,var(--hosso-brand) 12%,var(--hn-bg));box-shadow:inset 3px 0 var(--hosso-brand)}
+.hn-item.is-active>.hn-row .hn-link{color:var(--hn-text)!important;font-weight:600}
+.hn-item.is-active>.hn-row .hn-toggle,.hn-item.is-active>.hn-row .hn-quick{color:var(--hn-text)!important}
+.hn-quick{display:grid;place-items:center;width:44px;height:44px;flex-shrink:0;border-radius:8px;margin-right:0;color:var(--hn-dim)!important;opacity:1;transition:background .15s}
+.hn-item:hover .hn-quick,.hn-quick:focus-visible{opacity:1}.hn-quick:hover{background:var(--hn-bg2);color:var(--hn-text)!important}
+.hn-toggle{display:grid;place-items:center;width:44px;height:44px;flex-shrink:0;margin-right:0;background:none;border:0;color:var(--hn-dim);cursor:pointer;border-radius:8px}
 .hn-toggle svg{transition:transform .15s}.hn-item.is-open>.hn-row .hn-toggle svg{transform:rotate(90deg)}
 .hn-badge{min-width:20px;padding:1px 6px;border-radius:999px;background:#46515a;color:#fff;font-size:11px;font-weight:700;text-align:center}
 .hn-badge.is-alert{background:#d63638;color:#fff}
-.hn-sub{display:none;background:var(--hn-sub)}
+.hn-sub{display:none;background:var(--hn-sub);margin:0 8px;border-radius:10px}
 .hn-sub-title{display:none}
 .hn-item.is-open>.hn-sub{display:block}
-.hn-sub a{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 14px 8px 46px;color:var(--hn-dim)!important}
+.hn-sub a{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:44px;padding:8px 14px 8px 38px;color:var(--hn-dim)!important;border-radius:8px}
 .hn-sub a:hover,.hn-sub a.is-active{color:var(--hn-text)!important}
 .hn-sub a.is-active{font-weight:600}
 .hn-foot{flex-shrink:0;border-top:1px solid var(--hn-line);padding:8px 0}
-.hn-site,.hn-collapse{display:flex;align-items:center;gap:12px;width:100%;padding:9px 16px;color:var(--hn-text)!important;background:none;border:0;font:inherit;cursor:pointer;text-align:left}
-.hn-site:hover,.hn-collapse:hover{color:#fff!important;background:var(--hn-bg2)}
+.hn-site,.hn-collapse{display:flex;align-items:center;gap:12px;width:100%;min-height:44px;padding:9px 16px;color:var(--hn-text)!important;background:none;border:0;font:inherit;cursor:pointer;text-align:left}
+.hn-site:hover,.hn-collapse:hover{color:var(--hn-text)!important;background:var(--hn-bg2)}
 .hn-user{display:flex;align-items:center;gap:10px;padding:8px 16px}
 .hn-profile{display:flex;align-items:center;gap:10px;flex:1;min-width:0;color:inherit;text-decoration:none}
 .hn-avatar{width:30px;height:30px;border-radius:50%;background:var(--hosso-brand);color:#fff;display:grid;place-items:center;font-weight:700;flex-shrink:0}
@@ -67,4 +67,6 @@ html[data-hn-collapsed="true"]{--nav-width:64px}
 /* Desktop: sidebar luôn hiện (thu gọn bằng nút riêng), bỏ nút hamburger của Payload */
 @media (min-width:1025px){.nav{opacity:1!important}.nav__header{display:none}.template-default{grid-template-columns:var(--nav-width) minmax(0,1fr)!important}.hamburger,.app-header__mobile-nav-toggler,.app-header .nav-toggler{display:none}}
 @media (max-width:1024px){.hn{height:100%}}
+@media (prefers-reduced-motion:reduce){.hn *{transition:none!important}}
+@media (prefers-contrast:more){.hn-item.is-active>.hn-row{outline:2px solid currentColor}.hn-sub a,.hn-heading{color:var(--hn-text)!important}}
 `

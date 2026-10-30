@@ -11,7 +11,7 @@ const fontStack = (id: string) => `var(--font-${id}), ${id === 'jetbrains-mono' 
 const VIEW = { desktop: '100%', tablet: '768px', mobile: '390px' } as const
 
 const input: React.CSSProperties = { width: '100%', padding: '6px 8px', borderRadius: 4, border: '1px solid var(--theme-elevation-200)', background: 'var(--theme-input-bg)', color: 'inherit', font: 'inherit' }
-const btn: React.CSSProperties = { background: 'var(--hosso-brand)', color: '#fff', border: 0, borderRadius: 4, padding: '8px 14px', fontWeight: 600, cursor: 'pointer', font: 'inherit' }
+const btn: React.CSSProperties = { background: 'var(--hosso-brand)', color: '#fff', border: 0, borderRadius: 10, padding: '8px 14px', minHeight: 44, fontWeight: 600, cursor: 'pointer', font: 'inherit' }
 const ghost: React.CSSProperties = { ...btn, background: 'transparent', color: 'inherit', border: '1px solid var(--theme-elevation-300)' }
 
 export function CustomizeClient({ themes, current, overrides, fonts }: { themes: Theme[]; current: string; overrides: Record<string, Ov>; fonts: Record<string, string> }) {
@@ -48,7 +48,7 @@ export function CustomizeClient({ themes, current, overrides, fonts }: { themes:
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '340px minmax(0,1fr)', height: 'calc(100vh - 60px)', gap: 0 }}>
+    <div className="ha-customizer">
       <aside style={{ overflowY: 'auto', padding: 16, borderRight: '1px solid var(--theme-elevation-150)' }}>
         <h1 style={{ marginTop: 0, fontSize: 22 }}>{T('Tùy biến giao diện')}</h1>
         <label style={{ display: 'block', marginBottom: 12 }}>
@@ -109,9 +109,9 @@ export function CustomizeClient({ themes, current, overrides, fonts }: { themes:
       </aside>
 
       <section style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        <div style={{ display: 'flex', gap: 8, padding: 8, alignItems: 'center', borderBottom: '1px solid var(--theme-elevation-150)' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: 12, alignItems: 'center', borderBottom: '1px solid var(--theme-elevation-150)' }}>
           {(Object.keys(VIEW) as (keyof typeof VIEW)[]).map((v) => (
-            <button key={v} style={view === v ? btn : ghost} onClick={() => setView(v)}>
+            <button key={v} aria-pressed={view === v} style={view === v ? btn : ghost} onClick={() => setView(v)}>
               {v === 'desktop' ? T('Máy tính') : v === 'tablet' ? T('Máy tính bảng') : T('Điện thoại')}
             </button>
           ))}

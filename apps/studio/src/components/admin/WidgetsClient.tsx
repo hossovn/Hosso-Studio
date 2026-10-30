@@ -14,7 +14,7 @@ type Area = { name: string; label: string; content: Item[] }
 // Block hợp làm widget (cột bên, trước/sau header/footer). Block plugin có thể thêm vào đây qua hosso.config.
 const WIDGET_TYPES = ['Text', 'Image', 'Video', 'SearchBox', 'TermList', 'NavMenu', 'PostList', 'Form', 'Reusable']
 
-const card: React.CSSProperties = { border: '1px solid var(--theme-elevation-150)', borderRadius: 8, marginBottom: 8, background: 'var(--theme-bg)' }
+const card: React.CSSProperties = { border: '1px solid var(--theme-elevation-150)', borderRadius: 14, marginBottom: 8, background: 'var(--theme-elevation-0)' }
 const input: React.CSSProperties = { width: '100%', padding: '6px 8px', borderRadius: 4, border: '1px solid var(--theme-elevation-200)', background: 'var(--theme-input-bg)', color: 'inherit', font: 'inherit' }
 const btn: React.CSSProperties = { background: 'var(--hosso-brand)', color: '#fff', border: 0, borderRadius: 4, padding: '8px 14px', fontWeight: 600, cursor: 'pointer', font: 'inherit', textDecoration: 'none', display: 'inline-block' }
 const mini: React.CSSProperties = { border: '1px solid var(--theme-elevation-200)', background: 'transparent', color: 'inherit', borderRadius: 4, width: 28, height: 28, cursor: 'pointer' }
@@ -102,7 +102,7 @@ export function WidgetsClient({ locale, defaultLocale, themeName, css, fontClass
 
   return (
     <AdminLang>
-    <div style={{ padding: 24, maxWidth: 920 }}>
+    <div className="ha-workspace ha-widgets">
       <h1 style={{ marginTop: 0 }}>{T('Widget')}</h1>
       <p>
         {T('Mỗi vùng là một khu vực hiện trên mọi trang (hoặc cạnh bài viết). Thêm widget, kéo thả (⠿) để đổi thứ tự rồi bấm Lưu. Cần dựng bố cục phức tạp? Dùng "Trình dựng đầy đủ" của từng vùng.')}

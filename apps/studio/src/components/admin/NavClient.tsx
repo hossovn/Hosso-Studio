@@ -199,12 +199,12 @@ export function NavClient({
       </div>
 
       <div className="hn-foot">
-        <a className="hn-site" href="/" target="_self" rel="noreferrer" title={T('Xem website')}>
+        <a className="hn-site" href="/" target="_self" rel="noreferrer" title={T('Xem website')} aria-label={T('Xem website')}>
           <Icon name="external" size={16} />
           <span className="hn-label">{T('Xem website')}</span>
         </a>
         <div className="hn-user" title={user.email}>
-          <a className="hn-profile" href="/admin/account">
+          <a className="hn-profile" href="/admin/account" aria-label={user.email}>
             <span className="hn-avatar" aria-hidden="true">
               {(user.email[0] ?? '?').toUpperCase()}
             </span>
@@ -215,7 +215,7 @@ export function NavClient({
           </a>
           <span className="hn-logout">{logout}</span>
         </div>
-        <button type="button" className="hn-collapse" onClick={() => setCollapsed(!collapsed)} aria-pressed={collapsed}>
+        <button type="button" className="hn-collapse" onClick={() => setCollapsed(!collapsed)} aria-pressed={collapsed} aria-label={T('Thu gọn menu')} title={T('Thu gọn menu')}>
           <Icon name="collapse" size={16} />
           <span className="hn-label">{T('Thu gọn menu')}</span>
         </button>
