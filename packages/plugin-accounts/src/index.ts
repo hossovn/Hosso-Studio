@@ -69,11 +69,15 @@ const css = `
 const plugin: HossoPlugin = {
   id: 'accounts',
   manifest: manifest as PluginManifest,
+  adminNav: [
+    { label: 'Khách hàng', href: '/admin/collections/customers', roles: ['admin'] },
+    { label: 'Đơn của khách', href: '/admin/collections/customer-orders', roles: ['admin'] },
+  ],
   headerSlot: AccountLink,
   blocks: [portalBlock],
   fallbackRenderers: { AccountPortal: (props) => React.createElement(AccountPortal, { heading: props.heading }) },
   css,
-  adminEn: { 'Khách hàng': 'Customers', 'Tài khoản khách hàng': 'Customer accounts', 'Tiêu đề': 'Heading' },
+  adminEn: { 'Khách hàng': 'Customers', 'Đơn của khách': 'Customer orders', 'Tài khoản khách hàng': 'Customer accounts', 'Tiêu đề': 'Heading' },
   payload: (config: Config): Config => ({ ...config, collections: [...(config.collections ?? []), Customers, CustomerOrders], endpoints: [...(config.endpoints ?? []), ...endpoints] }),
   hooks: {
     // Khách đang đăng nhập đặt hàng: gắn đơn vào tài khoản để hiện trong lịch sử.

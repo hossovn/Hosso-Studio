@@ -2127,6 +2127,22 @@ export interface SiteSetting {
    * A short line at the top of the site, for example "Nationwide COD shipping". Leave empty to hide.
    */
   announcement?: string | null;
+  contact?: {
+    phone?: string | null;
+    email?: string | null;
+    address?: string | null;
+    zalo?: string | null;
+  };
+  social?:
+    | {
+        label: string;
+        /**
+         * For example /products or https://…
+         */
+        href: string;
+        id?: string | null;
+      }[]
+    | null;
   headerMenu?:
     | {
         [k: string]: unknown;
@@ -2146,62 +2162,6 @@ export interface SiteSetting {
     | boolean
     | null;
   footerText?: string | null;
-  /**
-   * Applies to themes that support it (currently the "Parts shop" theme). Edit the content (menus, text, contact) in the other tabs.
-   */
-  layout?: {
-    logoPosition?: ('left' | 'center') | null;
-    navStyle?: ('bar' | 'mega') | null;
-    barColor?: ('accent' | 'primary' | 'dark' | 'light') | null;
-    sticky?: boolean | null;
-    showHotline?: boolean | null;
-    footerStyle?: ('dark' | 'light' | 'accent') | null;
-  };
-  /**
-   * Leave empty for the default layout (contact, quick links, social).
-   */
-  footerColumns?:
-    | {
-        title?: string | null;
-        kind: 'about' | 'menu' | 'contact' | 'social' | 'text';
-        body?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  contact?: {
-    phone?: string | null;
-    email?: string | null;
-    address?: string | null;
-    zalo?: string | null;
-  };
-  social?:
-    | {
-        label: string;
-        /**
-         * For example /products or https://…
-         */
-        href: string;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * Configure SMTP with the HOSSO_SMTP_URL environment variable (for example smtp://user:pass@host:587). Until then, email content is only written to the server log.
-   */
-  notifications?: {
-    /**
-     * Leave empty to use the email from the Contact tab.
-     */
-    to?: string | null;
-    onForm?: boolean | null;
-    onComment?: boolean | null;
-  };
-  commentsEnabled?: boolean | null;
-  commentsAutoApprove?: boolean | null;
-  /**
-   * Visitors only see the maintenance page. Signed-in admins still see the site as usual.
-   */
-  maintenanceMode?: boolean | null;
-  maintenanceMessage?: string | null;
   theme: 'default' | 'alt' | 'auto';
   tokens_default?: {
     /**
@@ -2335,6 +2295,46 @@ export interface SiteSetting {
     radius?: string | null;
     spacing?: string | null;
   };
+  /**
+   * Applies to themes that support it (currently the "Parts shop" theme). Edit the content (menus, text, contact) in the other tabs.
+   */
+  layout?: {
+    logoPosition?: ('left' | 'center') | null;
+    navStyle?: ('bar' | 'mega') | null;
+    barColor?: ('accent' | 'primary' | 'dark' | 'light') | null;
+    sticky?: boolean | null;
+    showHotline?: boolean | null;
+    footerStyle?: ('dark' | 'light' | 'accent') | null;
+  };
+  /**
+   * Leave empty for the default layout (contact, quick links, social).
+   */
+  footerColumns?:
+    | {
+        title?: string | null;
+        kind: 'about' | 'menu' | 'contact' | 'social' | 'text';
+        body?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Configure SMTP with the HOSSO_SMTP_URL environment variable (for example smtp://user:pass@host:587). Until then, email content is only written to the server log.
+   */
+  notifications?: {
+    /**
+     * Leave empty to use the email in the Website information tab.
+     */
+    to?: string | null;
+    onForm?: boolean | null;
+    onComment?: boolean | null;
+  };
+  commentsEnabled?: boolean | null;
+  commentsAutoApprove?: boolean | null;
+  /**
+   * Visitors only see the maintenance page. Signed-in admins still see the site as usual.
+   */
+  maintenanceMode?: boolean | null;
+  maintenanceMessage?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -2576,27 +2576,6 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   favicon?: T;
   showSearch?: T;
   announcement?: T;
-  headerMenu?: T;
-  footerMenu?: T;
-  footerText?: T;
-  layout?:
-    | T
-    | {
-        logoPosition?: T;
-        navStyle?: T;
-        barColor?: T;
-        sticky?: T;
-        showHotline?: T;
-        footerStyle?: T;
-      };
-  footerColumns?:
-    | T
-    | {
-        title?: T;
-        kind?: T;
-        body?: T;
-        id?: T;
-      };
   contact?:
     | T
     | {
@@ -2612,17 +2591,9 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         href?: T;
         id?: T;
       };
-  notifications?:
-    | T
-    | {
-        to?: T;
-        onForm?: T;
-        onComment?: T;
-      };
-  commentsEnabled?: T;
-  commentsAutoApprove?: T;
-  maintenanceMode?: T;
-  maintenanceMessage?: T;
+  headerMenu?: T;
+  footerMenu?: T;
+  footerText?: T;
   theme?: T;
   tokens_default?:
     | T
@@ -2672,6 +2643,35 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         radius?: T;
         spacing?: T;
       };
+  layout?:
+    | T
+    | {
+        logoPosition?: T;
+        navStyle?: T;
+        barColor?: T;
+        sticky?: T;
+        showHotline?: T;
+        footerStyle?: T;
+      };
+  footerColumns?:
+    | T
+    | {
+        title?: T;
+        kind?: T;
+        body?: T;
+        id?: T;
+      };
+  notifications?:
+    | T
+    | {
+        to?: T;
+        onForm?: T;
+        onComment?: T;
+      };
+  commentsEnabled?: T;
+  commentsAutoApprove?: T;
+  maintenanceMode?: T;
+  maintenanceMessage?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

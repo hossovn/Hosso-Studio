@@ -36,7 +36,7 @@ const Payments: CollectionConfig = {
     afterChange: [
       async ({ doc, previousDoc, req, operation }) => {
         if (operation === 'update' && doc.status === 'paid' && previousDoc?.status !== 'paid' && !req.context.fromWebhook)
-          await emitOrderPaid(req.payload, { orderNo: doc.orderNo, amount: doc.paidAmount || doc.amount, reference: 'manual', source: 'payment' })
+          await emitOrderPaid(req.payload, { request: req, orderNo: doc.orderNo, amount: doc.paidAmount || doc.amount, reference: 'manual', source: 'payment' })
         return doc
       },
     ],
@@ -98,7 +98,7 @@ const endpoints: Endpoint[] = [
         overrideAccess: true,
         context: { fromWebhook: true },
       })
-      if (enough) await emitOrderPaid(req.payload, { orderNo: hit.orderNo, amount: b.transferAmount, reference: txn, source: 'payment' })
+      if (enough) await emitOrderPaid(req.payload, { request: req, orderNo: hit.orderNo, amount: b.transferAmount, reference: txn, source: 'payment' })
       return Response.json({ success: true })
     },
   },

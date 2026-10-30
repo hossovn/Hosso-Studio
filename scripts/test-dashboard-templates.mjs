@@ -26,6 +26,19 @@ function find(node, predicate) {
     if (found) return found
   }
 }
+const affiliatePackage = JSON.parse(readFileSync(new URL('../packages/plugin-affiliate/package.json', import.meta.url), 'utf8'))
+assert.equal(affiliatePackage.exports['.'].browser, './src/client.ts')
+assert.equal(affiliatePackage.exports['.'].default, './src/index.ts')
+const { default: affiliateClient } = compile('../packages/plugin-affiliate/src/client.ts', {
+  '../hosso.json': { name: { vi: 'Tiếp thị liên kết', en: 'Affiliate' } },
+  './Portal': { Portal: 'affiliate-portal' },
+  './RefCapture': { RefCapture: 'ref-capture' },
+  './styles': { css: '' },
+})
+assert.equal(affiliateClient.blocks[0].type, 'AffiliatePortal')
+assert.equal(affiliateClient.fallbackRenderers.AffiliatePortal({ heading: 'Partners' }).props.heading, 'Partners')
+assert.equal(affiliateClient.headerSlot, 'ref-capture')
+assert.equal(affiliateClient.payload, undefined, 'Browser entry must not load server hooks')
 let states, index, pending
 function picker(props) {
   states = [false, '', '', 'all']
@@ -80,14 +93,14 @@ try {
   assert.equal(find(picker({ ...props, templates: [] }), (node) => node.props?.className === 'ht-use'), undefined)
 
   let listed = 0
-  const access = { hasRole: (user, role) => user?.roles?.includes(role) }
+  const access = compile('../apps/studio/src/lib/access.ts', {})
   const i18n = { adminLang: () => 'vi', makeT: () => translate }
   const { DashboardHome } = compile('../apps/studio/src/components/admin/DashboardHome.tsx', {
-    '@hosso-config': { brand: { name: 'Studio' } },
+    '@hosso-config': { brand: { name: 'Studio' }, plugins: [] },
+    '@payloadcms/ui': { Gutter: 'div' },
     '@/lib/access': access,
     '@/lib/admin-i18n': i18n,
-    '@/lib/backup': { listTemplates: () => { listed++; return props.templates } },
-    './SiteTemplates': { SiteTemplates },
+    './GettingStarted': { GettingStarted: 'getting-started' },
   })
   const { TemplatesView } = compile('../apps/studio/src/components/admin/TemplatesView.tsx', {
     '@payloadcms/ui': { Gutter: 'div' },
@@ -96,7 +109,7 @@ try {
     '@/lib/backup': { listTemplates: () => { listed++; return props.templates } },
     './SiteTemplates': { SiteTemplates },
   })
-  const payload = { findGlobal: async () => ({}), find: async () => ({ docs: [] }), count: async () => ({ totalDocs: 0 }) }
+  const payload = { collections: {}, findGlobal: async () => ({}), find: async () => ({ docs: [] }), count: async () => ({ totalDocs: 0 }) }
   for (const user of [undefined, { roles: ['editor'] }, { roles: ['publisher'] }]) {
     const dashboard = await DashboardHome({ payload, user })
     assert.equal(find(dashboard, (node) => node.props?.href === '/admin/templates'), undefined)
@@ -105,14 +118,89 @@ try {
   }
   assert.equal(listed, 0, 'Non-admins must not list server templates')
   const admin = await DashboardHome({ payload, user: { roles: ['admin'] } })
-  const dashboardGallery = find(admin, (node) => node.type === SiteTemplates)
-  assert.deepEqual(dashboardGallery.props.templates, props.templates)
-  assert.equal(listed, 1, 'Dashboard must load the catalog for admins')
+  assert.equal(find(admin, (node) => node.type === SiteTemplates), undefined, 'The template catalog belongs on Appearance, not the daily dashboard')
+  assert.ok(find(admin, (node) => node.props?.href === '/admin/templates'))
+  assert.equal(listed, 0, 'Dashboard must not load the template catalog')
   const view = await TemplatesView({ initPageResult: { req: { user: { roles: ['admin'] } } } })
   const gallery = find(view, (node) => node.type === SiteTemplates)
   assert.deepEqual(gallery.props.templates, props.templates)
   assert.equal(gallery.props.siteURL, process.env.HOSSO_PUBLIC_URL || '/')
-  assert.equal(listed, 2)
+  assert.equal(listed, 1)
+  const requests = []
+  const scopedPayload = {
+    ...payload,
+    collections: { 'shop-orders': {} },
+    count: async (options) => { requests.push(options); return { totalDocs: 2 } },
+    find: async (options) => { requests.push(options); return { docs: [{ id: 7, title: 'Draft', updatedAt: '2026-10-30T00:00:00Z' }] } },
+  }
+  const authorReq = { user: { id: 5, roles: ['author'] } }
+  const author = await DashboardHome({ payload: scopedPayload, req: authorReq, user: authorReq.user })
+  assert.equal(find(author, (node) => node.props?.href === '/admin/collections/shop-products/create'), undefined)
+  assert.equal(find(author, (node) => node.props?.href === '/admin/collections/pages/create'), undefined)
+  assert.ok(requests.every((options) => options.overrideAccess === false && options.req === authorReq))
+  assert.deepEqual(requests.find((options) => options.draft).where.createdBy, { equals: 5 }, 'Author drafts must be scoped to the current author')
+  assert.ok(requests.every((options) => ['posts', 'media'].includes(options.collection)))
+  const failed = await DashboardHome({ payload: { ...scopedPayload, find: async () => { throw new Error('offline') }, count: async () => { throw new Error('offline') } }, user: { roles: ['admin'] } })
+  assert.ok(find(failed, (node) => node.props?.role === 'status'), 'Query errors must not look like zero work to do')
+
+  const { pluginAdminLinks } = compile('../apps/studio/src/lib/admin-plugins.ts', {})
+  const fallbackPlugin = { id: 'custom', manifest: { name: { vi: 'Custom' }, settings: '/admin/custom' } }
+  assert.deepEqual(pluginAdminLinks(fallbackPlugin, { roles: ['editor'] }), [])
+  assert.equal(pluginAdminLinks(fallbackPlugin, { roles: ['admin'] })[0].href, '/admin/custom')
+  const plugin = { ...fallbackPlugin, adminNav: [{ label: 'Orders', href: '/admin/orders', roles: ['admin', 'publisher'] }, { label: 'Settings', href: '/admin/settings', roles: ['admin'] }] }
+  assert.deepEqual(pluginAdminLinks(plugin, { roles: ['publisher'] }).map((link) => link.label), ['Orders'])
+  const { filterPlugins } = compile('../apps/studio/src/components/admin/PluginsClient.tsx', { '@/lib/use-admin-t': { useAdminT: () => translate } })
+  const plugins = [
+    { id: 'shop', name: 'Cửa hàng', description: 'Products', enabled: true },
+    { id: 'wim', name: 'WIM', description: 'Inventory', enabled: false, license: { ok: false } },
+    { id: 'shipping', name: 'Giao vận', description: 'Delivery', enabled: true, license: { ok: false } },
+  ]
+  assert.equal(filterPlugins(plugins, 'all', '').length, 3)
+  assert.equal(filterPlugins(plugins, 'enabled', '').length, 2)
+  assert.equal(filterPlugins(plugins, 'disabled', '  WIM  ')[0].id, 'wim')
+  assert.deepEqual(filterPlugins(plugins, 'license', '').map((plugin) => plugin.id), ['shipping'])
+  assert.deepEqual(filterPlugins(plugins, 'all', 'no match'), [])
+
+  let nextWhere
+  const where = { _status: { equals: 'draft' }, title: { contains: 'Workshop' } }
+  const { ContentTabs } = compile('../apps/studio/src/components/admin/ContentTabs.tsx', {
+    '@payloadcms/ui': { useListQuery: () => ({ query: { where }, handleWhereChange: (value) => { nextWhere = value } }) },
+    '@/lib/use-admin-t': { useAdminT: () => translate },
+  })
+  const tabs = ContentTabs()
+  find(tabs, (node) => node.type === 'button' && node.props.children === 'Tất cả').props.onClick()
+  assert.deepEqual(nextWhere, { title: { contains: 'Workshop' } }, 'Changing status must preserve other list filters')
+  find(tabs, (node) => node.type === 'button' && node.props.children === 'Đã xuất bản').props.onClick()
+  assert.deepEqual(nextWhere, { ...where, _status: { equals: 'published' } })
+  assert.equal(where._status.equals, 'draft', 'Changing tabs must not mutate the current query')
+
+  const navPlugins = [
+    { id: 'shop', adminNav: [{ label: 'Sản phẩm', href: '/admin/collections/shop-products', roles: ['admin', 'publisher'] }] },
+    { id: 'shipping', adminNav: [{ label: 'Vận đơn', href: '/admin/collections/shipments', roles: ['admin'] }] },
+    { id: 'promotions', adminNav: [{ label: 'Khuyến mãi', href: '/admin/collections/vouchers', roles: ['admin', 'publisher'] }] },
+    fallbackPlugin,
+  ]
+  const { Nav } = compile('../apps/studio/src/components/admin/Nav.tsx', {
+    '@hosso-config': { brand: {}, plugins: navPlugins },
+    '@payloadcms/next/client': { NavHamburger: 'hamburger', NavWrapper: 'div' },
+    '@payloadcms/ui': { Logout: 'logout' },
+    '@/lib/access': access,
+    '@/lib/admin-i18n': i18n,
+    '@/lib/admin-plugins': { pluginAdminLinks },
+    './NavClient': { NavClient: 'nav-client' },
+  })
+  const navigation = async (role) => {
+    const tree = await Nav({ payload: scopedPayload, user: { id: 5, roles: [role] } })
+    return find(tree, (node) => node.type === 'nav-client').props.sections
+  }
+  const adminSections = await navigation('admin')
+  assert.ok(adminSections.find((section) => section.title === 'Bán hàng').items.some((item) => item.href === '/admin/collections/shipments'))
+  assert.equal(adminSections.flatMap((section) => section.items).filter((item) => item.href === '/admin/collections/shop-products').length, 1, 'Shop navigation must not be duplicated under plugins')
+  const publisherItems = (await navigation('publisher')).flatMap((section) => section.items)
+  assert.ok(publisherItems.some((item) => item.href === '/admin/collections/vouchers'))
+  assert.ok(publisherItems.every((item) => !['/admin/plugins', '/admin/collections/shipments', '/admin/custom'].includes(item.href)))
+  const authorItems = (await navigation('author')).flatMap((section) => section.items)
+  assert.ok(authorItems.every((item) => !item.id.startsWith('plugin-')))
   const backup = compile('../apps/studio/src/lib/backup.ts', { './site-package': {}, '@hosso-config': { themes: [{ manifest: { name: 'auto' } }], plugins: [{ id: 'shop' }] } })
   const templateFile = fileURLToPath(new URL('../seed/sites/shop-template.hosso-site.zip', import.meta.url))
   const details = backup.templateDetails(templateFile, 'shop-template')
@@ -145,7 +233,7 @@ try {
   assert.equal(cover.headers.get('Content-Type'), 'image/webp')
   assert.match(cover.headers.get('Content-Security-Policy'), /sandbox/)
   assert.ok((await cover.arrayBuffer()).byteLength > 0)
-  console.log('Website gallery checks passed: catalog, cover endpoint, admin access, selection, locking and errors.')
+  console.log('Admin checks passed: dashboard access and errors, author drafts, plugin filters and navigation, content filters, template catalog and installation.')
 } finally {
   globalThis.fetch = originalFetch
   if (originalWindow === undefined) delete globalThis.window

@@ -6,6 +6,8 @@ import React from 'react'
 
 import { hasRole } from '@/lib/access'
 import { adminLang, makeT } from '@/lib/admin-i18n'
+import { pluginAdminLinks } from '@/lib/admin-plugins'
+import { PluginsClient } from './PluginsClient'
 
 /** Trang Plugin: các plugin đã cài, đang bật hay tắt, phiên bản và liên kết tới trang cài đặt. Chỉ admin. */
 export const PluginsView = async ({ initPageResult }: AdminViewServerProps) => {
@@ -15,44 +17,27 @@ export const PluginsView = async ({ initPageResult }: AdminViewServerProps) => {
   if (!hasRole(user, 'admin'))
     return (
       <Gutter>
-        <h1>{T('Quản lý plugin')}</h1>
+        <h1>{T('Tiện ích')}</h1>
         <p>{T('Chỉ quản trị viên được dùng trang này.')}</p>
       </Gutter>
     )
   const enabled = new Set(hosso.plugins.map((p) => p.id))
   // Plugin thương mại: hiện tình trạng giấy phép (HOSSO_LICENSE_KEY).
   const licenses = Object.fromEntries(await Promise.all(hosso.installedPlugins.filter((p) => p.manifest?.commercial).map(async (p) => [p.id, await checkLicense(p.id)] as const)))
-  return (
-    <Gutter>
-      <h1>{T('Quản lý plugin')}</h1>
-      <p>{T('Chọn plugin bật bằng biến NEXT_PUBLIC_HOSSO_PLUGINS (id cách nhau bằng dấu phẩy, để trống là bật tất cả). Thêm hoặc đổi plugin cần dựng lại (build) và triển khai lại.')}</p>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr>
-            {['Plugin', 'Mô tả', 'Phiên bản', 'Trạng thái'].map((h) => (
-              <th key={h} style={{ textAlign: 'left', padding: '.5rem', borderBottom: '1px solid var(--theme-elevation-150)' }}>{T(h)}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {hosso.installedPlugins.map((p) => {
-            const m = p.manifest
-            const on = enabled.has(p.id)
-            return (
-              <tr key={p.id} style={{ verticalAlign: 'top' }}>
-                <td style={{ padding: '.5rem' }}><strong>{m?.name[lang] ?? p.id}</strong><br /><code>{p.id}</code></td>
-                <td style={{ padding: '.5rem' }}>{m?.description[lang]}</td>
-                <td style={{ padding: '.5rem' }}>{m?.version}</td>
-                <td style={{ padding: '.5rem' }}>
-                  {on ? T('Đang bật') : T('Đã tắt')}
-                  {licenses[p.id] && (<><br />{licenses[p.id].ok ? `${T('Giấy phép hợp lệ')}${licenses[p.id].exp ? ` (${new Date(licenses[p.id].exp! * 1000).toISOString().slice(0, 10)})` : ''}` : T('Chưa có giấy phép hợp lệ (dev dùng thử được, production cần HOSSO_LICENSE_KEY)')}</>)}
-                  {on && m?.settings && (<><br /><a href={m.settings}>{T('Mở trang quản lý')}</a></>)}
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </Gutter>
-  )
+  const plugins = hosso.installedPlugins.map((plugin) => {
+    const license = licenses[plugin.id]
+    return {
+      id: plugin.id,
+      name: plugin.manifest?.name[lang] ?? plugin.id,
+      description: plugin.manifest?.description[lang] ?? '',
+      version: plugin.manifest?.version,
+      enabled: enabled.has(plugin.id),
+      license: license ? { ok: license.ok, expires: license.exp ? new Date(license.exp * 1000).toISOString().slice(0, 10) : undefined } : undefined,
+      links: pluginAdminLinks(plugin, user).map((link) => ({ href: link.href, label: T(link.label) })),
+    }
+  })
+  return <Gutter className="ha-workspace">
+    <header className="ha-page-head"><div><h1>{T('Tiện ích')}</h1><p>{T('Quản lý các chức năng mở rộng của website và mở nhanh cấu hình từng tiện ích.')}</p></div><a className="ha-button" href="/admin">{T('Về tổng quan')}</a></header>
+    <PluginsClient plugins={plugins} />
+  </Gutter>
 }

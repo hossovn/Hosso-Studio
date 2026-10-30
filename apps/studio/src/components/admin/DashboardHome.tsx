@@ -1,88 +1,92 @@
 import hosso from '@hosso-config'
-import type { Payload } from 'payload'
+import { Gutter } from '@payloadcms/ui'
+import type { AdminViewServerProps, Payload, PayloadRequest, Where } from 'payload'
 import React from 'react'
 
-import { hasRole } from '@/lib/access'
+import { canEditPages, canModerate, canPublish, hasRole, isAdmin } from '@/lib/access'
 import { adminLang, makeT } from '@/lib/admin-i18n'
-import { listTemplates } from '@/lib/backup'
-import { SiteTemplates } from './SiteTemplates'
+import { GettingStarted } from './GettingStarted'
 
-type Props = { payload: Payload; i18n?: { language?: string }; user?: { roles?: string[] | null } | null }
+type Props = { payload: Payload; req?: PayloadRequest; i18n?: { language?: string }; user?: { id?: string | number; roles?: string[] | null } | null }
+type Draft = { id: string | number; title?: string; updatedAt?: string; collection: 'pages' | 'posts' }
 
-const count = async (payload: Payload, collection: any, where?: any) =>
-  (await payload.count({ collection, where, overrideAccess: true }).catch(() => ({ totalDocs: 0 }))).totalDocs
-
-/** Đầu dashboard: thẻ site (Thiết kế / Xem trước), số liệu chính và lối tắt, theo kiểu trang chủ của Webcake. */
-export const DashboardHome = async ({ payload, i18n, user }: Props) => {
+export const DashboardHome = async ({ payload, req, i18n, user }: Props) => {
   const T = makeT(adminLang(i18n?.language))
-  const settings = (await payload.findGlobal({ slug: 'site-settings', depth: 0 }).catch(() => ({}))) as Record<string, any>
-  const home = await payload.find({ collection: 'pages', where: { slug: { equals: 'home' } }, limit: 1, depth: 0, overrideAccess: true }).catch(() => null)
-  const [pages, drafts, posts, forms, media] = await Promise.all([
-    count(payload, 'pages', { _status: { equals: 'published' } }),
-    count(payload, 'pages', { _status: { equals: 'draft' } }),
-    count(payload, 'posts', { _status: { equals: 'published' } }),
-    count(payload, 'form-submissions', { createdAt: { greater_than: new Date(Date.now() - 24 * 3600_000).toISOString() } }),
-    count(payload, 'media'),
+  const writer = hasRole(user, 'admin', 'publisher', 'editor', 'author')
+  const pageEditor = canEditPages(user)
+  const moderator = canModerate(user)
+  const shop = canPublish(user) && Boolean(payload.collections['shop-orders'])
+  const since = new Date(Date.now() - 24 * 3600_000).toISOString()
+  const count = async (collection: string, where?: Where) => {
+    try {
+      return (await payload.count({ collection: collection as any, where, req, overrideAccess: false })).totalDocs
+    } catch {
+      return null
+    }
+  }
+  const recent = async (collection: 'pages' | 'posts'): Promise<Draft[] | null> => {
+    try {
+      const where: Where = { _status: { equals: 'draft' } }
+      if (collection === 'posts' && !pageEditor) where.createdBy = { equals: user?.id }
+      const result = await payload.find({ collection, where, draft: true, sort: '-updatedAt', limit: 4, depth: 0, req, overrideAccess: false })
+      return result.docs.map((doc) => ({ id: doc.id, title: doc.title, updatedAt: doc.updatedAt, collection }))
+    } catch {
+      return null
+    }
+  }
+  const [orders, comments, bookings, forms, pages, posts, media, pageDrafts, postDrafts] = await Promise.all([
+    shop ? count('shop-orders', { status: { equals: 'new' } }) : null,
+    moderator ? count('comments', { status: { equals: 'pending' } }) : null,
+    moderator ? count('bookings', { status: { equals: 'new' } }) : null,
+    moderator ? count('form-submissions', { createdAt: { greater_than: since } }) : null,
+    pageEditor ? count('pages', { _status: { equals: 'published' } }) : null,
+    writer ? count('posts', { _status: { equals: 'published' } }) : null,
+    writer ? count('media') : null,
+    pageEditor ? recent('pages') : [],
+    writer ? recent('posts') : [],
   ])
-
-  const homeId = home?.docs?.[0]?.id
-  const site = process.env.HOSSO_PUBLIC_URL || '/'
+  const tasks = [
+    ...(shop ? [{ label: T('Đơn hàng mới'), value: orders, href: '/admin/collections/shop-orders?where[status][equals]=new' }] : []),
+    ...(moderator ? [
+      { label: T('Bình luận chờ duyệt'), value: comments, href: '/admin/collections/comments?where[status][equals]=pending' },
+      { label: T('Lịch hẹn mới'), value: bookings, href: '/admin/collections/bookings?where[status][equals]=new' },
+      { label: T('Biểu mẫu trong 24 giờ qua'), value: forms, href: '/admin/collections/form-submissions?where[createdAt][greater_than]=' + encodeURIComponent(since) },
+    ] : []),
+  ]
+  const drafts = [...(pageDrafts ?? []), ...(postDrafts ?? [])].sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? '')).slice(0, 6)
+  const actions = [
+    ...(writer ? [{ label: T('Thêm bài viết'), href: '/admin/collections/posts/create' }] : []),
+    ...(pageEditor ? [{ label: T('Thêm trang'), href: '/admin/collections/pages/create' }] : []),
+    ...(shop ? [{ label: T('Thêm sản phẩm'), href: '/admin/collections/shop-products/create' }] : []),
+    ...(writer ? [{ label: T('Tải lên'), href: '/admin/collections/media/create' }] : []),
+  ]
   const stats = [
-    { label: 'Trang đã xuất bản', value: pages, href: '/admin/collections/pages' },
-    { label: 'Bản nháp', value: drafts, href: '/admin/collections/pages?where[_status][equals]=draft' },
-    { label: 'Bài viết', value: posts, href: '/admin/collections/posts' },
-    { label: 'Biểu mẫu hôm nay', value: forms, href: '/admin/collections/form-submissions' },
-    { label: 'Media', value: media, href: '/admin/collections/media' },
+    ...(pageEditor ? [{ label: T('Trang đã xuất bản'), value: pages, href: '/admin/collections/pages' }] : []),
+    ...(writer ? [{ label: T('Bài viết đã xuất bản'), value: posts, href: '/admin/collections/posts' }, { label: T('Thư viện media'), value: media, href: '/admin/collections/media' }] : []),
   ]
-  const quick = [
-    { t: 'Trang', d: 'Dựng và xuất bản trang', href: '/admin/collections/pages' },
-    { t: 'Bài viết', d: 'Blog và tin tức', href: '/admin/collections/posts' },
-    { t: 'Thư viện media', d: 'Ảnh, video, tài liệu', href: '/admin/collections/media' },
-    { t: 'Giao diện', d: 'Màu, font, theme', href: '/admin/customize' },
-    { t: 'Header và footer', d: 'Dựng vùng giao diện', href: '/admin/globals/site-areas' },
-    { t: 'SEO', d: 'Chuyển hướng, sitemap', href: '/admin/collections/redirects' },
-    { t: 'Biểu mẫu', d: 'Liên hệ và đăng ký', href: '/admin/collections/forms' },
-    { t: 'Plugin', d: 'Mở rộng tính năng', href: '/admin/plugins' },
-    { t: 'Cài đặt', d: 'Site, menu, liên hệ', href: '/admin/globals/site-settings' },
-  ]
-  const templates = hasRole(user, 'admin') ? listTemplates() : []
 
-  return (
-    <div className="hd">
-      <section className="hd-card hd-site">
-        <div>
-          <span className="hd-live">{T('Đang hoạt động')}</span>
-          <h2>{settings.siteName || hosso.brand.name}</h2>
-          <a href={site} target="_blank" rel="noreferrer">{site}</a>
-        </div>
-        <div className="hd-actions" style={{ flexWrap: 'wrap' }}>
-          <a className="hd-btn is-primary" href={homeId ? `/editor/${homeId}` : '/admin/collections/pages'}>{T('Thiết kế')}</a>
-          {hasRole(user, 'admin') && <a className="hd-btn" href="#website-templates">{T('Chọn giao diện')}</a>}
-          <a className="hd-btn" href={site} target="_blank" rel="noreferrer">{T('Xem trước')}</a>
-        </div>
-      </section>
-      <div className="hd-stats">
-        {stats.map((s) => (
-          <a key={s.label} className="hd-card hd-stat" href={s.href}>
-            <small>{T(s.label)}</small>
-            <strong>{s.value}</strong>
-          </a>
-        ))}
-      </div>
-      <h3 className="hd-title">{T('Truy cập nhanh')}</h3>
-      <div className="hd-quick">
-        {quick.map((q) => (
-          <a key={q.t} className="hd-card hd-q" href={q.href}>
-            <strong>{T(q.t)}</strong>
-            <small>{T(q.d)}</small>
-            <span aria-hidden="true">›</span>
-          </a>
-        ))}
-      </div>
-      {hasRole(user, 'admin') && <section id="website-templates" className="ht-dashboard" aria-label={T('Kho giao diện')}>
-        <div className="ht-dashboard-head"><div><p className="ht-kicker">{T('Kho giao diện')}</p><h3>{T('Chọn giao diện cho website')}</h3></div><span>{templates.length} {T('giao diện')}</span></div>
-        <SiteTemplates templates={templates} siteURL={site} />
+  return <div className="ha-dashboard">
+    <header className="ha-page-head"><div><h1>{T('Tổng quan')}</h1><p>{T('Theo dõi công việc và tiếp tục quản lý website của bạn.')}</p></div><a className="ha-button" href={process.env.HOSSO_PUBLIC_URL || '/'} target="_blank" rel="noreferrer">{T('Xem website')} ↗</a></header>
+    {actions.length > 0 && <section className="ha-welcome"><div><h2>{T('Bạn muốn làm gì hôm nay?')}</h2><p>{T('Tạo nội dung mới hoặc tiếp tục công việc đang làm.')}</p></div><div className="ha-actions">{actions.map((action, index) => <a className={`ha-button${index === 0 ? ' is-primary' : ''}`} key={action.href} href={action.href}>{action.label}</a>)}</div></section>}
+    {tasks.length > 0 && <section aria-labelledby="ha-tasks-title"><div className="ha-section-head"><h2 id="ha-tasks-title">{T('Cần xử lý')}</h2><span>{T('Bấm vào từng mục để xem danh sách.')}</span></div><div className="ha-tasks">{tasks.map((task) => <a className="ha-task" href={task.href} key={task.href}><strong className={task.value ? 'has-items' : undefined}>{task.value ?? '—'}</strong><span>{task.label}</span><span className="ha-task-arrow" aria-hidden="true">→</span></a>)}</div>{tasks.some((task) => task.value === null) && <p className="ha-muted" role="status">{T('Một số số liệu chưa tải được. Bạn vẫn có thể mở danh sách để kiểm tra.')}</p>}</section>}
+    <div className="ha-dashboard-grid">
+      {(writer || pageEditor) && <section className="ha-panel"><div className="ha-panel-head"><h2>{T('Tiếp tục biên tập')}</h2><span className="ha-muted">{T('Bản nháp gần đây')}</span></div>
+        {drafts.length ? <ul className="ha-drafts">{drafts.map((draft) => <li key={`${draft.collection}-${draft.id}`}><a href={`/admin/collections/${draft.collection}/${draft.id}`}><strong>{draft.title || T('Chưa có tiêu đề')}</strong><small>{draft.collection === 'pages' ? T('Trang') : T('Bài viết')}</small></a><span className="ha-status">{T('Bản nháp')}</span></li>)}</ul> : <p className="ha-empty">{pageDrafts === null || postDrafts === null ? T('Chưa tải được bản nháp. Mở danh sách nội dung để kiểm tra.') : T('Chưa có bản nháp. Bắt đầu bằng một bài viết hoặc trang mới.')}</p>}
       </section>}
+      <section className="ha-panel"><div className="ha-panel-head"><h2>{T('Website của bạn')}</h2></div><div className="ha-panel-body">
+        {stats.length > 0 && <ul className="ha-summary">{stats.map((stat) => <li key={stat.href}><a href={stat.href}>{stat.label}<strong>{stat.value ?? '—'}</strong></a></li>)}</ul>}
+        <div className="ha-shortcuts">
+          {moderator && <a href="/admin/collections/contact-messages">{T('Tin nhắn liên hệ')} →</a>}
+          {isAdmin(user) && <><a href="/admin/templates">{T('Kho giao diện')} →</a><a href="/admin/customize">{T('Tùy biến giao diện')} →</a><a href="/admin/plugins">{T('Tiện ích')} <span>{hosso.plugins.length}</span> →</a><a href="/admin/globals/site-settings">{T('Cài đặt')} →</a></>}
+          <a href="/admin/account">{T('Hồ sơ của tôi')} →</a>
+        </div>
+      </div></section>
     </div>
-  )
+    {isAdmin(user) && <details className="ha-setup"><summary>{T('Thiết lập website')}</summary><GettingStarted payload={payload} i18n={i18n} /></details>}
+  </div>
+}
+
+export const DashboardView = ({ initPageResult }: AdminViewServerProps) => {
+  const { req } = initPageResult
+  return <Gutter className="ha-workspace"><DashboardHome payload={req.payload} req={req} user={req.user} i18n={req.i18n} /></Gutter>
 }

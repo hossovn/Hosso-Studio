@@ -4,8 +4,6 @@ import React, { useState } from 'react'
 
 import { useAdminT } from '@/lib/use-admin-t'
 
-const btn: React.CSSProperties = { background: 'var(--hosso-brand)', color: '#fff', padding: '10px 18px', borderRadius: 4, display: 'inline-block', textDecoration: 'none', fontWeight: 600, border: 0, cursor: 'pointer', font: 'inherit' }
-
 export const EditorLink = () => {
   const T = useAdminT()
   const { id, collectionSlug } = useDocumentInfo()
@@ -32,16 +30,16 @@ export const EditorLink = () => {
   if (!id) return <p style={{ marginBottom: 24 }}>{T('Lưu trước, sau đó mở trình dựng kéo thả.')}</p>
   return (
     <div style={{ marginBottom: 24, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-      <a href={`/editor/${id}?${q}`} style={btn}>
+      <a href={`/editor/${id}?${q}`} className="ha-button is-primary">
         {T('Mở trình dựng kéo thả')}
         {locale?.code ? ` (${locale.code})` : ''}
       </a>
       {(collectionSlug === 'pages' || collectionSlug === 'posts') && (
-        <button type="button" onClick={share} style={{ ...btn, background: 'transparent', color: 'inherit', border: '1px solid var(--theme-elevation-300)' }}>
+        <button type="button" onClick={share} className="ha-button">
           {T('Link xem trước chia sẻ')}
         </button>
       )}
-      {msg && <span style={{ fontSize: 13 }}>{msg}</span>}
+      {msg && <span role="status" style={{ fontSize: 13 }}>{msg}</span>}
     </div>
   )
 }

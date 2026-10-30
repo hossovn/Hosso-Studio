@@ -19,6 +19,11 @@ const plugin: HossoPlugin = {
   adminNav: [{ label: 'Kết nối Hosso WIM', href: '/admin/globals/wim-settings', roles: ['admin'] }],
   checklist: async (payload) => [{ label: 'Kết nối Hosso WIM (địa chỉ API và khóa)', done: Boolean(await getWimConfig(payload)), href: '/admin/globals/wim-settings' }],
   payload: applyPayload,
+  readOrder: async (payload, id) => {
+    const cfg = await getWimConfig(payload)
+    if (!cfg) throw new Error('WIM is not configured')
+    return wimFetch(cfg, '/v1/orders/' + encodeURIComponent(id))
+  },
   // Kiln gọi qua GET /api/site/status: gọi thẳng WIM (không qua cache) để biết kết nối còn sống không.
   status: async (payload) => {
     const cfg = await getWimConfig(payload)

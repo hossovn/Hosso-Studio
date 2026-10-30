@@ -6,7 +6,7 @@ import { builderLinkField, onlyPublishersPublish, seoFields } from '../lib/conte
 export const Pages: CollectionConfig = {
   slug: 'pages',
   labels: { singular: 'Trang', plural: 'Các trang' },
-  admin: { useAsTitle: 'title', defaultColumns: ['title', 'slug', '_status', 'updatedAt'], group: 'Nội dung' },
+  admin: { useAsTitle: 'title', defaultColumns: ['title', '_status', 'slug', 'updatedAt'], group: 'Nội dung', components: { beforeListTable: ['/components/admin/ContentTabs#ContentTabs'] } },
   // Khách chỉ thấy bản đã xuất bản; người đăng nhập thấy cả bản nháp.
   // Biên tập viên sửa và lưu nháp; chỉ quản trị viên được xuất bản (hook bên dưới).
   access: {
@@ -18,8 +18,8 @@ export const Pages: CollectionConfig = {
   versions: { drafts: { autosave: true, schedulePublish: true }, maxPerDoc: 20 },
   hooks: { beforeChange: [onlyPublishersPublish] },
   fields: [
-    builderLinkField,
     { name: 'title', type: 'text', label: 'Tiêu đề', required: true, localized: true },
+    builderLinkField,
     {
       name: 'slug',
       type: 'text',
@@ -27,10 +27,10 @@ export const Pages: CollectionConfig = {
       required: true,
       unique: true,
       index: true,
-      admin: { description: '"home" là trang chủ.' },
+      admin: { position: 'sidebar', description: '"home" là trang chủ.' },
     },
     { name: 'description', type: 'textarea', localized: true, label: 'Mô tả (dùng cho SEO)' },
-    seoFields,
+    { type: 'collapsible', label: 'SEO', admin: { initCollapsed: true }, fields: [seoFields] },
     // JSON của Puck; chỉnh bằng trình dựng kéo thả.
     { name: 'content', type: 'json', localized: true, label: 'Cấu trúc trang (JSON)', admin: { hidden: true } },
   ],

@@ -194,7 +194,7 @@ export const Orders: CollectionConfig = {
   },
   fields: [
     { name: 'printLink', type: 'ui', admin: { components: { Field: '@hosso/plugin-shop/admin#PrintLink' } } },
-    { name: 'orderNo', type: 'text', unique: true, index: true, label: bi('Mã đơn', 'Order number'), admin: { readOnly: true } },
+    { name: 'orderNo', type: 'text', unique: true, index: true, label: bi('Mã đơn', 'Order number'), admin: { position: 'sidebar', readOnly: true } },
     { name: 'cartId', type: 'text', unique: true, admin: { hidden: true } },
     {
       name: 'status',
@@ -202,6 +202,7 @@ export const Orders: CollectionConfig = {
       defaultValue: 'new',
       required: true,
       label: bi('Trạng thái', 'Status'),
+      admin: { position: 'sidebar' },
       options: [
         { value: 'new', label: bi('Mới', 'New') },
         { value: 'confirmed', label: bi('Đã xác nhận', 'Confirmed') },
@@ -210,31 +211,33 @@ export const Orders: CollectionConfig = {
         { value: 'cancelled', label: bi('Đã hủy', 'Cancelled') },
       ],
     },
-    { name: 'subtotal', type: 'number', label: bi('Tạm tính (đ)', 'Subtotal (VND)'), admin: { readOnly: true } },
+    { name: 'subtotal', type: 'number', label: bi('Tạm tính (đ)', 'Subtotal (VND)'), admin: { position: 'sidebar', readOnly: true } },
     {
       name: 'adjustments',
       type: 'array',
       label: bi('Phí và giảm giá', 'Fees and discounts'),
-      admin: { readOnly: true, description: bi('Phí ship (dương) và giảm giá (âm) do các plugin thêm.', 'Shipping fees (positive) and discounts (negative) added by plugins.') },
+      admin: { readOnly: true, initCollapsed: true, description: bi('Phí ship (dương) và giảm giá (âm) do các plugin thêm.', 'Shipping fees (positive) and discounts (negative) added by plugins.') },
       fields: [
         { name: 'label', type: 'text', label: bi('Tên', 'Label') },
         { name: 'amount', type: 'number', label: bi('Số tiền (đ)', 'Amount (VND)') },
         { name: 'source', type: 'text', label: bi('Plugin', 'Plugin') },
-      ],
         { name: 'scope', type: 'text' },
+      ],
     },
-    { name: 'total', type: 'number', label: bi('Tổng tiền (đ)', 'Total (VND)'), admin: { readOnly: true } },
+    { name: 'total', type: 'number', label: bi('Tổng tiền (đ)', 'Total (VND)'), admin: { position: 'sidebar', readOnly: true } },
     {
       name: 'paymentStatus',
       type: 'select',
       defaultValue: 'unpaid',
       label: bi('Tình trạng thanh toán', 'Payment status'),
+      admin: { position: 'sidebar' },
       options: [
         { value: 'unpaid', label: bi('Chưa thanh toán', 'Unpaid') },
         { value: 'paid', label: bi('Đã thanh toán', 'Paid') },
         { value: 'refunded', label: bi('Đã hoàn tiền', 'Refunded') },
       ],
     },
+    { type: 'collapsible', label: bi('Khách hàng và giao hàng', 'Customer and delivery'), fields: [
     { name: 'email', type: 'email', label: 'Email' },
     { name: 'paymentMethod', type: 'text', defaultValue: 'cod', label: bi('Cách thanh toán', 'Payment method'), admin: { description: bi('cod = thanh toán khi nhận hàng, bank = chuyển khoản.', 'cod = cash on delivery, bank = bank transfer.') } },
     { name: 'fulfillmentType', type: 'select', defaultValue: 'delivery', label: bi('Nhận hàng', 'Fulfillment'), options: [{ value: 'delivery', label: bi('Giao tận nơi', 'Delivery') }, { value: 'pickup', label: bi('Nhận tại cửa hàng', 'Store pickup') }] },
@@ -242,6 +245,7 @@ export const Orders: CollectionConfig = {
     { name: 'phone', type: 'text', label: bi('Điện thoại', 'Phone') },
     { name: 'address', type: 'textarea', label: bi('Địa chỉ giao', 'Delivery address') },
     { name: 'note', type: 'textarea', label: bi('Ghi chú của khách', 'Customer note') },
+    ] },
     {
       name: 'items',
       type: 'array',

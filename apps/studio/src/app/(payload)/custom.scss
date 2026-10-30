@@ -4,7 +4,7 @@
 @import '@fontsource/roboto/700.css';
 html:root { --font-body: 'Roboto', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif; }
 :root {
-  --hs-radius: 10px;
+  --hs-radius: 5px;
   --hs-ring: 0 0 0 3px color-mix(in srgb, var(--hosso-brand, #15803d) 30%, transparent);
 }
 
@@ -33,7 +33,7 @@ html:root { --font-body: 'Roboto', system-ui, -apple-system, 'Segoe UI', Arial, 
 .field-type input:focus, .field-type textarea:focus, .rs__control--is-focused { border-color: var(--hosso-brand, #15803d) !important; box-shadow: var(--hs-ring) !important; }
 .field-label { font-weight: 600; }
 .table { border-radius: var(--hs-radius); overflow: hidden;
-  th { font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--theme-elevation-500); font-weight: 600; }
+  th { font-size: .85rem; color: var(--theme-elevation-700); font-weight: 600; }
   tbody tr { transition: background .12s; }
   tbody tr:hover { background: var(--theme-elevation-50); }
 }
@@ -43,30 +43,111 @@ html:root { --font-body: 'Roboto', system-ui, -apple-system, 'Segoe UI', Arial, 
 :focus-visible { outline: 2px solid var(--hosso-brand, #15803d); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .card, .btn { transition: none; } .card:hover, .btn:active { transform: none; } }
 
-// Dashboard kiểu Webcake: thẻ site, số liệu, lối tắt
-.hd { margin-bottom: 2rem; }
-.hd-card { background: var(--theme-elevation-0); border: 1px solid var(--theme-elevation-100); border-radius: 12px; color: inherit; text-decoration: none; }
-.hd-site { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; padding: 1.4rem 1.6rem; margin-bottom: 1rem;
-  h2 { margin: .35rem 0 .2rem; font-size: 1.6rem; letter-spacing: -.02em; }
-  a { font-size: .9rem; color: var(--hosso-brand, #15803d); }
+// Các màn quản trị dùng chung bố cục, bảng và trạng thái.
+.template-default { background: var(--theme-elevation-50); }
+.ha-workspace { padding-top: 26px; padding-bottom: 40px; }
+.ha-page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 24px;
+  h1 { margin: 0; font-size: 28px; line-height: 1.25; letter-spacing: -.025em; font-weight: 600; }
+  p { margin: 8px 0 0; color: var(--theme-elevation-650); line-height: 1.6; max-width: 65ch; }
 }
-.hd-live { font-size: .8rem; opacity: .75; &::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #16a34a; margin-right: 6px; } }
-.hd-actions { display: flex; gap: .6rem; }
-.hd-btn { padding: .6rem 1.3rem; border-radius: 8px; border: 1px solid var(--theme-elevation-150); font-weight: 600; text-decoration: none; color: inherit;
-  &.is-primary { background: var(--hosso-brand, #15803d); border-color: var(--hosso-brand, #15803d); color: #fff; }
+.ha-button { display: inline-flex; justify-content: center; align-items: center; gap: 8px; min-height: 38px; padding: 8px 14px; border: 1px solid var(--theme-elevation-250); border-radius: 4px; background: var(--theme-elevation-0); color: var(--theme-text); font: inherit; font-size: 13px; font-weight: 500; text-decoration: none; cursor: pointer;
+  &:hover { border-color: var(--hosso-brand); color: var(--hosso-brand); }
+  &.is-primary { background: var(--hosso-brand); border-color: var(--hosso-brand); color: #fff; }
+  &.is-primary:hover { filter: brightness(.92); }
+  &:disabled { cursor: wait; opacity: .65; }
 }
-.hd-stats { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 1.5rem; }
-.hd-stat { padding: 1rem 1.2rem; display: grid; gap: .3rem; small { opacity: .7; } strong { font-size: 1.7rem; } }
-.hd-title { margin: 0 0 .8rem; font-size: 1.15rem; }
-.hd-quick { display: grid; gap: .8rem; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
-.hd-q { padding: 1rem 1.2rem; display: grid; gap: .15rem; position: relative;
-  small { opacity: .65; } span { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); opacity: .5; font-size: 1.4rem; }
+.ha-dashboard { display: grid; gap: 24px; }
+.ha-dashboard > .ha-page-head { margin-bottom: 0; }
+.ha-welcome { padding: 24px; background: var(--theme-elevation-0); border: 1px solid var(--theme-elevation-150); border-top: 3px solid var(--hosso-brand);
+  h2 { font-size: 21px; margin: 0 0 8px; font-weight: 600; }
+  p { margin: 0; color: var(--theme-elevation-650); line-height: 1.6; }
 }
-.hd-stat:hover, .hd-q:hover { border-color: var(--hosso-brand, #15803d); }
-.ht-dashboard { margin-top: 32px; padding-top: 28px; border-top: 1px solid var(--theme-elevation-150); }
-.ht-dashboard-head { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
-.ht-dashboard-head h3 { margin: 0; font-size: 24px; letter-spacing: -.02em; }
-.ht-dashboard-head > span { color: var(--theme-elevation-600); font-size: 13px; }
+.ha-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+.ha-section-head, .ha-panel-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+  h2 { margin: 0; font-size: 16px; font-weight: 600; }
+  > span { font-size: 12px; color: var(--theme-elevation-650); }
+}
+.ha-section-head { margin-bottom: 12px; }
+.ha-tasks { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.ha-task { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 18px 20px; background: var(--theme-elevation-0); border: 1px solid var(--theme-elevation-150); color: inherit; text-decoration: none;
+  strong { font-size: 30px; line-height: 1.2; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .has-items { color: var(--hosso-brand); }
+  > span { font-size: 13px; }
+  .ha-task-arrow { position: absolute; top: 22px; right: 18px; color: var(--theme-elevation-500); }
+  &:hover { border-color: var(--hosso-brand); }
+}
+.ha-dashboard-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.ha-dashboard-grid > .ha-panel:only-child { grid-column: 1 / -1; }
+.ha-panel { min-width: 0; border: 1px solid var(--theme-elevation-150); background: var(--theme-elevation-0); }
+.ha-panel-head { padding: 16px 20px; border-bottom: 1px solid var(--theme-elevation-100); }
+.ha-panel-body { padding: 6px 20px 16px; }
+.ha-muted, .ha-result { color: var(--theme-elevation-650); font-size: 13px; line-height: 1.6; }
+.ha-empty { padding: 28px 20px; margin: 0; color: var(--theme-elevation-650); font-size: 14px; line-height: 1.7; }
+.ha-drafts, .ha-summary { list-style: none; margin: 0; padding: 0; }
+.ha-drafts li { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--theme-elevation-100);
+  &:last-child { border-bottom: 0; }
+  > a { min-width: 0; flex: 1; text-decoration: none; color: var(--hosso-brand); }
+  strong { display: block; font-size: 14px; overflow-wrap: anywhere; }
+  small { display: block; color: var(--theme-elevation-650); margin-top: 5px; }
+}
+.ha-status { display: inline-flex; align-items: center; white-space: nowrap; padding: 4px 8px; background: var(--theme-elevation-100); color: var(--theme-elevation-800); border-radius: 3px; font-size: 12px; line-height: 1.4;
+  &.is-success { color: #166534; background: #e8f4eb; }
+}
+.ha-summary a { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--theme-elevation-100); color: inherit; text-decoration: none; font-size: 13px;
+  strong { font-variant-numeric: tabular-nums; }
+  &:hover { color: var(--hosso-brand); }
+}
+.ha-shortcuts { display: grid; gap: 12px; padding-top: 16px;
+  a { color: var(--hosso-brand); font-size: 13px; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+}
+.ha-setup { border-top: 1px solid var(--theme-elevation-150); padding-top: 20px;
+  > summary { cursor: pointer; font-size: 14px; font-weight: 500; margin-bottom: 16px; }
+}
+.ha-toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 18px; }
+.ha-filters { display: flex; flex-wrap: wrap; gap: 4px 16px;
+  button, > a { padding: 8px 0; border: 0; background: transparent; color: var(--hosso-brand); cursor: pointer; font: inherit; font-size: 13px; text-decoration: none; }
+  button[aria-pressed='true'], > a[aria-current='page'] { color: var(--theme-text); font-weight: 600; box-shadow: inset 0 -2px var(--hosso-brand); }
+  span { color: var(--theme-elevation-650); font-weight: 400; }
+}
+.ha-content-tabs { margin-bottom: 16px; border-bottom: 1px solid var(--theme-elevation-150); }
+.ha-import-form { display: flex; align-items: end; flex-wrap: wrap; gap: 16px; margin: 18px 0;
+  label { display: grid; gap: 10px; font-weight: 500; }
+  input { max-width: 100%; font: inherit; font-weight: 400; }
+}
+.ha-search input { width: min(280px, 100%); min-height: 38px; padding: 8px 12px; border: 1px solid var(--theme-elevation-250); border-radius: 4px; background: var(--theme-input-bg); color: var(--theme-text); font: inherit; font-size: 13px; }
+.ha-result { margin: 14px 0 10px; }
+.ha-table-scroll { overflow-x: auto; border: 1px solid var(--theme-elevation-200); background: var(--theme-elevation-0); }
+.ha-plugin-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;
+  th { padding: 12px 18px; font-weight: 500; border-bottom: 1px solid var(--theme-elevation-200); }
+  td { padding: 18px; vertical-align: top; border-bottom: 1px solid var(--theme-elevation-150); line-height: 1.6; }
+  td:first-child { width: 28%; min-width: 220px; border-left: 3px solid transparent; }
+  td:last-child { width: 21%; min-width: 160px; }
+  td:nth-child(2) { min-width: 240px; }
+  tr:last-child td { border-bottom: 0; }
+  .is-enabled td:first-child { border-left-color: var(--hosso-brand); }
+  p { margin: 0; }
+  small { display: block; margin-top: 5px; color: var(--theme-elevation-650); font-size: 12px; }
+  .ha-plugin-name { display: block; font-size: 14px; font-weight: 600; }
+  .ha-empty { text-align: center; padding: 32px; }
+}
+.ha-row-actions { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 10px;
+  a { color: var(--hosso-brand); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+}
+.ha-plugin-table .ha-license { margin-top: 10px; font-size: 12px; }
+.ha-license.is-warning { color: var(--theme-warning-700); }
+.ha-note { padding: 16px 18px; margin-top: 20px; border-left: 3px solid var(--theme-elevation-300); background: var(--theme-elevation-0); font-size: 13px; line-height: 1.6;
+  p { margin: 6px 0 0; color: var(--theme-elevation-650); max-width: 80ch; }
+}
+@media (max-width: 800px) {
+  .ha-dashboard-grid { grid-template-columns: minmax(0, 1fr); }
+  .ha-page-head { flex-wrap: wrap; }
+  .ha-page-head h1 { font-size: 25px; }
+  .ha-tasks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ha-toolbar, .ha-search, .ha-search input { width: 100%; }
+  .ha-panel-head, .ha-drafts li { padding: 14px; }
+}
 
 .ht-fullscreen { min-height: calc(100vh - 72px); padding: 18px clamp(12px, 3vw, 48px) 48px; background: var(--theme-elevation-50); }
 .ht-page-head { max-width: none; margin: 0 auto 32px; }
