@@ -24,6 +24,7 @@
     "@hosso/plugin-accounts": "workspace:*",
     "@hosso/plugin-affiliate": "workspace:*",
     "@hosso/plugin-analytics": "workspace:*",
+    "@hosso/plugin-cross-sell": "workspace:*",
     "@hosso/plugin-notify": "workspace:*",
     "@hosso/plugin-payment": "workspace:*",
     "@hosso/plugin-promotions": "workspace:*",
