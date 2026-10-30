@@ -1,0 +1,59 @@
+# Stack Portainer cho Web Hosso Studio Test (Bán chéo)
+# Chạy Postgres riêng và Studio riêng, kết nối mạng nội bộ và mạng reverse proxy (nếu có).
+services:
+  postgres-test:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hosso
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Đặt POSTGRES_PASSWORD}
+      POSTGRES_DB: hosso_test
+    volumes:
+      - pgdata_test:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U hosso -d hosso_test']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [internal_test]
+
+  studio-test:
+    image: ${HOSSO_IMAGE:?Đặt HOSSO_IMAGE, ví dụ ghcr.io/hossovn/hosso-tcap:latest}
+    restart: unless-stopped
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    environment:
+      HOSSO_DATABASE_URL: postgres://hosso:${POSTGRES_PASSWORD}@postgres-test:5432/hosso_test
+      HOSSO_SECRET: ${HOSSO_SECRET:?Đặt HOSSO_SECRET}
+      HOSSO_ENCRYPTION_KEY: ${HOSSO_ENCRYPTION_KEY:?Đặt HOSSO_ENCRYPTION_KEY (64 ký tự hex)}
+      HOSSO_PUBLIC_URL: ${HOSSO_PUBLIC_URL:?Đặt HOSSO_PUBLIC_URL, ví dụ https://test.thanhcuongauto.com}
+      HOSSO_ADMIN_EMAIL: ${HOSSO_ADMIN_EMAIL:-}
+      HOSSO_ADMIN_PASSWORD: ${HOSSO_ADMIN_PASSWORD:-}
+      HOSSO_SEED: ${HOSSO_SEED:-false}
+      HOSSO_LICENSE_KEY: ${HOSSO_LICENSE_KEY:-}
+
+      # Biến môi trường bán chéo với web chính TCAP
+      HOSSO_CROSS_SELL_TCAP_TOKEN: ${HOSSO_CROSS_SELL_TCAP_TOKEN:-}
+
+      # Biến môi trường bán chéo với WordPress WooCommerce
+      HOSSO_CROSS_SELL_WP_KEY: ${HOSSO_CROSS_SELL_WP_KEY:-}
+      HOSSO_CROSS_SELL_WP_SECRET: ${HOSSO_CROSS_SELL_WP_SECRET:-}
+
+      HOSSO_BACKUP_DIR: /app/backups
+    ports:
+      - '${HOSSO_PORT:-3001}:3000'
+    volumes:
+      - media_test:/app/media
+      - backups_test:/app/backups
+    networks: [internal_test, web]
+
+volumes:
+  pgdata_test:
+  media_test:
+  backups_test:
+
+networks:
+  internal_test:
+  web:
+    external: true

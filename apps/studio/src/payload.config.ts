@@ -87,8 +87,8 @@ const base: Config = {
     ? postgresAdapter({ pool: { connectionString: databaseUrl }, migrationDir: path.resolve(dirname, 'migrations') })
     : sqliteAdapter({
         client: { url: databaseUrl },
-        // Lệnh studio:export/import chạy song song với dev server: không đẩy lại schema lên DB đã có (tránh xung đột index của SQLite).
-        push: process.env.HOSSO_SCRIPT === '1' && fs.existsSync(databaseUrl.slice('file:'.length)) ? false : undefined,
+        // Tránh xung đột tạo lại index của SQLite khi database đã tồn tại.
+        push: process.env.HOSSO_DB_PUSH === 'false' || (process.env.HOSSO_SCRIPT === '1' && fs.existsSync(databaseUrl.slice('file:'.length))) ? false : undefined,
       }),
   // Health check cho Docker/dịch vụ deploy: GET /api/health
   endpoints: [

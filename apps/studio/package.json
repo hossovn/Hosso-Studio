@@ -7,6 +7,7 @@
   "scripts": {
     "predev": "pnpm generate:importmap",
     "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
+    "dev:test": "node ../../scripts/dev-test.mjs",
     "prebuild": "pnpm generate:importmap",
     "build": "cross-env NODE_OPTIONS=--no-deprecation next build",
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
@@ -24,6 +25,7 @@
     "@hosso/plugin-accounts": "workspace:*",
     "@hosso/plugin-affiliate": "workspace:*",
     "@hosso/plugin-analytics": "workspace:*",
+    "@hosso/plugin-cross-sell": "workspace:*",
     "@hosso/plugin-notify": "workspace:*",
     "@hosso/plugin-payment": "workspace:*",
     "@hosso/plugin-promotions": "workspace:*",

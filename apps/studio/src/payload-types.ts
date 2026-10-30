@@ -92,6 +92,12 @@ export interface Config {
     payments: Payment;
     customers: Customer;
     'customer-orders': CustomerOrder;
+    'cross-sell-partners': CrossSellPartner;
+    'cross-sell-listings': CrossSellListing;
+    'cross-sell-offers': CrossSellOffer;
+    'cross-sell-transfers': CrossSellTransfer;
+    'cross-sell-dispatches': CrossSellDispatch;
+    'cross-sell-receipts': CrossSellReceipt;
     'payload-kv': PayloadKv;
     'payload-jobs': PayloadJob;
     'payload-locked-documents': PayloadLockedDocument;
@@ -125,6 +131,12 @@ export interface Config {
     payments: PaymentsSelect<false> | PaymentsSelect<true>;
     customers: CustomersSelect<false> | CustomersSelect<true>;
     'customer-orders': CustomerOrdersSelect<false> | CustomerOrdersSelect<true>;
+    'cross-sell-partners': CrossSellPartnersSelect<false> | CrossSellPartnersSelect<true>;
+    'cross-sell-listings': CrossSellListingsSelect<false> | CrossSellListingsSelect<true>;
+    'cross-sell-offers': CrossSellOffersSelect<false> | CrossSellOffersSelect<true>;
+    'cross-sell-transfers': CrossSellTransfersSelect<false> | CrossSellTransfersSelect<true>;
+    'cross-sell-dispatches': CrossSellDispatchesSelect<false> | CrossSellDispatchesSelect<true>;
+    'cross-sell-receipts': CrossSellReceiptsSelect<false> | CrossSellReceiptsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -144,6 +156,7 @@ export interface Config {
     'payment-settings': PaymentSetting;
     'notify-settings': NotifySetting;
     'analytics-settings': AnalyticsSetting;
+    'cross-sell-settings': CrossSellSetting;
   };
   globalsSelect: {
     'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
@@ -154,6 +167,7 @@ export interface Config {
     'payment-settings': PaymentSettingsSelect<false> | PaymentSettingsSelect<true>;
     'notify-settings': NotifySettingsSelect<false> | NotifySettingsSelect<true>;
     'analytics-settings': AnalyticsSettingsSelect<false> | AnalyticsSettingsSelect<true>;
+    'cross-sell-settings': CrossSellSettingsSelect<false> | CrossSellSettingsSelect<true>;
   };
   locale: 'vi' | 'en';
   widgets: {
@@ -617,6 +631,88 @@ export interface ShopOrder {
       }[]
     | null;
   restocked?: boolean | null;
+  crossSellPartner?: (number | null) | CrossSellPartner;
+  crossSellTransfer?: (number | null) | CrossSellTransfer;
+  crossSellPurchase?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  crossSellInboundKey?: string | null;
+  crossSellInboundPartner?: (number | null) | CrossSellPartner;
+  crossSellInboundPurchase?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-partners".
+ */
+export interface CrossSellPartner {
+  id: number;
+  name: string;
+  kind: 'hosso' | 'woocommerce';
+  apiUrl: string;
+  authMethod: 'direct' | 'env';
+  /**
+   * Both Hosso Studio sites share this token
+   */
+  token?: string | null;
+  consumerKey?: string | null;
+  consumerSecret?: string | null;
+  credentialEnv?: string | null;
+  secretEnv?: string | null;
+  /**
+   * Agreed commission percentage with WordPress store
+   */
+  commissionPct?: number | null;
+  buyerName: string;
+  buyerPhone: string;
+  active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-transfers".
+ */
+export interface CrossSellTransfer {
+  id: number;
+  localOrder?: (number | null) | ShopOrder;
+  localOrderNo?: string | null;
+  partner: number | CrossSellPartner;
+  backend?: ('shop' | 'wim') | null;
+  wimOrderId?: string | null;
+  purchaseKey: string;
+  purchase:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  state: 'pending' | 'sending' | 'sent' | 'uncertain';
+  remoteId?: string | null;
+  remoteStatus?: string | null;
+  remoteTotal?: number | null;
+  commission: number;
+  commissionStatus?: ('pending' | 'eligible' | 'cancelled') | null;
+  lastError?: string | null;
+  checkedAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -763,6 +859,80 @@ export interface CustomerOrder {
   id: number;
   customer: number | Customer;
   orderNo: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-listings".
+ */
+export interface CrossSellListing {
+  id: number;
+  partner: number | CrossSellPartner;
+  product?: (number | null) | ShopProduct;
+  backend?: ('shop' | 'wim') | null;
+  wimProductId?: string | null;
+  remoteId: string;
+  remoteKey: string;
+  supplierPrice: number;
+  commissionPct: number;
+  active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-offers".
+ */
+export interface CrossSellOffer {
+  id: number;
+  source: 'shop' | 'wim';
+  product?: (number | null) | ShopProduct;
+  wimProductId?: string | null;
+  partners: (number | CrossSellPartner)[];
+  commissionPct: number;
+  active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-dispatches".
+ */
+export interface CrossSellDispatch {
+  id: number;
+  key: string;
+  transfer: number | CrossSellTransfer;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-receipts".
+ */
+export interface CrossSellReceipt {
+  id: number;
+  key: string;
+  partner: number | CrossSellPartner;
+  purchaseKey: string;
+  purchase:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  body:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -981,6 +1151,30 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'customer-orders';
         value: number | CustomerOrder;
+      } | null)
+    | ({
+        relationTo: 'cross-sell-partners';
+        value: number | CrossSellPartner;
+      } | null)
+    | ({
+        relationTo: 'cross-sell-listings';
+        value: number | CrossSellListing;
+      } | null)
+    | ({
+        relationTo: 'cross-sell-offers';
+        value: number | CrossSellOffer;
+      } | null)
+    | ({
+        relationTo: 'cross-sell-transfers';
+        value: number | CrossSellTransfer;
+      } | null)
+    | ({
+        relationTo: 'cross-sell-dispatches';
+        value: number | CrossSellDispatch;
+      } | null)
+    | ({
+        relationTo: 'cross-sell-receipts';
+        value: number | CrossSellReceipt;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1352,6 +1546,12 @@ export interface ShopOrdersSelect<T extends boolean = true> {
         id?: T;
       };
   restocked?: T;
+  crossSellPartner?: T;
+  crossSellTransfer?: T;
+  crossSellPurchase?: T;
+  crossSellInboundKey?: T;
+  crossSellInboundPartner?: T;
+  crossSellInboundPurchase?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1470,6 +1670,104 @@ export interface CustomersSelect<T extends boolean = true> {
 export interface CustomerOrdersSelect<T extends boolean = true> {
   customer?: T;
   orderNo?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-partners_select".
+ */
+export interface CrossSellPartnersSelect<T extends boolean = true> {
+  name?: T;
+  kind?: T;
+  apiUrl?: T;
+  authMethod?: T;
+  token?: T;
+  consumerKey?: T;
+  consumerSecret?: T;
+  credentialEnv?: T;
+  secretEnv?: T;
+  commissionPct?: T;
+  buyerName?: T;
+  buyerPhone?: T;
+  active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-listings_select".
+ */
+export interface CrossSellListingsSelect<T extends boolean = true> {
+  partner?: T;
+  product?: T;
+  backend?: T;
+  wimProductId?: T;
+  remoteId?: T;
+  remoteKey?: T;
+  supplierPrice?: T;
+  commissionPct?: T;
+  active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-offers_select".
+ */
+export interface CrossSellOffersSelect<T extends boolean = true> {
+  source?: T;
+  product?: T;
+  wimProductId?: T;
+  partners?: T;
+  commissionPct?: T;
+  active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-transfers_select".
+ */
+export interface CrossSellTransfersSelect<T extends boolean = true> {
+  localOrder?: T;
+  localOrderNo?: T;
+  partner?: T;
+  backend?: T;
+  wimOrderId?: T;
+  purchaseKey?: T;
+  purchase?: T;
+  state?: T;
+  remoteId?: T;
+  remoteStatus?: T;
+  remoteTotal?: T;
+  commission?: T;
+  commissionStatus?: T;
+  lastError?: T;
+  checkedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-dispatches_select".
+ */
+export interface CrossSellDispatchesSelect<T extends boolean = true> {
+  key?: T;
+  transfer?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-receipts_select".
+ */
+export interface CrossSellReceiptsSelect<T extends boolean = true> {
+  key?: T;
+  partner?: T;
+  purchaseKey?: T;
+  purchase?: T;
+  body?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1988,6 +2286,17 @@ export interface AnalyticsSetting {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-settings".
+ */
+export interface CrossSellSetting {
+  id: number;
+  backend: 'shop' | 'wim';
+  wimBranchId?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site-settings_select".
  */
 export interface SiteSettingsSelect<T extends boolean = true> {
@@ -2208,6 +2517,17 @@ export interface NotifySettingsSelect<T extends boolean = true> {
 export interface AnalyticsSettingsSelect<T extends boolean = true> {
   ga4Id?: T;
   fbPixelId?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-settings_select".
+ */
+export interface CrossSellSettingsSelect<T extends boolean = true> {
+  backend?: T;
+  wimBranchId?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
