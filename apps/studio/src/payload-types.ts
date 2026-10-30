@@ -87,6 +87,12 @@ export interface Config {
     'shop-orders': ShopOrder;
     affiliates: Affiliate;
     'affiliate-referrals': AffiliateReferral;
+    'affiliate-clicks': AffiliateClick;
+    'affiliate-orders': AffiliateOrder;
+    'affiliate-payouts': AffiliatePayout;
+    'affiliate-payout-items': AffiliatePayoutItem;
+    'affiliate-audit-logs': AffiliateAuditLog;
+    'affiliate-rate-limits': AffiliateRateLimit;
     shipments: Shipment;
     vouchers: Voucher;
     payments: Payment;
@@ -126,6 +132,12 @@ export interface Config {
     'shop-orders': ShopOrdersSelect<false> | ShopOrdersSelect<true>;
     affiliates: AffiliatesSelect<false> | AffiliatesSelect<true>;
     'affiliate-referrals': AffiliateReferralsSelect<false> | AffiliateReferralsSelect<true>;
+    'affiliate-clicks': AffiliateClicksSelect<false> | AffiliateClicksSelect<true>;
+    'affiliate-orders': AffiliateOrdersSelect<false> | AffiliateOrdersSelect<true>;
+    'affiliate-payouts': AffiliatePayoutsSelect<false> | AffiliatePayoutsSelect<true>;
+    'affiliate-payout-items': AffiliatePayoutItemsSelect<false> | AffiliatePayoutItemsSelect<true>;
+    'affiliate-audit-logs': AffiliateAuditLogsSelect<false> | AffiliateAuditLogsSelect<true>;
+    'affiliate-rate-limits': AffiliateRateLimitsSelect<false> | AffiliateRateLimitsSelect<true>;
     shipments: ShipmentsSelect<false> | ShipmentsSelect<true>;
     vouchers: VouchersSelect<false> | VouchersSelect<true>;
     payments: PaymentsSelect<false> | PaymentsSelect<true>;
@@ -604,6 +616,7 @@ export interface ShopOrder {
         label?: string | null;
         amount?: number | null;
         source?: string | null;
+        scope?: string | null;
         id?: string | null;
       }[]
     | null;
@@ -631,6 +644,20 @@ export interface ShopOrder {
       }[]
     | null;
   restocked?: boolean | null;
+  affiliateSnapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Cumulative refunded goods after discounts, excluding shipping.
+   */
+  affiliateRefundedAmount?: number | null;
+  affiliateCompletedAt?: string | null;
   crossSellPartner?: (number | null) | CrossSellPartner;
   crossSellTransfer?: (number | null) | CrossSellTransfer;
   crossSellPurchase?:
@@ -741,6 +768,10 @@ export interface Affiliate {
       }[]
     | null;
   commissionPct?: number | null;
+  approval?: ('pending' | 'approved' | 'rejected') | null;
+  commissionType?: ('percent' | 'fixed') | null;
+  commissionFixed?: number | null;
+  holdDays?: number | null;
   active?: boolean | null;
   updatedAt: string;
   createdAt: string;
@@ -751,11 +782,134 @@ export interface Affiliate {
  */
 export interface AffiliateReferral {
   id: number;
+  sourceKey?: string | null;
+  source?: string | null;
+  policy?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  eligibleAt?: string | null;
+  rejectionReason?: string | null;
+  parent?: (number | null) | AffiliateReferral;
   affiliate: number | Affiliate;
   orderId: string;
   orderTotal?: number | null;
   commission?: number | null;
-  status?: ('pending' | 'approved' | 'paid' | 'cancelled') | null;
+  status?: ('holding' | 'eligible' | 'review' | 'pending' | 'approved' | 'paid' | 'cancelled') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliate-clicks".
+ */
+export interface AffiliateClick {
+  id: number;
+  affiliate: number | Affiliate;
+  token: string;
+  path?: string | null;
+  expiresAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliate-orders".
+ */
+export interface AffiliateOrder {
+  id: number;
+  key: string;
+  orderId?: string | null;
+  source: string;
+  policy?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  items?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  customerPhone?: string | null;
+  total?: number | null;
+  orderStatus?: string | null;
+  paymentStatus?: string | null;
+  refundedAmount?: number | null;
+  completedAt?: string | null;
+  paymentReference?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliate-payouts".
+ */
+export interface AffiliatePayout {
+  id: number;
+  affiliate: number | Affiliate;
+  amount?: number | null;
+  reference: string;
+  evidence: string;
+  bankInfo: string;
+  paidAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliate-payout-items".
+ */
+export interface AffiliatePayoutItem {
+  id: number;
+  payout: number | AffiliatePayout;
+  referral: number | AffiliateReferral;
+  amount?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliate-audit-logs".
+ */
+export interface AffiliateAuditLog {
+  id: number;
+  action: string;
+  subject: string;
+  actor: string;
+  detail?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliate-rate-limits".
+ */
+export interface AffiliateRateLimit {
+  id: number;
+  key: string;
+  expiresAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1131,6 +1285,30 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'affiliate-referrals';
         value: number | AffiliateReferral;
+      } | null)
+    | ({
+        relationTo: 'affiliate-clicks';
+        value: number | AffiliateClick;
+      } | null)
+    | ({
+        relationTo: 'affiliate-orders';
+        value: number | AffiliateOrder;
+      } | null)
+    | ({
+        relationTo: 'affiliate-payouts';
+        value: number | AffiliatePayout;
+      } | null)
+    | ({
+        relationTo: 'affiliate-payout-items';
+        value: number | AffiliatePayoutItem;
+      } | null)
+    | ({
+        relationTo: 'affiliate-audit-logs';
+        value: number | AffiliateAuditLog;
+      } | null)
+    | ({
+        relationTo: 'affiliate-rate-limits';
+        value: number | AffiliateRateLimit;
       } | null)
     | ({
         relationTo: 'shipments';
@@ -1523,6 +1701,7 @@ export interface ShopOrdersSelect<T extends boolean = true> {
         label?: T;
         amount?: T;
         source?: T;
+        scope?: T;
         id?: T;
       };
   total?: T;
@@ -1546,6 +1725,9 @@ export interface ShopOrdersSelect<T extends boolean = true> {
         id?: T;
       };
   restocked?: T;
+  affiliateSnapshot?: T;
+  affiliateRefundedAmount?: T;
+  affiliateCompletedAt?: T;
   crossSellPartner?: T;
   crossSellTransfer?: T;
   crossSellPurchase?: T;
@@ -1573,6 +1755,10 @@ export interface AffiliatesSelect<T extends boolean = true> {
         id?: T;
       };
   commissionPct?: T;
+  approval?: T;
+  commissionType?: T;
+  commissionFixed?: T;
+  holdDays?: T;
   active?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -1582,11 +1768,96 @@ export interface AffiliatesSelect<T extends boolean = true> {
  * via the `definition` "affiliate-referrals_select".
  */
 export interface AffiliateReferralsSelect<T extends boolean = true> {
+  sourceKey?: T;
+  source?: T;
+  policy?: T;
+  eligibleAt?: T;
+  rejectionReason?: T;
+  parent?: T;
   affiliate?: T;
   orderId?: T;
   orderTotal?: T;
   commission?: T;
   status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliate-clicks_select".
+ */
+export interface AffiliateClicksSelect<T extends boolean = true> {
+  affiliate?: T;
+  token?: T;
+  path?: T;
+  expiresAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliate-orders_select".
+ */
+export interface AffiliateOrdersSelect<T extends boolean = true> {
+  key?: T;
+  orderId?: T;
+  source?: T;
+  policy?: T;
+  items?: T;
+  customerPhone?: T;
+  total?: T;
+  orderStatus?: T;
+  paymentStatus?: T;
+  refundedAmount?: T;
+  completedAt?: T;
+  paymentReference?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliate-payouts_select".
+ */
+export interface AffiliatePayoutsSelect<T extends boolean = true> {
+  affiliate?: T;
+  amount?: T;
+  reference?: T;
+  evidence?: T;
+  bankInfo?: T;
+  paidAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliate-payout-items_select".
+ */
+export interface AffiliatePayoutItemsSelect<T extends boolean = true> {
+  payout?: T;
+  referral?: T;
+  amount?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliate-audit-logs_select".
+ */
+export interface AffiliateAuditLogsSelect<T extends boolean = true> {
+  action?: T;
+  subject?: T;
+  actor?: T;
+  detail?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliate-rate-limits_select".
+ */
+export interface AffiliateRateLimitsSelect<T extends boolean = true> {
+  key?: T;
+  expiresAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

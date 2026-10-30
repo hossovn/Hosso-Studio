@@ -221,6 +221,7 @@ export const Orders: CollectionConfig = {
         { name: 'amount', type: 'number', label: bi('Số tiền (đ)', 'Amount (VND)') },
         { name: 'source', type: 'text', label: bi('Plugin', 'Plugin') },
       ],
+        { name: 'scope', type: 'text' },
     },
     { name: 'total', type: 'number', label: bi('Tổng tiền (đ)', 'Total (VND)'), admin: { readOnly: true } },
     {

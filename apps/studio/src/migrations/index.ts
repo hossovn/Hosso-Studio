@@ -1,3 +1,4 @@
+import * as migration_20261030_120000_affiliate_cps from './20261030_120000_affiliate_cps';
 import * as migration_20261020_090000_bookings_maintenance from './20261020_090000_bookings_maintenance';
 import * as migration_20261016_175939_initial from './20261016_175939_initial';
 import * as migration_20261016_190233_site_chrome from './20261016_190233_site_chrome';
@@ -96,4 +97,5 @@ export const migrations = [
     down: migration_20261030_110000_cross_sell_direct_credentials.down,
     name: '20261030_110000_cross_sell_direct_credentials',
   },
+  { up: migration_20261030_120000_affiliate_cps.up, down: migration_20261030_120000_affiliate_cps.down, name: '20261030_120000_affiliate_cps' },
 ];

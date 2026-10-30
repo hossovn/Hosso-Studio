@@ -1,1 +1,1 @@
-export const REF_COOKIE = 'hs_ref'
+export { REF_COOKIE } from './core'

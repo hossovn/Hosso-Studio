@@ -96,12 +96,13 @@ export async function placeOrder(req: PayloadRequest, input: Record<string, any>
   // ponytail: đọc-kiểm-trừ tồn kho không nằm trong một giao dịch DB; hai đơn cùng lúc cho món cuối có thể cùng qua. Dùng transaction khi lưu lượng lớn.
   const order = (await payload.create({
     collection: 'shop-orders' as any,
+    req,
     overrideAccess: true,
     context: req.context,
     data: { cartId: p.cartId, subtotal: draft.subtotal, adjustments: draft.adjustments, total, paymentMethod: draft.payment, fulfillmentType: draft.fulfillment.type, customerName: draft.customer.name, phone: draft.customer.phone, email: draft.customer.email, address: draft.customer.address, note: p.note, items: draft.items },
   })) as unknown as OrderDoc
   const orderNo = `SO-${String(order.id).padStart(6, '0')}`
-  await payload.update({ collection: 'shop-orders' as any, id: order.id, data: { orderNo }, overrideAccess: true, context: { skipStatusEvent: true } })
+  await payload.update({ collection: 'shop-orders' as any, id: order.id, req, data: { orderNo }, overrideAccess: true, context: { skipStatusEvent: true } })
   for (const i of draft.items) await adjustStock(payload, i.productId, i.variantId, -i.quantity)
 
   const { redirectUrl } = await emitOrderPlaced(payload, { headers: req.headers, order: { id: orderNo, total, status: 'new' }, customer: draft.customer, fulfillment: draft.fulfillment, items: draft.items, subtotal: draft.subtotal, adjustments: draft.adjustments, payment: draft.payment, meta: draft.meta, source: 'shop' })
