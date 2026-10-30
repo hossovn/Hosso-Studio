@@ -109,6 +109,10 @@ docker compose up --build
 
 `HOSSO_DATABASE_URL` selects the database: `file:...` is SQLite, `postgres://...` is Postgres. The container runs the migrations (`payload migrate`) and then starts. Media lives in the `media` volume and backups in the `backups` volume. All sensitive configuration goes through environment variables; there are no hard-coded addresses or paths in the code.
 
+Migration `20261030_130000_payload_job_stats` adds Payload's scheduler statistics table. For `relation "payload_jobs_stats" does not exist`, deploy an image containing this migration; the standard entrypoint applies it before starting. With a custom entrypoint, run `pnpm --filter @hosso/studio migrate` inside the new image before starting the app. Validate the schema and DDL with `pnpm test:job-stats-migration` (no database connection).
+
+Migration `20261030_140000_cross_sell_tracking` adds the cross-sell timeline, tracking columns, document lock relationship (`cross_sell_events_id`), sync task enums and queue metadata. Deploy it with the tracking-enabled cross-sell plugin. With that plugin installed, run `pnpm test:cross-sell-migration` to compare schema and DDL without connecting to a database. The upgrade preserves existing data; rolling back removes the new tracking data and retains task enum values so remaining jobs stay valid.
+
 The Postgres migrations are already generated in `apps/studio/src/migrations` for the full distribution (with the Shop, Affiliate, Shipping, Promotions, Payment, Notify, Analytics, Reports and Accounts plugins). If you add a plugin with its own tables: `HOSSO_DATABASE_URL=postgres://... pnpm --filter @hosso/studio payload migrate:create <name>`.
 
 > Verified for real (17 Oct 2026, Docker Desktop 4.55): `docker compose up --build` builds the image, Postgres is healthy, the container runs the migrations by itself and reports healthy; importing a site package with `studio-tools` works; the mock WIM on the host is reached through `HOSSO_WIM_API_URL=http://host.docker.internal:4010`. Small note: the container still prints a Corepack message while downloading pnpm when you run `studio-tools`.

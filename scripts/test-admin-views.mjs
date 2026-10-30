@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import Module, { createRequire } from 'node:module'
+import { pathToFileURL } from 'node:url'
 const require = createRequire(new URL('../apps/studio/package.json', import.meta.url))
 const ts = require('typescript')
 const React = require('react')
@@ -14,6 +15,7 @@ function compile(relative, stubs = {}) {
 }
 const file = new URL('../apps/studio/src/lib/admin-views.ts', import.meta.url)
 const mod = new Module(file.pathname)
+mod.require = require
 mod._compile(ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, file.pathname)
 const { frameAdminViews } = mod.exports
 const original = { path: '/plugin/Reports', exportName: 'Reports', serverProps: { mode: 'sales' } }
@@ -23,14 +25,19 @@ const config = { admin: { components: { views: {
   futurePlugin: { Component: '/Future#View', path: '/future' },
 } } } }
 const framed = frameAdminViews(config)
+const { createClientConfig } = await import(pathToFileURL(require.resolve('payload')).href)
+const clientConfig = createClientConfig({ config: framed, i18n: { language: 'vi', t: value => value }, importMap: {} })
+function functionsIn(value, path = '') {
+  if (typeof value === 'function') return [path]
+  return value && typeof value === 'object' ? Object.entries(value).flatMap(([key, child]) => functionsIn(child, path + '.' + key)) : []
+}
+assert.deepEqual(functionsIn(clientConfig), [], 'Payload client config must not contain import-map generator functions')
 assert.equal(framed.admin.components.views.dashboard, config.admin.components.views.dashboard)
 assert.equal(framed.admin.components.views.reports.exact, true)
 assert.equal(framed.admin.components.views.reports.Component.serverProps.Content, original)
 assert.equal(framed.admin.components.views.futurePlugin.Component.path, '/components/admin/AdminViewShell#AdminViewShell')
 assert.equal(config.admin.components.views.reports.Component, original)
-const registered = []
-framed.admin.importMap.generators[0]({ addToImportMap: value => registered.push(value) })
-assert.deepEqual(registered, [original, '/Future#View'])
+assert.deepEqual(Object.values(framed.admin.dependencies).map(value => value.path), ['/plugin/Reports#Reports', '/Future#View'])
 assert.deepEqual(frameAdminViews(framed), framed)
 assert.deepEqual(frameAdminViews({}), {})
 let renderArgs

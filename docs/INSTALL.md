@@ -110,6 +110,10 @@ docker compose up --build
 
 `HOSSO_DATABASE_URL` chọn database: `file:...` là SQLite, `postgres://...` là Postgres. Container tự chạy migration (`payload migrate`) rồi khởi động. Media nằm ở volume `media`. Mọi cấu hình nhạy cảm đi qua biến môi trường; không có địa chỉ hay đường dẫn cứng trong mã.
 
+Migration `20261030_130000_payload_job_stats` bổ sung bảng thống kê lịch chạy của Payload. Khi log báo `relation "payload_jobs_stats" does not exist`, triển khai image chứa migration này; entrypoint chuẩn sẽ chạy nó trước khi khởi động. Nếu dùng entrypoint riêng, chạy `pnpm --filter @hosso/studio migrate` trong image mới trước khi chạy ứng dụng. Kiểm tra schema và DDL bằng `pnpm test:job-stats-migration` (không kết nối database).
+
+Migration `20261030_140000_cross_sell_tracking` bổ sung timeline bán chéo, các cột tracking, quan hệ khóa tài liệu (`cross_sell_events_id`), enum tác vụ đồng bộ và metadata của hàng đợi. Cần triển khai cùng bản plugin bán chéo có tracking. Kiểm tra với plugin đã cài bằng `pnpm test:cross-sell-migration`; lệnh chỉ đối chiếu schema/DDL, không kết nối database. Nâng cấp không xóa dữ liệu; rollback migration này xóa dữ liệu tracking mới và giữ giá trị enum tác vụ để các job còn lại vẫn hợp lệ.
+
 Migration Postgres được sinh sẵn trong `apps/studio/src/migrations` cho bản phân phối đầy đủ (có các plugin Cửa hàng, Tiếp thị liên kết, Giao vận, Khuyến mãi, Thanh toán, Thông báo, Theo dõi, Báo cáo, Tài khoản). Nếu thêm plugin có bảng riêng: `HOSSO_DATABASE_URL=postgres://... pnpm --filter @hosso/studio payload migrate:create <tên>`.
 
 > Đã kiểm tra thật (17/10/2026, Docker Desktop 4.55): `docker compose up --build` dựng image, Postgres healthy, container tự chạy migration và báo healthy; nhập gói site bằng `studio-tools` thành công; WIM mock ở máy host truy cập qua `HOSSO_WIM_API_URL=http://host.docker.internal:4010`. Lưu ý nhỏ: container vẫn in thông báo Corepack tải pnpm khi chạy `studio-tools`.
