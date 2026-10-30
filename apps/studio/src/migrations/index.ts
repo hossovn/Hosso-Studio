@@ -13,6 +13,7 @@ import * as migration_20261019_091256_shop_wim_link_and_price_toggle from './202
 import * as migration_20261019_092550_header_footer_layout from './20261019_092550_header_footer_layout';
 import * as migration_20261019_120000_site_chrome_areas from './20261019_120000_site_chrome_areas';
 import * as migration_20261021_011019_cross_sell from './20261021_011019_cross_sell';
+import * as migration_20261030_110000_cross_sell_direct_credentials from './20261030_110000_cross_sell_direct_credentials';
 
 export const migrations = [
   {
@@ -89,5 +90,10 @@ export const migrations = [
     up: migration_20261021_011019_cross_sell.up,
     down: migration_20261021_011019_cross_sell.down,
     name: '20261021_011019_cross_sell',
+  },
+  {
+    up: migration_20261030_110000_cross_sell_direct_credentials.up,
+    down: migration_20261030_110000_cross_sell_direct_credentials.down,
+    name: '20261030_110000_cross_sell_direct_credentials',
   },
 ];
