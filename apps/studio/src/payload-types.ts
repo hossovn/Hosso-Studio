@@ -674,7 +674,10 @@ export interface CrossSellPartner {
   consumerSecret?: string | null;
   credentialEnv?: string | null;
   secretEnv?: string | null;
-  commissionPct: number;
+  /**
+   * Agreed commission percentage with WordPress store
+   */
+  commissionPct?: number | null;
   buyerName: string;
   buyerPhone: string;
   active?: boolean | null;
