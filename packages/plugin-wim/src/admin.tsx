@@ -21,12 +21,12 @@ export const TestConnection = () => {
 
 
   return (
-    <div style={{ marginBottom: 24 }}>
+    <div className="ha-note" style={{ marginBottom: 24 }}>
       <button
         type="button"
         onClick={run}
         disabled={state.busy}
-        style={{ background: 'var(--hosso-brand, #15803d)', color: '#fff', border: 0, borderRadius: 4, padding: '10px 18px', fontWeight: 600, cursor: 'pointer' }}
+        className="ha-button is-primary"
       >
         {state.busy ? T('Đang kiểm tra…', 'Testing…') : T('Kiểm tra kết nối', 'Test connection')}
       </button>

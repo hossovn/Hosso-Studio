@@ -36,7 +36,7 @@ export async function idempotencyKey(cartId: string, payload: unknown): Promise<
   return `hs-${[...hash].map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 40)}`
 }
 
-export async function placeOrder(payload: Payload, input: CheckoutBody): Promise<CheckoutResult> {
+export async function placeOrder(payload: Payload, input: CheckoutBody, headers = new Headers()): Promise<CheckoutResult> {
   const tr = trFor(String(input.locale ?? '').slice(0, 8))
   if (input.website) return fail(400, 'bad_request', tr('co.badRequest')) // bẫy bot
 
@@ -92,14 +92,6 @@ export async function placeOrder(payload: Payload, input: CheckoutBody): Promise
       }
     }
 
-    // WIM owns pricing; only run the partner guard, not Shop fee/discount hooks.
-    const guard = (payload.config.custom?.hossoPlugins as HossoPlugin[] | undefined)?.find((p) => p.id === 'cross-sell')?.hooks?.beforeOrder
-    const guarded = await guard?.({ payload, headers: new Headers(), source: 'wim', draft: {
-      items: orderLines, subtotal: orderLines.reduce((s, l) => s + l.price * l.quantity, 0), adjustments: [],
-      customer: { name, phone, address }, fulfillment: { type, ...(branchId && { branchId }) }, payment: 'cod', meta: {},
-    } })
-    if (guarded?.reject) return fail(409, guarded.reject.code, guarded.reject.message)
-
     // 2. Idempotency-Key gắn với giỏ hàng.
     const order: CreateOrder = {
       items,
@@ -108,12 +100,25 @@ export async function placeOrder(payload: Payload, input: CheckoutBody): Promise
     }
     const key = await idempotencyKey(cartId, order)
 
+    // WIM owns pricing; only run the partner guard, not Shop fee/discount hooks.
+    const guard = (payload.config.custom?.hossoPlugins as HossoPlugin[] | undefined)?.find((p) => p.id === 'cross-sell')?.hooks?.beforeOrder
+    const guarded = await guard?.({ payload, headers, source: 'wim', draft: {
+      items: orderLines, subtotal: orderLines.reduce((s, l) => s + l.price * l.quantity, 0), adjustments: [],
+      customer: { name, phone, address }, fulfillment: { type, ...(branchId && { branchId }) }, payment: 'cod', meta: {},
+    } })
+    if (guarded?.reject) return fail(409, guarded.reject.code, guarded.reject.message)
+
+
+    const affiliate = (payload.config.custom?.hossoPlugins as HossoPlugin[] | undefined)?.find((p) => p.id === 'affiliate')
+    await affiliate?.hooks?.beforeOrder?.({ payload, headers, source: 'wim', draft: { items: orderLines, subtotal: orderLines.reduce((sum, line) => sum + line.price * line.quantity, 0), adjustments: [], customer: { name, phone, address }, fulfillment: { type }, payment: 'cod', meta: { affiliateOrderKey: key } } })
+
     // 3. Tạo đơn. Lỗi mạng/timeout: thử lại với CÙNG khóa (WIM trả lại đơn cũ nếu lần trước đã tạo xong, không tạo đơn thứ hai).
     let lastError: unknown
     for (let attempt = 0; attempt < 3; attempt++) {
       if (attempt) await sleep(300 * attempt)
       try {
         const created = await wimFetch<Order>(cfg, '/v1/orders', { method: 'POST', body: order, headers: { 'Idempotency-Key': key } })
+        await affiliate?.hooks?.onOrderPlaced?.({ payload, headers, source: 'wim', order: { id: created.id, total: created.total, status: created.status }, customer: { name, phone, address }, fulfillment: { type }, meta: { affiliateOrderKey: key } })
         return { status: 200, body: { ok: true, order: { id: created.id, status: created.status, total: created.total }, phone4: phone.slice(-4) } }
       } catch (e) {
         lastError = e

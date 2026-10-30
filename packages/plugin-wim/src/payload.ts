@@ -1,4 +1,4 @@
-import { emitOrderPlaced } from '@hosso/studio-blocks'
+import { emitOrderPlaced, type HossoPlugin } from '@hosso/studio-blocks'
 import type { Config, Endpoint, FieldHook, GlobalConfig, PayloadRequest } from 'payload'
 import { wimGet } from './client'
 import { MASK, SETTINGS_SLUG, clearConfigMemo, getWimConfig } from './config'
@@ -91,6 +91,18 @@ const endpoints: Endpoint[] = [
       } catch {
         return json({ error: { code: 'bad_request', message: msg(req, 'Thân không phải JSON', 'The body is not JSON') } }, 400)
       }
+      if (event.type === 'order.status_changed' && typeof event.data?.orderId === 'string') {
+        const affiliate = (req.payload.config.custom?.hossoPlugins as HossoPlugin[] | undefined)?.find((p) => p.id === 'affiliate')
+        if (affiliate?.hooks?.onOrderStatusChanged) {
+          try {
+            const order = await wimFetch<any>(cfg!, '/v1/orders/' + encodeURIComponent(event.data.orderId))
+            await affiliate.hooks.onOrderStatusChanged({ payload: req.payload, source: 'wim', order: { id: order.id, total: order.total, status: order.status }, from: '', to: order.status })
+          } catch (error) {
+            req.payload.logger.error(error, '[wim] affiliate reconciliation failed')
+            return json({ ok: false, error: { code: 'reconciliation_failed' } }, 503)
+          }
+        }
+      }
       return json({ ok: true, refreshed: applyEvent(event) })
     },
   },
@@ -105,7 +117,7 @@ const endpoints: Endpoint[] = [
       } catch {
         return json({ ok: false, code: 'bad_request', message: msg(req, 'Yêu cầu không hợp lệ', 'Invalid request') }, 400)
       }
-      const result = await placeOrder(req.payload, body ?? {})
+      const result = await placeOrder(req.payload, body ?? {}, req.headers)
       if (result.body.ok) {
         const c = body?.customer
         await emitOrderPlaced(req.payload, { headers: req.headers, order: result.body.order, customer: { name: String(c?.name ?? ''), phone: String(c?.phone ?? ''), address: String(c?.address ?? '') }, fulfillment: { type: body?.fulfillment?.type === 'pickup' ? 'pickup' : 'delivery' }, source: 'wim' })

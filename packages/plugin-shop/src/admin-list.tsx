@@ -71,16 +71,16 @@ export const OrderTabs = () => {
     })
   }, [])
   return (
-    <div role="tablist" style={{ display: 'flex', gap: 4, flexWrap: 'wrap', margin: '0 0 16px', background: 'var(--theme-elevation-50)', padding: 4, borderRadius: 10 }}>
+    <nav className="ha-filters ha-content-tabs" aria-label={en ? 'Order status' : 'Trạng thái đơn hàng'}>
       {STATUS_TABS.map(([v, label]) => {
         const active = v === current
         return (
-          <a key={v} role="tab" aria-selected={active} href={v ? `?where[status][equals]=${v}` : '?'} style={{ padding: '7px 14px', borderRadius: 8, textDecoration: 'none', fontWeight: 600, color: active ? '#fff' : 'inherit', background: active ? 'var(--hosso-brand, #15803d)' : 'transparent', display: 'flex', gap: 8, alignItems: 'center' }}>
+          <a key={v} aria-current={active ? 'page' : undefined} href={v ? `?where[status][equals]=${v}` : '?'}>
             {en ? EN[label] : label}
             <span style={{ fontSize: 12, opacity: active ? 0.9 : 0.6 }}>{counts[v] ?? ''}</span>
           </a>
         )
       })}
-    </div>
+    </nav>
   )
 }

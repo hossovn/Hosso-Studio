@@ -201,10 +201,14 @@ const css = `
 const plugin: HossoPlugin = {
   id: 'shipping',
   manifest: manifest as PluginManifest,
+  adminNav: [
+    { label: 'Vận đơn', href: '/admin/collections/shipments', roles: ['admin'] },
+    { label: 'Đơn vị vận chuyển', href: '/admin/globals/shipping-settings', roles: ['admin'] },
+  ],
   blocks: [trackBlock],
   fallbackRenderers: { ShippingTrack: (props) => React.createElement(Track, { heading: props.heading }) },
   css,
-  adminEn: { 'Giao vận': 'Shipping', 'Tra cứu vận đơn': 'Track shipment', 'Tiêu đề': 'Heading' },
+  adminEn: { 'Giao vận': 'Shipping', 'Vận đơn': 'Shipments', 'Đơn vị vận chuyển': 'Carriers', 'Tra cứu vận đơn': 'Track shipment', 'Tiêu đề': 'Heading' },
   payload: (config: Config): Config => ({
     ...config,
     collections: [...(config.collections ?? []), Shipments],

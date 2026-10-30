@@ -53,6 +53,7 @@ const codeOf = (meta: Record<string, unknown>) => String(meta.voucher ?? '').tri
 const plugin: HossoPlugin = {
   id: 'promotions',
   manifest: manifest as PluginManifest,
+  adminNav: [{ label: 'Khuyến mãi', href: '/admin/collections/vouchers', roles: ['admin', 'publisher'] }],
   adminEn: { 'Khuyến mãi': 'Promotions' },
   payload: (config: Config): Config => ({ ...config, collections: [...(config.collections ?? []), Vouchers] }),
   hooks: {
@@ -73,7 +74,7 @@ const plugin: HossoPlugin = {
           : v.type === 'fixed'
             ? Math.min(v.value ?? 0, draft.subtotal)
             : draft.adjustments.filter((a) => a.amount > 0 && a.source === 'shipping').reduce((s, a) => s + a.amount, 0)
-      if (discount > 0) draft.adjustments.push({ label: `${m.label} ${v.code}`, amount: -discount, source: 'promotions' })
+      if (discount > 0) draft.adjustments.push({ label: `${m.label} ${v.code}`, amount: -discount, source: 'promotions', scope: v.type === 'freeship' ? 'shipping' : 'goods' })
     },
     onOrderPlaced: async ({ payload, adjustments, meta }) => {
       if (!adjustments?.some((a) => a.source === 'promotions')) return

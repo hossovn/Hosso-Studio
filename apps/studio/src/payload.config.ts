@@ -64,6 +64,7 @@ const base: Config = {
       graphics: { Logo: '/components/admin/Logo#Logo', Icon: '/components/admin/Logo#Icon' },
       Nav: '/components/admin/Nav#Nav',
       views: {
+        dashboard: { Component: '/components/admin/DashboardHome#DashboardView' },
         templates: { Component: '/components/admin/TemplatesView#TemplatesView', path: '/templates' },
         tools: { Component: '/components/admin/ToolsView#ToolsView', path: '/tools' },
         customize: { Component: '/components/admin/CustomizeView#CustomizeView', path: '/customize' },
@@ -71,7 +72,6 @@ const base: Config = {
         plugins: { Component: '/components/admin/PluginsView#PluginsView', path: '/plugins' },
       },
       providers: ['/components/admin/BrandStyle#BrandStyle'],
-      beforeDashboard: ['/components/admin/DashboardHome#DashboardHome', '/components/admin/GettingStarted#GettingStarted'],
       beforeLogin: ['/components/admin/LoginCode#LoginCode'],
     },
   },

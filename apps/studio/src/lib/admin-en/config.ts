@@ -1,5 +1,9 @@
 // Nhãn collection/trường trong biểu mẫu admin của Payload (khóa = tiếng Việt gốc). Áp dụng tự động bởi lib/translate-config.ts.
 export const configLabels: Record<string, string> = {
+  'Cài đặt website': 'Website settings',
+  'Thông tin website': 'Website information',
+  'Thông báo & bình luận': 'Notifications & comments',
+  'Để trống để dùng email ở tab Thông tin website.': 'Leave empty to use the email in the Website information tab.',
   'Nội dung': 'Content',
   'Hệ thống': 'System',
   'Bình luận': 'Comments',
