@@ -263,6 +263,12 @@ pnpm dev
 
 `pnpm dev` runs Payload's `generate:importmap` before starting.
 
+### Plugin admin views
+
+Register pages in `admin.components.views` with `path` and `Component`. After loading plugins, Studio wraps every custom view in `AdminViewShell` to retain Payload's sidebar and admin header. Original components stay registered in the import map; plugins should not add another `DefaultTemplate`. The built-in dashboard already has its own frame.
+
+Use `Gutter` with shared classes `ha-workspace`, `ha-page-head`, `ha-panel`, `ha-button`, `ha-table-scroll` and `ha-data-table` for light/dark themes and small screens. Client components receive serializable data only; server components retain `AdminViewServerProps`. Each page and endpoint must still enforce its own data permissions.
+
 ### Manifest and enabling/disabling plugins
 
 Each plugin has a `hosso.json` at its root (id, type `plugin`, vi/en name and description, version, management page, `needsBuild`). The plugin loads it into the `manifest` of the plugin object; the **Manage plugins** page in the admin (`/admin/plugins`) lists installed plugins from it. See `packages/plugin-affiliate` for an example.
@@ -289,6 +295,7 @@ Delete the import line and the entry in `plugins` in `hosso.config.ts`. The site
 pnpm typecheck
 pnpm check:boundaries
 pnpm check:i18n
+pnpm test:admin-views
 pnpm dev
 ```
 

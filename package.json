@@ -20,6 +20,7 @@
     "test:canvas": "node --experimental-strip-types scripts/test-canvas.mjs",
     "test:editor-preview": "node --experimental-strip-types scripts/test-editor-preview.mjs",
     "test:site-package": "node scripts/test-site-package.mjs",
+    "test:admin-views": "node scripts/test-admin-views.mjs",
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:order-flow": "node scripts/check-order-flow.mjs",
     "mock:wim": "pnpm --filter @hosso/mock-wim start",

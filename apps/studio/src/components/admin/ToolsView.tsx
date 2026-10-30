@@ -40,8 +40,8 @@ export const ToolsView = async ({ initPageResult }: AdminViewServerProps) => {
     )
   const latest = await latestVersion()
   return (
-    <Gutter>
-      <h1>{T('Công cụ')}</h1>
+    <Gutter className="ha-workspace">
+      <header className="ha-page-head"><h1>{T('Công cụ')}</h1></header>
       <ToolsClient
         version={pkg.version}
         latest={latest && newer(latest.version, pkg.version) ? latest : null}

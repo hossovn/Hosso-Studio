@@ -28,6 +28,7 @@ import { siteStatus, ssoLogin } from './lib/kiln'
 import { Users } from './collections/Users'
 import { ensureAdmin, seedIfEmpty } from './lib/seed'
 import { translateConfig } from './lib/translate-config'
+import { frameAdminViews } from './lib/admin-views'
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 const databaseUrl = process.env.HOSSO_DATABASE_URL || 'file:./data/studio.db'
@@ -127,7 +128,7 @@ const base: Config = {
 // `custom.hossoPlugins` cho phép plugin này gọi hook của plugin khác (xem emitOrderPlaced).
 export default buildConfig(
   translateConfig(
-    { ...hosso.plugins.reduce((config, plugin) => plugin.payload?.(config) ?? config, base), custom: { hossoPlugins: hosso.plugins } },
+    frameAdminViews({ ...hosso.plugins.reduce((config, plugin) => plugin.payload?.(config) ?? config, base), custom: { hossoPlugins: hosso.plugins } }),
     Object.assign({}, ...hosso.plugins.map((p) => p.adminEn ?? {})),
   ),
 )

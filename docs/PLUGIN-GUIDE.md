@@ -252,6 +252,12 @@ pnpm dev
 
 `pnpm dev` tự chạy `generate:importmap` của Payload trước khi khởi động.
 
+### Trang quản trị của plugin
+
+Đăng ký trang trong `admin.components.views` với `path` và `Component`. Studio tự bọc mọi custom view bằng `AdminViewShell` sau khi nạp plugin, giữ sidebar và thanh quản trị chuẩn của Payload. Component gốc vẫn được đăng ký trong import map; không tự bọc thêm `DefaultTemplate` trong plugin. Dashboard chuẩn đã có khung riêng.
+
+Dùng `Gutter` và các lớp chung `ha-workspace`, `ha-page-head`, `ha-panel`, `ha-button`, `ha-table-scroll`, `ha-data-table` để đồng bộ giao diện sáng/tối và màn hình nhỏ. Component client chỉ nhận dữ liệu có thể tuần tự hóa; component server tiếp tục nhận `AdminViewServerProps`. Mỗi trang và endpoint vẫn phải tự kiểm tra quyền truy cập dữ liệu.
+
 ### Phiếu thông tin và bật/tắt plugin
 
 Mỗi plugin có tệp `hosso.json` ở thư mục gốc (id, loại `plugin`, tên và mô tả vi/en, version, trang quản lý, `needsBuild`). Plugin nạp tệp này vào `manifest` của đối tượng plugin; trang **Quản lý plugin** trong admin (`/admin/plugins`) liệt kê plugin đã cài từ đó. Xem mẫu ở `packages/plugin-affiliate`.
@@ -276,6 +282,7 @@ Xóa dòng import và mục trong `plugins` ở `hosso.config.ts`. Site vẫn ch
 ```bash
 pnpm typecheck
 pnpm check:boundaries
+pnpm test:admin-views
 pnpm dev
 ```
 
