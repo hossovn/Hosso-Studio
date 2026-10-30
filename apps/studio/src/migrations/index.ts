@@ -15,6 +15,8 @@ import * as migration_20261019_092550_header_footer_layout from './20261019_0925
 import * as migration_20261019_120000_site_chrome_areas from './20261019_120000_site_chrome_areas';
 import * as migration_20261021_011019_cross_sell from './20261021_011019_cross_sell';
 import * as migration_20261030_110000_cross_sell_direct_credentials from './20261030_110000_cross_sell_direct_credentials';
+import * as migration_20261030_130000_payload_job_stats from './20261030_130000_payload_job_stats';
+import * as migration_20261030_140000_cross_sell_tracking from './20261030_140000_cross_sell_tracking';
 
 export const migrations = [
   {
@@ -98,4 +100,6 @@ export const migrations = [
     name: '20261030_110000_cross_sell_direct_credentials',
   },
   { up: migration_20261030_120000_affiliate_cps.up, down: migration_20261030_120000_affiliate_cps.down, name: '20261030_120000_affiliate_cps' },
+  { up: migration_20261030_130000_payload_job_stats.up, down: migration_20261030_130000_payload_job_stats.down, name: '20261030_130000_payload_job_stats' },
+  { up: migration_20261030_140000_cross_sell_tracking.up, down: migration_20261030_140000_cross_sell_tracking.down, name: '20261030_140000_cross_sell_tracking' },
 ];

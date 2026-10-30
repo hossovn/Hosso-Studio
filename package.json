@@ -21,6 +21,8 @@
     "test:editor-preview": "node --experimental-strip-types scripts/test-editor-preview.mjs",
     "test:site-package": "node scripts/test-site-package.mjs",
     "test:admin-views": "node scripts/test-admin-views.mjs",
+    "test:job-stats-migration": "node scripts/test-job-stats-migration.mjs",
+    "test:cross-sell-migration": "node scripts/test-cross-sell-migration.mjs",
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:order-flow": "node scripts/check-order-flow.mjs",
     "mock:wim": "pnpm --filter @hosso/mock-wim start",
