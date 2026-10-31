@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { commission, DAY, eligibleAmount, evaluate, money, sameOrigin } from '../src/core.ts'
+import { allocate, commission, DAY, eligibleAmount, evaluate, money, nextPayoutDate, sameOrigin } from '../src/core.ts'
 
 const policy = { affiliate: 1, click: 1, type: 'percent', rate: 10, base: 2_000_000, holdDays: 14, selfReferral: false }
 const now = Date.parse('2026-10-30T00:00:00Z')
@@ -60,4 +60,23 @@ import { settle } from '../src/service.ts'
 test('payout requires PostgreSQL and an active database transaction', async () => {
   await assert.rejects(() => settle({ payload: { db: { name: 'sqlite' } } }, {}), /require PostgreSQL/)
   await assert.rejects(() => settle({ payload: { db: { name: 'postgres', beginTransaction: async () => null } } }, { ids: [1], reference: 'REF', evidence: 'Receipt' }), /active database transaction/)
+})
+
+test('line policies preserve VND discounts, honor zero rates and reverse the refunded product', () => {
+  assert.deepEqual(allocate(100, [1, 1, 1]), [34, 33, 33])
+  const snapshot = { ...policy, base: 200000, lines: [{ productId: 'a', base: 100000, rate: 20, source: 'product' }, { productId: 'b', base: 100000, rate: 0, source: 'category' }] }
+  assert.equal(commission(snapshot), 20000)
+  assert.equal(commission(snapshot, 100000, { a: 100000 }), 0)
+  assert.equal(commission(snapshot, 100000, { b: 100000 }), 20000)
+  assert.throws(() => commission(snapshot, 100000, { a: 1 }), /match cumulative/)
+  assert.throws(() => commission(snapshot, 100001, { a: 100001 }), /exceeds/)
+  let previous = Infinity
+  for (let refunded = 0; refunded <= snapshot.base; refunded += 19) { const amount = commission(snapshot, refunded); assert.ok(amount <= previous); previous = amount }
+})
+
+test('month-end payouts handle leap years and the store time zone', () => {
+  assert.equal(nextPayoutDate(new Date('2028-02-01T00:00:00Z')), '2028-02-29')
+  assert.equal(nextPayoutDate(new Date('2027-02-01T00:00:00Z')), '2027-02-28')
+  assert.equal(nextPayoutDate(new Date('2026-10-31T18:00:00Z')), '2026-11-30')
+  assert.equal(nextPayoutDate(new Date('2026-10-31T18:00:00Z'), 'UTC'), '2026-10-31')
 })

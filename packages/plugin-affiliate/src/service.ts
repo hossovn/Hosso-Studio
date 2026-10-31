@@ -1,5 +1,5 @@
 import type { CollectionAfterChangeHook, CollectionBeforeChangeHook, PayloadRequest, Where } from 'payload'
-import { check, commission, cookie, DAY, eligibleAmount, evaluate, idOf, money, normalizeEmail, REF_COOKIE, type OrderState, type Snapshot } from './core'
+import { allocate, check, commission, cookie, DAY, eligibleAmount, evaluate, idOf, money, normalizeEmail, REF_COOKIE, type OrderState, type Snapshot } from './core'
 
 export const admin = (user: unknown) => Boolean((user as { roles?: string[] } | null)?.roles?.includes('admin'))
 export const find = async (req: PayloadRequest, collection: string, where: Where, limit = 1) => (await req.payload.find({ collection: collection as any, where, limit, depth: 0, overrideAccess: true, req })).docs as any[]
@@ -29,39 +29,69 @@ export async function atomic<T>(req: PayloadRequest, fn: () => Promise<T>) {
   } finally { delete req.transactionID }
 }
 
-export async function snapshot(req: PayloadRequest, base: number, email?: string): Promise<Snapshot | null> {
+/** Serialize every balance mutation for one affiliate inside the current financial transaction. */
+export async function lockAffiliate(req: PayloadRequest, id: string | number) {
+  if (!req.transactionID || req.payload.db.name === 'sqlite') return
+  await req.payload.db.updateOne({ collection: 'affiliates', req, where: { id: { equals: id } }, data: { updatedAt: new Date().toISOString() }, options: { atomic: true } })
+}
+
+export async function snapshot(req: PayloadRequest, base: number, email?: string, items?: any[]): Promise<Snapshot | null> {
   const token = cookie(req.headers, REF_COOKIE)
-  if (!token || !/^[a-f0-9]{64}$/.test(token)) return null
-  const click = (await find(req, 'affiliate-clicks', { token: { equals: token }, expiresAt: { greater_than: new Date().toISOString() } }))[0]
-  if (!click) return null
-  const aff = (await find(req, 'affiliates', { id: { equals: idOf(click.affiliate) }, active: { equals: true }, approval: { equals: 'approved' } }))[0]
+  const assisted = req.context?.assistedAffiliate as string | number | undefined
+  if (!assisted && (!token || !/^[a-f0-9]{64}$/.test(token))) return null
+  const click = !assisted ? (await find(req, 'affiliate-clicks', { token: { equals: token }, expiresAt: { greater_than: new Date().toISOString() } }))[0] : null
+  if (!assisted && !click) return null
+  const aff = (await find(req, 'affiliates', { id: { equals: assisted || idOf(click.affiliate) }, active: { equals: true }, approval: { equals: 'approved' } }))[0]
   if (!aff) return null
   const holdDays = aff.holdDays ?? 14
   check(Number.isInteger(holdDays) && holdDays >= 0 && holdDays <= 365, 'Invalid holding period')
   const selfSession = cookie(req.headers, 'hs_aff')
   const { readSession } = await import('./auth')
   const loggedIn = selfSession ? await readSession(req.payload.secret, req.headers) : null
-  const result: Snapshot = { affiliate: aff.id, click: click.id, type: aff.commissionType ?? 'percent', rate: aff.commissionType === 'fixed' ? money(aff.commissionFixed ?? 0) : aff.commissionPct ?? 0, base: money(base), holdDays, selfReferral: Boolean(loggedIn && String(loggedIn) === String(aff.id)) || Boolean(email && normalizeEmail(email) === normalizeEmail(aff.email)) }
+  const settings: any = await req.payload.findGlobal({ slug: 'affiliate-settings' as any, depth: 0, overrideAccess: true, req })
+  const result: Snapshot = { affiliate: aff.id, ...(click && { click: click.id }), attribution: assisted ? 'assisted' : 'link', type: aff.commissionType ?? 'percent', rate: aff.commissionType === 'fixed' ? money(aff.commissionFixed ?? 0) : aff.commissionPct ?? settings.defaultRate ?? 15, base: money(base), holdDays, selfReferral: Boolean(!assisted && loggedIn && String(loggedIn) === String(aff.id)) || Boolean(email && normalizeEmail(email) === normalizeEmail(aff.email)) }
+  if (items?.length && result.type === 'percent') {
+    const bases = allocate(result.base, items.map((l) => money(l.price * l.quantity)))
+    result.lines = []
+    for (const [n, item] of items.entries()) {
+      const product = (await find(req, 'shop-products', { id: { equals: item.productId } }))[0]
+      const category = product?.category ? (await find(req, 'shop-categories', { id: { equals: idOf(product.category) } }))[0] : null
+      const ownRate = typeof product?.affiliateRate === 'number' ? product.affiliateRate : undefined
+      const categoryRate = typeof category?.affiliateRate === 'number' ? category.affiliateRate : undefined
+      result.lines.push({ productId: item.productId, variantId: item.variantId, base: bases[n], rate: ownRate ?? categoryRate ?? result.rate, source: ownRate !== undefined ? 'product' : categoryRate !== undefined ? 'category' : aff.commissionPct != null ? 'affiliate' : 'default' })
+    }
+  }
   commission(result)
   return result
 }
 
 export const prepareShopOrder: CollectionBeforeChangeHook = async ({ data, originalDoc, operation, req }) => {
   if (operation === 'create') {
-    data.affiliateSnapshot = cookie(req.headers, REF_COOKIE) ? await snapshot(req, eligibleAmount(data.subtotal ?? data.items?.reduce((sum: number, l: any) => sum + l.price * l.quantity, 0), data.adjustments), data.email) : null
+    data.affiliateSnapshot = cookie(req.headers, REF_COOKIE) || req.context?.assistedAffiliate ? await snapshot(req, eligibleAmount(data.subtotal ?? data.items?.reduce((sum: number, l: any) => sum + l.price * l.quantity, 0), data.adjustments), data.email, data.items) : null
     data.affiliateRefundedAmount = 0
     data.affiliateCompletedAt = data.status === 'completed' ? new Date().toISOString() : null
   } else {
+    if (originalDoc.affiliateSnapshot && req.transactionID && req.payload.db.name !== 'sqlite') {
+      await lockAffiliate(req, originalDoc.affiliateSnapshot.affiliate)
+      originalDoc = await req.payload.findByID({ collection: 'shop-orders' as any, id: originalDoc.id, depth: 0, overrideAccess: true, req })
+    }
     data.affiliateSnapshot = originalDoc.affiliateSnapshot
     data.affiliateCompletedAt = originalDoc.affiliateCompletedAt || ((data.status ?? originalDoc.status) === 'completed' ? new Date().toISOString() : null)
     const refunded = money(data.affiliateRefundedAmount ?? originalDoc.affiliateRefundedAmount ?? 0)
     check(refunded >= (originalDoc.affiliateRefundedAmount ?? 0), 'Refunded goods cannot decrease; record a separate correction')
     check(!originalDoc.affiliateSnapshot || refunded <= originalDoc.affiliateSnapshot.base, 'Refund exceeds eligible goods')
+    if (data.affiliateRefundedLines || originalDoc.affiliateRefundedLines) {
+      const lines = data.affiliateRefundedLines ?? originalDoc.affiliateRefundedLines
+      check(originalDoc.affiliateSnapshot?.lines?.length, 'Line refunds require a per-line policy snapshot')
+      commission(originalDoc.affiliateSnapshot, refunded, lines)
+      for (const [key, amount] of Object.entries(originalDoc.affiliateRefundedLines ?? {})) check((lines[key] ?? 0) >= Number(amount), 'Cumulative line refunds cannot decrease')
+    }
   }
   return data
 }
 
 export async function sync(req: PayloadRequest, source: string, order: OrderState, policy: Snapshot) {
+  await lockAffiliate(req, policy.affiliate)
   const key = source + ':' + order.id
   const next = evaluate(policy, order)
   const existing = (await find(req, 'affiliate-referrals', { sourceKey: { equals: key } }))[0]
@@ -88,7 +118,7 @@ export async function sync(req: PayloadRequest, source: string, order: OrderStat
   return row
 }
 export const saveShopOrder: CollectionAfterChangeHook = async ({ doc, req }) => {
-  if (doc.affiliateSnapshot) await sync(req, 'shop', { id: doc.orderNo || `SO-${String(doc.id).padStart(6, '0')}`, total: doc.total, status: doc.status, paymentStatus: doc.paymentStatus, refundedAmount: doc.affiliateRefundedAmount, completedAt: doc.affiliateCompletedAt }, doc.affiliateSnapshot)
+  if (doc.affiliateSnapshot) await sync(req, 'shop', { id: doc.orderNo || `SO-${String(doc.id).padStart(6, '0')}`, total: doc.total, status: doc.status, paymentStatus: doc.paymentStatus, refundedAmount: doc.affiliateRefundedAmount, refundedLines: doc.affiliateRefundedLines, completedAt: doc.affiliateCompletedAt }, doc.affiliateSnapshot)
   return doc
 }
 
@@ -98,7 +128,7 @@ export async function refresh(req: PayloadRequest, row: any) {
   if (row.source === 'shop') {
     const order = (await find(req, 'shop-orders', { orderNo: { equals: row.orderId } }))[0]
     check(order?.affiliateSnapshot, 'Order attribution is missing')
-    return sync(req, 'shop', { id: order.orderNo, total: order.total, status: order.status, paymentStatus: order.paymentStatus, refundedAmount: order.affiliateRefundedAmount, completedAt: order.affiliateCompletedAt }, order.affiliateSnapshot)
+    return sync(req, 'shop', { id: order.orderNo, total: order.total, status: order.status, paymentStatus: order.paymentStatus, refundedAmount: order.affiliateRefundedAmount, refundedLines: order.affiliateRefundedLines, completedAt: order.affiliateCompletedAt }, order.affiliateSnapshot)
   }
   const receipt = (await find(req, 'affiliate-orders', { orderId: { equals: row.orderId }, source: { equals: row.source } }))[0]
   check(receipt, 'External order receipt is missing')
@@ -106,7 +136,7 @@ export async function refresh(req: PayloadRequest, row: any) {
   return refreshWim(req, receipt)
 }
 
-export async function settle(req: PayloadRequest, input: { affiliate: string | number; ids: (string | number)[]; reference: string; evidence: string }) {
+export async function settle(req: PayloadRequest, input: { affiliate: string | number; ids: (string | number)[]; reference: string; evidence: string; withdrawalId?: string | number }) {
   check(req.payload.db.name !== 'sqlite', 'Payouts require PostgreSQL; SQLite is for preview and tracking only')
   check(Array.isArray(input.ids) && input.ids.length > 0 && input.ids.length <= 100 && new Set(input.ids.map(String)).size === input.ids.length, 'Select 1–100 distinct commissions')
   check(typeof input.reference === 'string' && input.reference.trim().length >= 3 && input.reference.length <= 120, 'Transfer reference is required')
@@ -115,6 +145,13 @@ export async function settle(req: PayloadRequest, input: { affiliate: string | n
     check(req.transactionID, 'Payouts require an active database transaction')
     const aff = (await find(req, 'affiliates', { id: { equals: input.affiliate }, active: { equals: true }, approval: { equals: 'approved' } }))[0]
     check(aff?.bankInfo?.trim(), 'Approved affiliate with payout details is required')
+    await lockAffiliate(req, aff.id)
+    const reserved = (await find(req, 'affiliate-withdrawals', { activeKey: { equals: String(aff.id) } }))[0]
+    if (reserved) {
+      check(String(reserved.id) === String(input.withdrawalId) && reserved.status === 'approved', 'Settle the approved withdrawal request or reject it before a separate payout')
+      check(reserved.bankInfo === aff.bankInfo, 'Payout details changed; reject the request and verify the new bank information')
+      check(reserved.commissions.length === input.ids.length && reserved.commissions.every((r: any) => input.ids.map(String).includes(String(r.id))), 'Pay exactly the reserved commissions')
+    } else check(!input.withdrawalId, 'Withdrawal is no longer active')
     const rows = []
     for (const id of input.ids) {
       const row = (await find(req, 'affiliate-referrals', { id: { equals: id }, affiliate: { equals: aff.id } }))[0]
@@ -127,6 +164,7 @@ export async function settle(req: PayloadRequest, input: { affiliate: string | n
     check(debts.every((r) => input.ids.map(String).includes(String(r.id))), 'Include all outstanding refund adjustments')
     const amount = rows.reduce((sum, r) => sum + r.commission, 0)
     check(Number.isSafeInteger(amount) && amount > 0, 'Net payout must be positive')
+    if (reserved) check(amount === reserved.amount, 'Withdrawal balance changed; reject it for a fresh request')
     const payout: any = await req.payload.create({ collection: 'affiliate-payouts' as any, data: { affiliate: aff.id, amount, reference: input.reference.trim(), evidence: input.evidence.trim(), bankInfo: aff.bankInfo, paidAt: new Date().toISOString() }, overrideAccess: true, req })
     for (const row of rows) {
       const claimed = await req.payload.update({ collection: 'affiliate-referrals' as any, where: { id: { equals: row.id }, status: { equals: 'approved' }, commission: { equals: row.commission } }, data: { status: 'paid' }, overrideAccess: true, req })
@@ -134,6 +172,10 @@ export async function settle(req: PayloadRequest, input: { affiliate: string | n
       await req.payload.create({ collection: 'affiliate-payout-items' as any, data: { payout: payout.id, referral: row.id, amount: row.commission }, overrideAccess: true, req })
     }
     await audit(req, 'payout-recorded', String(payout.id), { amount, reference: input.reference.trim(), commissions: input.ids })
+    if (reserved) {
+      const changed = await req.payload.update({ collection: 'affiliate-withdrawals' as any, where: { id: { equals: reserved.id }, status: { equals: 'approved' } }, data: { status: 'paid', activeKey: null, payout: payout.id }, overrideAccess: true, req })
+      check(changed.docs.length === 1, 'Withdrawal changed concurrently')
+    }
     return payout
   })
 }

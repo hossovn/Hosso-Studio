@@ -89,6 +89,11 @@ export function withLicense(plugin: HossoPlugin): HossoPlugin {
   const hooks = plugin.hooks
   return {
     ...plugin,
+    commerce: plugin.commerce && { ...plugin.commerce,
+      customerPrice: wrap(plugin.commerce.customerPrice, undefined),
+      assistedCustomer: wrap(plugin.commerce.assistedCustomer, undefined),
+      fulfillmentGroups: wrap(plugin.commerce.fulfillmentGroups, []),
+    },
     manifest: plugin.manifest && { ...plugin.manifest, commercial: true },
     hooks: hooks && {
       beforeOrder: wrap(hooks.beforeOrder, undefined),
