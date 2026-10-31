@@ -11,6 +11,31 @@ const Btn = (text: string, x: number, y: number, props: Record<string, unknown> 
 
 export const SECTION_TEMPLATES: SectionTemplate[] = [
   {
+    id: 'motion-hero', label: 'Hero ảnh nổi', height: 560, bg: '#eff6f2',
+    build: () => [
+      makeElement('heading', { x: 90, y: 120, w: 550, h: 140, props: { text: 'Chạm vào\ncảm hứng mới', size: 58, color: '#17251e', _motion: { entrance: { preset: 'text-lines', duration: 600, delay: 0 } } } }),
+      P('Ảnh nổi nhẹ sau khi xuất hiện. Mọi chi tiết đều chỉnh được trong bảng Hiệu ứng.', { x: 90, y: 300, w: 490, h: 90, size: 22 }),
+      Btn('Khám phá', 90, 420),
+      makeElement('image', { x: 700, y: 90, w: 390, h: 370, props: { src: '/editor-demo/mountain.jpg', alt: 'Dãy núi', radius: 32, _motion: { entrance: { preset: 'pop', duration: 600, delay: 0 }, loop: { preset: 'float', duration: 2000, delay: 0, iterations: 3, amount: 12 } } } }),
+    ],
+  },
+  {
+    id: 'motion-gallery', label: 'Bộ ảnh xuất hiện nối tiếp', height: 500, bg: '#f8fafc',
+    build: () => [
+      H('Những góc nhìn mới', { x: 90, y: 50, w: 900, h: 70, size: 42 }),
+      ...['/editor-demo/trail.jpg', '/editor-templates/workspace.jpg', '/editor-templates/cafe.jpg'].map((src, i) => makeElement('image', { x: 90 + i * 350, y: 160, w: 320, h: 270, props: { src, alt: ['Đường núi', 'Không gian làm việc', 'Quán café'][i], radius: 20, _motion: { entrance: { preset: i % 2 ? 'reveal-up' : 'reveal-left', duration: 600, delay: i * 180 } } } })),
+    ],
+  },
+  {
+    id: 'motion-orbit', label: 'Quỹ đạo và vòng sóng', height: 520, bg: '#10251b',
+    build: () => [
+      H('Chuyển động theo cách của bạn', { x: 90, y: 100, w: 590, h: 150, size: 52, color: '#fff' }),
+      P('Chọn từng hình hoặc biểu tượng để thay màu, đổi vị trí và chỉnh nhịp chuyển động.', { x: 90, y: 290, w: 530, h: 100, size: 22, color: '#bbd5c6' }),
+      ...[0, 1].map((i) => makeElement('shape', { x: 820, y: 190, w: 120, h: 120, props: { bg: 'transparent', radius: 999, borderW: 2, borderColor: '#86efac', _motion: { entrance: { preset: 'fade', duration: 600, delay: 0 }, loop: { preset: 'ripple', duration: 2000, delay: i * 600, iterations: 3, amount: 40 } } } })),
+      makeElement('icon', { x: 848, y: 218, w: 64, h: 64, props: { name: 'star', color: '#bbf7d0', _motion: { entrance: { preset: 'zoom', duration: 600, delay: 0 }, loop: { preset: 'orbit', duration: 4000, delay: 0, iterations: 3, amount: 80 } } } }),
+    ],
+  },
+  {
     id: 'hero',
     label: 'Banner đầu trang',
     height: 560,
