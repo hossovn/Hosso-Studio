@@ -1,14 +1,21 @@
-import type { BlockLoader } from '@hosso/studio-blocks'
+import type { BlockLoader, HossoPlugin } from '@hosso/studio-blocks'
 import type { Payload, Where } from 'payload'
 import { SETTINGS } from './collections'
 import { imageOf, type Product } from './util'
 import { contentOf, imagesOf } from './product-content'
+import { orderLookupPath } from './order-path'
 
 export type Card = ContentCard & { id: string; name: string; slug: string; code?: string; price: number; salePrice?: number | null; stock: number; brand?: string; image: string; category?: { name: string; slug: string } | null; description?: string; weight?: number; size?: string; hidePrice?: boolean; priceLabel?: string; variants?: { id: string; name: string; price: number; stock: number }[] }
 export type Review = { name: string; rating: number; comment: string; date: string }
 type ContentCard = { shortDescription?: string; attributes?: { name: string; value: string }[]; images: string[]; stockUnmanaged?: boolean }
 
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
+export async function syncSources(payload: Payload) {
+  for (const plugin of (payload.config.custom?.hossoPlugins ?? []) as HossoPlugin[]) {
+    try { await plugin.commerce?.syncCatalog?.(payload) }
+    catch (error) { payload.logger.error(error, '[shop] Catalog sync failed; checkout rechecks the source') }
+  }
+}
 type Pricing = { show: boolean; label: string }
 export const pricingOf = async (payload: Payload): Promise<Pricing> => {
   const g = (await payload.findGlobal({ slug: SETTINGS as any, depth: 0, overrideAccess: true }).catch(() => null)) as { showPrices?: boolean; priceHiddenLabel?: string } | null
@@ -18,7 +25,7 @@ export const card = (p: Product, pr?: Pricing): Card & ContentCard => ({
   hidePrice: p.priceDisplay === 'hide' || (p.priceDisplay !== 'show' && pr?.show === false) || undefined,
   priceLabel: pr?.label,
   id: String(p.id),
-  name: p.name,
+  name: (p as Product & { displayName?: string }).displayName || p.name,
   slug: p.slug,
   code: p.code,
   price: p.price,
@@ -44,6 +51,7 @@ const categoryTree = async (payload: Payload, slug: string) => {
 
 export const loadGrid: BlockLoader = async (props, ctx) => {
   const { payload, searchParams: sp } = ctx
+  await syncSources(payload)
   const listing = props.pager === 'yes' // danh sách có phân trang đọc bộ lọc từ URL; mục nổi bật chỉ dùng thuộc tính của block
   const q = listing ? first(sp.q)?.trim() : ''
   const catSlug = (listing && first(sp.category)) || props.category || ''
@@ -56,6 +64,7 @@ export const loadGrid: BlockLoader = async (props, ctx) => {
   const page = listing ? Math.max(1, Number(first(sp.page)) || 1) : 1
 
   const and: Where[] = [{ active: { equals: true } }]
+  if (Array.isArray(props.productIds)) and.push({ id: { in: props.productIds } })
   if (q) and.push({ or: [{ name: { contains: q } }, { code: { contains: q } }] })
   if (make) and.push({ makes: { in: [make] } })
   if (brand) and.push({ brand: { equals: brand } })
@@ -66,26 +75,28 @@ export const loadGrid: BlockLoader = async (props, ctx) => {
     if (!ids) return { status: 'ok', items: [], page: 1, pages: 1, total: 0 }
     and.push({ category: { in: ids } })
   }
-  const sort = sortKey === 'priceAsc' ? 'price' : sortKey === 'priceDesc' ? '-price' : '-createdAt'
+  const sort = sortKey === 'priceAsc' ? 'price' : sortKey === 'priceDesc' ? '-price' : sortKey === 'name' ? 'name' : '-createdAt'
   const r = await payload.find({ collection: 'shop-products' as any, where: { and }, sort, limit: pageSize, page, depth: 2, overrideAccess: true })
   const keep = new URLSearchParams()
-  for (const k of ['q', 'category', 'make', 'brand', 'min', 'max', 'sort']) if (first(sp[k])) keep.set(k, first(sp[k])!)
+  for (const k of ['q', 'category', 'make', 'model', 'year', 'condition', 'brand', 'min', 'max', 'sort']) if (first(sp[k])) keep.set(k, first(sp[k])!)
 
   let filters: unknown
   if (listing) {
     // ponytail: danh sách thương hiệu lấy từ tối đa 500 sản phẩm đang bán; tách bảng riêng khi danh mục lớn hơn.
     const all = (await payload.find({ collection: 'shop-products' as any, where: { active: { equals: true } }, limit: 500, depth: 0, pagination: false, overrideAccess: true })).docs as unknown as Product[]
     const cats = (await payload.find({ collection: 'shop-categories' as any, sort: 'order', limit: 200, depth: 0, pagination: false, overrideAccess: true })).docs as unknown as { name: string; slug: string }[]
-    filters = { brands: [...new Set(all.map((p) => p.brand).filter(Boolean))].sort(), categories: cats.map((c) => ({ name: c.name, slug: c.slug })), current: { q: q ?? '', category: catSlug, brand, min: min || '', max: max || '', sort: sortKey } }
+    filters = { brands: [...new Set(all.map((p) => p.brand).filter(Boolean))].sort(), categories: cats.map((c) => ({ name: c.name, slug: c.slug })), current: { q: q ?? '', category: catSlug, brand, min: min || '', max: max || '', sort: sortKey }, preserved: Object.fromEntries(['make', 'model', 'year', 'condition'].flatMap((k) => first(sp[k]) ? [[k, first(sp[k])]] : [])) }
   }
   const pr = await pricingOf(payload)
   return { status: 'ok', items: (r.docs as unknown as Product[]).map((p) => card(p, pr)), page: r.page ?? 1, pages: r.totalPages || 1, total: r.totalDocs, query: keep.toString(), filters }
 }
 
 export const loadDetail: BlockLoader = async (_props, { payload, searchParams }) => {
+  await syncSources(payload)
   const key = first(searchParams.p)?.trim()
   if (!key) return { status: 'notfound' }
-  const r = await payload.find({ collection: 'shop-products' as any, where: { and: [{ active: { equals: true } }, { or: [{ slug: { equals: key } }, ...(/^\d+$/.test(key) ? [{ id: { equals: Number(key) } }] : [])] }] }, limit: 1, depth: 2, overrideAccess: true })
+  let r = await payload.find({ collection: 'shop-products' as any, where: { and: [{ active: { equals: true } }, { or: [{ slug: { equals: key } }, ...(/^\d+$/.test(key) ? [{ id: { equals: Number(key) } }] : [])] }] }, limit: 1, depth: 2, overrideAccess: true })
+  if (!r.docs.length) r = await payload.find({ collection: 'shop-products' as any, where: { and: [{ active: { equals: true } }, { wimId: { equals: key.replace(/^wim:/, '') } }] }, limit: 1, depth: 2, overrideAccess: true })
   const p = r.docs[0] as unknown as Product | undefined
   if (!p) return { status: 'notfound' }
 
@@ -110,9 +121,14 @@ export const loadCategories: BlockLoader = async (props, { payload }) => {
   return { status: 'ok', items: r.docs.map((c: any) => ({ name: c.name, slug: c.slug, image: c.image?.filename ? `/api/media/file/${encodeURIComponent(c.image.filename)}` : '' })) }
 }
 
-export const loadCheckout: BlockLoader = async (_props, { payload }) => {
+export const loadCheckout: BlockLoader = async (props, { payload }) => {
   const s = (await payload.findGlobal({ slug: SETTINGS as any, depth: 0, overrideAccess: true }).catch(() => null)) as { bankInfo?: string } | null
-  return { status: 'ok', bankInfo: s?.bankInfo ?? '' }
+  const branches: { id: string; name: string }[] = []
+  for (const plugin of (payload.config.custom?.hossoPlugins ?? []) as HossoPlugin[]) {
+    try { branches.push(...(await plugin.commerce?.checkoutData?.(payload))?.branches ?? []) }
+    catch { /* Delivery remains available; checkout refuses unresolved pickup branches. */ }
+  }
+  return { status: 'ok', bankInfo: s?.bankInfo ?? '', branches, statusPath: await orderLookupPath(payload, props.statusPath) }
 }
 
 export type ReviewItem = Review & { product: string }

@@ -1,7 +1,7 @@
 'use client'
 import { localizeHref, useLocale } from '@hosso/studio-blocks'
 import React, { useState } from 'react'
-import { addToCart, cartCount, cartTotal, clearCart, lineKey, removeFromCart, setQuantity, useCart } from '../cart'
+import { addToCart, cartCount, cartTotal, clearCart, renewCart, lineKey, removeFromCart, setQuantity, useCart } from '../cart'
 import { vnd } from '../util'
 
 const S = {
@@ -14,9 +14,9 @@ const S = {
     errors: { name: 'Nhập họ tên.', phone: 'Số điện thoại không hợp lệ.', address: 'Nhập địa chỉ giao hàng.', empty: 'Giỏ hàng trống.', cart: 'Giỏ hàng không hợp lệ, hãy tải lại trang.', gone: 'Có sản phẩm không còn bán.', stock: 'không đủ hàng (còn {n}).', bad_request: 'Yêu cầu không hợp lệ.', network: 'Lỗi mạng, thử lại.' } as Record<string, string>,
     keep: 'Giỏ hàng của bạn vẫn được giữ nguyên.', variant: 'Loại', reviewTitle: 'Viết đánh giá', yourName: 'Tên của bạn', stars: 'Số sao', comment: 'Nhận xét', send: 'Gửi đánh giá', thanks: 'Cảm ơn bạn! Đánh giá sẽ hiện sau khi được duyệt.', reviewErr: 'Không gửi được, thử lại sau.', email: 'Email (tùy chọn, để nhận thông báo)', voucher: 'Mã giảm giá', apply: 'Áp dụng', bankAfter: 'Thông tin chuyển khoản sẽ hiện sau khi đặt hàng.', payStatus: 'Thanh toán', qr: 'Mã QR chuyển khoản',
     payStatuses: { unpaid: 'Chưa thanh toán', paid: 'Đã thanh toán', refunded: 'Đã hoàn tiền' } as Record<string, string>,
-    lookup: 'Tra cứu đơn hàng', orderNo: 'Mã đơn hàng', last4: '4 số cuối điện thoại', go: 'Tra cứu', notFound: 'Không tìm thấy đơn. Kiểm tra lại mã đơn và 4 số cuối điện thoại.',
-    status: 'Trạng thái', items: 'Sản phẩm', done: 'Đặt hàng thành công. Mã đơn của bạn:', keepCode: 'Hãy lưu mã đơn và 4 số cuối điện thoại để tra cứu.',
-    statuses: { new: 'Mới', confirmed: 'Đã xác nhận', shipping: 'Đang giao', completed: 'Hoàn tất', cancelled: 'Đã hủy' } as Record<string, string>,
+    lookup: 'Tra cứu đơn hàng', orderNo: 'Mã đơn hàng', go: 'Tra cứu', notFound: 'Không tìm thấy đơn. Kiểm tra lại mã đơn và mã bảo mật tra cứu.',
+    status: 'Trạng thái', items: 'Sản phẩm', done: 'Đặt hàng thành công. Mã đơn của bạn:', keepCode: 'Hãy lưu liên kết tra cứu và giữ riêng mã bảo mật của đơn.',
+    statuses: { pending: 'Đang chờ xác nhận', new: 'Mới', confirmed: 'Đã xác nhận', shipping: 'Đang giao', completed: 'Hoàn tất', cancelled: 'Đã hủy' } as Record<string, string>,
   },
   en: {
     cart: 'Cart', add: 'Add to cart', added: 'Added to your cart.', view: 'View cart', soldOut: 'Out of stock',
@@ -27,9 +27,9 @@ const S = {
     errors: { name: 'Enter your name.', phone: 'Invalid phone number.', address: 'Enter a delivery address.', empty: 'Your cart is empty.', cart: 'Invalid cart, please reload the page.', gone: 'A product is no longer available.', stock: 'is out of stock ({n} left).', bad_request: 'Invalid request.', network: 'Network error, try again.' } as Record<string, string>,
     keep: 'Your cart has been kept.', variant: 'Option', reviewTitle: 'Write a review', yourName: 'Your name', stars: 'Rating', comment: 'Comment', send: 'Submit review', thanks: 'Thank you! Your review will appear once approved.', reviewErr: 'Could not send, try again later.', email: 'Email (optional, for notifications)', voucher: 'Discount code', apply: 'Apply', bankAfter: 'Bank transfer details are shown after you place the order.', payStatus: 'Payment', qr: 'Bank transfer QR code',
     payStatuses: { unpaid: 'Unpaid', paid: 'Paid', refunded: 'Refunded' } as Record<string, string>,
-    lookup: 'Track your order', orderNo: 'Order number', last4: 'Last 4 digits of phone', go: 'Track', notFound: 'Order not found. Check the order number and the last 4 digits of the phone.',
-    status: 'Status', items: 'Items', done: 'Order placed. Your order number:', keepCode: 'Keep the order number and the last 4 digits of your phone to track it.',
-    statuses: { new: 'New', confirmed: 'Confirmed', shipping: 'Shipping', completed: 'Completed', cancelled: 'Cancelled' } as Record<string, string>,
+    lookup: 'Track your order', orderNo: 'Order number', go: 'Track', notFound: 'Order not found. Check the order number and private access code.',
+    status: 'Status', items: 'Items', done: 'Order placed. Your order number:', keepCode: 'Keep your tracking link and private access code.',
+    statuses: { pending: 'Awaiting confirmation', new: 'New', confirmed: 'Confirmed', shipping: 'Shipping', completed: 'Completed', cancelled: 'Cancelled' } as Record<string, string>,
   },
 }
 const useS = () => {
@@ -111,11 +111,12 @@ export function CartView({ heading, checkoutPath, shopPath }: { heading?: string
 type Err = { code: string; name?: string; available?: number; text?: string }
 type Quote = { subtotal: number; adjustments: { label: string; amount: number }[]; total: number }
 
-export function CheckoutForm({ heading, bankInfo, statusPath, cartPath }: { heading?: string; bankInfo?: string; statusPath: string; cartPath: string }) {
+export function CheckoutForm({ heading, bankInfo, statusPath, cartPath, branches = [] }: { heading?: string; bankInfo?: string; statusPath: string; cartPath: string; branches?: { id: string; name: string }[] }) {
   const { t, href, locale } = useS()
   const cart = useCart()
   const formRef = React.useRef<HTMLFormElement>(null)
   const [type, setType] = useState<'delivery' | 'pickup'>('delivery')
+  const [branchId, setBranchId] = useState(branches[0]?.id || '')
   const [pay, setPay] = useState<'cod' | 'bank'>('cod')
   const [voucher, setVoucher] = useState('')
   const [quote, setQuote] = useState<Quote | null>(null)
@@ -133,7 +134,7 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath }: { head
     const r = await fetch('/api/plugins/shop/quote', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items, customer: { address: f?.get('address') ?? '' }, fulfillment: { type }, payment: pay, meta: { voucher: voucher.trim(), locale } }),
+      body: JSON.stringify({ items, customer: { address: f?.get('address') ?? '' }, fulfillment: { type, ...(type === 'pickup' && branchId && { branchId }) }, payment: pay, meta: { voucher: voucher.trim(), locale } }),
     }).catch(() => null)
     const j = await r?.json().catch(() => null)
     if (j?.ok) {
@@ -144,7 +145,7 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath }: { head
       setQuote(null)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itemsKey, type, pay, voucher, locale])
+  }, [itemsKey, type, branchId, pay, voucher, locale])
   React.useEffect(() => {
     void runQuote()
   }, [itemsKey, type, pay, runQuote])
@@ -183,7 +184,7 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath }: { head
           cartId: cart.id,
           items,
           customer: { name: f.get('name'), phone: f.get('phone'), email: f.get('email'), address: f.get('address'), note: f.get('note') },
-          fulfillment: { type },
+          fulfillment: { type, ...(type === 'pickup' && branchId && { branchId }) },
           payment: pay,
           meta: { voucher: voucher.trim(), locale },
           website: f.get('website'),
@@ -193,10 +194,12 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath }: { head
       if (body?.ok) {
         window.dispatchEvent(new CustomEvent('hs:purchase', { detail: { id: body.order.id, total: body.order.total, items: cart.lines } }))
         clearCart()
-        window.location.href = body.redirectUrl || `${href(statusPath)}?id=${encodeURIComponent(body.order.id)}&phone=${encodeURIComponent(body.phone4)}&new=1`
+        try { localStorage.setItem('hs_lookup_' + body.order.id, body.lookupToken) } catch { /* The success link also carries the token. */ }
+        window.location.href = body.redirectUrl || `${href(statusPath)}?id=${encodeURIComponent(body.order.id)}&token=${encodeURIComponent(body.lookupToken)}&new=1`
         return
       }
       const known = body?.code === 'bad_request' || body?.code === 'out_of_stock' || body?.code === 'product_not_found'
+      if (body?.resetCart) renewCart()
       setError(body ? { code: body.code === 'bad_request' ? body.message : body.code, name: body.name, available: body.available, text: known ? undefined : body.message } : { code: 'network' })
     } catch {
       setError({ code: 'network' })
@@ -226,6 +229,7 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath }: { head
             <label className="sp-radio"><input type="radio" checked={type === 'delivery'} onChange={() => setType('delivery')} /> {t.delivery}</label>
             <label className="sp-radio"><input type="radio" checked={type === 'pickup'} onChange={() => setType('pickup')} /> {t.pickup}</label>
           </fieldset>
+          {type === 'pickup' && branches.length > 0 && <label>{locale === 'en' ? 'Pickup branch' : 'Chi nhánh nhận hàng'}<select value={branchId} onChange={(e) => setBranchId(e.target.value)} required>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label>}
           {type === 'delivery' && <label>{t.address}<textarea name="address" required rows={2} maxLength={300} autoComplete="street-address" onBlur={() => void runQuote()} /></label>}
           <label>{t.note}<textarea name="note" rows={2} maxLength={500} /></label>
           <div className="sp-voucher">
@@ -237,8 +241,7 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath }: { head
             <legend>{t.pay}</legend>
             <label className="sp-radio"><input type="radio" checked={pay === 'cod'} onChange={() => setPay('cod')} /> {t.cod}</label>
             <label className="sp-radio"><input type="radio" checked={pay === 'bank'} onChange={() => setPay('bank')} /> {t.bank}</label>
-            {pay === 'bank' && bankInfo && <p className="sp-note"><strong>{t.bankInfo}:</strong><br /><span style={{ whiteSpace: 'pre-line' }}>{bankInfo}</span></p>}
-            {pay === 'bank' && !bankInfo && <p className="sp-note">{t.bankAfter}</p>}
+            {pay === 'bank' && <p className="sp-note">{t.bankAfter}</p>}
           </fieldset>
           <input className="sp-hp" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" />
           {error && <p className="sp-note sp-error" role="alert">{msg(error)} {t.keep}</p>}
@@ -253,23 +256,25 @@ type Order = { id: string; status: string; total: number; subtotal: number; adju
 type Extras = { payment?: { qrUrl?: string; note?: string } }
 
 export function OrderLookup({ heading }: { heading?: string }) {
-  const { t } = useS()
+  const { t, locale } = useS()
   const [order, setOrder] = useState<Order | null | undefined>(undefined)
   const [extras, setExtras] = useState<Extras>({})
   const [isNew, setIsNew] = useState(false)
+  const [accessCode, setAccessCode] = useState('')
 
-  const find = async (id: string, phone: string) => {
-    const r = await fetch(`/api/plugins/shop/order?${new URLSearchParams({ id, phone })}`).catch(() => null)
+  const find = async (id: string, token: string) => {
+    setAccessCode(token)
+    const r = await fetch(`/api/plugins/shop/order?${new URLSearchParams({ id, token })}`).catch(() => null)
     const j = r?.ok ? await r.json() : null
     setOrder(j?.order ?? null)
     setExtras(j?.extras ?? {})
   }
-  // Mở từ trang đặt hàng thành công: ?id=...&phone=...&new=1 -> tra cứu ngay.
+  // Mở từ trang đặt hàng thành công bằng mã tra cứu riêng.
   React.useEffect(() => {
     const q = new URLSearchParams(location.search)
-    if (q.get('id') && q.get('phone')) {
+    if (q.get('id') && q.get('token')) {
       setIsNew(q.get('new') === '1')
-      void find(q.get('id')!, q.get('phone')!)
+      void find(q.get('id')!, q.get('token')!)
     }
   }, [])
 
@@ -277,15 +282,16 @@ export function OrderLookup({ heading }: { heading?: string }) {
     <section className="sp-section">
       <div className="sp-wrap">
         <h2>{heading || t.lookup}</h2>
-        <form className="sp-form" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); setIsNew(false); void find(String(f.get('id')).trim(), String(f.get('phone')).trim()) }}>
+        <form className="sp-form" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); setIsNew(false); const id = String(f.get('id')).trim(); let token = String(f.get('token')).trim(); try { token ||= localStorage.getItem('hs_lookup_' + id) || '' } catch {} void find(id, token) }}>
           <label>{t.orderNo}<input name="id" required maxLength={40} /></label>
-          <label>{t.last4}<input name="phone" required inputMode="numeric" pattern="\d{4}" maxLength={4} /></label>
+          <label>{locale === 'en' ? 'Order access code' : 'Mã bảo mật tra cứu đơn'}<input name="token" autoComplete="off" maxLength={64} /></label>
           <button className="sp-btn">{t.go}</button>
         </form>
         {order === null && <p className="sp-note sp-error" role="alert">{t.notFound}</p>}
         {order && (
           <div className="sp-order" role="status">
             {isNew && <p><strong>{t.done} {order.id}</strong><br />{t.keepCode}</p>}
+            {isNew && <p>{locale === 'en' ? 'Keep this private order access code:' : 'Lưu mã bảo mật tra cứu đơn:'} <code style={{ overflowWrap: 'anywhere' }}>{accessCode}</code></p>}
             <p>{t.orderNo}: <strong>{order.id}</strong> · {t.status}: <strong>{t.statuses[order.status] ?? order.status}</strong> · {t.payStatus}: <strong>{t.payStatuses[order.paymentStatus] ?? order.paymentStatus}</strong></p>
             <ul className="sp-cart sp-cart-summary">
               {order.items.map((i, n) => (<li key={n}><span>{i.name} × {i.quantity}</span><strong>{vnd(i.price * i.quantity)}</strong></li>))}
@@ -294,7 +300,7 @@ export function OrderLookup({ heading }: { heading?: string }) {
             <p className="sp-total">{t.total}: <strong>{vnd(order.total)}</strong></p>
             {order.paymentStatus !== 'paid' && order.payment === 'bank' && extras.payment && (
               <div className="sp-qr">
-                {extras.payment.qrUrl && <img src={extras.payment.qrUrl} alt={t.qr} width={240} height={240} />}
+                {extras.payment.qrUrl && <img src={extras.payment.qrUrl} alt={t.qr} width={240} height={240} referrerPolicy="no-referrer" />}
                 {extras.payment.note && <p style={{ whiteSpace: 'pre-line' }}>{extras.payment.note}</p>}
               </div>
             )}

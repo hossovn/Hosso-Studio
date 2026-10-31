@@ -127,8 +127,9 @@ export function CheckoutForm({ heading, branches, statusPath, cartPath }: { head
       })
       const body = await res.json().catch(() => null)
       if (body?.ok) {
+        try { localStorage.setItem('hs_lookup_' + body.order.id, body.lookupToken) } catch { /* The tracking link also carries the token. */ }
         clearCart()
-        window.location.href = `${statusPath}?id=${encodeURIComponent(body.order.id)}&phone=${encodeURIComponent(body.phone4)}`
+        window.location.href = body.redirectUrl || `${statusPath}?id=${encodeURIComponent(body.order.id)}&token=${encodeURIComponent(body.lookupToken)}&new=1`
         return
       }
       setError(body ? { code: body.code, message: body.message, productId: body.productId, available: body.available } : { code: 'network', message: tr('checkout.networkError') })

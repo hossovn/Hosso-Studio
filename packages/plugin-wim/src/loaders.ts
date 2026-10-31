@@ -13,7 +13,7 @@ import { VEHICLE_COOKIE } from './constants'
 
 type Vehicle = { make?: string; model?: string; year?: number }
 
-function vehicleFrom(ctx: LoadContext): Vehicle {
+export function vehicleFrom(ctx: LoadContext): Vehicle {
   const sp = ctx.searchParams
   if (first(sp.make) || first(sp.model) || first(sp.year)) return { make: first(sp.make), model: first(sp.model), year: int(first(sp.year)) }
   return parseVehicleCookie(ctx.cookies[VEHICLE_COOKIE])

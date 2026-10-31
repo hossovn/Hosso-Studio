@@ -35,4 +35,4 @@ export const toCsv = (rows: (string | number | null | undefined)[][]) =>
   '﻿' + rows.map((r) => r.map((v) => (/[",\n\r]/.test(String(v ?? '')) ? `"${String(v).replace(/"/g, '""')}"` : String(v ?? ''))).join(',')).join('\r\n')
 
 /** Cột CSV của sản phẩm (hàng đầu là tiêu đề). */
-export const COLUMNS = ['code', 'name', 'category', 'brand', 'price', 'salePrice', 'stock', 'makes', 'description', 'image', 'active'] as const
+export const COLUMNS = ['code', 'name', 'category', 'brand', 'price', 'salePrice', 'stock', 'makes', 'description', 'image', 'active', 'source', 'wimId'] as const

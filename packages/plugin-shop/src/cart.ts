@@ -18,6 +18,25 @@ let lastCart: Cart = EMPTY
 
 function read(): Cart {
   if (typeof localStorage === 'undefined') return EMPTY
+  // Save the replacement first so a full storage quota cannot erase the old cart.
+  const legacy = localStorage.getItem('hs_cart')
+  if (legacy) {
+    try {
+      const old = JSON.parse(legacy)
+      const current = JSON.parse(localStorage.getItem(KEY) || 'null')
+      if (old?.id && Array.isArray(old.lines)) {
+        const lines: CartLine[] = [...(current?.lines ?? [])]
+        for (const line of old.lines) {
+          const migrated = { ...line, productId: `wim:${line.productId}` }
+          const i = lines.findIndex((l) => lineKey(l) === lineKey(migrated))
+          if (i < 0) lines.push(migrated)
+          else lines[i] = { ...lines[i], quantity: Math.min(99, lines[i].quantity + line.quantity) }
+        }
+        localStorage.setItem(KEY, JSON.stringify({ id: current?.id || old.id, lines }))
+        localStorage.removeItem('hs_cart')
+      }
+    } catch { /* Keep the legacy cart when migration cannot finish. */ }
+  }
   const raw = localStorage.getItem(KEY)
   if (raw === lastRaw) return lastCart
   lastRaw = raw
@@ -70,6 +89,8 @@ export function removeFromCart(key: string) {
 export function clearCart() {
   write({ id: newId(), lines: [] })
 }
+
+export function renewCart() { write({ ...read(), id: newId() }) }
 
 export const cartTotal = (cart: Cart) => cart.lines.reduce((sum, l) => sum + l.price * l.quantity, 0)
 export const cartCount = (cart: Cart) => cart.lines.reduce((sum, l) => sum + l.quantity, 0)

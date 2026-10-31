@@ -25,12 +25,12 @@ export async function listPreviewProducts(source: 'shop' | 'wim', query: string,
   const { user } = await payload.auth({ headers: await headers() })
   if (!user) return { items: [], error: 'unauthorized' }
   if (!['shop', 'wim'].includes(source) || typeof query !== 'string' || query.length > 200) return { items: [], error: 'invalid_request' }
-  const load = loaderFor(source === 'shop' ? 'ShopProductGrid' : 'WimProductGrid')
+  const load = loaderFor('ShopProductGrid')
   if (!load) return { items: [], error: 'unavailable' }
   try {
-    const data = await load({ pageSize: 30, pager: source === 'shop' ? 'yes' : 'no', useSelectedVehicle: 'no' }, { payload, searchParams: { q: query.trim() }, cookies: {}, locale }) as { status?: string; kind?: string; items?: { id: string | number; slug?: string; name: string; code?: string }[] }
+    const data = await load({ pageSize: 30, pager: 'yes' }, { payload, searchParams: { q: query.trim() }, cookies: {}, locale }) as { status?: string; kind?: string; items?: { id: string | number; slug?: string; name: string; code?: string }[] }
     if (data.status !== 'ok' || !Array.isArray(data.items)) return { items: [], error: data.kind || data.status || 'internal' }
-    return { items: data.items.map((p) => ({ value: source === 'shop' ? p.slug || String(p.id) : String(p.id), label: p.code ? `${p.name} (${p.code})` : p.name })) }
+    return { items: data.items.map((p) => ({ value: p.slug || String(p.id), label: p.code ? `${p.name} (${p.code})` : p.name })) }
   } catch {
     return { items: [], error: 'internal' }
   }

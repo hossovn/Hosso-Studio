@@ -1,4 +1,4 @@
-import { emitOrderPaid, type HossoPlugin, type PluginManifest, withLicense } from '@hosso/studio-blocks'
+import { emitOrderPaid, orderTotal, licensed, type HossoPlugin, type PluginManifest, withLicense } from '@hosso/studio-blocks'
 import type { CollectionConfig, Config, Endpoint, GlobalConfig, Payload } from 'payload'
 import manifest from '../hosso.json'
 
@@ -65,6 +65,21 @@ type Cfg = { bank?: string; accountNumber?: string; accountName?: string; note?:
 const getCfg = async (payload: Payload) => (await payload.findGlobal({ slug: SETTINGS as any, depth: 0, overrideAccess: true }).catch(() => null)) as Cfg | null
 const configured = (c: Cfg | null): c is Required<Pick<Cfg, 'bank' | 'accountNumber'>> & Cfg => Boolean(c?.bank && c?.accountNumber)
 
+async function ensurePayment(payload: Payload, order: { id: string; total: number }, payment?: string, req?: import('payload').PayloadRequest) {
+  if (payment !== 'bank' || !configured(await getCfg(payload))) return
+  const existing = (await payload.find({ collection: 'payments' as any, where: { orderNo: { equals: order.id } }, limit: 1, depth: 0, overrideAccess: true, req })).docs[0] as any
+  if (existing) {
+    if (existing.amount !== order.total) throw new Error('Payment amount differs; reconcile the order')
+    return
+  }
+  try { await payload.create({ collection: 'payments' as any, data: { orderNo: order.id, amount: order.total }, overrideAccess: true, req }) }
+  catch (error) {
+    if (req?.transactionID) throw error
+    const duplicate = (await payload.find({ collection: 'payments' as any, where: { orderNo: { equals: order.id } }, limit: 1, depth: 0, overrideAccess: true })).docs[0] as any
+    if (!duplicate || duplicate.amount !== order.total) throw error
+  }
+}
+
 // Ngân hàng thường bỏ dấu gạch và khoảng trắng trong nội dung chuyển khoản: so khớp theo chuỗi chỉ gồm chữ và số.
 const norm = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, '')
 
@@ -107,6 +122,7 @@ const endpoints: Endpoint[] = [
 /** Plugin thanh toán chuyển khoản: QR VietQR cho khách và tự xác nhận khi tiền về. Dùng `onOrderPaid` để plugin bán hàng đánh dấu đơn đã thanh toán. */
 const plugin: HossoPlugin = {
   id: 'payment',
+  commerce: { confirmPayment: async (payload, order) => { if (order.payment === 'bank' && !await licensed('payment')) throw new Error('Payment license required'); await ensurePayment(payload, { id: order.id, total: orderTotal(order) }, order.payment) } },
   manifest: manifest as PluginManifest,
   adminEn: { 'Thanh toán': 'Payments' },
   adminNav: [
@@ -123,14 +139,11 @@ const plugin: HossoPlugin = {
   }),
   hooks: {
     // Đơn chọn chuyển khoản: mở một khoản chờ tiền về để webhook đối chiếu.
-    onOrderPlaced: async ({ payload, order, payment }) => {
-      if (payment !== 'bank' || !configured(await getCfg(payload))) return
-      await payload.create({ collection: 'payments' as any, data: { orderNo: order.id, amount: order.total }, overrideAccess: true }).catch(() => undefined)
-    },
+    onOrderPlaced: async ({ payload, order, payment, request }) => ensurePayment(payload, order, payment, request),
     // Trang tra cứu đơn: QR đúng số tiền và nội dung cho đơn chuyển khoản chưa thanh toán.
     describeOrder: async ({ payload, order }) => {
       const c = await getCfg(payload)
-      if (order.payment !== 'bank' || order.paymentStatus === 'paid' || !configured(c)) return
+      if (order.payment !== 'bank' || order.paymentStatus === 'paid' || order.status === 'cancelled' || !configured(c)) return
       const q = new URLSearchParams({ amount: String(order.total), addInfo: order.id })
       if (c.accountName) q.set('accountName', c.accountName)
       const info = `${c.bank} · ${c.accountNumber}${c.accountName ? ` · ${c.accountName}` : ''}\n${order.id}`

@@ -4,8 +4,8 @@ import manifest from '../hosso.json'
 import { shopBlocks } from './blocks'
 import { Categories, Orders, Products, Reviews, Settings } from './collections'
 import { CartLink } from './client/Shop'
-import { endpoints } from './endpoints'
-import { loadCategories, loadCheckout, loadDetail, loadGrid, loadReviewList, loadWishlistButton } from './loaders'
+import { endpoints, recoverOrders } from './endpoints'
+import { loadCategories, loadCheckout, loadDetail, loadGrid, loadReviewList, loadWishlistButton, syncSources } from './loaders'
 import { fallbackRenderers } from './renderers'
 import { css } from './styles'
 import { exportCatalog, importCatalog } from './portable'
@@ -68,6 +68,7 @@ const plugin: HossoPlugin = {
     return [...products.map((p) => ({ path: `/chi-tiet?p=${p.slug}`, lastModified: p.updatedAt })), ...cats.map((c) => ({ path: `/san-pham?category=${c.slug}`, lastModified: c.updatedAt }))]
   },
   search: async (q, payload) => {
+    await syncSources(payload)
     const r = await payload.find({ collection: 'shop-products' as any, where: { and: [{ active: { equals: true } }, { or: [{ name: { contains: q } }, { code: { contains: q } }] }] }, limit: 8, depth: 1, overrideAccess: true })
     return (r.docs as unknown as Product[]).map((p) => ({ title: p.name, href: `/chi-tiet?p=${p.slug}`, description: [p.brand, p.code, vnd(priceOf(p))].filter(Boolean).join(' · '), image: imageOf(p) })) as { title: string; href: string; description?: string }[]
   },
@@ -75,6 +76,7 @@ const plugin: HossoPlugin = {
     const views = (config.admin?.components as { views?: Record<string, unknown> } | undefined)?.views ?? {}
     return {
       ...config,
+      jobs: { ...config.jobs, tasks: [...(config.jobs?.tasks ?? []), { slug: 'shop-order-recovery', schedule: [{ cron: '* * * * *', queue: 'default' }], handler: async ({ req }) => { await recoverOrders(req); return { output: {} } } }] },
       collections: [...(config.collections ?? []), Categories, Products, Reviews, Orders],
       globals: [...(config.globals ?? []), Settings],
       endpoints: [...(config.endpoints ?? []), ...endpoints],

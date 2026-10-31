@@ -19,6 +19,8 @@ import * as migration_20261030_130000_payload_job_stats from './20261030_130000_
 import * as migration_20261030_140000_cross_sell_tracking from './20261030_140000_cross_sell_tracking';
 import * as migration_20261030_150000_product_content from './20261030_150000_product_content';
 import * as migration_20261031_090000_cross_sell_catalog_sync from './20261031_090000_cross_sell_catalog_sync';
+import * as migration_20261031_160000_shared_product_pool from './20261031_160000_shared_product_pool';
+import * as migration_20261031_170000_order_reliability from './20261031_170000_order_reliability';
 
 export const migrations = [
   {
@@ -106,4 +108,6 @@ export const migrations = [
   { up: migration_20261030_140000_cross_sell_tracking.up, down: migration_20261030_140000_cross_sell_tracking.down, name: '20261030_140000_cross_sell_tracking' },
   { up: migration_20261030_150000_product_content.up, down: migration_20261030_150000_product_content.down, name: '20261030_150000_product_content' },
   { up: migration_20261031_090000_cross_sell_catalog_sync.up, down: migration_20261031_090000_cross_sell_catalog_sync.down, name: '20261031_090000_cross_sell_catalog_sync' },
+  { up: migration_20261031_160000_shared_product_pool.up, down: migration_20261031_160000_shared_product_pool.down, name: '20261031_160000_shared_product_pool' },
+  { up: migration_20261031_170000_order_reliability.up, down: migration_20261031_170000_order_reliability.down, name: '20261031_170000_order_reliability' },
 ];

@@ -20,6 +20,8 @@ export type Product = {
   price: number
   salePrice?: number | null
   stock: number
+  source?: 'shop' | 'wim' | 'cross-sell'
+  wimId?: string
   supplierStockUnmanaged?: boolean
   supplierContent?: import('./product-content').ProductContent | null
   shortDescription?: string

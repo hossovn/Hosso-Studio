@@ -23,6 +23,8 @@
     "test:admin-views": "node scripts/test-admin-views.mjs",
     "test:job-stats-migration": "node scripts/test-job-stats-migration.mjs",
     "test:cross-sell-migration": "node scripts/test-cross-sell-migration.mjs",
+    "test:product-pool": "node scripts/test-product-pool.mjs",
+    "test:order-reliability": "node scripts/review-product-pool.mjs",
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:order-flow": "node scripts/check-order-flow.mjs",
     "mock:wim": "pnpm --filter @hosso/mock-wim start",

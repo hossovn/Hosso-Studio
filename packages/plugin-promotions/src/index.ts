@@ -76,10 +76,10 @@ const plugin: HossoPlugin = {
             : draft.adjustments.filter((a) => a.amount > 0 && a.source === 'shipping').reduce((s, a) => s + a.amount, 0)
       if (discount > 0) draft.adjustments.push({ label: `${m.label} ${v.code}`, amount: -discount, source: 'promotions', scope: v.type === 'freeship' ? 'shipping' : 'goods' })
     },
-    onOrderPlaced: async ({ payload, adjustments, meta }) => {
+    onOrderPlaced: async ({ payload, adjustments, meta, request }) => {
       if (!adjustments?.some((a) => a.source === 'promotions')) return
-      const v = (await payload.find({ collection: 'vouchers' as any, where: { code: { equals: codeOf(meta ?? {}) } }, limit: 1, depth: 0, overrideAccess: true })).docs[0] as unknown as V | undefined
-      if (v) await payload.update({ collection: 'vouchers' as any, id: v.id, data: { usedCount: (v.usedCount ?? 0) + 1 }, overrideAccess: true })
+      const v = (await payload.find({ collection: 'vouchers' as any, where: { code: { equals: codeOf(meta ?? {}) } }, limit: 1, depth: 0, overrideAccess: true, req: request })).docs[0] as unknown as V | undefined
+      if (v) await payload.update({ collection: 'vouchers' as any, id: v.id, data: { usedCount: (v.usedCount ?? 0) + 1 }, overrideAccess: true, req: request })
     },
   },
 }

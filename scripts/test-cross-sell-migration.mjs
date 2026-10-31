@@ -22,13 +22,20 @@ try {
   const dir = new URL('../apps/studio/src/migrations/', import.meta.url)
   const latest = '20261030_140000_cross_sell_tracking.json'
   const snapshot = JSON.parse(fs.readFileSync(new URL(latest, dir), 'utf8'))
+  // Later migrations add catalog sync, supplier-pair uniqueness and the recovery job.
+  const baseline = structuredClone(current)
+  for (const name of ['last_synced_at', 'next_sync_at', 'sync_error']) delete baseline.tables['public.cross_sell_listings'].columns[name]
+  delete baseline.tables['public.cross_sell_listings'].indexes.cross_sell_listings_next_sync_at_idx
+  for (const [name, index] of Object.entries(baseline.tables['public.cross_sell_transfers'].indexes)) if (index.columns.map((column) => column.expression).join(',') === 'local_order_id,partner_id') delete baseline.tables['public.cross_sell_transfers'].indexes[name]
+  baseline.tables['public.cross_sell_transfers'].indexes.cross_sell_transfers_local_order_idx.isUnique = true
+  for (const name of ['enum_payload_jobs_task_slug', 'enum_payload_jobs_log_task_slug']) baseline.enums['public.' + name].values = baseline.enums['public.' + name].values.filter((value) => value !== 'shop-order-recovery')
   for (const [name, table] of Object.entries(current.tables)) {
     if (name.startsWith('public.cross_sell_') || ['public.payload_jobs', 'public.payload_jobs_log', 'public.payload_locked_documents_rels'].includes(name)) {
-      assert.deepEqual(snapshot.tables[name], JSON.parse(JSON.stringify(table)), `Migration snapshot differs from installed Payload schema: ${name}`)
+      assert.deepEqual(snapshot.tables[name], JSON.parse(JSON.stringify(baseline.tables[name])), `Migration snapshot differs from installed Payload schema: ${name}`)
     }
   }
   for (const name of ['enum_payload_jobs_task_slug', 'enum_payload_jobs_log_task_slug', 'enum_cross_sell_partners_auth_method']) {
-    assert.deepEqual(snapshot.enums['public.' + name], current.enums['public.' + name])
+    assert.deepEqual(snapshot.enums['public.' + name], baseline.enums['public.' + name])
   }
   const previous = JSON.parse(fs.readFileSync(new URL('20261030_130000_payload_job_stats.json', dir), 'utf8'))
   // The earlier direct-credentials migration has no JSON snapshot.

@@ -1,9 +1,10 @@
-import { emitOrderPlaced, type HossoPlugin } from '@hosso/studio-blocks'
+import { type HossoPlugin } from '@hosso/studio-blocks'
+import { placeOrder } from '@hosso/plugin-shop/server'
 import type { Config, Endpoint, FieldHook, GlobalConfig, PayloadRequest } from 'payload'
 import { wimGet } from './client'
 import { MASK, SETTINGS_SLUG, clearConfigMemo, getWimConfig } from './config'
 import { encryptSecret, isEncrypted } from './crypto'
-import { placeOrder } from './checkout'
+import { syncWimCatalog } from './catalog'
 import { applyEvent, verifyWebhook } from './webhook'
 import { WimError, wimFetch } from './client'
 import type { Branch, Named } from './client'
@@ -107,7 +108,7 @@ const endpoints: Endpoint[] = [
     },
   },
   {
-    // Luồng D: khách đặt đơn (kiểm tra tồn kho -> Idempotency-Key -> POST /orders; lỗi mạng thì thử lại cùng khóa).
+    // Legacy clients send upstream IDs; all new orders use the shared checkout.
     path: '/plugins/wim/checkout',
     method: 'post',
     handler: async (req) => {
@@ -117,12 +118,18 @@ const endpoints: Endpoint[] = [
       } catch {
         return json({ ok: false, code: 'bad_request', message: msg(req, 'Yêu cầu không hợp lệ', 'Invalid request') }, 400)
       }
-      const result = await placeOrder(req.payload, body ?? {}, req.headers)
-      if (result.body.ok) {
-        const c = body?.customer
-        await emitOrderPlaced(req.payload, { headers: req.headers, order: result.body.order, customer: { name: String(c?.name ?? ''), phone: String(c?.phone ?? ''), address: String(c?.address ?? '') }, fulfillment: { type: body?.fulfillment?.type === 'pickup' ? 'pickup' : 'delivery' }, source: 'wim' })
+      if (!body || !Array.isArray(body.items) || !body.items.length || body.website) return json({ ok: false, code: 'bad_request' }, 400)
+      try {
+        await syncWimCatalog(req.payload)
+      } catch (error) {
+        req.payload.logger.error(error, '[wim] Legacy checkout catalog sync failed')
+        return json({ ok: false, code: 'source_unavailable' }, 503)
       }
-      return json(result.body, result.status)
+      return placeOrder(req, {
+        ...body,
+        items: body.items.map((line: any) => ({ ...line, productId: `wim:${String(line?.productId ?? '').replace(/^wim:/, '')}` })),
+        meta: { ...body.meta, locale: body.locale ?? body.meta?.locale },
+      })
     },
   },
   {
