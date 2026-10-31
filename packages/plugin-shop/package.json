@@ -7,6 +7,10 @@
   "exports": {
     ".": "./src/index.ts",
     "./server": "./src/endpoints.ts",
+    "./stock": "./src/stock.ts",
+    "./cart": "./src/cart.ts",
+    "./loaders": "./src/loaders.ts",
+    "./renderers": "./src/renderers.tsx",
     "./product-content": "./src/product-content.ts",
     "./admin": "./src/admin.tsx",
     "./admin-list": "./src/admin-list.tsx"

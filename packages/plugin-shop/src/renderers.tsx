@@ -60,13 +60,14 @@ const Section = ({ heading, children }: { heading?: string; children: React.Reac
 
 const Stars = ({ n }: { n: number }) => <span className="sp-stars" aria-label={`${n}/5`}>{'★'.repeat(Math.round(n))}{'☆'.repeat(5 - Math.round(n))}</span>
 
-type Filters = { brands: string[]; categories: { name: string; slug: string }[]; current: { q: string; category: string; brand: string; min: number | string; max: number | string; sort: string } }
+type Filters = { brands: string[]; categories: { name: string; slug: string }[]; current: { q: string; category: string; brand: string; min: number | string; max: number | string; sort: string }; preserved?: Record<string, string> }
 
 /** Bộ lọc dạng biểu mẫu GET (không cần JavaScript): từ khóa, danh mục, thương hiệu, khoảng giá, sắp xếp. */
 const FilterBar = ({ f }: { f: Filters }) => {
   const t = tt()
   return (
     <form className="sp-filters" method="get">
+      {Object.entries(f.preserved ?? {}).map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />)}
       <label>{t.search}<input name="q" defaultValue={f.current.q} /></label>
       <label>{t.category}<select name="category" defaultValue={f.current.category}><option value="">{t.all}</option>{f.categories.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}</select></label>
       {f.brands.length > 0 && <label>{t.brand}<select name="brand" defaultValue={f.current.brand}><option value="">{t.all}</option>{f.brands.map((b) => <option key={b} value={b}>{b}</option>)}</select></label>}
@@ -194,7 +195,7 @@ const Categories: BlockRenderer = ({ heading, listPath, data }) => {
 
 const Cart: BlockRenderer = ({ heading, checkoutPath, shopPath, width }) => <div className={width ? `sp-w-${width}` : undefined}><CartView heading={heading} checkoutPath={checkoutPath || '/thanh-toan'} shopPath={shopPath || '/san-pham'} /></div>
 const Checkout: BlockRenderer = ({ heading, statusPath, cartPath, width, layout, data }) => (
-  <div className={`${width ? `sp-w-${width}` : ''}${layout === 'split' ? ' sp-split' : ''}`.trim() || undefined}><CheckoutForm heading={heading} bankInfo={(data as Data)?.bankInfo} statusPath={statusPath || '/trang-thai-don'} cartPath={cartPath || '/gio-hang'} /></div>
+  <div className={`${width ? `sp-w-${width}` : ''}${layout === 'split' ? ' sp-split' : ''}`.trim() || undefined}><CheckoutForm heading={heading} bankInfo={(data as Data)?.bankInfo} branches={(data as Data)?.branches} statusPath={(data as Data)?.statusPath || statusPath || '/trang-thai-don'} cartPath={cartPath || '/gio-hang'} /></div>
 )
 const OrderStatus: BlockRenderer = ({ heading }) => <OrderLookup heading={heading} />
 

@@ -38,7 +38,7 @@ const T = {
     paidLine: 'Chúng tôi đã nhận được thanh toán cho đơn hàng của bạn.',
     total: 'Tổng cộng',
     customer: 'Khách hàng',
-    track: 'Tra cứu đơn bằng mã đơn và 4 số cuối điện thoại trên website.',
+    track: 'Giữ riêng liên kết và mã bảo mật tra cứu đơn.',
     statuses: { new: 'Mới', confirmed: 'Đã xác nhận', shipping: 'Đang giao', completed: 'Hoàn tất', cancelled: 'Đã hủy' } as Record<string, string>,
   },
   en: {
@@ -51,7 +51,7 @@ const T = {
     paidLine: 'We have received the payment for your order.',
     total: 'Total',
     customer: 'Customer',
-    track: 'Track your order on the website with the order number and the last 4 digits of your phone.',
+    track: 'Keep your private order tracking link and access code.',
     statuses: { new: 'New', confirmed: 'Confirmed', shipping: 'Shipping', completed: 'Completed', cancelled: 'Cancelled' } as Record<string, string>,
   },
 }
@@ -86,7 +86,9 @@ const plugin: HossoPlugin = {
       const name = await shopName(payload)
       const body = [...itemLines(items), ...(adjustments ?? []).map((a) => `${a.label}: ${a.amount < 0 ? '-' : '+'}${vnd(Math.abs(a.amount))}`), `${t.total}: ${vnd(order.total)}`]
       await send(payload, c.adminEmail, `[${name}] ${T.vi.newOrder(order.id)}`, [`${T.vi.customer}: ${customer.name} · ${customer.phone}${customer.address ? ` · ${customer.address}` : ''}`, ...body])
-      if (c.toCustomer !== false) await send(payload, customer.email, `[${name}] ${t.placed(order.id)}`, [t.thanks, ...body, t.track])
+      const lookupPath = typeof meta?.lookupPath === 'string' && /^\/(?!\/)/.test(meta.lookupPath) ? meta.lookupPath : '/trang-thai-don'
+      const tracking = typeof meta?.lookupToken === 'string' ? `${payload.config.serverURL || process.env.HOSSO_PUBLIC_URL || ''}${lang === 'en' ? '/en' : ''}${lookupPath}?${new URLSearchParams({ id: order.id, token: meta.lookupToken })}` : ''
+      if (c.toCustomer !== false) await send(payload, customer.email, `[${name}] ${t.placed(order.id)}`, [t.thanks, ...body, t.track, ...(tracking ? [tracking] : [])])
     },
     onOrderStatusChanged: async ({ payload, order, to }) => {
       const c = await getCfg(payload)

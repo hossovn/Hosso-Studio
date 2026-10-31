@@ -1,8 +1,9 @@
-import { collectOrderExtras, emitBeforeOrder, emitOrderPlaced, orderTotal, type OrderAdjustment, type OrderDraft, type OrderLine } from '@hosso/studio-blocks'
+import { collectOrderExtras, emitBeforeOrder, orderTotal, type HossoPlugin, type OrderAdjustment, type OrderDraft, type OrderLine } from '@hosso/studio-blocks'
 import type { Endpoint, Payload, PayloadRequest, Where } from 'payload'
 import { COLUMNS, parseCsv, toCsv } from './csv'
 import { card, pricingOf } from './loaders'
-import { adjustStock } from './stock'
+import { adjustStock, inTransaction, StockConflict } from './stock'
+import { deliverOrderEvents } from './order-events'
 import { hasStock } from './product-content'
 import { priceOf, slugify, type Product } from './util'
 
@@ -15,10 +16,11 @@ const isManager = (req: PayloadRequest) => {
 }
 const fail = (status: number, code: string, message: string, extra: object = {}) => json({ ok: false, code, message, ...extra }, status)
 
-type OrderDoc = { id: number | string; orderNo: string; status: string; total: number; subtotal?: number; adjustments?: OrderAdjustment[]; phone: string; email?: string; items: OrderLine[]; paymentMethod: string; paymentStatus: string; fulfillmentType: string }
-const publicOrder = (o: OrderDoc) => ({ id: o.orderNo, status: o.status, total: o.total, subtotal: o.subtotal ?? o.total, adjustments: (o.adjustments ?? []).map(({ label, amount }) => ({ label, amount })), payment: o.paymentMethod, paymentStatus: o.paymentStatus, fulfillment: o.fulfillmentType, items: o.items.map(({ name, quantity, price }) => ({ name, quantity, price })) })
+type OrderDoc = { id: number | string; orderNo: string; status: string; total: number; subtotal?: number; adjustments?: OrderAdjustment[]; phone: string; email?: string; items: OrderLine[]; paymentMethod: string; paymentStatus: string; fulfillmentType: string; checkoutComplete?: boolean; checkoutState?: string; checkoutKey?: string; lookupToken?: string; checkoutDraft?: OrderDraft & { fingerprint: string }; sourceOrders?: Record<string, unknown> }
+const publicOrder = (o: OrderDoc) => ({ id: o.orderNo, status: o.checkoutDraft && !o.checkoutComplete && o.status !== 'cancelled' ? 'pending' : o.status, total: o.total, subtotal: o.subtotal ?? o.total, adjustments: (o.adjustments ?? []).map(({ label, amount }) => ({ label, amount })), payment: o.paymentMethod, paymentStatus: o.paymentStatus, fulfillment: o.fulfillmentType, items: o.items.map(({ name, quantity, price }) => ({ name, quantity, price })) })
 
 type Prepared = { draft: OrderDraft; stock: Record<string, number>; cartId: string; note: string }
+const pluginsOf = (payload: Payload) => (payload.config.custom?.hossoPlugins ?? []) as HossoPlugin[]
 
 /** Đọc và kiểm tra giỏ hàng, lấy giá và tồn kho từ DB (không tin giá từ trình duyệt), dựng đơn nháp. `quote` bỏ qua các trường khách chưa nhập. */
 async function prepare(req: PayloadRequest, input: Record<string, any>, quote: boolean): Promise<Prepared | Response> {
@@ -28,14 +30,15 @@ async function prepare(req: PayloadRequest, input: Record<string, any>, quote: b
   const rawItems = Array.isArray(input.items) ? input.items : []
   const lines = rawItems
     .slice(0, 50)
-    .map((i: any) => ({ productId: text(i?.productId, 40), variantId: text(i?.variantId, 40), quantity: Math.floor(Number(i?.quantity)) }))
-    .filter((i) => i.productId && i.quantity >= 1 && i.quantity <= 99)
+    .map((i: any) => ({ productId: text(i?.productId, 200), variantId: text(i?.variantId, 40), quantity: Number(i?.quantity) }))
+    .filter((i) => i.productId && Number.isInteger(i.quantity) && i.quantity >= 1 && i.quantity <= 99)
   const name = text(input.customer?.name, 120)
   const phone = text(input.customer?.phone, 20).replace(/[\s.\-()]/g, '')
   const address = text(input.customer?.address, 300)
   const email = text(input.customer?.email, 200).toLowerCase()
   const note = text(input.customer?.note, 500)
   const type = input.fulfillment?.type === 'pickup' ? 'pickup' : 'delivery'
+  const fulfillment = { type, ...(type === 'pickup' && { branchId: text(input.fulfillment?.branchId, 100) }) } as OrderDraft['fulfillment']
   const payment = input.payment === 'bank' ? 'bank' : 'cod'
 
   if (!lines.length || lines.length !== rawItems.length) return fail(400, 'bad_request', 'empty')
@@ -50,13 +53,27 @@ async function prepare(req: PayloadRequest, input: Record<string, any>, quote: b
   const items: OrderLine[] = []
   const stock: Record<string, number> = {}
   for (const l of lines) {
-    const p = (await payload.findByID({ collection: 'shop-products' as any, id: l.productId, depth: 0, overrideAccess: true }).catch(() => null)) as unknown as (Product & { active?: boolean }) | null
+    const p = (l.productId.startsWith('wim:')
+      ? (await payload.find({ collection: 'shop-products' as any, where: { wimId: { equals: l.productId.slice(4) } }, limit: 1, depth: 0, overrideAccess: true })).docs[0]
+      : await payload.findByID({ collection: 'shop-products' as any, id: l.productId, depth: 0, overrideAccess: true }).catch(() => null)) as unknown as (Product & { active?: boolean }) | null
     if (!p || p.active === false) return fail(409, 'product_not_found', 'gone', { productId: l.productId })
     // Sản phẩm có biến thể: khách phải chọn một biến thể; giá và tồn kho lấy theo biến thể.
     let price = priceOf(p)
     let name = p.name
     let available = p.stock
     let code = p.code ?? ''
+    let external: Awaited<ReturnType<NonNullable<NonNullable<HossoPlugin['commerce']>['resolveProduct']>>> | undefined
+    try {
+      for (const plugin of pluginsOf(payload)) {
+        external = await plugin.commerce?.resolveProduct?.(payload, p, l.quantity, fulfillment)
+        if (external) break
+      }
+    } catch {
+      return fail(503, 'source_unavailable', 'Không kiểm tra được nguồn hàng. Vui lòng thử lại.')
+    }
+    if ((p.wimId || p.source === 'wim') && p.source !== 'cross-sell' && !external) return fail(503, 'source_unavailable', 'WIM chưa sẵn sàng.')
+    if (p.source === 'cross-sell' && !pluginsOf(payload).some((plugin) => plugin.id === 'cross-sell')) return fail(503, 'source_unavailable', 'Nguồn hàng bán chéo chưa sẵn sàng.')
+    if (external) { price = external.price; available = external.stock }
     if (p.variants?.length) {
       const v = p.variants.find((x) => x.id === l.variantId)
       if (!v) return fail(409, 'product_not_found', 'gone', { productId: l.productId })
@@ -65,12 +82,16 @@ async function prepare(req: PayloadRequest, input: Record<string, any>, quote: b
       available = v.stock ?? 0
       code = v.sku || code
     }
-    if (p.variants?.length ? available < l.quantity : !hasStock(p, l.quantity)) return fail(409, 'out_of_stock', 'stock', { productId: l.productId, name, available })
-    items.push({ productId: String(p.id), ...(p.variants?.length && { variantId: l.variantId }), name, code, price, quantity: l.quantity })
+    const previous = items.find((i) => i.productId === String(p.id) && (i.variantId || '') === (l.variantId || ''))
+    const quantity = l.quantity + (previous?.quantity ?? 0)
+    if (quantity > 99) return fail(400, 'bad_request', 'quantity')
+    if (p.variants?.length || external ? !external?.stockUnmanaged && available < quantity : !hasStock(p, quantity)) return fail(409, 'out_of_stock', 'stock', { productId: l.productId, name, available })
+    if (previous) previous.quantity = quantity
+    else items.push({ productId: String(p.id), ...(p.variants?.length && { variantId: l.variantId }), name, code, price, quantity, source: external?.source || p.source || 'shop', ...(external && { remoteId: external.remoteId }) })
   }
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
   const meta = typeof input.meta === 'object' && input.meta ? (input.meta as Record<string, unknown>) : {}
-  return { draft: { items, subtotal, adjustments: [], customer: { name, phone, address, email }, fulfillment: { type }, payment, meta }, stock, cartId, note }
+  return { draft: { items, subtotal, adjustments: [], customer: { name, phone, address, email }, fulfillment, payment, meta }, stock, cartId, note }
 }
 
 /** Cho plugin điều chỉnh đơn nháp (phí ship, giảm giá); lỗi thì trả Response từ chối. */
@@ -80,34 +101,100 @@ async function priced(req: PayloadRequest, p: Prepared) {
   return { total: orderTotal(p.draft) }
 }
 
+async function fingerprint(input: Record<string, any>) {
+  const bytes = new TextEncoder().encode(JSON.stringify({ items: input.items, customer: input.customer, fulfillment: input.fulfillment, payment: input.payment, meta: input.meta }))
+  return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), (b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+async function completeOrder(req: PayloadRequest, order: OrderDoc) {
+  const { payload } = req
+  const draft = order.checkoutDraft!
+  const orderNo = order.orderNo || `SO-${String(order.id).padStart(6, '0')}`
+  const success = (redirectUrl?: string) => json({ ok: true, order: { id: orderNo, status: order.status, total: order.total }, lookupToken: order.lookupToken, ...(redirectUrl && { redirectUrl }) })
+  if (order.status === 'cancelled') return fail(409, 'order_cancelled', 'Đơn đã hủy. Vui lòng tạo giỏ mới.', { resetCart: true })
+  if (order.checkoutComplete || !draft) return success(await deliverOrderEvents(req, order))
+  if (order.checkoutState === 'legacy_review') return fail(503, 'reconciliation_required', 'Đơn cũ cần đối soát tồn kho trước khi tiếp tục.')
+  const sourceOrders = { ...order.sourceOrders }
+  try {
+    for (const source of new Set(draft.items.map((i) => i.source).filter((s) => s && s !== 'shop' && s !== 'cross-sell'))) {
+      if (sourceOrders[source!]) continue
+      const adapter = pluginsOf(payload).find((p) => p.id === source)?.commerce?.submitOrder
+      if (!adapter) throw new Error('Source is unavailable')
+      sourceOrders[source!] = await adapter(payload, { ...draft, id: orderNo, checkoutKey: order.checkoutKey, items: draft.items.filter((i) => i.source === source) })
+      await inTransaction(req, () => payload.update({ collection: 'shop-orders' as any, id: order.id, req, data: { sourceOrders }, overrideAccess: true, context: { skipStatusEvent: true } }))
+    }
+  } catch (error) {
+    if ((error as { definitive?: boolean }).definitive && !Object.keys(sourceOrders).length) {
+      await inTransaction(req, async () => {
+        await payload.update({ collection: 'shop-orders' as any, id: order.id, data: { status: 'cancelled', checkoutState: 'source_rejected' }, req, overrideAccess: true, context: { sourceRejected: true } })
+      })
+      return fail(409, 'out_of_stock', 'Nguồn hàng đã từ chối đơn. Vui lòng kiểm tra lại giỏ.', { resetCart: true })
+    }
+    payload.logger.error(error, '[shop] Source order pending; retry with the same cart')
+    return fail(503, 'source_pending', 'Đơn đang chờ nguồn hàng xác nhận. Giữ nguyên giỏ và thử lại.', { orderId: orderNo, lookupToken: order.lookupToken })
+  }
+  try { for (const plugin of pluginsOf(payload)) await plugin.commerce?.confirmPayment?.(payload, { ...draft, id: orderNo }) }
+  catch (error) {
+    payload.logger.error(error, '[shop] Payment preparation pending')
+    return fail(503, 'payment_pending', 'Đơn đang chờ khởi tạo thanh toán. Vui lòng thử lại cùng giỏ.', { orderId: orderNo, lookupToken: order.lookupToken })
+  }
+  // Claim completion atomically so concurrent retries cannot emit duplicate payment/order events.
+  const claimed = await inTransaction(req, () => payload.db.updateOne({ collection: 'shop-orders', req, where: { and: [{ id: { equals: order.id } }, { checkoutComplete: { equals: false } }, { status: { not_equals: 'cancelled' } }] }, data: { orderNo, checkoutComplete: true, checkoutState: 'confirmed' }, options: { atomic: true } }))
+  if (!claimed) return completeOrder(req, await payload.findByID({ collection: 'shop-orders' as any, id: order.id, depth: 0, overrideAccess: true }) as unknown as OrderDoc)
+  return success(await deliverOrderEvents(req, { ...order, checkoutComplete: true }))
+}
+
+export async function recoverOrders(req: PayloadRequest) {
+  const pending = await req.payload.find({ collection: 'shop-orders' as any, where: { and: [{ checkoutDraft: { exists: true } }, { checkoutState: { not_equals: 'legacy_review' } }, { status: { not_equals: 'cancelled' } }, { or: [{ checkoutComplete: { equals: false } }, { hooksComplete: { not_equals: true } }] }] }, limit: 25, sort: 'updatedAt', depth: 0, overrideAccess: true })
+  for (const order of pending.docs as unknown as OrderDoc[]) {
+    try { await completeOrder(req, order) }
+    catch (error) { req.payload.logger.error(error, '[shop] Order recovery failed') }
+  }
+}
+
 export async function placeOrder(req: PayloadRequest, input: Record<string, any>) {
   const { payload } = req
+  if (input.website) return fail(400, 'bad_request', 'bad_request')
+  const cartId = text(input.cartId, 64)
+  if (cartId.length < 8) return fail(400, 'bad_request', 'cart')
+  const requestFingerprint = await fingerprint(input)
+  const dup = (await payload.find({ collection: 'shop-orders' as any, where: { cartId: { equals: cartId } }, limit: 1, depth: 0, overrideAccess: true })).docs[0] as unknown as OrderDoc | undefined
+  if (dup) {
+    if (dup.checkoutDraft ? dup.checkoutDraft.fingerprint !== requestFingerprint : dup.phone !== text(input.customer?.phone, 20).replace(/[\s.\-()]/g, '')) return fail(409, 'cart_changed', 'Giỏ đã tạo đơn với nội dung khác. Vui lòng tạo giỏ mới.')
+    return completeOrder(req, dup)
+  }
   const p = await prepare(req, input, false)
   if (p instanceof Response) return p
-
-  // Thử lại cùng giỏ (mạng chập chờn): trả đơn cũ, không tạo đơn thứ hai.
-  const dup = (await payload.find({ collection: 'shop-orders' as any, where: { cartId: { equals: p.cartId } }, limit: 1, depth: 0, overrideAccess: true })).docs[0] as unknown as OrderDoc | undefined
-  if (dup) return json({ ok: true, order: { id: dup.orderNo, status: dup.status, total: dup.total }, phone4: p.draft.customer.phone.slice(-4) })
 
   const price = await priced(req, p)
   if (price instanceof Response) return price
   const { draft } = p
   const { total } = price
 
-  // ponytail: đọc-kiểm-trừ tồn kho không nằm trong một giao dịch DB; hai đơn cùng lúc cho món cuối có thể cùng qua. Dùng transaction khi lưu lượng lớn.
-  const order = (await payload.create({
-    collection: 'shop-orders' as any,
-    req,
-    overrideAccess: true,
-    context: req.context,
-    data: { cartId: p.cartId, subtotal: draft.subtotal, adjustments: draft.adjustments, total, paymentMethod: draft.payment, fulfillmentType: draft.fulfillment.type, customerName: draft.customer.name, phone: draft.customer.phone, email: draft.customer.email, address: draft.customer.address, note: p.note, items: draft.items },
-  })) as unknown as OrderDoc
-  const orderNo = `SO-${String(order.id).padStart(6, '0')}`
-  await payload.update({ collection: 'shop-orders' as any, id: order.id, req, data: { orderNo }, overrideAccess: true, context: { skipStatusEvent: true } })
-  for (const i of draft.items) await adjustStock(payload, i.productId, i.variantId, -i.quantity)
+  let order: OrderDoc
+  try {
+    order = await inTransaction(req, async () => {
+      const created = (await payload.create({
+        collection: 'shop-orders' as any,
+        req,
+        overrideAccess: true,
+        context: req.context,
+        data: { cartId: p.cartId, checkoutDraft: { ...draft, fingerprint: requestFingerprint }, checkoutComplete: false, checkoutState: 'reserved', checkoutKey: crypto.randomUUID(), lookupToken: crypto.randomUUID().replaceAll('-', '') + crypto.randomUUID().replaceAll('-', ''), subtotal: draft.subtotal, adjustments: draft.adjustments, total, paymentMethod: draft.payment, fulfillmentType: draft.fulfillment.type, branchId: draft.fulfillment.branchId, customerName: draft.customer.name, phone: draft.customer.phone, email: draft.customer.email, address: draft.customer.address, note: p.note, items: draft.items },
+      })) as unknown as OrderDoc
+      const orderNo = `SO-${String(created.id).padStart(6, '0')}`
+      await payload.update({ collection: 'shop-orders' as any, id: created.id, req, data: { orderNo }, overrideAccess: true, context: { skipStatusEvent: true } })
+      for (const i of draft.items) await adjustStock(payload, i.productId, i.variantId, -i.quantity, req)
+      return { ...created, orderNo }
+    })
+  } catch (error) {
+    const existing = (await payload.find({ collection: 'shop-orders' as any, where: { cartId: { equals: cartId } }, limit: 1, depth: 0, overrideAccess: true })).docs[0] as unknown as OrderDoc | undefined
+    if (existing?.checkoutDraft?.fingerprint === requestFingerprint) return completeOrder(req, existing)
+    if (error instanceof StockConflict) return fail(409, 'out_of_stock', 'Tồn kho đã thay đổi. Vui lòng kiểm tra lại giỏ.')
+    payload.logger.error(error, '[shop] Reservation failed; order transaction rolled back')
+    return fail(503, 'reservation_failed', 'Chưa giữ được hàng. Vui lòng thử lại.')
+  }
 
-  const { redirectUrl } = await emitOrderPlaced(payload, { headers: req.headers, order: { id: orderNo, total, status: 'new' }, customer: draft.customer, fulfillment: draft.fulfillment, items: draft.items, subtotal: draft.subtotal, adjustments: draft.adjustments, payment: draft.payment, meta: draft.meta, source: 'shop' })
-  return json({ ok: true, order: { id: orderNo, status: 'new', total }, phone4: draft.customer.phone.slice(-4), redirectUrl })
+  return completeOrder(req, order)
 }
 
 /** Nhập CSV: cập nhật theo `code` (mã sản phẩm), chưa có thì tạo; danh mục theo tên (chưa có thì tạo); ảnh theo tên tệp đã có trong Media. */
@@ -137,8 +224,12 @@ async function importCsv(payload: Payload, csv: string) {
       const imageName = get(r, 'image')
       const media = imageName ? (await payload.find({ collection: 'media', where: { filename: { equals: imageName } }, limit: 1, depth: 0, overrideAccess: true })).docs[0] : undefined
       const num = (k: string) => (get(r, k) === '' ? undefined : Number(get(r, k)))
+      const source = get(r, 'source')
+      if (source && !['shop', 'wim', 'cross-sell'].includes(source)) throw new Error('Invalid product source')
       const data: Record<string, unknown> = {
         name,
+        ...(source && { source }),
+        ...(col.wimId !== undefined && { wimId: get(r, 'wimId') || null }),
         brand: get(r, 'brand') || undefined,
         price: num('price') ?? 0,
         salePrice: num('salePrice'),
@@ -155,7 +246,7 @@ async function importCsv(payload: Payload, csv: string) {
         await payload.update({ collection: 'shop-products' as any, id: existing.id, data, overrideAccess: true })
         updated++
       } else {
-        await payload.create({ collection: 'shop-products' as any, data: { ...data, code: code || undefined }, overrideAccess: true })
+        await payload.create({ collection: 'shop-products' as any, data: { ...data, code: code || undefined, ...(source === 'cross-sell' && { active: false, stock: 0 }) }, overrideAccess: true })
         created++
       }
     } catch (e) {
@@ -262,17 +353,21 @@ export const endpoints: Endpoint[] = [
     },
   },
   {
-    // Khách tra cứu đơn: mã đơn + 4 số cuối điện thoại.
+    // Khách tra cứu bằng mã đơn và token riêng, không dùng số điện thoại làm quyền truy cập.
     path: '/plugins/shop/order',
     method: 'get',
     handler: async (req) => {
       const sp = new URL(req.url!).searchParams
       const orderNo = text(sp.get('id'), 40)
-      const phone4 = text(sp.get('phone'), 4)
+      const token = text(sp.get('token'), 128)
       const o = orderNo ? ((await req.payload.find({ collection: 'shop-orders' as any, where: { orderNo: { equals: orderNo } }, limit: 1, depth: 0, overrideAccess: true })).docs[0] as unknown as OrderDoc | undefined) : undefined
-      if (!o || !/^\d{4}$/.test(phone4) || !o.phone.endsWith(phone4)) return json({ ok: false }, 404)
-      const extras = await collectOrderExtras(req.payload, { id: o.orderNo, total: o.total, status: o.status, payment: o.paymentMethod, paymentStatus: o.paymentStatus })
-      return json({ ok: true, order: publicOrder(o), extras })
+      if (!o || !/^[a-f0-9]{64}$/.test(token) || token !== o.lookupToken) return json({ ok: false }, 404)
+      const extras = o.checkoutDraft && !o.checkoutComplete || o.status === 'cancelled' ? {} : await collectOrderExtras(req.payload, { id: o.orderNo, total: o.total, status: o.status, payment: o.paymentMethod, paymentStatus: o.paymentStatus })
+      if ((!o.checkoutDraft || o.checkoutComplete) && o.status !== 'cancelled' && o.paymentMethod === 'bank' && o.paymentStatus !== 'paid' && !('payment' in extras)) {
+        const settings = await req.payload.findGlobal({ slug: 'shop-settings' as any, depth: 0, overrideAccess: true }) as { bankInfo?: string }
+        if (settings.bankInfo) Object.assign(extras, { payment: { note: settings.bankInfo } })
+      }
+      return Response.json({ ok: true, order: publicOrder(o), extras }, { headers: { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' } })
     },
   },
   {
@@ -290,7 +385,7 @@ export const endpoints: Endpoint[] = [
     handler: async (req) => {
       if (!isManager(req)) return json({ ok: false, message: 'forbidden' }, 403)
       const docs = (await req.payload.find({ collection: 'shop-products' as any, limit: 10000, depth: 2, pagination: false, overrideAccess: true })).docs as unknown as (Product & { active?: boolean })[]
-      const rows = docs.map((p) => [p.code, p.name, p.category?.name, p.brand, p.price, p.salePrice, p.stock, (p.makes ?? []).join(';'), p.description, p.images?.[0]?.image?.filename, p.active === false ? 0 : 1])
+      const rows = docs.map((p) => [p.code, p.name, p.category?.name, p.brand, p.price, p.salePrice, p.stock, (p.makes ?? []).join(';'), p.description, p.images?.[0]?.image?.filename, p.active === false ? 0 : 1, p.source || (p.wimId ? 'wim' : 'shop'), p.wimId])
       return new Response(toCsv([[...COLUMNS], ...rows]), { headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="products.csv"' } })
     },
   },

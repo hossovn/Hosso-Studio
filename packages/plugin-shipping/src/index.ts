@@ -1,7 +1,7 @@
 import { withLicense } from '@hosso/studio-blocks'
 import type { BlockSchema, HossoPlugin, PluginManifest } from '@hosso/studio-blocks'
 import manifest from '../hosso.json'
-import type { CollectionConfig, Config, Endpoint, GlobalConfig, Payload } from 'payload'
+import type { CollectionConfig, Config, Endpoint, GlobalConfig, Payload, PayloadRequest } from 'payload'
 import React from 'react'
 import { FINAL, GHN_NAME, createGhnOrder, getGhnConfig, getGhnFee, getGhnStatus, mapStatus, type Shipment } from './ghn'
 import { Track } from './Track'
@@ -81,10 +81,10 @@ const statusLabels = {
 }
 
 // Tạo đơn trên GHN cho vận đơn; lỗi được ghi vào `ghnError` để quản trị viên sửa địa chỉ rồi lưu lại (afterChange sẽ thử lại).
-async function tryCreateGhn(payload: Payload, s: Shipment) {
+async function tryCreateGhn(payload: Payload, s: Shipment, req?: PayloadRequest) {
   const cfg = await getGhnConfig(payload)
   if (!cfg || s.trackingCode) return
-  const update = (data: object) => payload.update({ collection: 'shipments' as any, id: s.id, data, overrideAccess: true, context: { skipGhn: true } })
+  const update = (data: object) => payload.update({ collection: 'shipments' as any, id: s.id, data, overrideAccess: true, req, context: { skipGhn: true } })
   try {
     const r = await createGhnOrder(cfg, s)
     await update({ carrier: GHN_NAME, trackingCode: r.orderCode, districtId: r.districtId, wardCode: r.wardCode, ghnStatus: 'ready_to_pick', ghnError: null, syncedAt: new Date().toISOString() })
@@ -125,7 +125,7 @@ const Shipments: CollectionConfig = {
     // Lưu lại vận đơn đang lỗi (chưa có mã) thì thử tạo đơn GHN lần nữa. `skipGhn` chặn vòng lặp do chính các cập nhật nội bộ.
     afterChange: [
       async ({ doc, req, operation }) => {
-        if (operation === 'update' && !req.context.skipGhn && doc.ghnError && !doc.trackingCode) await tryCreateGhn(req.payload, doc)
+        if (operation === 'update' && !req.context.skipGhn && doc.ghnError && !doc.trackingCode) await tryCreateGhn(req.payload, doc, req)
         return doc
       },
     ],
@@ -233,18 +233,17 @@ const plugin: HossoPlugin = {
       }
       if (fee > 0) draft.adjustments.push({ label: draft.meta.locale === 'en' ? 'Shipping fee' : 'Phí vận chuyển', amount: fee, source: 'shipping' })
     },
-    onOrderPlaced: async ({ payload, order, customer, fulfillment, payment }) => {
+    onOrderPlaced: async ({ payload, order, customer, fulfillment, payment, request }) => {
       if (fulfillment.type !== 'delivery') return
-      try {
+      const existing = (await payload.find({ collection: 'shipments' as any, where: { orderId: { equals: order.id } }, depth: 0, limit: 1, overrideAccess: true, req: request })).docs[0]
+      if (existing) return
         const created = (await payload.create({
           collection: 'shipments' as any,
           overrideAccess: true,
+          req: request,
           data: { orderId: order.id, customerName: customer.name, phone: customer.phone, address: customer.address, orderTotal: order.total, paymentMethod: payment },
         })) as unknown as Shipment
-        await tryCreateGhn(payload, created)
-      } catch {
-        // orderId đã có: bỏ qua, không ghi trùng.
-      }
+        await tryCreateGhn(payload, created, request)
     },
   },
 }

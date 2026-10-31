@@ -1,6 +1,6 @@
-import { emitOrderStatusChanged } from '@hosso/studio-blocks'
+import { emitOrderStatusChanged, type HossoPlugin } from '@hosso/studio-blocks'
 import type { CollectionConfig, Field, GlobalConfig } from 'payload'
-import { adjustStock } from './stock'
+import { adjustStock, inTransaction } from './stock'
 import { slugify } from './util'
 
 type Roled = { roles?: string[] | null } | null | undefined
@@ -40,7 +40,7 @@ export const Categories: CollectionConfig = {
 const ProductsBase: CollectionConfig = {
   slug: 'shop-products',
   labels: { singular: bi('Sản phẩm', 'Product'), plural: bi('Sản phẩm', 'Products') },
-  admin: { group: GROUP, useAsTitle: 'name', defaultColumns: ['thumb', 'name', 'code', 'category', 'price', 'salePrice', 'stock', 'active'], listSearchableFields: ['name', 'code'] },
+  admin: { group: GROUP, useAsTitle: 'name', defaultColumns: ['thumb', 'name', 'source', 'code', 'category', 'price', 'salePrice', 'stock', 'active'], listSearchableFields: ['name', 'code'] },
   access: catalogAccess,
   hooks: {
     // Tự tạo đường dẫn từ tên; trùng thì thêm mã hoặc hậu tố ngắn.
@@ -56,6 +56,7 @@ const ProductsBase: CollectionConfig = {
   },
   fields: [
     { name: 'name', type: 'text', required: true, label: bi('Tên sản phẩm', 'Name') },
+    { name: 'stockVersion', type: 'number', defaultValue: 0, admin: { hidden: true } },
     { name: 'slug', type: 'text', unique: true, index: true, label: bi('Đường dẫn', 'Slug'), admin: { position: 'sidebar' } },
     { name: 'code', type: 'text', unique: true, index: true, label: bi('Mã sản phẩm (SKU)', 'SKU'), admin: { position: 'sidebar' } },
     {
@@ -75,15 +76,18 @@ const ProductsBase: CollectionConfig = {
       name: 'wimId',
       type: 'text',
       index: true,
+      unique: true,
+      hooks: { beforeValidate: [({ value }) => typeof value === 'string' ? value.trim() || null : value] },
       label: bi('Gắn với sản phẩm WIM (mã)', 'Linked WIM product (ID)'),
       admin: {
         position: 'sidebar',
         description: bi(
-          'Điền mã sản phẩm bên WIM để bản ghi này bổ sung ảnh, mô tả, trọng lượng, kích thước chỉ hiển thị trên web. Giá và tồn kho vẫn lấy từ WIM. Bản ghi gắn WIM nên bỏ chọn "Đang bán" để shop không bán trùng.',
-          'Enter the WIM product ID so this record adds images, description, weight and size shown on the web only. Price and stock still come from WIM. Untick "On sale" on linked records so the shop does not sell it twice.',
+          'ID nguồn WIM. Sản phẩm dùng chung catalog và giỏ hàng; giá và tồn kho kiểm tra lại từ WIM khi đặt hàng.',
+          'Upstream WIM ID. Products share one catalog and cart; checkout rechecks WIM prices and stock.',
         ),
       },
     },
+    { name: 'source', type: 'select', defaultValue: 'shop', label: bi('Nguồn hàng', 'Product source'), options: [{ label: 'Shop', value: 'shop' }, { label: 'WIM', value: 'wim' }, { label: bi('Bán chéo', 'Cross-sell'), value: 'cross-sell' }], admin: { position: 'sidebar', readOnly: true } },
     { name: 'active', type: 'checkbox', defaultValue: true, label: bi('Đang bán', 'On sale'), admin: { position: 'sidebar', components: { Cell: '@hosso/plugin-shop/admin-list#ActiveCell' } } },
     { name: 'category', type: 'relationship', relationTo: 'shop-categories' as any, label: bi('Danh mục', 'Category'), admin: { position: 'sidebar' } },
     { name: 'brand', type: 'text', index: true, label: bi('Thương hiệu', 'Brand'), admin: { position: 'sidebar' } },
@@ -131,7 +135,7 @@ const ProductsBase: CollectionConfig = {
 }
 
 // Form sản phẩm chia tab (tab không đổi cấu trúc dữ liệu); các trường dùng nhanh vẫn ở cột bên.
-const SIDE = ['slug', 'code', 'active', 'category', 'brand', 'priceDisplay', 'wimId']
+const SIDE = ['slug', 'code', 'active', 'category', 'brand', 'priceDisplay', 'wimId', 'source', 'stockVersion']
 const TABS: [ReturnType<typeof bi>, string[]][] = [
   [bi('Thông tin', 'Info'), ['name', 'displayName', 'shortDescription', 'description', 'additionalInformation', 'images', 'makes', 'supplierContent']],
   [bi('Giá và kho', 'Price and stock'), ['price', 'salePrice', 'stock', 'supplierStockUnmanaged', 'variants']],
@@ -184,16 +188,26 @@ export const Orders: CollectionConfig = {
   // Đơn chỉ được tạo qua endpoint thanh toán; quản trị viên xem và đổi trạng thái.
   access: { read: manager, create: () => false, update: manager, delete: manager },
   hooks: {
+    beforeChange: [async ({ data, originalDoc, operation, req }) => {
+      if (operation !== 'update' || data.status !== 'cancelled' || originalDoc.status === 'cancelled') return data
+      if (!req.context.sourceRejected && originalDoc.checkoutDraft && !originalDoc.checkoutComplete && originalDoc.items?.some((i: any) => i.remoteId)) throw new Error('Reconcile the pending source order before cancelling')
+      for (const [source, order] of Object.entries(originalDoc.sourceOrders ?? {})) {
+        const cancel = ((req.payload.config.custom?.hossoPlugins ?? []) as HossoPlugin[]).find((p) => p.id === source)?.commerce?.cancelOrder
+        if (!cancel) throw new Error('Source cancellation is unavailable; reconcile before cancelling')
+        await cancel(req.payload, order as { id: string })
+      }
+      return data
+    }],
     // Hủy đơn thì hoàn lại tồn kho (một lần).
     afterChange: [
       async ({ doc, previousDoc, req, operation }) => {
         if (operation === 'update' && previousDoc?.status && previousDoc.status !== doc.status && !req.context.skipStatusEvent)
           await emitOrderStatusChanged(req.payload, { order: { id: doc.orderNo, total: doc.total, status: doc.status, customer: { name: doc.customerName, phone: doc.phone, address: doc.address, email: doc.email || undefined } }, from: previousDoc.status, to: doc.status, source: 'shop' })
         if (operation !== 'update' || doc.status !== 'cancelled' || doc.restocked || req.context.skipRestock) return doc
-        for (const l of doc.items ?? []) {
-          await adjustStock(req.payload, String(l.productId), l.variantId || undefined, l.quantity)
-        }
-        await req.payload.update({ collection: 'shop-orders' as any, id: doc.id, data: { restocked: true }, overrideAccess: true, context: { skipRestock: true } })
+        await inTransaction(req, async () => {
+          const claimed = await req.payload.db.updateOne({ collection: 'shop-orders', req, where: { and: [{ id: { equals: doc.id } }, { restocked: { not_equals: true } }] }, data: { restocked: true }, options: { atomic: true } })
+          if (claimed) for (const l of doc.items ?? []) await adjustStock(req.payload, String(l.productId), l.variantId || undefined, l.quantity, req)
+        })
         return doc
       },
     ],
@@ -202,6 +216,16 @@ export const Orders: CollectionConfig = {
     { name: 'printLink', type: 'ui', admin: { components: { Field: '@hosso/plugin-shop/admin#PrintLink' } } },
     { name: 'orderNo', type: 'text', unique: true, index: true, label: bi('Mã đơn', 'Order number'), admin: { position: 'sidebar', readOnly: true } },
     { name: 'cartId', type: 'text', unique: true, admin: { hidden: true } },
+    { name: 'checkoutDraft', type: 'json', admin: { hidden: true } },
+    { name: 'checkoutComplete', type: 'checkbox', defaultValue: false, admin: { readOnly: true } },
+    { name: 'checkoutState', type: 'text', admin: { readOnly: true } },
+    { name: 'checkoutKey', type: 'text', admin: { hidden: true } },
+    { name: 'lookupToken', type: 'text', admin: { readOnly: true } },
+    { name: 'placedHooks', type: 'json', admin: { hidden: true } },
+    { name: 'hookLeaseUntil', type: 'date', admin: { hidden: true } },
+    { name: 'hooksComplete', type: 'checkbox', defaultValue: false, admin: { hidden: true } },
+    { name: 'sourceOrders', type: 'json', admin: { readOnly: true } },
+    { name: 'branchId', type: 'text', admin: { readOnly: true } },
     {
       name: 'status',
       type: 'select',
@@ -260,6 +284,8 @@ export const Orders: CollectionConfig = {
       fields: [
         { name: 'productId', type: 'text', required: true },
         { name: 'variantId', type: 'text' },
+        { name: 'source', type: 'text' },
+        { name: 'remoteId', type: 'text' },
         { name: 'name', type: 'text', label: bi('Tên', 'Name') },
         { name: 'code', type: 'text', label: bi('Mã', 'SKU') },
         { name: 'price', type: 'number', label: bi('Đơn giá', 'Unit price') },

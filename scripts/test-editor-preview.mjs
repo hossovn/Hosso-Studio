@@ -217,8 +217,15 @@ assert.deepEqual(await actions.loadBlockData('ShopProductDetail', {}, 'vi', { ..
 assert.equal(calls.length, beforeInvalid)
 assert.deepEqual(await actions.listPreviewProducts('shop', ' filter ', 'vi'), { items: [{ value: 'oil-filter', label: 'Oil filter (OF42)' }] })
 assert.deepEqual(calls.at(-1).ctx.searchParams, { q: 'filter' })
-assert.deepEqual(await actions.listPreviewProducts('wim', '', 'vi'), { items: [{ value: '42', label: 'Oil filter (OF42)' }] })
-assert.equal(calls.at(-1).type, 'WimProductGrid')
+assert.deepEqual(await actions.listPreviewProducts('wim', '', 'vi'), { items: [{ value: 'oil-filter', label: 'Oil filter (OF42)' }] })
+assert.equal(calls.at(-1).type, 'ShopProductGrid')
+const { EditorPreviewControls } = compile('../apps/studio/src/components/admin/EditorPreviewControls.tsx', {
+  '@/app/(editor)/editor/[id]/actions': { listPreviewProducts: actions.listPreviewProducts },
+  'lucide-react': { SlidersHorizontal: () => null },
+})
+const productControls = renderToStaticMarkup(React.createElement(EditorPreviewControls, { value: preview, onChange() {}, open: true, onOpenChange() {}, sources: ['shop', 'wim'], locale: 'vi', lang: 'vi' }))
+assert.equal((productControls.match(/<select aria-label="Sản phẩm"/g) || []).length, 1)
+assert.doesNotMatch(productControls, /Sản phẩm WIM|Sản phẩm cửa hàng/)
 const beforeDenied = calls.length
 assert.equal((await actions.listPreviewProducts('customers', '', 'vi')).error, 'invalid_request')
 assert.equal((await actions.listPreviewProducts('shop', 'x'.repeat(201), 'vi')).error, 'invalid_request')

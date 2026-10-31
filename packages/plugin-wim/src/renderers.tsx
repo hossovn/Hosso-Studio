@@ -7,6 +7,7 @@ import type { Availability, Branch, Product } from './client'
 import { formatVnd } from './format'
 import { lh, tr } from './i18n'
 import type { Key } from './strings.vi'
+import { fallbackRenderers as productRenderers } from '@hosso/plugin-shop/renderers'
 
 // Renderer dự phòng: dùng khi theme không có renderer riêng cho block của plugin. Style theo biến --hs-* của theme.
 
@@ -449,9 +450,9 @@ export const OrderStatus: BlockRenderer = ({ heading, data }) => {
 export const fallbackRenderers: Record<string, BlockRenderer> = {
   WimVehicleSelector: VehicleSelector,
   WimProductSearch: ProductSearch,
-  WimProductGrid: ProductGrid,
-  WimProductDetail: ProductDetail,
-  WimCart: Cart,
-  WimCheckout: Checkout,
-  WimOrderStatus: OrderStatus,
+  WimProductGrid: productRenderers.ShopProductGrid,
+  WimProductDetail: productRenderers.ShopProductDetail,
+  WimCart: productRenderers.ShopCart,
+  WimCheckout: productRenderers.ShopCheckout,
+  WimOrderStatus: (props) => (props.data as any)?.legacy ? <OrderStatus {...props} /> : React.createElement(productRenderers.ShopOrderStatus, props),
 }

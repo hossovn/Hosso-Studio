@@ -122,7 +122,7 @@ export type BlockLoader = (props: Record<string, any>, ctx: LoadContext) => Prom
  * nên mã plugin không được import module chỉ có ở Node lúc chạy (dùng Web Crypto, fetch).
  */
 /** Một dòng hàng trong đơn. */
-export type OrderLine = { productId: string; variantId?: string; name: string; code?: string; price: number; quantity: number }
+export type OrderLine = { productId: string; variantId?: string; name: string; code?: string; price: number; quantity: number; source?: string; remoteId?: string }
 
 /** Khoản cộng/trừ vào tổng đơn do plugin thêm (phí ship > 0, giảm giá < 0). */
 export type OrderAdjustment = { label: string; amount: number; source: string; scope?: 'goods' | 'shipping' }
@@ -135,7 +135,7 @@ export type OrderDraft = {
   subtotal: number
   adjustments: OrderAdjustment[]
   customer: OrderCustomer
-  fulfillment: { type: 'delivery' | 'pickup' }
+  fulfillment: { type: 'delivery' | 'pickup'; branchId?: string }
   /** Cách thanh toán khách chọn: 'cod', 'bank', ... (plugin thanh toán có thể thêm). */
   payment: string
   /** Dữ liệu thô từ trình duyệt cho plugin đọc (ví dụ mã giảm giá: meta.voucher). */
@@ -149,6 +149,7 @@ export type BeforeOrderEvent = { payload: Payload; headers: Headers; draft: Orde
 /** Sự kiện đặt đơn thành công. Plugin bán hàng (ví dụ Cửa hàng) phát ra, plugin khác (affiliate, giao vận, thanh toán...) lắng nghe qua `hooks`. */
 export type OrderPlacedEvent = {
   payload: Payload
+  request?: PayloadRequest
   /** Yêu cầu đặt đơn gốc: đọc cookie, header (ví dụ mã giới thiệu). */
   headers: Headers
   order: { id: string; total: number; status: string }
@@ -179,6 +180,15 @@ export type OrderExtras = { payment?: { qrUrl?: string; note?: string } }
 
 export type HossoPlugin = {
   id: string
+  /** Commerce adapters run strictly: a failed source must never produce a successful checkout. */
+  commerce?: {
+    syncCatalog?: (payload: Payload) => Promise<void>
+    resolveProduct?: (payload: Payload, product: Record<string, any>, quantity: number, fulfillment: OrderDraft['fulfillment']) => Promise<{ source: string; remoteId: string; price: number; stock: number; stockUnmanaged?: boolean } | undefined>
+    submitOrder?: (payload: Payload, order: OrderDraft & { id: string; checkoutKey?: string }) => Promise<unknown>
+    confirmPayment?: (payload: Payload, order: OrderDraft & { id: string }) => Promise<void>
+    cancelOrder?: (payload: Payload, order: { id: string }) => Promise<void>
+    checkoutData?: (payload: Payload) => Promise<{ branches: { id: string; name: string }[] }>
+  }
   /** Phiếu thông tin hiện ở trang Plugin trong admin (nạp từ hosso.json của plugin). */
   manifest?: PluginManifest
   blocks?: BlockSchema<any>[]

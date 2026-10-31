@@ -104,6 +104,7 @@ export interface Config {
     'cross-sell-transfers': CrossSellTransfer;
     'cross-sell-dispatches': CrossSellDispatch;
     'cross-sell-receipts': CrossSellReceipt;
+    'cross-sell-events': CrossSellEvent;
     'payload-kv': PayloadKv;
     'payload-jobs': PayloadJob;
     'payload-locked-documents': PayloadLockedDocument;
@@ -149,6 +150,7 @@ export interface Config {
     'cross-sell-transfers': CrossSellTransfersSelect<false> | CrossSellTransfersSelect<true>;
     'cross-sell-dispatches': CrossSellDispatchesSelect<false> | CrossSellDispatchesSelect<true>;
     'cross-sell-receipts': CrossSellReceiptsSelect<false> | CrossSellReceiptsSelect<true>;
+    'cross-sell-events': CrossSellEventsSelect<false> | CrossSellEventsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -169,6 +171,7 @@ export interface Config {
     'notify-settings': NotifySetting;
     'analytics-settings': AnalyticsSetting;
     'cross-sell-settings': CrossSellSetting;
+    'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
     'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
@@ -180,6 +183,7 @@ export interface Config {
     'notify-settings': NotifySettingsSelect<false> | NotifySettingsSelect<true>;
     'analytics-settings': AnalyticsSettingsSelect<false> | AnalyticsSettingsSelect<true>;
     'cross-sell-settings': CrossSellSettingsSelect<false> | CrossSellSettingsSelect<true>;
+    'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: 'vi' | 'en';
   widgets: {
@@ -188,6 +192,8 @@ export interface Config {
   user: User;
   jobs: {
     tasks: {
+      'shop-order-recovery': TaskShopOrderRecovery;
+      'cross-sell-sync': TaskCrossSellSync;
       schedulePublish: TaskSchedulePublish;
       inline: {
         input: unknown;
@@ -530,13 +536,15 @@ export interface ShopCategory {
  */
 export interface ShopProduct {
   id: number;
+  stockVersion?: number | null;
   slug?: string | null;
   code?: string | null;
   priceDisplay?: ('default' | 'show' | 'hide') | null;
   /**
-   * Enter the WIM product ID so this record adds images, description, weight and size shown on the web only. Price and stock still come from WIM. Untick "On sale" on linked records so the shop does not sell it twice.
+   * Upstream WIM ID. Products share one catalog and cart; checkout rechecks WIM prices and stock.
    */
   wimId?: string | null;
+  source?: ('shop' | 'wim' | 'cross-sell') | null;
   active?: boolean | null;
   category?: (number | null) | ShopCategory;
   brand?: string | null;
@@ -545,7 +553,15 @@ export interface ShopProduct {
    * For WIM-linked products: leave empty to use the WIM name.
    */
   displayName?: string | null;
+  shortDescription?: string | null;
   description?: string | null;
+  additionalInformation?:
+    | {
+        name: string;
+        value: string;
+        id?: string | null;
+      }[]
+    | null;
   images?:
     | {
         image: number | Media;
@@ -556,6 +572,15 @@ export interface ShopProduct {
    * Lowercase, no accents (for example toyota, kia). Used by the ?make= filter.
    */
   makes?: string[] | null;
+  supplierContent?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   price: number;
   /**
    * Leave empty for no discount. Must be lower than the price.
@@ -565,6 +590,7 @@ export interface ShopProduct {
    * Ignored when the product has variants (each variant has its own stock).
    */
   stock: number;
+  supplierStockUnmanaged?: boolean | null;
   /**
    * When variants exist, customers must pick one. An empty price uses the product price.
    */
@@ -606,6 +632,40 @@ export interface ShopOrder {
   id: number;
   orderNo?: string | null;
   cartId?: string | null;
+  checkoutDraft?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  checkoutComplete?: boolean | null;
+  checkoutState?: string | null;
+  checkoutKey?: string | null;
+  lookupToken?: string | null;
+  placedHooks?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  hookLeaseUntil?: string | null;
+  hooksComplete?: boolean | null;
+  sourceOrders?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  branchId?: string | null;
   status: 'new' | 'confirmed' | 'shipping' | 'completed' | 'cancelled';
   subtotal?: number | null;
   /**
@@ -636,6 +696,8 @@ export interface ShopOrder {
     | {
         productId: string;
         variantId?: string | null;
+        source?: string | null;
+        remoteId?: string | null;
         name?: string | null;
         code?: string | null;
         price?: number | null;
@@ -661,6 +723,15 @@ export interface ShopOrder {
   crossSellPartner?: (number | null) | CrossSellPartner;
   crossSellTransfer?: (number | null) | CrossSellTransfer;
   crossSellPurchase?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  crossSellPurchases?:
     | {
         [k: string]: unknown;
       }
@@ -708,6 +779,10 @@ export interface CrossSellPartner {
   buyerName: string;
   buyerPhone: string;
   active?: boolean | null;
+  /**
+   * Optional: HOSSO_CROSS_SELL_* variable containing the webhook secret (at least 32 characters).
+   */
+  webhookSecretEnv?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -740,6 +815,15 @@ export interface CrossSellTransfer {
   commissionStatus?: ('pending' | 'eligible' | 'cancelled') | null;
   lastError?: string | null;
   checkedAt?: string | null;
+  localStatus?: string | null;
+  localPaymentStatus?: string | null;
+  remotePaid?: boolean | null;
+  remoteUpdatedAt?: string | null;
+  remoteChangedAt?: string | null;
+  syncError?: string | null;
+  dispatchStartedAt?: string | null;
+  syncAttemptAt?: string | null;
+  nextSyncAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1026,6 +1110,9 @@ export interface CrossSellListing {
   product?: (number | null) | ShopProduct;
   backend?: ('shop' | 'wim') | null;
   wimProductId?: string | null;
+  lastSyncedAt?: string | null;
+  nextSyncAt?: string | null;
+  syncError?: string | null;
   remoteId: string;
   remoteKey: string;
   supplierPrice: number;
@@ -1079,6 +1166,41 @@ export interface CrossSellReceipt {
     | boolean
     | null;
   body:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-events".
+ */
+export interface CrossSellEvent {
+  id: number;
+  key: string;
+  purchaseKey: string;
+  transfer?: (number | null) | CrossSellTransfer;
+  partner: number | CrossSellPartner;
+  kind: string;
+  source: string;
+  actor: string;
+  occurredAt: string;
+  before?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  after?:
     | {
         [k: string]: unknown;
       }
@@ -1159,7 +1281,7 @@ export interface PayloadJob {
     | {
         executedAt: string;
         completedAt: string;
-        taskSlug: 'inline' | 'schedulePublish';
+        taskSlug: 'inline' | 'shop-order-recovery' | 'cross-sell-sync' | 'schedulePublish';
         taskID: string;
         input?:
           | {
@@ -1192,10 +1314,19 @@ export interface PayloadJob {
         id?: string | null;
       }[]
     | null;
-  taskSlug?: ('inline' | 'schedulePublish') | null;
+  taskSlug?: ('inline' | 'shop-order-recovery' | 'cross-sell-sync' | 'schedulePublish') | null;
   queue?: string | null;
   waitUntil?: string | null;
   processing?: boolean | null;
+  meta?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1353,6 +1484,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'cross-sell-receipts';
         value: number | CrossSellReceipt;
+      } | null)
+    | ({
+        relationTo: 'cross-sell-events';
+        value: number | CrossSellEvent;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1637,16 +1772,26 @@ export interface ShopCategoriesSelect<T extends boolean = true> {
  * via the `definition` "shop-products_select".
  */
 export interface ShopProductsSelect<T extends boolean = true> {
+  stockVersion?: T;
   slug?: T;
   code?: T;
   priceDisplay?: T;
   wimId?: T;
+  source?: T;
   active?: T;
   category?: T;
   brand?: T;
   name?: T;
   displayName?: T;
+  shortDescription?: T;
   description?: T;
+  additionalInformation?:
+    | T
+    | {
+        name?: T;
+        value?: T;
+        id?: T;
+      };
   images?:
     | T
     | {
@@ -1654,9 +1799,11 @@ export interface ShopProductsSelect<T extends boolean = true> {
         id?: T;
       };
   makes?: T;
+  supplierContent?: T;
   price?: T;
   salePrice?: T;
   stock?: T;
+  supplierStockUnmanaged?: T;
   variants?:
     | T
     | {
@@ -1693,6 +1840,16 @@ export interface ShopReviewsSelect<T extends boolean = true> {
 export interface ShopOrdersSelect<T extends boolean = true> {
   orderNo?: T;
   cartId?: T;
+  checkoutDraft?: T;
+  checkoutComplete?: T;
+  checkoutState?: T;
+  checkoutKey?: T;
+  lookupToken?: T;
+  placedHooks?: T;
+  hookLeaseUntil?: T;
+  hooksComplete?: T;
+  sourceOrders?: T;
+  branchId?: T;
   status?: T;
   subtotal?: T;
   adjustments?:
@@ -1718,6 +1875,8 @@ export interface ShopOrdersSelect<T extends boolean = true> {
     | {
         productId?: T;
         variantId?: T;
+        source?: T;
+        remoteId?: T;
         name?: T;
         code?: T;
         price?: T;
@@ -1731,6 +1890,7 @@ export interface ShopOrdersSelect<T extends boolean = true> {
   crossSellPartner?: T;
   crossSellTransfer?: T;
   crossSellPurchase?: T;
+  crossSellPurchases?: T;
   crossSellInboundKey?: T;
   crossSellInboundPartner?: T;
   crossSellInboundPurchase?: T;
@@ -1962,6 +2122,7 @@ export interface CrossSellPartnersSelect<T extends boolean = true> {
   buyerName?: T;
   buyerPhone?: T;
   active?: T;
+  webhookSecretEnv?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1974,6 +2135,9 @@ export interface CrossSellListingsSelect<T extends boolean = true> {
   product?: T;
   backend?: T;
   wimProductId?: T;
+  lastSyncedAt?: T;
+  nextSyncAt?: T;
+  syncError?: T;
   remoteId?: T;
   remoteKey?: T;
   supplierPrice?: T;
@@ -2016,6 +2180,15 @@ export interface CrossSellTransfersSelect<T extends boolean = true> {
   commissionStatus?: T;
   lastError?: T;
   checkedAt?: T;
+  localStatus?: T;
+  localPaymentStatus?: T;
+  remotePaid?: T;
+  remoteUpdatedAt?: T;
+  remoteChangedAt?: T;
+  syncError?: T;
+  dispatchStartedAt?: T;
+  syncAttemptAt?: T;
+  nextSyncAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2039,6 +2212,24 @@ export interface CrossSellReceiptsSelect<T extends boolean = true> {
   purchaseKey?: T;
   purchase?: T;
   body?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-events_select".
+ */
+export interface CrossSellEventsSelect<T extends boolean = true> {
+  key?: T;
+  purchaseKey?: T;
+  transfer?: T;
+  partner?: T;
+  kind?: T;
+  source?: T;
+  actor?: T;
+  occurredAt?: T;
+  before?: T;
+  after?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2078,6 +2269,7 @@ export interface PayloadJobsSelect<T extends boolean = true> {
   queue?: T;
   waitUntil?: T;
   processing?: T;
+  meta?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2568,6 +2760,24 @@ export interface CrossSellSetting {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs-stats".
+ */
+export interface PayloadJobsStat {
+  id: number;
+  stats?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site-settings_select".
  */
 export interface SiteSettingsSelect<T extends boolean = true> {
@@ -2805,6 +3015,16 @@ export interface CrossSellSettingsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs-stats_select".
+ */
+export interface PayloadJobsStatsSelect<T extends boolean = true> {
+  stats?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "collections_widget".
  */
 export interface CollectionsWidget {
@@ -2812,6 +3032,22 @@ export interface CollectionsWidget {
     [k: string]: unknown;
   };
   width: 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskShop-order-recovery".
+ */
+export interface TaskShopOrderRecovery {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCross-sell-sync".
+ */
+export interface TaskCrossSellSync {
+  input?: unknown;
+  output?: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

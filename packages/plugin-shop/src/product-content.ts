@@ -10,6 +10,7 @@ export const contentOf = (p: ContentRecord): ProductContent => ({
 export const imagesOf = (p: ContentRecord): string[] => {
   const local = (p.images ?? []).flatMap((i) => i.image?.filename ? ['/api/media/file/' + encodeURIComponent(i.image.filename)] : [])
   return local.length ? local : (p.supplierContent?.images ?? []).filter((s) => {
+    if (/^\/api\/plugins\/wim\/image\?id=[^\s]+$/.test(s)) return true
     try { const u = new URL(s); return u.protocol === 'https:' && !u.username && !u.password } catch { return false }
   })
 }

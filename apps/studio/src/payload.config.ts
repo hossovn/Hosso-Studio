@@ -87,6 +87,7 @@ const base: Config = {
   db: isPostgres
     ? postgresAdapter({ pool: { connectionString: databaseUrl }, migrationDir: path.resolve(dirname, 'migrations') })
     : sqliteAdapter({
+        transactionOptions: {},
         client: { url: databaseUrl },
         // Tránh xung đột tạo lại index của SQLite khi database đã tồn tại.
         push: process.env.HOSSO_DB_PUSH === 'false' || (process.env.HOSSO_SCRIPT === '1' && fs.existsSync(databaseUrl.slice('file:'.length))) ? false : undefined,

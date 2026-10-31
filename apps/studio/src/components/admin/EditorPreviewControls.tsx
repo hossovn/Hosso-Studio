@@ -5,31 +5,31 @@ import React, { useEffect, useState } from 'react'
 import { listPreviewProducts } from '@/app/(editor)/editor/[id]/actions'
 
 const copy = {
-  vi: { title: 'Dữ liệu xem trước', account: 'Trạng thái tài khoản', guest: 'Chưa đăng nhập', member: 'Đã đăng nhập (tài khoản mẫu)', shop: 'Sản phẩm cửa hàng', wim: 'Sản phẩm WIM', search: 'Tìm sản phẩm', choose: 'Chọn sản phẩm', loading: 'Đang tải…', empty: 'Không có sản phẩm', error: 'Không tải được danh sách sản phẩm' },
-  en: { title: 'Preview data', account: 'Account state', guest: 'Logged out', member: 'Logged in (sample account)', shop: 'Shop product', wim: 'WIM product', search: 'Search products', choose: 'Choose a product', loading: 'Loading…', empty: 'No products', error: 'Unable to load products' },
+  vi: { title: 'Dữ liệu xem trước', account: 'Trạng thái tài khoản', guest: 'Chưa đăng nhập', member: 'Đã đăng nhập (tài khoản mẫu)', product: 'Sản phẩm', search: 'Tìm sản phẩm', choose: 'Chọn sản phẩm', loading: 'Đang tải…', empty: 'Không có sản phẩm', error: 'Không tải được danh sách sản phẩm' },
+  en: { title: 'Preview data', account: 'Account state', guest: 'Logged out', member: 'Logged in (sample account)', product: 'Product', search: 'Search products', choose: 'Choose a product', loading: 'Loading…', empty: 'No products', error: 'Unable to load products' },
 }
 const control: React.CSSProperties = { width: '100%', minWidth: 0, padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 4, font: 'inherit', background: '#fff', color: '#111827', boxSizing: 'border-box' }
 
-function ProductPicker({ source, locale, value, onChange, text }: { source: 'shop' | 'wim'; locale: string; value: string; onChange: (value: string) => void; text: typeof copy.vi }) {
+function ProductPicker({ locale, value, onChange, text }: { locale: string; value: string; onChange: (value: string) => void; text: typeof copy.vi }) {
   const [query, setQuery] = useState('')
   const [result, setResult] = useState<{ query: string; items: { value: string; label: string }[]; error?: string }>()
   useEffect(() => {
     let active = true
     const timer = setTimeout(() => {
-      void listPreviewProducts(source, query, locale)
+      void listPreviewProducts('shop', query, locale)
         .then((data) => { if (active) setResult({ ...data, query }) })
         .catch(() => { if (active) setResult({ items: [], query, error: 'internal' }) })
     }, 250)
     return () => { active = false; clearTimeout(timer) }
-  }, [source, query, locale])
+  }, [query, locale])
   const loaded = result?.query === query
   const items = loaded ? result.items : []
   return (
     <div style={{ display: 'grid', gap: 6 }}>
-      <label style={{ display: 'grid', gap: 6 }}><span>{text[source]}</span>
-        <input type='search' aria-label={`${text.search} · ${text[source]}`} placeholder={text.search} maxLength={200} value={query} onChange={(e) => setQuery(e.target.value)} style={control} />
+      <label style={{ display: 'grid', gap: 6 }}><span>{text.product}</span>
+        <input type='search' aria-label={`${text.search} · ${text.product}`} placeholder={text.search} maxLength={200} value={query} onChange={(e) => setQuery(e.target.value)} style={control} />
       </label>
-      <select aria-label={text[source]} value={value} onChange={(e) => onChange(e.target.value)} style={control} aria-busy={!loaded}>
+      <select aria-label={text.product} value={value} onChange={(e) => onChange(e.target.value)} style={control} aria-busy={!loaded}>
         <option value=''>{!loaded ? text.loading : result.error ? text.error : items.length ? text.choose : text.empty}</option>
         {value && !items.some((p) => p.value === value) && <option value={value}>{value}</option>}
         {items.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
@@ -48,7 +48,7 @@ export function EditorPreviewControls({ value, onChange, open, onOpenChange, sou
         <label style={{ display: 'grid', gap: 6 }}><span>{text.account}</span>
           <select value={value.account} onChange={(e) => onChange({ ...value, account: e.target.value as EditorPreview['account'] })} style={control}><option value='guest'>{text.guest}</option><option value='member'>{text.member}</option></select>
         </label>
-        {sources.map((source) => <ProductPicker key={source} source={source} locale={locale} value={value.products[source]} onChange={(product) => onChange({ ...value, products: { ...value.products, [source]: product } })} text={text} />)}
+        {sources.length > 0 && <ProductPicker locale={locale} value={value.products.shop || value.products.wim} onChange={(product) => onChange({ ...value, products: { shop: product, wim: product } })} text={text} />}
       </div>}
     </div>
   )
