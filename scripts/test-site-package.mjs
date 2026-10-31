@@ -38,6 +38,13 @@ areas.vi.siteHeader.content[0].props._states = { hover: { desktop: { opacity: 0.
 areas.vi.siteHeader.content[0].props._els = [{ id: 'state-button', type: 'button', x: 80, y: 24, w: 200, h: 48, props: { text: 'Button', _states: elementStates } }]
 const portableScroll = { mode: 'progress', fromY: 120, toY: -40, fromScale: 0.8, toScale: 1.2, start: 10, end: 90, disableOnMobile: true }
 areas.vi.siteHeader.content[0].props._els[0].props._scroll = portableScroll
+const portableMotion = { entrance: { preset: 'slide-up', duration: 600, delay: 80 }, loop: { preset: 'float', duration: 2000, delay: 100, iterations: 3, amount: 16 }, disableOnMobile: true }
+areas.vi.siteHeader.content[0].props._els[0].props._motion = portableMotion
+const portableStory = { type: 'ScrollStory', props: { id: 'zip-story', steps: [
+  { image: '/images/story-one.jpg', alt: 'First scene', title: 'First', body: 'First scene body' },
+  { image: '/images/story-two.jpg', alt: 'Second scene', title: 'Second', body: 'Second scene body' },
+] } }
+areas.vi.siteHeader.content.push(portableStory)
 const image = 'legacy banner.webp'
 areas.vi.siteFooter.content[0].props.image = '/api/media/file/legacy%20banner.webp?download=1'
 areas.en.siteFooter.content[0].props.image = '/api/media/file/legacy%20banner.webp'
@@ -89,6 +96,8 @@ await importSitePackage(target, exported.data, () => {}, 'en')
 assert.deepEqual(restored, areas, 'all editor areas must survive export and import in every locale')
 assert.deepEqual(restored.vi.siteHeader.content[0].props._els[0].props._states, elementStates, 'all state and device overrides must survive the actual ZIP export/import pipeline')
 assert.deepEqual(restored.vi.siteHeader.content[0].props._els[0].props._scroll, portableScroll, 'scroll effects must survive the actual ZIP export/import pipeline')
+assert.deepEqual(restored.vi.siteHeader.content[0].props._els[0].props._motion, portableMotion, 'motion effects must survive the actual ZIP export/import pipeline')
+assert.deepEqual(restored.vi.siteHeader.content[1], portableStory, 'ScrollStory steps must survive the actual ZIP export/import pipeline')
 
 const legacy = structuredClone(read('data/site-areas.json'))
 for (const locale of locales) {

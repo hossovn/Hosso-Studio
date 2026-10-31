@@ -380,3 +380,5 @@ const partnerGuest = renderToStaticMarkup(React.createElement(Portal))
 assert.match(partnerGuest, /name="password"/)
 assert.doesNotMatch(partnerGuest, /Preview Partner/)
 console.log('PASS: preview product routing, validation, authenticated boundaries, guest/member rendering, live-site isolation')
+import './test-motion-runtime.mjs'
+import './test-scroll-story.mjs'
