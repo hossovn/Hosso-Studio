@@ -32,6 +32,7 @@ const server = http.createServer(async (req, res) => {
     }
     assert.equal(req.headers['x-api-key'], 'product-pool-test-key')
     if (path === '/v1/categories') return send(res, { items: [{ id: 'tyres', name: 'Tyres' }] })
+    if (path === '/v1/partner-products' && req.method === 'POST') return send(res, await bodyOf(req))
     if (path === '/v1/branches') return send(res, { items: [{ id: 'hn', name: 'Hanoi' }] })
     if (path === '/v1/products') return send(res, { items: [{ id: '1', name: 'WIM tyre', code: 'TYRE', brand: 'WIM brand', price: wimPrice, categoryId: 'tyres', compatibility: [{ make: 'toyota', model: 'camry', yearFrom: 2020, yearTo: 2026 }] }], page: 1, pageSize: 100, total: 1 })
     if (path === '/v1/products/1/availability') return send(res, { productId: '1', price: wimPrice, branches: [{ branchId: 'hn', available: wimStock, inStock: wimStock > 0 }] })
@@ -72,8 +73,14 @@ try {
   config.jobs.autoRun = []
   payload = await getPayload({ config: buildConfig(config), disableOnInit: true, key: 'product-pool-' + crypto.randomUUID() })
   const native = await payload.create({ collection: 'shop-products', data: { name: 'Shop oil', code: 'OIL', price: 100000, stock: 10, active: true }, overrideAccess: true })
+  const legacyWim = await payload.create({ collection: 'shop-products', data: { name: 'WIM tyre', code: 'WIM-1', price: 300000, stock: 0, source: 'shop', active: true, displayName: 'Tyre display name', description: 'Keep editorial content', additionalInformation: [{ name: 'Local spec', value: 'Keep me' }] }, overrideAccess: true })
   await syncWimCatalog(payload)
   const wimProduct = (await payload.find({ collection: 'shop-products', where: { wimId: { equals: '1' } } })).docs[0]
+  assert.equal(wimProduct.id, legacyWim.id, 'Recover the existing WIM-prefixed product instead of colliding with its unique code')
+  assert.equal(wimProduct.stock, 10)
+  assert.equal(wimProduct.description, 'Keep editorial content')
+  assert.equal(wimProduct.displayName, 'Tyre display name')
+  assert.equal(wimProduct.additionalInformation[0].value, 'Keep me')
   assert.notEqual(String(native.id), String(wimProduct.id), 'Upstream numeric IDs must not collide with internal Product IDs')
   const listings = []
   const localId = (listing) => typeof listing.product === 'object' ? listing.product.id : listing.product
@@ -199,6 +206,39 @@ try {
     assert.equal((await checkout({ ...input, cartId: crypto.randomUUID(), items: [{ productId: String(localId(listings[0])), quantity: 1 }] })).status, 503)
   } finally { payload.config.custom.hossoPlugins = plugins }
   console.log('PASS missing adapters/mappings cannot silently sell external products as native Shop goods')
+
+  const oldListing = listings[0]
+  const oldProduct = await payload.findByID({ collection: 'shop-products', id: localId(oldListing) })
+  const migrationPartner = await payload.findByID({ collection: service.PARTNERS, id: typeof oldListing.partner === 'object' ? oldListing.partner.id : oldListing.partner })
+  for (const listing of listings) await payload.update({ collection: service.LISTINGS, id: listing.id, data: { active: false } })
+  await payload.updateGlobal({ slug: 'cross-sell-settings', data: { backend: 'wim', wimBranchId: 'hn' } })
+  await payload.update({ collection: service.LISTINGS, id: oldListing.id, data: { active: true } })
+  await assert.rejects(service.importProduct(payload, migrationPartner, 'filter'), /Disable the Shop listing/, 'Never migrate an active Shop listing implicitly')
+  await payload.update({ collection: service.LISTINGS, id: oldListing.id, data: { active: false } })
+  await payload.update({ collection: 'shop-products', id: oldProduct.id, data: { description: 'Preserve supplier editorial content', stock: 0 } })
+  const migrationKey = 'wim:' + migrationPartner.id + ':filter'
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(migrationKey)))
+  const migrationWimId = 'xs-' + Array.from(digest, (b) => b.toString(16).padStart(2, '0')).join('').slice(0, 40)
+  const failedListing = await payload.create({ collection: service.LISTINGS, data: { partner: migrationPartner.id, backend: 'wim', remoteId: 'filter', remoteKey: migrationKey, wimProductId: migrationWimId, supplierPrice: 50000, commissionPct: 10, active: true, syncError: 'Previous import failed' } })
+  const migratedListing = await service.importProduct(payload, migrationPartner, 'filter')
+  assert.equal(migratedListing.id, failedListing.id, 'Recover a failed WIM listing without creating another listing')
+  assert.equal(migratedListing.syncError, null)
+  assert.equal(localId(migratedListing), oldProduct.id, 'Shop to WIM migration must preserve the product ID and URL')
+  const migratedProduct = await payload.findByID({ collection: 'shop-products', id: oldProduct.id })
+  assert.equal(migratedProduct.slug, oldProduct.slug)
+  assert.equal(migratedProduct.stock, 10)
+  assert.equal(migratedProduct.description, 'Preserve supplier editorial content')
+  assert.equal(migratedProduct.wimId, migratedListing.wimProductId)
+  assert.equal((await payload.findByID({ collection: service.LISTINGS, id: oldListing.id })).product, null, 'Release the unique mapping on the inactive legacy listing')
+  assert.equal(localId(await service.importProduct(payload, migrationPartner, 'filter')), oldProduct.id, 'Migration retries must reuse the same product')
+  const { upsertWimProduct } = await load('../packages/plugin-wim/src/catalog.ts')
+  const unrelated = await payload.create({ collection: 'shop-products', data: { code: 'WIM-unrelated', name: 'Native part with a similar code', price: 123, stock: 2, source: 'shop', active: false } })
+  await assert.rejects(upsertWimProduct(payload, { id: 'unrelated', name: 'Different upstream product' }), /already owned/, 'Do not claim a native product based on its code prefix alone')
+  assert.equal((await payload.findByID({ collection: 'shop-products', id: unrelated.id })).stock, 2)
+  await payload.update({ collection: 'shop-products', id: wimProduct.id, data: { active: false } })
+  await syncWimCatalog(payload, true)
+  assert.equal((await payload.findByID({ collection: 'shop-products', id: wimProduct.id })).active, false, 'Catalog refresh preserves explicit disabled state')
+  console.log('PASS legacy supplier migration: stable Product ID/slug/content, authoritative stock, inactive old mapping released, retry safe')
   console.log('Disposable test database: ' + join(directory, 'test.db'))
 } finally {
   if (payload) await payload.destroy()

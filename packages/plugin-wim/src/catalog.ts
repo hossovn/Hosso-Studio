@@ -59,7 +59,14 @@ export async function upsertWimProduct(payload: Payload, product: Product, categ
   if (!cfg) throw new Error('WIM is not configured')
   const found = await payload.find({ collection: 'shop-products' as any, where: { wimId: { equals: product.id } }, limit: 2, depth: 0, overrideAccess: true })
   if (found.docs.length > 1) throw new Error('Duplicate WIM product mappings; reconcile the catalog')
-  const local = found.docs[0] as any
+  let local = found.docs[0] as any
+  if (!local) {
+    const legacy = (await payload.find({ collection: 'shop-products' as any, where: { code: { equals: 'WIM-' + product.id } }, limit: 1, depth: 0, overrideAccess: true })).docs[0] as any
+    if (legacy) {
+      if (legacy.wimId || !['shop', undefined, null].includes(legacy.source) || legacy.name !== product.name) throw new Error('Legacy WIM product code is already owned; reconcile the catalog')
+      local = legacy
+    }
+  }
   if (local?.source === 'cross-sell') return local
   const availability = await wimFetch<Availability>(cfg, '/v1/products/' + encodeURIComponent(product.id) + '/availability')
   if (availability.productId !== product.id || !Number.isSafeInteger(availability.price) || availability.price < 0) throw new Error('Invalid WIM availability')
@@ -67,7 +74,7 @@ export async function upsertWimProduct(payload: Payload, product: Product, categ
   const data = { name: product.name, code: local?.code || 'WIM-' + product.id, wimId: product.id, source: 'wim',
     price: availability.price, salePrice: null, stock: stock.stock, supplierStockUnmanaged: stock.stockUnmanaged,
     brand: product.brand, makes: [...new Set((product.compatibility ?? []).map((c) => c.make))], ...(category !== undefined && { category }),
-    active: local?.source === 'wim' ? local.active : true,
+    active: local ? local.active : true,
     supplierContent: { ...local?.supplierContent, images: product.images?.length ? ['/api/plugins/wim/image?id=' + encodeURIComponent(product.id)] : [],
       attributes: [{ name: 'SKU', value: product.code }, ...(product.oemCodes?.length ? [{ name: 'OEM', value: product.oemCodes.join(', ') }] : []),
         ...(product.warrantyMonths > 0 ? [{ name: 'Bảo hành / Warranty', value: product.warrantyMonths + ' tháng / months' }] : []),
