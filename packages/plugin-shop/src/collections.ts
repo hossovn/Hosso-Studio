@@ -117,6 +117,12 @@ const ProductsBase: CollectionConfig = {
       fields: [{ name: 'image', type: 'upload', relationTo: 'media', required: true, label: bi('Ảnh', 'Image') }],
     },
     { name: 'description', type: 'textarea', label: bi('Mô tả', 'Description') },
+    { name: 'shortDescription', type: 'textarea', label: bi('Mô tả ngắn', 'Short description') },
+    { name: 'additionalInformation', type: 'array', label: bi('Thông tin bổ sung', 'Additional information'), fields: [
+      { name: 'name', type: 'text', required: true }, { name: 'value', type: 'text', required: true },
+    ] },
+    { name: 'supplierContent', type: 'json', admin: { readOnly: true }, access: { create: () => false, update: () => false } },
+    { name: 'supplierStockUnmanaged', type: 'checkbox', defaultValue: false, admin: { readOnly: true }, access: { create: () => false, update: () => false } },
     { name: 'weight', type: 'number', min: 0, label: bi('Trọng lượng (g)', 'Weight (g)'), admin: { position: 'sidebar' } },
     { name: 'length', type: 'number', min: 0, label: bi('Dài (cm)', 'Length (cm)'), admin: { position: 'sidebar' } },
     { name: 'width', type: 'number', min: 0, label: bi('Rộng (cm)', 'Width (cm)'), admin: { position: 'sidebar' } },
@@ -127,8 +133,8 @@ const ProductsBase: CollectionConfig = {
 // Form sản phẩm chia tab (tab không đổi cấu trúc dữ liệu); các trường dùng nhanh vẫn ở cột bên.
 const SIDE = ['slug', 'code', 'active', 'category', 'brand', 'priceDisplay', 'wimId']
 const TABS: [ReturnType<typeof bi>, string[]][] = [
-  [bi('Thông tin', 'Info'), ['name', 'displayName', 'description', 'images', 'makes']],
-  [bi('Giá và kho', 'Price and stock'), ['price', 'salePrice', 'stock', 'variants']],
+  [bi('Thông tin', 'Info'), ['name', 'displayName', 'shortDescription', 'description', 'additionalInformation', 'images', 'makes', 'supplierContent']],
+  [bi('Giá và kho', 'Price and stock'), ['price', 'salePrice', 'stock', 'supplierStockUnmanaged', 'variants']],
   [bi('Vận chuyển', 'Shipping'), ['weight', 'length', 'width', 'height']],
 ]
 const named = (f: Field) => ('name' in f ? f.name : '')

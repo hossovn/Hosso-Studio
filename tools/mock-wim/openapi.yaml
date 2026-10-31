@@ -323,7 +323,9 @@ components:
             required: [branchId, available]
             properties:
               branchId: { type: string }
-              available: { type: integer, minimum: 0 }
+              available: { type: integer, nullable: true, minimum: 0 }
+              stockUnmanaged: { type: boolean, description: "Quantity is unknown; use inStock, not a numeric sentinel." }
+              inStock: { type: boolean, description: "Current sellability; false also covers stale supplier snapshots." }
     OrderLine:
       type: object
       required: [productId, quantity]

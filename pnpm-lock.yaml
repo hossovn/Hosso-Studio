@@ -227,6 +227,9 @@ importers:
       '@hosso/studio-blocks':
         specifier: workspace:*
         version: link:../blocks
+      node-html-parser:
+        specifier: 9.0.4
+        version: 9.0.4
     devDependencies:
       '@payloadcms/ui':
         specifier: 3.91.0
@@ -369,6 +372,9 @@ importers:
 
   packages/plugin-wim:
     dependencies:
+      '@hosso/plugin-shop':
+        specifier: workspace:*
+        version: link:../plugin-shop
       '@hosso/studio-blocks':
         specifier: workspace:*
         version: link:../blocks

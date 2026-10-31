@@ -8,6 +8,7 @@ const dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  distDir: process.env.HOSSO_ADMIN_PREVIEW === '1' ? '.next/admin-preview' : '.next',
   // Package workspace phát hành TS nguồn, không có bước build riêng.
   transpilePackages: fs.readdirSync(path.join(dirname, 'node_modules/@hosso')).map((name) => `@hosso/${name}`),
   // Không dùng sharp (binary libvips là LGPL): tắt tối ưu ảnh của Next, dùng <img> thường.

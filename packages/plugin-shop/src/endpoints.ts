@@ -3,6 +3,7 @@ import type { Endpoint, Payload, PayloadRequest, Where } from 'payload'
 import { COLUMNS, parseCsv, toCsv } from './csv'
 import { card, pricingOf } from './loaders'
 import { adjustStock } from './stock'
+import { hasStock } from './product-content'
 import { priceOf, slugify, type Product } from './util'
 
 const json = (body: unknown, status = 200) => Response.json(body, { status })
@@ -64,7 +65,7 @@ async function prepare(req: PayloadRequest, input: Record<string, any>, quote: b
       available = v.stock ?? 0
       code = v.sku || code
     }
-    if (available < l.quantity) return fail(409, 'out_of_stock', 'stock', { productId: l.productId, name, available })
+    if (p.variants?.length ? available < l.quantity : !hasStock(p, l.quantity)) return fail(409, 'out_of_stock', 'stock', { productId: l.productId, name, available })
     items.push({ productId: String(p.id), ...(p.variants?.length && { variantId: l.variantId }), name, code, price, quantity: l.quantity })
   }
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)

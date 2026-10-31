@@ -196,7 +196,7 @@ export const ProductDetail: BlockRenderer = ({ backPath, cartPath, data }) => {
       </Section>
     )
   }
-  type Ov = { priceDisplay?: string; displayName?: string; images?: string[]; description?: string; weight?: number; size?: string }
+  type Ov = import('./loaders').Overlay
   const { product: p, availability, branches, categoryName, overlay, policy, related = [], relatedOverlays = {}, pricing } = d as unknown as {
     pricing?: Pricing
     product: Product
@@ -210,7 +210,7 @@ export const ProductDetail: BlockRenderer = ({ backPath, cartPath, data }) => {
   }
   const name = overlay?.displayName || p.name
   const gallery = imagesOf(p, overlay)
-  const hasInfo = Boolean(overlay?.weight || overlay?.size)
+  const hasInfo = Boolean(overlay?.weight || overlay?.size || overlay?.attributes?.length)
   const hidePrice = priceHidden(pricing, overlay)
   const branchName = Object.fromEntries(branches.map((b) => [b.id, b.name]))
   return (
@@ -231,7 +231,7 @@ export const ProductDetail: BlockRenderer = ({ backPath, cartPath, data }) => {
         {!hidePrice && <AddToCart
           product={{ id: p.id, name: p.name, price: availability.price }}
           cartPath={lh(cartPath || '/gio-hang')}
-          inStock={availability.branches.some((b) => b.available > 0)}
+          inStock={availability.branches.some((b) => (b.inStock ?? ((b.available ?? 0) > 0)))}
         />}
         <dl className="wp-spec">
           <dt>{tr('product.brand')}</dt>
@@ -285,13 +285,14 @@ export const ProductDetail: BlockRenderer = ({ backPath, cartPath, data }) => {
           </>
         )}
 
+        {overlay?.shortDescription && <p style={{ whiteSpace: 'pre-line' }}>{overlay.shortDescription}</p>}
         <h2>{tr('product.stock')}</h2>
         <ul className="wp-stock">
           {availability.branches.map((b) => (
-            <li key={b.branchId} className={b.available > 0 ? 'wp-in' : 'wp-out'}>
+            <li key={b.branchId} className={(b.inStock ?? ((b.available ?? 0) > 0)) ? 'wp-in' : 'wp-out'}>
               <span>{branchName[b.branchId] ?? b.branchId}</span>
               <strong>
-                {b.available > 0 ? (b.available <= 3 ? `${tr('product.lowStock')} (${b.available})` : `${tr('product.inStock')} (${b.available})`) : tr('product.outOfStock')}
+                {(b.inStock ?? ((b.available ?? 0) > 0)) ? (b.available === null ? tr('product.inStock') : b.available <= 3 ? `${tr('product.lowStock')} (${b.available})` : `${tr('product.inStock')} (${b.available})`) : tr('product.outOfStock')}
               </strong>
             </li>
           ))}
@@ -312,6 +313,7 @@ export const ProductDetail: BlockRenderer = ({ backPath, cartPath, data }) => {
             <div className="wp-panel wp-panel-info">
               <table className="wp-info">
                 <tbody>
+                  {overlay?.attributes?.map((a, i) => <tr key={i}><th>{a.name}</th><td>{a.value}</td></tr>)}
                   {overlay?.weight && (
                     <tr>
                       <th>{tr('product.weight')}</th>

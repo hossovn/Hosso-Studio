@@ -81,12 +81,11 @@ export async function placeOrder(payload: Payload, input: CheckoutBody, headers 
         if (e instanceof WimError && e.status === 404) return fail(409, 'product_not_found', tr('co.productGone'), { productId: line.productId })
         throw e
       }
-      const available =
-        type === 'pickup'
-          ? (availability.branches.find((b) => b.branchId === branchId)?.available ?? 0)
-          : availability.branches.reduce((sum, b) => sum + b.available, 0)
+      const branches = availability.branches.filter((b) => type !== 'pickup' || b.branchId === branchId)
+      const unmanaged = branches.some((b) => b.stockUnmanaged === true && b.inStock === true)
+      const available = branches.reduce((sum, b) => sum + (b.inStock === false ? 0 : b.available ?? 0), 0)
       orderLines.push({ productId: line.productId, name: line.productId, code: line.productId, quantity: line.quantity, price: availability.price })
-      if (available < line.quantity) {
+      if (!unmanaged && available < line.quantity) {
         const product = await wimGet<Product>(cfg, `/v1/products/${encodeURIComponent(line.productId)}`, {}, [`product:${line.productId}`]).catch(() => null)
         return fail(409, 'out_of_stock', `${product?.name ?? tr('co.product')} ${tr('co.outOfStock')}`, { productId: line.productId, available })
       }

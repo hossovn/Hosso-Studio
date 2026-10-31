@@ -38,7 +38,7 @@ const CardView = ({ c, detailPath, o = {} }: { c: Card; detailPath: string; o?: 
       {o.showCode !== 'no' && c.code && <p className="sp-meta">{c.code}</p>}
       {o.showBrand === 'yes' && c.brand && <p className="sp-meta">{c.brand}</p>}
       <Price c={c} />
-      {c.stock <= 0 && <span className="sp-badge">{tt().soldOut}</span>}
+      {!c.stockUnmanaged && c.stock <= 0 && <span className="sp-badge">{tt().soldOut}</span>}
     </div>
   </li>
 )
@@ -116,7 +116,7 @@ const ProductDetail: BlockRenderer = ({ backPath, cartPath, layout, imageSize, s
     ...(c.description && { description: c.description }),
     ...(c.code && { sku: c.code }),
     ...(c.brand && { brand: { '@type': 'Brand', name: c.brand } }),
-    offers: { '@type': 'Offer', priceCurrency: 'VND', price: c.salePrice ?? c.price, availability: c.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock' },
+    offers: { '@type': 'Offer', priceCurrency: 'VND', price: c.salePrice ?? c.price, availability: c.stockUnmanaged || c.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock' },
     ...(d.reviewCount > 0 && { aggregateRating: { '@type': 'AggregateRating', ratingValue: d.rating, reviewCount: d.reviewCount } }),
   }
   return (
@@ -124,33 +124,35 @@ const ProductDetail: BlockRenderer = ({ backPath, cartPath, layout, imageSize, s
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld).replace(/</g, '\\u003c') }} />
       <a className="sp-back" href={lh(backPath || '/san-pham')}>{tt().back}</a>
       <div className={`sp-detail${layout === 'right' ? ' sp-d-right' : ''}${layout === 'stack' ? ' sp-d-stack' : ''}${imageSize ? ` sp-img-${imageSize}` : ''}`}>
-        <div className="sp-detail-img">{c.image && <img src={c.image} alt={c.name} />}</div>
+        <div className="sp-detail-img">{(c.images ?? [c.image]).filter(Boolean).map((src, i) => <img key={src} src={src} alt={i === 0 ? c.name : ''} loading={i ? 'lazy' : 'eager'} />)}</div>
         <div>
           <h1>{c.name}</h1>
           {d.reviewCount > 0 && <p className="sp-meta"><Stars n={d.rating} /> {d.rating} ({d.reviewCount})</p>}
           <Price c={c} big />
+          {c.shortDescription && <p style={{ whiteSpace: 'pre-line' }}>{c.shortDescription}</p>}
           <dl className="sp-spec">
             {c.code && (<><dt>{tt().sku}</dt><dd>{c.code}</dd></>)}
             {c.brand && (<><dt>{tt().brand}</dt><dd>{c.brand}</dd></>)}
             {c.category && (<><dt>{tt().category}</dt><dd><a href={`${lh(backPath || '/san-pham')}?category=${c.category.slug}`}>{c.category.name}</a></dd></>)}
-            <dt>·</dt><dd>{c.stock > 0 ? tt().inStock : tt().soldOut}</dd>
+            <dt>·</dt><dd>{c.stockUnmanaged || c.stock > 0 ? tt().inStock : tt().soldOut}</dd>
           </dl>
-          {!c.hidePrice && <AddToCart product={{ id: c.id, name: c.name, price: c.salePrice ?? c.price, image: c.image }} cartPath={cartPath || '/gio-hang'} inStock={c.stock > 0} variants={c.variants} />}
+          {!c.hidePrice && <AddToCart product={{ id: c.id, name: c.name, price: c.salePrice ?? c.price, image: c.image }} cartPath={cartPath || '/gio-hang'} inStock={c.stockUnmanaged || c.stock > 0} variants={c.variants} />}
         </div>
       </div>
-      {showTabs !== 'no' && (c.description || c.weight || c.size) && (
+      {showTabs !== 'no' && (c.description || c.weight || c.size || c.attributes?.length) && (
         <div className="sp-tabset">
           {c.description && <input type="radio" name="sp-tab" id="sp-tab-desc" defaultChecked />}
           {c.description && <label htmlFor="sp-tab-desc">{tt().desc}</label>}
-          {(c.weight || c.size) && <input type="radio" name="sp-tab" id="sp-tab-info" defaultChecked={!c.description} />}
-          {(c.weight || c.size) && <label htmlFor="sp-tab-info">{tt().info}</label>}
+          {(c.weight || c.size || c.attributes?.length) && <input type="radio" name="sp-tab" id="sp-tab-info" defaultChecked={!c.description} />}
+          {(c.weight || c.size || c.attributes?.length) && <label htmlFor="sp-tab-info">{tt().info}</label>}
           {c.description && <div className="sp-panel sp-panel-desc"><p style={{ whiteSpace: 'pre-line' }}>{c.description}</p></div>}
-          {(c.weight || c.size) && (
+          {(c.weight || c.size || c.attributes?.length) && (
             <div className="sp-panel sp-panel-info">
               <table className="sp-info">
                 <tbody>
                   {c.weight && <tr><th>{tt().weight}</th><td>{c.weight >= 1000 ? `${c.weight / 1000} kg` : `${c.weight} g`}</td></tr>}
                   {c.size && <tr><th>{tt().size}</th><td>{c.size}</td></tr>}
+                  {c.attributes?.map((a, i) => <tr key={i}><th>{a.name}</th><td>{a.value}</td></tr>)}
                 </tbody>
               </table>
             </div>

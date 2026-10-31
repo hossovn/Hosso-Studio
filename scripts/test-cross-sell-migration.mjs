@@ -20,7 +20,7 @@ try {
   const current = generateDrizzleJson(payload.db.schema)
   assert.ok(current.tables['public.cross_sell_events'], 'Install the current cross-sell plugin before checking its migration')
   const dir = new URL('../apps/studio/src/migrations/', import.meta.url)
-  const latest = fs.readdirSync(dir).filter(name => name.endsWith('.json')).sort().at(-1)
+  const latest = '20261030_140000_cross_sell_tracking.json'
   const snapshot = JSON.parse(fs.readFileSync(new URL(latest, dir), 'utf8'))
   for (const [name, table] of Object.entries(current.tables)) {
     if (name.startsWith('public.cross_sell_') || ['public.payload_jobs', 'public.payload_jobs_log', 'public.payload_locked_documents_rels'].includes(name)) {

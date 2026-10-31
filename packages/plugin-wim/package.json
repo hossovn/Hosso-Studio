@@ -15,6 +15,7 @@
     "typecheck": "tsc -p ."
   },
   "dependencies": {
+    "@hosso/plugin-shop": "workspace:*",
     "@hosso/studio-blocks": "workspace:*"
   },
   "peerDependencies": {
