@@ -227,6 +227,9 @@
 @media(max-width:480px){.cv-brand,.cv-document{display:none}.cv-file-actions{overflow:visible}.cv-top>.cv-dev{flex-shrink:0}.cv-file-actions .cv-document-actions{flex-basis:100%}.cv-file-actions .cv-act{flex:1 0 auto}}
 .cv-state-controls{padding:12px 16px 16px;border-top:1px solid var(--cv-line);border-bottom:1px solid var(--cv-line);display:grid;gap:12px;background:#fafbfc}
 .cv-scroll-controls{padding-bottom:16px;margin-bottom:16px;border-bottom:1px solid var(--cv-line);font-size:12px;color:var(--cv-muted)}
+.cv-motion-controls{padding-bottom:16px;margin-bottom:16px;border-bottom:1px solid var(--cv-line);font-size:12px;color:var(--cv-muted)}
+.cv-motion-title{margin:12px 0;font-size:12px;font-weight:650;color:var(--cv-ink)}
+.cv-motion-controls select{width:100%;padding:7px 9px;font:inherit;border:1px solid var(--cv-line);border-radius:4px}
 .cv-scroll-controls select{width:100%;padding:7px 9px;font:inherit;border:1px solid var(--cv-line);border-radius:4px}
 .cv-scroll-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 10px}
 .cv-scroll-number>div{display:flex;align-items:center;gap:6px;min-width:0}

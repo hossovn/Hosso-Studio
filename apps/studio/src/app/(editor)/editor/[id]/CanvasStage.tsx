@@ -2,6 +2,7 @@
 import { FREE_MAX_PX, FREE_W, FreeElementView, cloneElements, elementFamily, transformFamily, convertSectionBox, makeElement, elementStateScope, elementStatesCss, type FreeElement, type FreeType, type ElementState } from '@hosso/studio-blocks'
 import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { MotionScope, resolveMotionConfig } from '@hosso/studio-blocks'
 
 import { PAGE, addEls, placeElement, snapPosition, blockId, elsOf, floatOf, insertBlock, isSection, moveBlock, newBlockId, removeBlock, duplicateBlock, setBlockEls, patchBlock, type Block, type PageData, type Sel, NO_SEL } from './canvas-model'
 import { BRAND, CURSOR, HANDLES, HF_CSS, InlineText, MIN, TEXTY, Toolbar, type Drag, type Handle } from './FreeCanvasEditor'
@@ -329,6 +330,7 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
   return <div ref={host} data-canvas-layer={bid} data-scroll-boundary onPointerMove={preview ? undefined : onMove} onPointerUp={onUp} onPointerCancel={cancel} onLostPointerCapture={() => { if (drag.current) cancel() }} style={{ position: 'absolute', inset: 0, width: 'min(100%, ' + FREE_MAX_PX + 'px)', margin: '0 auto', pointerEvents: 'none', zIndex: cur ? 35 : 1 }}>
     <style>{HF_CSS}</style>
     {!preview && labelHint && !list.length && <div style={{ position: 'absolute', inset: 0, border: '1px dashed #cbd5e1' }} />}
+    <MotionScope enabled={Boolean(preview && list.some((el) => !el.props._hidden && resolveMotionConfig(el.props)?.loop?.preset && resolveMotionConfig(el.props)?.loop?.preset !== 'none'))}>
     {list.map((el) => {
       const active = !preview && interacting === el.id && sel.el === el.id
       return <div key={el.id} className={'hf-el' + (preview && ['m', 't', 'd'].includes(el.props._hide) ? ' hs-hide-' + el.props._hide : '')} draggable={false} onDragStart={(e) => { if (!preview) e.preventDefault() }} data-free-ui="1" data-editor-interactive={active ? "true" : undefined} data-element={el.id}
@@ -347,6 +349,7 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
           <div onPointerDown={active ? (e) => e.stopPropagation() : undefined} style={{ width: '100%', height: '100%', pointerEvents: preview || active ? 'auto' : 'none' }}><FreeElementView el={el} scale={scale} editing={!preview && !active} scrollEffects={preview} state={!preview && cur?.id === el.id ? selectedState : undefined} /></div>}
       </div>
     })}
+    </MotionScope>
     {moving.length > 0 && rect && createPortal(<div data-free-ui="1" style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 99999 }}>
       {moving.map((el) => <div key={el.id} style={{ position: 'absolute', left: rect.left + px(el.x), top: rect.top + px(el.y), width: px(el.w), height: px(el.h), containerType: 'inline-size' }}><FreeElementView el={el} scale={scale} editing /></div>)}
     </div>, host.current!.ownerDocument.body)}
@@ -522,7 +525,7 @@ function SectionBox({ block, config, sel, setSel, data, commit, label, first, la
       onPointerCancel={() => { partDrag.current = null; setPartDraft(null) }}
       onLostPointerCapture={() => { partDrag.current = null; setPartDraft(null) }}
     >
-      {Render ? React.createElement(Render, { ...block.props, ...(partDraft ? { [partKey]: partDraft } : {}), _hide: undefined, _states: section ? undefined : block.props._states, _editorState: undefined, _noFree: true, _editParts: !section }) : <div style={{ padding: 24, background: '#fef3c7', font: '14px sans-serif' }}>Block “{block.type}” không còn trong site (plugin đã gỡ).</div>}
+      {Render ? React.createElement(Render, { ...block.props, ...(partDraft ? { [partKey]: partDraft } : {}), _hide: undefined, _states: section ? undefined : block.props._states, _editorState: undefined, _noFree: true, _motionEditing: !preview, _editParts: !section }) : <div style={{ padding: 24, background: '#fef3c7', font: '14px sans-serif' }}>Block “{block.type}” không còn trong site (plugin đã gỡ).</div>}
       {section && <style>{elementStatesCss(id, block.props)}</style>}
       {activePart && <style>{activePart + '{outline:2px solid #10b981!important;outline-offset:3px;cursor:move;touch-action:none}'}</style>}
       <Layer selectedState={selectedState} blockId={id} els={elsOf(block)} sel={sel} setSel={setSel} preview={preview} onTransfer={(target, next, rootId) => { commit(reparentElements(data, id, target, next, rootId)); setSel({ block: target, el: rootId }) }} onEls={(next, key) => commit(setBlockEls(data, id, next), key)} labelHint={section ? 'Phần trống: chọn tab “Văn bản” hoặc “Phần tử” bên trái rồi bấm để thêm.' : undefined} />

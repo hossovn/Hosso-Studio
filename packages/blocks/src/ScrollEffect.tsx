@@ -1,6 +1,6 @@
 'use client'
 import React, { useEffect, useMemo, useRef } from 'react'
-import { normalizeScrollEffect, scrollEffectFrame } from './scroll-effects'
+import { entranceKeyframes, normalizeScrollEffect, scrollEffectFrame } from './scroll-effects'
 
 export function ScrollEffect({ value, children }: { value: unknown; children: React.ReactNode }) {
   const anchorRef = useRef<HTMLDivElement>(null)
@@ -15,8 +15,37 @@ export function ScrollEffect({ value, children }: { value: unknown; children: Re
     const boundary = anchor.closest<HTMLElement>('[data-scroll-boundary]')
     let viewport: HTMLElement | null = anchor.parentElement
     while (viewport && (viewport === anchor.ownerDocument.body || viewport === anchor.ownerDocument.documentElement || viewport.scrollHeight <= viewport.clientHeight || !/(auto|scroll)/.test(win.getComputedStyle(viewport).overflowY))) viewport = viewport.parentElement
-    let frame = 0
     const reset = () => { moving.style.transform = ''; moving.style.opacity = '' }
+    if (effect.mode === 'entrance') {
+      if (!win.IntersectionObserver || !moving.animate) return
+      let played = false
+      let animation: Animation | undefined
+      const reveal = () => { played = true; observer.disconnect(); animation?.cancel(); reset() }
+      const check = () => {
+        if (reduced.matches || (effect.disableOnMobile && mobile.matches) || anchor.contains(anchor.ownerDocument.activeElement)) reveal()
+      }
+      const observer = new win.IntersectionObserver((entries) => {
+        check()
+        if (played || !entries.some((entry) => entry.isIntersecting && entry.intersectionRatio > 0)) return
+        played = true
+        observer.disconnect()
+        reset()
+        animation = moving.animate(entranceKeyframes(effect.entrance), { duration: effect.duration, delay: effect.delay, easing: 'ease-out', fill: 'backwards' })
+      }, { root: viewport })
+      moving.style.opacity = '0'
+      check()
+      if (!played) observer.observe(anchor)
+      reduced.addEventListener('change', check)
+      mobile.addEventListener('change', check)
+      anchor.addEventListener('focusin', reveal)
+      return () => {
+        reveal()
+        reduced.removeEventListener('change', check)
+        mobile.removeEventListener('change', check)
+        anchor.removeEventListener('focusin', reveal)
+      }
+    }
+    let frame = 0
     const update = () => {
       frame = 0
       if (reduced.matches || (effect.disableOnMobile && mobile.matches) || anchor.contains(anchor.ownerDocument.activeElement)) { reset(); return }

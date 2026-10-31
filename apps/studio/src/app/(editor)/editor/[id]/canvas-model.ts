@@ -208,7 +208,7 @@ export function reparentElements(d: PageData, sourceId: string, targetId: string
 }
 
 export type SelectionAction = 'duplicate' | 'delete' | 'lock' | 'hide' | 'align' | 'forward' | 'backward' | 'copy-style' | 'paste-style' | 'inspect' | 'states'
-const STYLE_KEYS = ['color', 'bg', 'bg2', 'angle', 'radius', 'borderW', 'borderColor', 'bshadow', 'opacity', 'rotate', 'font', 'size', 'weight', 'align', 'lh', 'italic', 'spacing', 'underline', '_states', '_scroll'] as const
+const STYLE_KEYS = ['color', 'bg', 'bg2', 'angle', 'radius', 'borderW', 'borderColor', 'bshadow', 'opacity', 'rotate', 'font', 'size', 'weight', 'align', 'lh', 'italic', 'spacing', 'underline', '_states', '_scroll', '_motion'] as const
 export const elementStyleProps = (props: Record<string, unknown>) => Object.fromEntries(STYLE_KEYS.filter((key) => props[key] !== undefined).map((key) => [key, structuredClone(props[key])]))
 
 export function runSelectionAction(action: SelectionAction, selection: Sel, data: PageData, style?: Record<string, unknown>): PageData | { data: PageData; mode?: 'inspect' | 'states'; style?: Record<string, unknown> } {
