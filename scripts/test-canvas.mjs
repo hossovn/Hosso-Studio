@@ -5,7 +5,7 @@ import { visibleCanvasRange, visibleCanvasBlock } from '../apps/studio/src/app/(
 import { patchWidgetPart, validPartPath, widgetPartCss, widgetPartPath, widgetPartSelector, widgetPartKey, widgetPartsForDevice, widgetPartResponsiveCss } from '../packages/blocks/src/widget-parts.ts'
 import { copyPageMeta } from '../apps/studio/src/app/(editor)/editor/[id]/page-copy.ts'
 import { elementStateCss, elementStatesCss, elementStateScope, readElementState, writeElementState } from '../packages/blocks/src/element-states.ts'
-import { normalizeScrollEffect, scrollEffectFrame } from '../packages/blocks/src/scroll-effects.ts'
+import { entranceKeyframes, normalizeScrollEffect, scrollEffectFrame } from '../packages/blocks/src/scroll-effects.ts'
 import { placeElement, placementOwner, snapPosition, coalesceHistoryKey, initHist, commitHist, undoHist, redoHist, updateEl, runSelectionAction, elsOf, PAGE } from '../apps/studio/src/app/(editor)/editor/[id]/canvas-model.ts'
 
 const placedEl = { id: 'new', type: 'button', x: 0, y: 0, w: 120, h: 40, props: { text: 'New' } }
@@ -36,6 +36,18 @@ assert.equal(cleanScroll.toOpacity, 1)
 assert.equal(cleanScroll.disableOnMobile, false)
 assert.equal(cleanScroll.extra, undefined)
 assert.equal(normalizeScrollEffect({ mode: 'progress', start: 90 }).end, 91)
+const entrance = normalizeScrollEffect({ mode: 'entrance', entrance: 'zoom', duration: Infinity, delay: -100 })
+assert.equal(entrance.entrance, 'zoom')
+assert.equal(entrance.duration, 800)
+assert.equal(entrance.delay, 0)
+assert.equal(normalizeScrollEffect({ mode: 'entrance', entrance: '</style>', duration: 0, delay: 99999 }).entrance, 'bounce')
+assert.equal(normalizeScrollEffect({ mode: 'entrance', duration: 0 }).duration, 100)
+assert.equal(normalizeScrollEffect({ mode: 'entrance', delay: 99999 }).delay, 5000)
+assert.deepEqual(entranceKeyframes('fade'), [{ opacity: 0 }, { opacity: 1 }])
+assert.equal(entranceKeyframes('zoom')[0].transform, 'scale(0.85)')
+assert.deepEqual(entranceKeyframes('bounce').map((frame) => frame.offset), [0, 0.6, 0.8, 1])
+assert.match(entranceKeyframes('bounce')[1].transform, /-12px/)
+assert.deepEqual(entranceKeyframes('bounce').at(-1), { opacity: 1, transform: 'translate3d(0,0,0)', offset: 1 })
 console.log('PASS: scroll effect validation, reversible progress, parallax direction, section pin limits and nested viewport geometry')
 const placementData = { content: [
   { type: 'FreeCanvas', props: { id: 'one', height: 400, elements: [{ ...placedEl, id: 'existing', x: 80, y: 24 }] } },
@@ -85,6 +97,12 @@ const scrollingData = runSelectionAction('paste-style', selection, placementData
 assert.deepEqual(elsOf(scrollingData.content[0])[0].props._scroll, progressEffect)
 const scrollingCopy = runSelectionAction('duplicate', selection, scrollingData)
 assert.deepEqual(elsOf(scrollingCopy.content[0])[1].props._scroll, progressEffect)
+const motionStyle = { entrance: { preset: 'zoom', duration: 600, delay: 0 }, loop: { preset: 'float', duration: 2000, delay: 0, iterations: 3, amount: 12 } }
+const motionData = runSelectionAction('paste-style', selection, scrollingData, { _motion: motionStyle, _scroll: progressEffect })
+assert.deepEqual(elsOf(motionData.content[0])[0].props._motion, motionStyle)
+assert.deepEqual(elsOf(runSelectionAction('duplicate', selection, motionData).content[0])[1].props._motion, motionStyle)
+const motionHistory = commitHist(initHist(scrollingData), motionData)
+assert.deepEqual(redoHist(undoHist(motionHistory)).present, motionData)
 const scrollHistory = commitHist(initHist(placementData), scrollingData)
 assert.deepEqual(undoHist(scrollHistory).present, placementData)
 assert.deepEqual(redoHist(undoHist(scrollHistory)).present, scrollingData)

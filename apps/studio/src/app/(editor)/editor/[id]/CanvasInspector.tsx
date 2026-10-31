@@ -6,6 +6,7 @@ import { SlidersHorizontal, X, FileText, Paintbrush, LayoutGrid, Sparkles, Monit
 import { WidgetPartPicker, WidgetPartsInspector } from './WidgetPartsInspector'
 import { ElementStateControls } from './StateStyleEditor'
 import { ScrollEffectControls } from './ScrollEffectControls'
+import { MotionControls } from './MotionControls'
 
 import { blockId, dupEl, elsOf, findEl, isSection, orderEl, patchBlock, patchElProps, removeEl, updateEl, type Block, type PageData, type Sel, NO_SEL } from './canvas-model'
 
@@ -84,6 +85,8 @@ function FieldInput({ name, f, value, onChange }: { name: string; f: any; value:
               <summary style={{ cursor: 'pointer', fontSize: 13 }}>{f.getItemSummary ? f.getItemSummary(item, i) : `Mục ${i + 1}`}</summary>
               <div style={{ paddingTop: 10 }}>
                 <FieldsForm fields={f.arrayFields ?? {}} values={item} onChange={(k, v) => onChange(list.map((it, j) => (j === i ? { ...it, [k]: v } : it)))} />
+                <button type="button" style={btn} disabled={i === 0} aria-label={`Đưa mục ${i + 1} lên`} onClick={() => { const next = [...list]; [next[i - 1], next[i]] = [next[i], next[i - 1]]; onChange(next) }}>Lên</button>
+                <button type="button" style={btn} disabled={i === list.length - 1} aria-label={`Đưa mục ${i + 1} xuống`} onClick={() => { const next = [...list]; [next[i], next[i + 1]] = [next[i + 1], next[i]]; onChange(next) }}>Xuống</button>
                 <button type="button" style={btn} onClick={() => onChange(list.filter((_, j) => j !== i))}>Xóa mục</button>
               </div>
             </details>
@@ -219,6 +222,8 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
           </div>)}
           <button type="button" style={btn} onClick={() => put({ slides: [...(p.slides || []), { image: '', alt: '', text: '' }] })}>Thêm slide</button>
           <Row label="Tự chạy (giây, 0 = tắt)"><input type="number" min={0} max={60} style={ctl} value={p.seconds || 0} onChange={(e) => put({ seconds: Math.max(0, Math.min(60, Number(e.target.value) || 0)) })} /></Row>
+          <Row label="Chuyển ảnh"><select aria-label="Chuyển ảnh" style={ctl} value={p.effect === 'fade' ? 'fade' : 'slide'} onChange={(e) => put({ effect: e.target.value })}><option value="slide">Trượt ngang</option><option value="fade">Chuyển mờ</option></select></Row>
+          <label className="cv-scroll-mobile"><input type="checkbox" checked={p.thumbnails === true} onChange={(e) => put({ thumbnails: e.target.checked })} />Hiện ảnh nhỏ để chọn</label>
         </>}
         {textual && <Row label={el.type === 'button' ? 'Chữ trên nút' : 'Nội dung'}><textarea style={{ ...ctl, minHeight: 64 }} value={p.text ?? ''} onChange={(e) => put({ text: e.target.value })} /></Row>}
         {(el.type === 'button' || el.type === 'text') && <Row label="Liên kết"><input style={ctl} value={p.href ?? ''} placeholder="https://… hoặc /trang" onChange={(e) => put({ href: e.target.value })} /></Row>}
@@ -366,6 +371,7 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
         )}
       </Group>
       <Group title="Hiệu ứng" show={tab === 'fx'}>
+        {el.type !== 'container' && <MotionControls props={p} type={el.type} onChange={(value) => put({ _motion: value })} />}
         {el.type !== 'container' && <ScrollEffectControls value={p._scroll} onChange={(value) => put({ _scroll: value ?? undefined })} />}
         {el.type === 'image' && <Row label="Đổ bóng"><Choice value={p.bshadow ?? ''} onChange={(v) => put({ bshadow: v })} options={['', ...Object.keys(BOX_SHADOWS)]} /></Row>}
         {(el.type === 'heading' || el.type === 'text') && (

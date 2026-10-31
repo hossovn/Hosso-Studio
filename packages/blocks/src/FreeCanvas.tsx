@@ -9,6 +9,10 @@ import { elementStateScope, elementStatesCss } from './element-states'
 import type { ElementState } from './element-states'
 import { ScrollEffect } from './ScrollEffect'
 import { normalizeScrollEffect } from './scroll-effects'
+import { resolveMotionConfig } from './motion-effects'
+import { MotionEffects } from './MotionEffects'
+import { MotionScope } from './MotionScope'
+import { MotionText } from './MotionText'
 export { newId } from './free-geometry'
 
 /**
@@ -87,9 +91,14 @@ export function FreeElementView({ el, unit = FREE_W, scale, editing = false, sta
   const rot = Number(p.rotate) || 0
   const bodyOpacity = ['text', 'heading', 'button', 'image'].includes(el.type)
   const stateCss = elementStatesCss(el.id, p)
-  const inner = <FreeElementBody el={el} unit={unit} scale={scale} editing={editing} state={state} />
-  const scrolling = scrollEffects && !editing && el.type !== 'container' && normalizeScrollEffect(p._scroll)
-  if (!stateCss && !imp && op === 100 && !rot) return scrolling ? <ScrollEffect value={p._scroll}>{inner}</ScrollEffect> : inner
+  const motion = scrollEffects && !editing && el.type !== 'container' ? resolveMotionConfig(p) : null
+  const inner = <FreeElementBody el={el} unit={unit} scale={scale} editing={editing || !scrollEffects} state={state} />
+  const scrolling = scrollEffects && !editing && el.type !== 'container' && p._scroll?.mode !== 'entrance' && normalizeScrollEffect(p._scroll)
+  const effects = (content: React.ReactNode) => {
+    const animated = motion ? <MotionEffects value={motion}>{content}</MotionEffects> : content
+    return scrolling ? <ScrollEffect value={p._scroll}>{animated}</ScrollEffect> : animated
+  }
+  if (!stateCss && !imp && op === 100 && !rot) return effects(inner)
   const body = !imp && op === 100 && !rot ? inner : <div style={{ width: '100%', height: '100%', opacity: bodyOpacity ? undefined : op / 100, transform: rot ? `rotate(${rot}deg)` : undefined }}>{inner}</div>
   const styled = (
     <div style={{ width: '100%', height: '100%' }}>
@@ -98,7 +107,7 @@ export function FreeElementView({ el, unit = FREE_W, scale, editing = false, sta
       {body}
     </div>
   )
-  return scrolling ? <ScrollEffect value={p._scroll}>{styled}</ScrollEffect> : styled
+  return effects(styled)
 }
 
 function FreeElementBody({ el, unit, scale, editing, state }: { el: FreeElement; unit: number; scale?: number; editing: boolean; state?: ElementState }) {
@@ -107,8 +116,12 @@ function FreeElementBody({ el, unit, scale, editing, state }: { el: FreeElement;
   const stateAttrs = { className: p._states ? elementStateScope(el.id) : undefined, 'data-hs-state': state }
   const u = (n: number) => scale !== undefined ? (Number(n) * scale) + 'px' : `${(Number(n) / unit) * 100}cqw`
   const text: React.CSSProperties = { opacity, margin: 0, fontSize: u(p.size ?? 18), fontWeight: p.weight ?? 400, color: p.color, textAlign: p.align ?? 'left', lineHeight: p.lh ? Number(p.lh) : 1.25, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', fontFamily: fontStack(p.font) ?? 'inherit', fontStyle: p.italic ? 'italic' : 'normal', letterSpacing: p.spacing ? u(p.spacing) : 'normal', textTransform: p.upper ? 'uppercase' : 'none', textDecoration: p.underline ? 'underline' : undefined, textShadow: shadowCss(TEXT_SHADOWS[p.tshadow], u), ...(p.strokeW ? { WebkitTextStroke: `${u(p.strokeW)} ${p.strokeColor ?? '#111827'}`, paintOrder: 'stroke fill' } : {}), ...(p.grad2 ? { background: `linear-gradient(${Number(p.angle ?? 90)}deg, ${p.color ?? '#111827'}, ${p.grad2})`, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent' } : {}) }
-  if (el.type === 'heading') return React.createElement(`h${Math.min(6, Math.max(1, Number(p.level) || 2))}`, { ...stateAttrs, style: text }, p.text)
-  if (el.type === 'text') return p.href && !editing ? <a {...stateAttrs} href={safeHref(p.href)} style={{ ...text, display: 'block' }}>{p.text}</a> : <p {...stateAttrs} style={text}>{p.text}</p>
+  const motion = !editing ? resolveMotionConfig(p) : null
+  const entrance = motion?.entrance?.preset
+  const textMode = entrance === 'text-lines' ? 'lines' : entrance === 'text-words' ? 'words' : motion?.loop?.preset === 'marquee' ? 'marquee' : null
+  const textContent = textMode ? <MotionText text={String(p.text ?? '')} mode={textMode} marquee={motion?.loop?.preset === 'marquee'} /> : p.text
+  if (el.type === 'heading') return React.createElement(`h${Math.min(6, Math.max(1, Number(p.level) || 2))}`, { ...stateAttrs, style: text }, textContent)
+  if (el.type === 'text') return p.href && !editing ? <a {...stateAttrs} href={safeHref(p.href)} style={{ ...text, display: 'block' }}>{textContent}</a> : <p {...stateAttrs} style={text}>{textContent}</p>
   if (el.type === 'button') {
     const st: React.CSSProperties = { ...text, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: u(8), width: '100%', height: '100%', boxSizing: 'border-box', background: fillCss(p), borderRadius: u(p.radius ?? 0), border: p.borderW ? `${u(p.borderW)} solid ${p.borderColor}` : 0, textAlign: 'center', textDecoration: p.underline ? 'underline' : 'none', boxShadow: shadowCss(BOX_SHADOWS[p.bshadow], u), WebkitTextFillColor: undefined, WebkitBackgroundClip: undefined, backgroundClip: undefined }
     const content = <>{typeof p.icon === 'string' && Object.hasOwn(ICON_BODY, p.icon) && <svg viewBox="0 0 24 24" width={u(p.size ?? 18)} height={u(p.size ?? 18)} fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" style={{ flexShrink: 0 }} dangerouslySetInnerHTML={{ __html: ICON_BODY[p.icon] }} />}{p.text}</>
@@ -133,7 +146,7 @@ function FreeElementBody({ el, unit, scale, editing, state }: { el: FreeElement;
     return p.href && !editing ? <a {...stateAttrs} href={safeHref(p.href)} style={{ ...imageStyle, opacity }}><img src={p.src} alt={p.alt ?? ''} style={{ ...imageStyle, border: undefined, boxShadow: undefined }} /></a> : <img {...stateAttrs} src={p.src} alt={p.alt ?? ''} style={{ ...imageStyle, opacity }} />
   }
   if (el.type === 'container') return <div style={{ width: '100%', height: '100%', background: p.bg || 'transparent', borderRadius: u(p.radius || 0) }} />
-  if (el.type === 'swiper') return <FreeSwiper slides={Array.isArray(p.slides) ? p.slides : []} seconds={Number(p.seconds) || 0} editing={editing} />
+  if (el.type === 'swiper') return <FreeSwiper slides={Array.isArray(p.slides) ? p.slides : []} seconds={Number(p.seconds) || 0} editing={editing} effect={p.effect === 'fade' ? 'fade' : 'slide'} thumbnails={p.thumbnails === true} />
   if (el.type === 'video') {
     const embed = videoEmbed(String(p.url ?? ''))
     if (embed && !editing) return <iframe src={embed} title={p.title || 'Video'} style={{ width: '100%', height: '100%', border: 0 }} allowFullScreen loading="lazy" />
@@ -203,11 +216,13 @@ function FreeElementBody({ el, unit, scale, editing, state }: { el: FreeElement;
 /** Lớp phần tử phủ lên một block (prop `_els`): rộng tối đa FREE_MAX_PX, canh giữa, tọa độ tính từ góc trên trái của block. */
 export const FreeOverlay = ({ elements }: { elements: FreeElement[] }) => (
   <div className="hs-free-layer" data-scroll-boundary style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, width: `min(100%, ${FREE_MAX_PX}px)`, margin: '0 auto', containerType: 'inline-size', pointerEvents: 'none' }}>
+    <MotionScope enabled={elements.some((el) => !el.props._hidden && resolveMotionConfig(el.props)?.loop?.preset && resolveMotionConfig(el.props)?.loop?.preset !== 'none')}>
     {elements.map((el) => (
       <div key={el.id} className={el.props._hide ? 'hs-hide-' + el.props._hide : undefined} style={{ display: el.props._hidden ? 'none' : undefined, position: 'absolute', left: `${(el.x / FREE_W) * 100}%`, top: `${(el.y / FREE_W) * 100}cqw`, width: `${(el.w / FREE_W) * 100}%`, height: `${(el.h / FREE_W) * 100}cqw`, pointerEvents: el.type === 'container' ? 'none' : 'auto', zIndex: el.type === 'container' ? 0 : 1 }}>
         <FreeElementView el={el} />
       </div>
     ))}
+    </MotionScope>
   </div>
 )
 
