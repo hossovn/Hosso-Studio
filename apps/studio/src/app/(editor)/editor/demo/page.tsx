@@ -1,6 +1,7 @@
 'use client'
 import React, { useState } from 'react'
-import { FreeCanvasView, type FreeElement } from '@hosso/studio-blocks'
+import { FreeCanvasView, ScrollStory, type FreeElement } from '@hosso/studio-blocks'
+import { SECTION_TEMPLATES } from '../[id]/SectionTemplates'
 import { CanvasApp } from '../[id]/CanvasApp'
 import type { PageData } from '../[id]/canvas-model'
 
@@ -15,14 +16,20 @@ const sample: PageData = { root: { props: {} }, content: [
     el('explore', 'button', 435, 574, 330, 62, { text: 'EXPLORE COLLECTIONS', href: '#collections', size: 17, weight: 700, bg: '#fff', color: '#111', radius: 4 }, 'hero-content'),
   ] } },
   { type: 'FreeCanvas', props: { id: 'collections', height: 640, _bgHex: '#f3f5f4', _els: [
-    el('collection-title', 'heading', 64, 60, 900, 70, { text: 'THE NEXT CHAPTER', size: 48, weight: 800, color: '#17251e' }),
-    el('carousel', 'swiper', 64, 170, 660, 380, { slides: [{ image, alt: 'Mountain summit', text: 'Find your own path' }, { image: '/editor-demo/trail.jpg', alt: 'Mountain trail', text: 'Beyond the everyday' }], seconds: 4 }),
+    el('collection-title', 'heading', 64, 60, 900, 70, { text: 'THE NEXT CHAPTER', size: 48, weight: 800, color: '#17251e', _scroll: { mode: 'entrance', entrance: 'bounce' } }),
+    el('carousel', 'swiper', 64, 170, 660, 380, { slides: [{ image, alt: 'Mountain summit', text: 'Find your own path' }, { image: '/editor-demo/trail.jpg', alt: 'Mountain trail', text: 'Beyond the everyday' }], seconds: 4, effect: 'fade', thumbnails: true }),
     el('film', 'video', 764, 170, 372, 240, { url: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4', title: 'Field notes' }),
     el('film-caption', 'text', 764, 434, 372, 100, { text: 'FIELD NOTES / A moment outdoors.', size: 23, color: '#344b40', lh: 1.5 }),
   ] } },
+  ...SECTION_TEMPLATES.filter((t) => t.id.startsWith('motion-')).map((t) => ({ type: 'FreeCanvas', props: { id: t.id, height: t.height, _bgHex: t.bg, _els: t.build() } })),
+  { type: 'ScrollStory', props: { id: 'motion-story', steps: [
+    { image, alt: 'Dãy núi', title: 'Khởi đầu hành trình', body: 'Cuộn để khám phá từng bước trong câu chuyện.' },
+    { image: '/editor-demo/trail.jpg', alt: 'Đường núi', title: 'Tiếp tục khám phá', body: 'Ảnh thay đổi theo bước bạn đang đọc.' },
+    { image: '/editor-templates/cafe.jpg', alt: 'Quán café', title: 'Dừng chân', body: 'Trên điện thoại, mỗi ảnh đi cùng nội dung theo chiều dọc.' },
+  ] } },
 ] }
 
-const config = { components: { FreeCanvas: { label: 'Section', render: (props: Record<string, any>) => <div id={props.id === 'collections' ? 'collections' : undefined} style={{ background: props._bgHex }}><FreeCanvasView {...props} /></div> } } }
+const config = { components: { ScrollStory: { label: 'Kể chuyện theo cuộn', render: ScrollStory }, FreeCanvas: { label: 'Section', render: (props: Record<string, any>) => <div id={props.id === 'collections' ? 'collections' : undefined} style={{ background: props._bgHex }}><FreeCanvasView {...props} /></div> } } }
 export default function DemoEditor() {
   const [status, setStatus] = useState('Demo')
   return <CanvasApp config={config} data={sample} onChange={() => setStatus('Demo *')} initialSelection={{ block: 'adventure', el: 'adventure-title' }} css="html,body{font-family:Arial,sans-serif;color:#17251e}*{box-sizing:border-box}a{color:inherit}html{scroll-behavior:smooth}" htmlClass="" menu={null} title="Adventure / Home" backHref="/admin" lang="vi" labelOf={(type) => type === 'FreeCanvas' ? 'Section' : type} actions={<span style={{ color: '#647168', fontSize: 12 }}>{status}</span>} />
