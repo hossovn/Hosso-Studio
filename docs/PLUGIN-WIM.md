@@ -10,4 +10,4 @@ Khi công khai repo:
 3. Gỡ dòng import và khai báo plugin khỏi `apps/studio/hosso.config.ts` và `apps/studio/package.json`; Studio vẫn chạy vì lõi không phụ thuộc plugin.
 4. `pnpm check:boundaries` phải qua trước khi đẩy lên.
 
-Kho giao diện hiện giữ mẫu Thanh Cường Auto tại `seed/sites/shop-template.hosso-site.zip`, không phụ thuộc WIM. Mẫu WIM Minh Phát đã được gỡ. Khách WIM dùng gói từ repo riêng thì đặt `HOSSO_TEMPLATES_DIR` trỏ tới thư mục chứa gói.
+Mẫu TCAP và mẫu WIM Minh Phát đã được gỡ khỏi kho giao diện. Gói TCAP tại `scripts/fixtures/shop-template.hosso-site.zip` chỉ dùng cho kiểm thử, không phụ thuộc WIM. Khách WIM dùng gói từ repo riêng thì đặt `HOSSO_TEMPLATES_DIR` trỏ tới thư mục chứa gói.

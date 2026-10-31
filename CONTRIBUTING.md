@@ -103,7 +103,7 @@ Khi sửa collection hoặc global của Payload:
 
 ### Gói site
 
-Nếu thay đổi ảnh hưởng định dạng export/import (`studio:export`, `studio:import`), kiểm tra nhập lại `seed/sites/shop-template.hosso-site.zip` vào một DB sạch.
+Nếu thay đổi ảnh hưởng định dạng export/import (`studio:export`, `studio:import`), kiểm tra nhập lại `scripts/fixtures/shop-template.hosso-site.zip` vào một DB sạch.
 
 ## 6. Báo lỗi
 

@@ -87,7 +87,7 @@ Admin → Hosso WIM connection: enter the API address, API key and webhook secre
 
 You can set everything with environment variables (they win over the admin values): `HOSSO_WIM_API_URL`, `HOSSO_WIM_API_KEY`, `HOSSO_WIM_WEBHOOK_SECRET`, `HOSSO_WIM_TIMEOUT_MS`, `HOSSO_WIM_CACHE_TTL`.
 
-The commerce blocks (Vehicle selector, Search box, Product grid, Product detail, Cart, Checkout, Order status) appear in the builder when the plugin is installed. The Thanh Cuong Auto website template at `seed/sites/shop-template.hosso-site.zip` uses the Shop plugin, not WIM; select it from Dashboard → Choose a template.
+The commerce blocks (Vehicle selector, Search box, Product grid, Product detail, Cart, Checkout, Order status) appear in the builder when the plugin is installed. The TCAP template has been removed from the template catalog; the package at `scripts/fixtures/shop-template.hosso-site.zip` is only a test fixture.
 
 Control the mock to try failures (no extra endpoint is opened):
 
