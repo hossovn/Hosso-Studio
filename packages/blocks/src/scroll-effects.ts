@@ -1,5 +1,8 @@
 export type ScrollEffectConfig = {
-  mode: 'parallax' | 'pin' | 'progress'
+  mode: 'parallax' | 'pin' | 'progress' | 'entrance'
+  entrance: 'fade' | 'zoom' | 'bounce'
+  duration: number
+  delay: number
   distance: number
   pinTop: number
   start: number
@@ -21,10 +24,12 @@ const number = (value: unknown, fallback: number, min: number, max: number) => c
 export function normalizeScrollEffect(value: unknown): ScrollEffectConfig | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const p = value as Record<string, unknown>
-  if (p.mode !== 'parallax' && p.mode !== 'pin' && p.mode !== 'progress') return null
+  if (p.mode !== 'parallax' && p.mode !== 'pin' && p.mode !== 'progress' && p.mode !== 'entrance') return null
   const start = number(p.start, 0, 0, 99)
   return {
-    mode: p.mode, distance: number(p.distance, 160, -600, 600), pinTop: number(p.pinTop, 24, 0, 400),
+    mode: p.mode, entrance: p.entrance === 'fade' || p.entrance === 'zoom' ? p.entrance : 'bounce',
+    duration: number(p.duration, 800, 100, 5000), delay: number(p.delay, 0, 0, 5000),
+    distance: number(p.distance, 160, -600, 600), pinTop: number(p.pinTop, 24, 0, 400),
     start, end: number(p.end, p.mode === 'progress' ? 60 : 100, start + 1, 100),
     fromX: number(p.fromX, 0, -1000, 1000), toX: number(p.toX, 0, -1000, 1000),
     fromY: number(p.fromY, 80, -1000, 1000), toY: number(p.toY, 0, -1000, 1000),
@@ -32,6 +37,17 @@ export function normalizeScrollEffect(value: unknown): ScrollEffectConfig | null
     fromOpacity: number(p.fromOpacity, 1, 0, 1), toOpacity: number(p.toOpacity, 1, 0, 1),
     disableOnMobile: p.disableOnMobile === true,
   }
+}
+
+export function entranceKeyframes(entrance: ScrollEffectConfig['entrance']): Keyframe[] {
+  if (entrance === 'fade') return [{ opacity: 0 }, { opacity: 1 }]
+  if (entrance === 'zoom') return [{ opacity: 0, transform: 'scale(0.85)' }, { opacity: 1, transform: 'scale(1)' }]
+  return [
+    { opacity: 0, transform: 'translate3d(0,80px,0)', offset: 0 },
+    { opacity: 1, transform: 'translate3d(0,-12px,0)', offset: 0.6 },
+    { opacity: 1, transform: 'translate3d(0,6px,0)', offset: 0.8 },
+    { opacity: 1, transform: 'translate3d(0,0,0)', offset: 1 },
+  ]
 }
 
 export type ScrollGeometry = { top: number; height: number; boundaryBottom: number; viewportTop: number; viewportHeight: number }
