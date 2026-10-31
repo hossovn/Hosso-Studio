@@ -78,6 +78,7 @@ const inlineStyle = (p: Record<string, any>): React.CSSProperties | undefined =>
 export const withStyle = (Inner: BlockRenderer): BlockRenderer => {
   const Styled: BlockRenderer = (props: any) => {
     const { _bg, _pt, _pb, _align, _fs, _bd, _rd, _sh, _an, _hv, _hide } = props
+    const reusableHide = ['m', 't', 'd'].includes(props._reusableHide) ? props._reusableHide : ''
     const style = inlineStyle(props)
     const stateCss = typeof props.id === 'string' ? elementStatesCss(props.id, props) : ''
     let content = createElement(Inner, stateCss ? { ...props, _states: undefined } : props)
@@ -87,8 +88,8 @@ export const withStyle = (Inner: BlockRenderer): BlockRenderer => {
     }
     // Lớp phần tử tự do (prop _els) phủ lên mọi block; editor tự vẽ lớp chỉnh sửa nên đặt _noFree để bỏ lớp này.
     const layer = !props._noFree && Array.isArray(props._els) && props._els.length ? createElement(FreeOverlay, { elements: props._els }) : null
-    if (!_bg && !_pt && !_pb && !_align && !_fs && !_bd && !_rd && !_sh && !_an && !_hv && !_hide && !style && !layer && !stateCss) return content
-    const cls = ['hs-styled', _hide && `hs-hide-${_hide}`, _bg && `hs-bg-${_bg}`, _pt && `hs-pt-${_pt}`, _pb && `hs-pb-${_pb}`, _align && `hs-ta-${_align}`, _fs && `hs-fs-${_fs}`, _bd && `hs-bd-${_bd}`, _rd && `hs-rd-${_rd}`, _sh && `hs-sh-${_sh}`, _an && `hs-an-${_an}`, _hv && `hs-hv-${_hv}`].filter(Boolean).join(' ')
+    if (!_bg && !_pt && !_pb && !_align && !_fs && !_bd && !_rd && !_sh && !_an && !_hv && !_hide && !reusableHide && !style && !layer && !stateCss) return content
+    const cls = ['hs-styled', _hide && `hs-hide-${_hide}`, reusableHide && `hs-hide-${reusableHide}`, _bg && `hs-bg-${_bg}`, _pt && `hs-pt-${_pt}`, _pb && `hs-pb-${_pb}`, _align && `hs-ta-${_align}`, _fs && `hs-fs-${_fs}`, _bd && `hs-bd-${_bd}`, _rd && `hs-rd-${_rd}`, _sh && `hs-sh-${_sh}`, _an && `hs-an-${_an}`, _hv && `hs-hv-${_hv}`].filter(Boolean).join(' ')
     return createElement('div', { className: cls + (stateCss ? ' ' + elementStateScope(props.id) : ''), style: layer ? { position: 'relative', ...style } : style }, stateCss ? createElement('style', null, stateCss) : null, content, layer)
   }
   return Styled

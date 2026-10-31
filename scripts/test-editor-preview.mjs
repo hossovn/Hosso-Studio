@@ -309,6 +309,16 @@ const { withStyle } = compile('../packages/blocks/src/puck-config.ts', {
 })
 const Button = withStyle(({ submitLabel }) => React.createElement('form', { action: '/submit' }, React.createElement('button', { type: 'submit' }, submitLabel)))
 const StyledSection = withStyle(FreeCanvasView)
+const { expandReusable } = compile('../apps/studio/src/lib/site.tsx', {
+  '@payload-config': {}, '@hosso-config': { locales: [{ code: 'vi' }] }, '@hosso/studio-blocks': {}, './core-loaders': {},
+  'next/headers': {}, react: { ...React, cache: (fn) => fn },
+  payload: { getPayload: async () => ({ find: async () => ({ docs: [{ content: { content: [{ type: 'Text', props: { id: 'inner', _hide: 'd' } }] } }] }) }) },
+})
+const reusable = await expandReusable({ content: [{ type: 'Reusable', props: { id: 'mobile-header', slug: 'header', _hide: 't' } }] }, 'vi')
+assert.equal(reusable.content[0].props.id, 'mobile-header__0')
+const reusableMarkup = renderToStaticMarkup(React.createElement(Button, reusable.content[0].props))
+assert.match(reusableMarkup, /hs-hide-d hs-hide-t/)
+assert.doesNotMatch(renderToStaticMarkup(React.createElement(Button, { _reusableHide: 'invalid' })), /hs-hide/)
 const ownerMarkup = renderToStaticMarkup(React.createElement(StyledSection, { id: 'owner', height: 400, _states: stateButton.props._states, _els: [legacyButton] }))
 assert.match(ownerMarkup, new RegExp('^<div class="hs-styled ' + elementStates.elementStateScope('owner')))
 assert.match(ownerMarkup, /hs-free-layer/)

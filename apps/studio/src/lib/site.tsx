@@ -115,7 +115,7 @@ export async function expandReusable<T extends { content: Item[] }>(data: T, loc
       overrideAccess: true,
     })
     const blocks = ((found.docs[0]?.content as { content?: Item[] } | null)?.content ?? []).filter((b) => b.type !== 'Reusable')
-    blocks.forEach((b, n) => out.push({ ...b, props: { ...b.props, id: `${item.props.id}__${n}` } }))
+    blocks.forEach((b, n) => out.push({ ...b, props: { ...b.props, _reusableHide: item.props._hide, id: `${item.props.id}__${n}` } }))
   }
   return { ...data, content: out }
 }
