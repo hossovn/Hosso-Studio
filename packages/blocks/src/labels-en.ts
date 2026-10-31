@@ -234,6 +234,8 @@ export const blockLabelsEn: Record<string, string> = {
   'Danh sách dịch vụ (mỗi dòng một dịch vụ; để trống là không hỏi dịch vụ)': 'Services (one per line; leave empty to skip the service question)',
   'Hỏi số người': 'Ask for number of guests',
   'Lời cảm ơn sau khi gửi': 'Thank-you message after submitting',
+  'Câu chuyện cuộn': 'Scroll story',
+  'Các bước câu chuyện': 'Story steps',
 }
 
 /** Dịch nhãn theo ngôn ngữ admin; `extra` là từ điển bổ sung (ví dụ của plugin). */
