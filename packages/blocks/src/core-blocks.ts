@@ -38,6 +38,24 @@ export const slider: BlockSchema<{ slides: { image: string; href: string; alt: s
   defaultProps: { slides: [{ image: '/editor-demo/trail.jpg', href: '#', alt: 'Đường mòn trên núi' }, { image: '/editor-templates/cafe.jpg', href: '#', alt: 'Không gian café' }], seconds: 5 },
 }
 
+export const scrollStory: BlockSchema<{ steps: { image: string; alt: string; title: string; body: string }[] }> = {
+  type: 'ScrollStory',
+  label: 'Câu chuyện cuộn',
+  fields: {
+    steps: {
+      type: 'array',
+      label: 'Các bước câu chuyện',
+      arrayFields: { image: { type: 'media', label: 'Ảnh' }, alt: { type: 'text', label: 'Mô tả ảnh' }, title: { type: 'text', label: 'Tiêu đề' }, body: { type: 'textarea', label: 'Nội dung' } },
+      defaultItemProps: { image: '', alt: '', title: 'Tiêu đề', body: '' },
+    },
+  },
+  defaultProps: { steps: [
+    { image: '/editor-demo/trail.jpg', alt: 'Đường mòn giữa núi rừng', title: 'Bắt đầu hành trình', body: 'Mỗi chuyến đi bắt đầu bằng một bước chân.' },
+    { image: '/editor-demo/mountain.jpg', alt: 'Dãy núi dưới bầu trời xanh', title: 'Khám phá', body: 'Theo con đường của riêng bạn và tìm những góc nhìn mới.' },
+    { image: '/editor-templates/cafe.jpg', alt: 'Không gian quán cà phê ấm cúng', title: 'Dừng lại và cảm nhận', body: 'Mang theo những khoảnh khắc đáng nhớ.' },
+  ] },
+}
+
 export const image: BlockSchema<{ src: string; alt: string; caption: string }> = {
   type: 'Image',
   label: 'Hình ảnh',
@@ -320,4 +338,4 @@ export const booking: BlockSchema<any> = {
   defaultProps: { heading: 'Đặt lịch hẹn', services: '', askGuests: 'no', submitLabel: 'Đặt lịch', successText: 'Đã gửi yêu cầu đặt lịch. Chúng tôi sẽ liên hệ xác nhận sớm.' },
 }
 
-export const coreBlocks: BlockSchema<any>[] = [freeCanvas, popup, noticeBar, languageSwitch, luckyWheel, booking, hero, slider, text, twoColumns, imageSections, image, video, features, categoryGrid, trustBar, postList, searchBox, termList, navMenu, contactForm, formBlock, reusable, footer]
+export const coreBlocks: BlockSchema<any>[] = [freeCanvas, popup, noticeBar, languageSwitch, luckyWheel, booking, hero, slider, scrollStory, text, twoColumns, imageSections, image, video, features, categoryGrid, trustBar, postList, searchBox, termList, navMenu, contactForm, formBlock, reusable, footer]

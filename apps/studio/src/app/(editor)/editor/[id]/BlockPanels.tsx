@@ -21,7 +21,7 @@ const TABS: TabDef[] = [
   { id: 'media', title: 'Ảnh/Video', icon: 'M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4', blocks: (t) => ['Image', 'Video', 'Slider'].includes(t), library: ['Ảnh và video'] },
   { id: 'shop', title: 'Cửa hàng', icon: 'M4 9l1-5h14l1 5M5 9v11h14V9M9 20v-6h6v6', blocks: (t) => /^(Shop|Wim)/.test(t) },
   { id: 'forms', title: 'Nhập liệu', icon: 'M4 6h16v4H4zM4 14h16v4H4z', blocks: (t) => ['ContactForm', 'Form', 'SearchBox'].includes(t) },
-  { id: 'library', title: 'Thư viện', icon: 'M3 7h6l2 2h10v10H3z', blocks: (t) => ['Hero', 'TwoColumns', 'ImageSections', 'Features', 'TrustBar', 'Footer', 'Reusable'].includes(t), patterns: true },
+  { id: 'library', title: 'Thư viện', icon: 'M3 7h6l2 2h10v10H3z', blocks: (t) => ['Hero', 'TwoColumns', 'ImageSections', 'ScrollStory', 'Features', 'TrustBar', 'Footer', 'Reusable'].includes(t), patterns: true },
 ]
 
 export const Icon = ({ d }: { d: string }) => (

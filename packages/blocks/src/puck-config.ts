@@ -6,6 +6,7 @@ import { BookingForm, LanguageSwitch, LuckyWheel, NoticeBar, PopupBlock } from '
 import { CategoryGrid, FormBlock, ImageSections, TwoColumns, ReusablePlaceholder, NavMenu, SearchBox, Slider, TermList, TrustBar } from './CoreExtras'
 import { PostList } from './PostList'
 import { FreeCanvasView, FreeOverlay } from './FreeCanvas'
+import { ScrollStory } from './ScrollStory'
 import { t } from './i18n'
 import { toStyleField } from './style-fields'
 import type { BlockField, BlockRenderer, BlockSchema, HossoPlugin, Theme } from './types'
@@ -94,7 +95,7 @@ export const withStyle = (Inner: BlockRenderer): BlockRenderer => {
 }
 
 // Renderer dự phòng của lõi khi theme không có renderer riêng.
-const coreFallback: Record<string, BlockRenderer> = { FreeCanvas: FreeCanvasView, Popup: PopupBlock, Booking: BookingForm, NoticeBar, LanguageSwitch, LuckyWheel, ImageSections, TwoColumns, PostList, Slider, TrustBar, CategoryGrid, SearchBox, TermList, NavMenu, Form: FormBlock, Reusable: ReusablePlaceholder }
+const coreFallback: Record<string, BlockRenderer> = { FreeCanvas: FreeCanvasView, Popup: PopupBlock, Booking: BookingForm, NoticeBar, LanguageSwitch, LuckyWheel, ImageSections, TwoColumns, ScrollStory, PostList, Slider, TrustBar, CategoryGrid, SearchBox, TermList, NavMenu, Form: FormBlock, Reusable: ReusablePlaceholder }
 
 const Missing = ({ type }: { type?: string }) =>
   createElement('div', { className: 'hs-missing', role: 'note' }, `${t('block.missing')}: ${type ?? ''}`)
