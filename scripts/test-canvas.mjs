@@ -263,3 +263,4 @@ const slider = event('click', { control: true })
 guardCanvasEvent(slider, true)
 assert.equal(slider.prevented, false)
 console.log('PASS: state validation/cascade, placement/snapping, history, selection/locks, viewport, group ownership and navigation guards')
+import './test-motion-config.mjs'
