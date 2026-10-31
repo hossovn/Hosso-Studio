@@ -88,7 +88,7 @@ Admin → Kết nối Hosso WIM: nhập địa chỉ API, khóa API, bí mật w
 
 Có thể đặt toàn bộ bằng biến môi trường (ưu tiên hơn giá trị trong admin): `HOSSO_WIM_API_URL`, `HOSSO_WIM_API_KEY`, `HOSSO_WIM_WEBHOOK_SECRET`, `HOSSO_WIM_TIMEOUT_MS`, `HOSSO_WIM_CACHE_TTL`.
 
-Các block thương mại (Bộ chọn xe, Ô tìm, Lưới sản phẩm, Chi tiết sản phẩm, Giỏ hàng, Thanh toán, Trạng thái đơn) xuất hiện trong trình dựng khi plugin được cài. Mẫu website Thanh Cường Auto tại `seed/sites/shop-template.hosso-site.zip` dùng plugin Cửa hàng, không dùng WIM; chọn tại Dashboard → Chọn giao diện.
+Các block thương mại (Bộ chọn xe, Ô tìm, Lưới sản phẩm, Chi tiết sản phẩm, Giỏ hàng, Thanh toán, Trạng thái đơn) xuất hiện trong trình dựng khi plugin được cài. Mẫu TCAP đã được gỡ khỏi kho giao diện; gói tại `scripts/fixtures/shop-template.hosso-site.zip` chỉ dùng cho kiểm thử.
 
 Điều khiển mock để thử lỗi (không mở thêm endpoint):
 

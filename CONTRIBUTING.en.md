@@ -103,7 +103,7 @@ When you change a Payload collection or global:
 
 ### Site packages
 
-If a change affects the export/import format (`studio:export`, `studio:import`), re-import `seed/sites/shop-template.hosso-site.zip` into a clean database to check.
+If a change affects the export/import format (`studio:export`, `studio:import`), re-import `scripts/fixtures/shop-template.hosso-site.zip` into a clean database to check.
 
 ## 6. Reporting bugs
 

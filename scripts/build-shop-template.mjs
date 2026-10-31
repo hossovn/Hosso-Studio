@@ -1,5 +1,5 @@
 // Sinh mẫu site bán phụ tùng ô tô (bản sao bố cục thanhcuongauto.com, dữ liệu bán hàng của plugin Cửa hàng, không dùng WIM)
-// thành seed/sites/shop-template.hosso-site.zip. Header, footer và các trang là phần tử Canvas + block Slider/Shop*, nên sửa được trong editor.
+// thành scripts/fixtures/shop-template.hosso-site.zip. Header, footer và các trang là phần tử Canvas + block Slider/Shop*, nên sửa được trong editor.
 // Ảnh và catalog lấy trước bằng scripts/fetch-shop-template-assets.mjs vào seed/template-assets/shop/. Chạy: node scripts/build-shop-template.mjs
 import fs from 'fs'
 import { createRequire } from 'module'
@@ -282,7 +282,7 @@ Object.assign(files, {
   'data/media.json': json(media),
 })
 
-const out = path.join(root, 'seed/sites/shop-template.hosso-site.zip')
+const out = path.join(root, 'scripts/fixtures/shop-template.hosso-site.zip')
 fs.mkdirSync(path.dirname(out), { recursive: true })
 fs.writeFileSync(out, zipSync(files, { level: 6 }))
 console.log(`Đã ghi ${path.relative(root, out)}: ${pages.length} trang, ${PRODUCTS.length} sản phẩm, ${media.length} ảnh, ${(fs.statSync(out).size / 1e6).toFixed(1)} MB`)

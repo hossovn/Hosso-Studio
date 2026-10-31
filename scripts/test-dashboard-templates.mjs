@@ -202,7 +202,19 @@ try {
   const authorItems = (await navigation('author')).flatMap((section) => section.items)
   assert.ok(authorItems.every((item) => !item.id.startsWith('plugin-')))
   const backup = compile('../apps/studio/src/lib/backup.ts', { './site-package': {}, '@hosso-config': { themes: [{ manifest: { name: 'auto' } }], plugins: [{ id: 'shop' }] } })
-  const templateFile = fileURLToPath(new URL('../seed/sites/shop-template.hosso-site.zip', import.meta.url))
+  const originalCwd = process.cwd()
+  const originalTemplatesDir = process.env.HOSSO_TEMPLATES_DIR
+  try {
+    delete process.env.HOSSO_TEMPLATES_DIR
+    process.chdir(fileURLToPath(new URL('../apps/studio', import.meta.url)))
+    assert.equal(backup.listTemplates().some((template) => template.id === 'shop-template'), false, 'TCAP must not appear in the default template catalog')
+    assert.equal(backup.templatePath('shop-template'), null)
+  } finally {
+    process.chdir(originalCwd)
+    if (originalTemplatesDir === undefined) delete process.env.HOSSO_TEMPLATES_DIR
+    else process.env.HOSSO_TEMPLATES_DIR = originalTemplatesDir
+  }
+  const templateFile = fileURLToPath(new URL('../scripts/fixtures/shop-template.hosso-site.zip', import.meta.url))
   const details = backup.templateDetails(templateFile, 'shop-template')
   assert.equal(details.title, 'Thanh Cường Auto Parts & Service')
   assert.equal(details.pages.length, 13)
