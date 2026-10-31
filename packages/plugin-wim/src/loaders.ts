@@ -2,6 +2,7 @@ import type { BlockLoader, LoadContext } from '@hosso/studio-blocks'
 import { wimGet, WimError } from './client'
 import type { Availability, Branch, Named, Order, Product, ProductPage } from './client'
 import { getWimConfig, type WimConfig } from './config'
+import { contentOf, imagesOf, type ProductContent } from '@hosso/plugin-shop/product-content'
 
 export type LoadError = { status: 'error'; kind: WimError['kind'] | 'internal' }
 
@@ -38,7 +39,7 @@ const guarded =
   }
 
 /** Dữ liệu bổ sung chỉ hiển thị trên web (plugin shop, collection shop-products gắn bằng wimId). Không có shop thì trả rỗng. */
-export type Overlay = { priceDisplay?: string; displayName?: string; images: string[]; description?: string; weight?: number; size?: string }
+export type Overlay = ProductContent & { priceDisplay?: string; displayName?: string; images: string[]; weight?: number; size?: string }
 const overlaysOf = async (payload: any, ids: string[]): Promise<Record<string, Overlay>> => {
   if (!ids.length) return {}
   try {
@@ -49,8 +50,8 @@ const overlaysOf = async (payload: any, ids: string[]): Promise<Record<string, O
       out[d.wimId] = {
         priceDisplay: d.priceDisplay || 'default',
         displayName: d.displayName || undefined,
-        images: (d.images ?? []).map((i: any) => i?.image?.filename).filter(Boolean).map((f: string) => '/api/media/file/' + encodeURIComponent(f)),
-        description: d.description || undefined,
+        ...contentOf(d),
+        images: imagesOf(d),
         weight: d.weight > 0 ? d.weight : undefined,
         size: d.length && d.width && d.height ? d.length + ' × ' + d.width + ' × ' + d.height + ' cm' : undefined,
       }

@@ -1,8 +1,10 @@
 import type { Payload } from 'payload'
 import { slugify } from './util'
+import { contentOf, imagesOf, type ProductContent } from './product-content'
 
 type Cat = { id: number | string; name: string; slug: string; order?: number; parent?: { slug: string } | null; image?: { filename?: string } | null }
 type Prod = {
+  shortDescription?: string; additionalInformation?: { name: string; value: string }[]; supplierContent?: ProductContent | null
   code?: string; name: string; slug: string; active?: boolean; brand?: string; price: number; salePrice?: number | null; stock: number; makes?: string[]; description?: string
   category?: { slug: string } | null; images?: { image?: { filename?: string } | null }[]; variants?: { name: string; sku?: string; price?: number | null; stock?: number }[]
 }
@@ -16,7 +18,7 @@ export async function exportCatalog(payload: Payload) {
     categories: cats.map((c) => ({ name: c.name, slug: c.slug, order: c.order ?? 0, parent: c.parent?.slug, image: c.image?.filename })),
     products: prods.map((p) => ({
       code: p.code, name: p.name, slug: p.slug, active: p.active !== false, brand: p.brand, price: p.price, salePrice: p.salePrice ?? undefined, stock: p.stock, makes: p.makes,
-      description: p.description, category: p.category?.slug, images: (p.images ?? []).map((i) => i.image?.filename).filter(Boolean),
+      ...contentOf(p), additionalInformation: contentOf(p).attributes, supplierContent: { images: imagesOf(p).filter((src) => src.startsWith('https://')) }, category: p.category?.slug, images: (p.images ?? []).map((i) => i.image?.filename).filter(Boolean),
       variants: (p.variants ?? []).map(({ name, sku, price, stock }) => ({ name, sku, price: price ?? undefined, stock })),
     })),
   }

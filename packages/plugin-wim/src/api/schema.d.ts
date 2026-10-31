@@ -11,7 +11,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Danh sách hãng xe (tùy chọn) */
+        /** List of vehicle makes (optional) / Danh sách hãng xe (tùy chọn) */
         get: operations["listMakes"];
         put?: never;
         post?: never;
@@ -28,7 +28,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Dòng xe của một hãng (tùy chọn) */
+        /** Models of a make (optional) / Dòng xe của một hãng (tùy chọn) */
         get: operations["listModels"];
         put?: never;
         post?: never;
@@ -45,7 +45,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Đời xe của một dòng (tùy chọn) */
+        /** Years of a model (optional) / Đời xe của một dòng (tùy chọn) */
         get: operations["listYears"];
         put?: never;
         post?: never;
@@ -62,7 +62,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Danh sách sản phẩm (phân trang, lọc, tìm kiếm) */
+        /** List of products (pagination, filters, search) / Danh sách sản phẩm (phân trang, lọc, tìm kiếm) */
         get: operations["listProducts"];
         put?: never;
         post?: never;
@@ -95,7 +95,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Số lượng bán được theo chi nhánh và giá hiện hành */
+        /** Sellable quantity per branch and the current price / Số lượng bán được theo chi nhánh và giá hiện hành */
         get: operations["getAvailability"];
         put?: never;
         post?: never;
@@ -146,7 +146,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Tạo đơn hàng (bắt buộc Idempotency-Key) */
+        /** Create an order (Idempotency-Key is required) / Tạo đơn hàng (bắt buộc Idempotency-Key) */
         post: operations["createOrder"];
         delete?: never;
         options?: never;
@@ -181,7 +181,7 @@ export interface webhooks {
         };
         get?: never;
         put?: never;
-        /** Sản phẩm (giá, thông tin) thay đổi */
+        /** Product (price, details) changed / Sản phẩm (giá, thông tin) thay đổi */
         post: {
             parameters: {
                 query?: never;
@@ -195,14 +195,14 @@ export interface webhooks {
                 };
             };
             responses: {
-                /** @description Đã nhận */
+                /** @description Received / Đã nhận */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
                 };
-                /** @description Chữ ký hoặc timestamp không hợp lệ */
+                /** @description Invalid signature or timestamp / Chữ ký hoặc timestamp không hợp lệ */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -226,7 +226,7 @@ export interface webhooks {
         };
         get?: never;
         put?: never;
-        /** Tồn kho thay đổi */
+        /** Stock changed / Tồn kho thay đổi */
         post: {
             parameters: {
                 query?: never;
@@ -240,14 +240,14 @@ export interface webhooks {
                 };
             };
             responses: {
-                /** @description Đã nhận */
+                /** @description Received / Đã nhận */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
                 };
-                /** @description Chữ ký hoặc timestamp không hợp lệ */
+                /** @description Invalid signature or timestamp / Chữ ký hoặc timestamp không hợp lệ */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -271,7 +271,7 @@ export interface webhooks {
         };
         get?: never;
         put?: never;
-        /** Trạng thái đơn thay đổi */
+        /** Order status changed / Trạng thái đơn thay đổi */
         post: {
             parameters: {
                 query?: never;
@@ -285,14 +285,14 @@ export interface webhooks {
                 };
             };
             responses: {
-                /** @description Đã nhận */
+                /** @description Received / Đã nhận */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
                 };
-                /** @description Chữ ký hoặc timestamp không hợp lệ */
+                /** @description Invalid signature or timestamp / Chữ ký hoặc timestamp không hợp lệ */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -325,7 +325,7 @@ export interface components {
             };
         };
         /**
-         * @description Tình trạng/nguồn gốc
+         * @description Condition / origin / Tình trạng/nguồn gốc
          * @enum {string}
          */
         Condition: "genuine" | "aftermarket";
@@ -360,13 +360,13 @@ export interface components {
         };
         Product: {
             id: string;
-            /** @description Mã sản phẩm */
+            /** @description Product code / Mã sản phẩm */
             code: string;
             name: string;
             brand: string;
             condition: components["schemas"]["Condition"];
             warrantyMonths: number;
-            /** @description VND, không thập phân */
+            /** @description VND, no decimals / VND, không thập phân */
             price: number;
             categoryId?: string;
             oemCodes?: string[];
@@ -385,15 +385,19 @@ export interface components {
             price: number;
             branches: {
                 branchId: string;
-                available: number;
+                available: number | null;
+                /** @description Quantity is unknown; use inStock, not a numeric sentinel. */
+                stockUnmanaged?: boolean;
+                /** @description Current sellability; false also covers stale supplier snapshots. */
+                inStock?: boolean;
             }[];
         };
         OrderLine: {
             productId: string;
             quantity: number;
-            /** @description Chỉ có trong phản hồi */
+            /** @description Only present in responses / Chỉ có trong phản hồi */
             name?: string;
-            /** @description Chỉ có trong phản hồi */
+            /** @description Only present in responses / Chỉ có trong phản hồi */
             unitPrice?: number;
         };
         Customer: {
@@ -405,7 +409,7 @@ export interface components {
         Fulfillment: {
             /** @enum {string} */
             type: "delivery" | "pickup";
-            /** @description Bắt buộc khi type = pickup */
+            /** @description Required when type = pickup / Bắt buộc khi type = pickup */
             branchId?: string;
         };
         CreateOrder: {
@@ -440,7 +444,7 @@ export interface components {
         };
     };
     responses: {
-        /** @description Không tìm thấy */
+        /** @description Not found / Không tìm thấy */
         NotFound: {
             headers: {
                 [name: string]: unknown;
@@ -449,7 +453,7 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
-        /** @description Dữ liệu này WIM chưa cung cấp */
+        /** @description WIM does not provide this data / Dữ liệu này WIM chưa cung cấp */
         NotAvailable: {
             headers: {
                 [name: string]: unknown;
@@ -458,7 +462,7 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
-        /** @description Yêu cầu không hợp lệ */
+        /** @description Invalid request / Yêu cầu không hợp lệ */
         BadRequest: {
             headers: {
                 [name: string]: unknown;
@@ -553,7 +557,7 @@ export interface operations {
                 category?: string;
                 brand?: string;
                 condition?: components["schemas"]["Condition"];
-                /** @description Tìm theo mã (mã sản phẩm, OEM, mã thay thế) hoặc tên */
+                /** @description Search by code (product code, OEM, replacement code) or name / Tìm theo mã (mã sản phẩm, OEM, mã thay thế) hoặc tên */
                 q?: string;
             };
             header?: never;
@@ -674,7 +678,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Gửi lại cùng Idempotency-Key và cùng nội dung; trả lại đơn đã tạo, không tạo đơn mới */
+            /** @description Same Idempotency-Key and same body sent again; returns the existing order and does not create a new one / Gửi lại cùng Idempotency-Key và cùng nội dung; trả lại đơn đã tạo, không tạo đơn mới */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -683,7 +687,7 @@ export interface operations {
                     "application/json": components["schemas"]["Order"];
                 };
             };
-            /** @description Đã tạo đơn */
+            /** @description Order created / Đã tạo đơn */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -693,7 +697,7 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
-            /** @description Hết hàng (code out_of_stock) */
+            /** @description Out of stock (code out_of_stock) / Hết hàng (code out_of_stock) */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -702,7 +706,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Idempotency-Key đã dùng cho nội dung khác */
+            /** @description Idempotency-Key already used for a different body / Idempotency-Key đã dùng cho nội dung khác */
             422: {
                 headers: {
                     [name: string]: unknown;

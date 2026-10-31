@@ -1,3 +1,5 @@
+import { imagesOf } from './product-content'
+
 /** Tiếng Việt không dấu, chỉ a-z0-9 và dấu gạch ngang: dùng làm đường dẫn. */
 export const slugify = (s: string) =>
   s
@@ -18,6 +20,10 @@ export type Product = {
   price: number
   salePrice?: number | null
   stock: number
+  supplierStockUnmanaged?: boolean
+  supplierContent?: import('./product-content').ProductContent | null
+  shortDescription?: string
+  additionalInformation?: { name: string; value: string }[]
   brand?: string
   makes?: string[]
   description?: string
@@ -34,7 +40,4 @@ export type Product = {
 /** Giá đang bán: giá khuyến mãi nếu có và thấp hơn giá gốc. */
 export const priceOf = (p: Pick<Product, 'price' | 'salePrice'>) => (p.salePrice && p.salePrice > 0 && p.salePrice < p.price ? p.salePrice : p.price)
 
-export const imageOf = (p: Product) => {
-  const f = p.images?.find((i) => i.image?.filename)?.image?.filename
-  return f ? `/api/media/file/${encodeURIComponent(f)}` : ''
-}
+export const imageOf = (p: Product) => imagesOf(p)[0] ?? ''

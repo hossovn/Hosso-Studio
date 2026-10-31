@@ -2,9 +2,11 @@ import type { BlockLoader } from '@hosso/studio-blocks'
 import type { Payload, Where } from 'payload'
 import { SETTINGS } from './collections'
 import { imageOf, type Product } from './util'
+import { contentOf, imagesOf } from './product-content'
 
-export type Card = { id: string; name: string; slug: string; code?: string; price: number; salePrice?: number | null; stock: number; brand?: string; image: string; category?: { name: string; slug: string } | null; description?: string; weight?: number; size?: string; hidePrice?: boolean; priceLabel?: string; variants?: { id: string; name: string; price: number; stock: number }[] }
+export type Card = ContentCard & { id: string; name: string; slug: string; code?: string; price: number; salePrice?: number | null; stock: number; brand?: string; image: string; category?: { name: string; slug: string } | null; description?: string; weight?: number; size?: string; hidePrice?: boolean; priceLabel?: string; variants?: { id: string; name: string; price: number; stock: number }[] }
 export type Review = { name: string; rating: number; comment: string; date: string }
+type ContentCard = { shortDescription?: string; attributes?: { name: string; value: string }[]; images: string[]; stockUnmanaged?: boolean }
 
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
 type Pricing = { show: boolean; label: string }
@@ -12,7 +14,7 @@ export const pricingOf = async (payload: Payload): Promise<Pricing> => {
   const g = (await payload.findGlobal({ slug: SETTINGS as any, depth: 0, overrideAccess: true }).catch(() => null)) as { showPrices?: boolean; priceHiddenLabel?: string } | null
   return { show: g?.showPrices !== false, label: g?.priceHiddenLabel || 'Liên hệ để biết giá' }
 }
-export const card = (p: Product, pr?: Pricing): Card => ({
+export const card = (p: Product, pr?: Pricing): Card & ContentCard => ({
   hidePrice: p.priceDisplay === 'hide' || (p.priceDisplay !== 'show' && pr?.show === false) || undefined,
   priceLabel: pr?.label,
   id: String(p.id),
@@ -25,7 +27,9 @@ export const card = (p: Product, pr?: Pricing): Card => ({
   brand: p.brand,
   image: imageOf(p),
   category: p.category && typeof p.category === 'object' ? { name: p.category.name, slug: p.category.slug } : null,
-  description: p.description,
+  ...contentOf(p),
+  images: imagesOf(p),
+  stockUnmanaged: p.supplierStockUnmanaged === true,
   weight: p.weight && p.weight > 0 ? p.weight : undefined,
   size: p.length && p.width && p.height ? `${p.length} × ${p.width} × ${p.height} cm` : undefined,
   variants: p.variants?.length ? p.variants.map((v) => ({ id: String(v.id), name: v.name, price: v.price && v.price > 0 ? v.price : p.salePrice && p.salePrice > 0 && p.salePrice < p.price ? p.salePrice : p.price, stock: v.stock ?? 0 })) : undefined,
