@@ -7,6 +7,7 @@ import { editorPreviewParams, normalizeEditorPreview } from '../packages/blocks/
 import * as widgetParts from '../packages/blocks/src/widget-parts.ts'
 import * as elementStates from '../packages/blocks/src/element-states.ts'
 import * as scrollEffects from '../packages/blocks/src/scroll-effects.ts'
+import * as motionEffects from '../packages/blocks/src/motion-effects.ts'
 import { newId } from '../packages/blocks/src/free-geometry.ts'
 
 const require = createRequire(new URL('../apps/studio/package.json', import.meta.url))
@@ -35,18 +36,118 @@ function compile(relative, stubs) {
   mod._compile(outputText, path)
   return mod.exports
 }
+
+function mountEntrance(value, { reduced = false, mobile = false, supported = true } = {}) {
+  const media = [reduced, mobile].map((matches) => ({ matches, addEventListener(_, fn) { this.change = fn }, removeEventListener() { delete this.change } }))
+  const events = {}, animations = []
+  const viewport = { scrollHeight: 2000, clientHeight: 600 }
+  let observer, setup
+  const moving = { style: {}, animate: supported ? (frames, options) => {
+    const animation = { frames, options, cancelled: false, cancel() { this.cancelled = true } }
+    animations.push(animation)
+    return animation
+  } : undefined }
+  const win = {
+    matchMedia: (query) => media[query.includes('reduced') ? 0 : 1],
+    getComputedStyle: () => ({ overflowY: 'auto' }),
+    IntersectionObserver: class {
+      constructor(callback, options) { observer = this; this.callback = callback; this.options = options }
+      observe(node) { this.node = node }
+      disconnect() { this.node = null }
+    },
+  }
+  const anchor = { ownerDocument: { defaultView: win }, parentElement: viewport, closest: () => null, contains: () => false, addEventListener: (name, fn) => { events[name] = fn }, removeEventListener: (name) => { delete events[name] } }
+  const refs = [anchor, moving]
+  const { ScrollEffect } = compile('../packages/blocks/src/ScrollEffect.tsx', {
+    './scroll-effects': scrollEffects,
+    react: { ...React, useRef: () => ({ current: refs.shift() }), useMemo: (fn) => fn(), useEffect: (fn) => { setup = fn } },
+  })
+  ScrollEffect({ value: { mode: 'entrance', ...value }, children: null })
+  const cleanup = setup()
+  return { moving, observer, media, events, animations, viewport, cleanup }
+}
+const entranceRuntime = mountEntrance({ entrance: 'bounce', duration: 1200, delay: 200 })
+assert.equal(entranceRuntime.moving.style.opacity, '0')
+assert.equal(entranceRuntime.observer.options.root, entranceRuntime.viewport)
+entranceRuntime.observer.callback([{ isIntersecting: false, intersectionRatio: 0 }])
+assert.equal(entranceRuntime.animations.length, 0)
+entranceRuntime.observer.callback([{ isIntersecting: true, intersectionRatio: 0.1 }])
+assert.equal(entranceRuntime.animations.length, 1)
+assert.deepEqual(entranceRuntime.animations[0].options, { duration: 1200, delay: 200, easing: 'ease-out', fill: 'backwards' })
+assert.equal(entranceRuntime.observer.node, null)
+entranceRuntime.observer.callback([{ isIntersecting: true, intersectionRatio: 1 }])
+assert.equal(entranceRuntime.animations.length, 1)
+entranceRuntime.media[0].matches = true
+entranceRuntime.media[0].change()
+assert.equal(entranceRuntime.animations[0].cancelled, true)
+assert.equal(entranceRuntime.moving.style.opacity, '')
+entranceRuntime.cleanup()
+assert.deepEqual(entranceRuntime.events, {})
+for (const options of [{ reduced: true }, { mobile: true }]) {
+  const runtime = mountEntrance({ disableOnMobile: true }, options)
+  assert.equal(runtime.moving.style.opacity, '')
+  assert.equal(runtime.observer.node, null)
+  assert.equal(runtime.animations.length, 0)
+  runtime.cleanup()
+}
+const focusedEntrance = mountEntrance({})
+focusedEntrance.events.focusin()
+assert.equal(focusedEntrance.moving.style.opacity, '')
+assert.equal(focusedEntrance.observer.node, null)
+focusedEntrance.cleanup()
+assert.equal(mountEntrance({}, { supported: false }).moving.style.opacity, undefined)
+console.log('PASS: entrance runs once, uses nested viewport, finishes independently of scrolling and reveals on reduced motion/focus')
+
+let swiperProps
+const swiperStubs = {
+  'swiper/modules': { A11y: 'a11y', Autoplay: 'autoplay', EffectFade: 'fade', Keyboard: 'keyboard', Navigation: 'navigation', Pagination: 'pagination' },
+  'swiper/react': { Swiper: (props) => { swiperProps = props; return React.createElement('div', null, props.children) }, SwiperSlide: (props) => React.createElement('div', null, props.children) },
+}
+const { FreeSwiper } = compile('../packages/blocks/src/FreeSwiper.tsx', swiperStubs)
+const slides = [{ image: '/one.jpg', alt: 'One' }, { image: '/two.jpg', alt: 'Two' }]
+const thumbsMarkup = renderToStaticMarkup(React.createElement(FreeSwiper, { slides, effect: 'fade', thumbnails: true }))
+assert.equal(swiperProps.effect, 'fade')
+assert.deepEqual(swiperProps.fadeEffect, { crossFade: true })
+assert.ok(swiperProps.modules.includes('fade'))
+assert.equal(swiperProps.speed, 0)
+assert.equal(swiperProps.autoplay, false)
+assert.match(thumbsMarkup, /aria-current="true"/)
+assert.match(thumbsMarkup, /aria-label="Slide 2: Two"/)
+assert.doesNotMatch(renderToStaticMarkup(React.createElement(FreeSwiper, { slides })), /hs-swiper-thumbs/)
+assert.equal(swiperProps.effect, 'slide')
+assert.doesNotMatch(renderToStaticMarkup(React.createElement(FreeSwiper, { slides: slides.slice(0, 1), thumbnails: true })), /hs-swiper-thumbs/)
+assert.match(renderToStaticMarkup(React.createElement(FreeSwiper, { slides, thumbnails: true, editing: true })), /disabled=""/)
+let stopped = false, targetSlide, activeSlide
+const { FreeSwiper: interactiveSwiper } = compile('../packages/blocks/src/FreeSwiper.tsx', {
+  ...swiperStubs, react: { ...React, useEffect() {}, useRef: () => ({ current: { autoplay: { stop: () => { stopped = true } }, slideTo: (index) => { targetSlide = index } } }), useState: (value) => [value, (index) => { activeSlide = index }] },
+})
+const swiperTree = interactiveSwiper({ slides, thumbnails: true })
+swiperTree.props.children[1].props.children[1].props.onClick()
+assert.equal(stopped, true)
+assert.equal(targetSlide, 1)
+swiperTree.props.children[0].props.onSlideChange({ activeIndex: 1 })
+assert.equal(activeSlide, 1)
+console.log('PASS: Swiper fade, thumbnails, selection/autoplay synchronization, editing lock and reduced motion')
+
 const { PAGE_TEMPLATES, TEMPLATE_CATEGORIES, pageTemplatePattern } = compile('../apps/studio/src/app/(editor)/editor/[id]/PageTemplates.ts', {
   '@hosso/studio-blocks': { makeElement: (type, over) => ({ id: newId(), type, ...over }) },
 })
 const freeStyle = compile('../packages/blocks/src/free-style.ts', {})
 const scrollRuntime = compile('../packages/blocks/src/ScrollEffect.tsx', { './scroll-effects': scrollEffects })
+const motionScope = compile('../packages/blocks/src/MotionScope.tsx', {})
+const motionRuntime = compile('../packages/blocks/src/MotionEffects.tsx', { './motion-effects': motionEffects, './MotionScope': motionScope })
+const motionText = compile('../packages/blocks/src/MotionText.tsx', { './motion-effects': motionEffects })
 const { FreeElementView, FreeOverlay, FreeCanvasView, makeElement } = compile('../packages/blocks/src/FreeCanvas.tsx', {
+  './MotionEffects': motionRuntime, './MotionScope': motionScope, './MotionText': motionText, './motion-effects': motionEffects,
   './ScrollEffect': scrollRuntime, './scroll-effects': scrollEffects,
-  './free-style': freeStyle, './free-extra': {}, './icons-data': { ICON_BODY: { test: '<path d="M4 4h16v16H4z" />' } }, './FreeSwiper': {}, './free-geometry': { newId }, './element-states': elementStates,
+  './free-style': freeStyle, './free-extra': {}, './icons-data': { ICON_BODY: { test: '<path d="M4 4h16v16H4z" />' } }, './FreeSwiper': { FreeSwiper }, './free-geometry': { newId }, './element-states': elementStates,
 })
 const legacyButton = makeElement('button', { id: 'legacy-button', props: { text: 'Legacy', href: '/legacy' } })
 const { SECTION_TEMPLATES, SECTION_TEMPLATES_MORE, HEADER_TEMPLATES } = compile('../apps/studio/src/app/(editor)/editor/[id]/SectionTemplates.ts', { '@hosso/studio-blocks': { makeElement } })
 for (const template of [...SECTION_TEMPLATES, ...SECTION_TEMPLATES_MORE]) {
+  const first = template.build(), second = template.build()
+  assert.ok(second.every((el) => !first.some((other) => other.id === el.id)), `${template.id}: independent IDs`)
+  for (const el of first.filter((el) => el.props._motion)) assert.ok(motionEffects.normalizeMotionConfig(el.props._motion), `${template.id}: valid motion`)
   for (const el of template.build().filter((el) => el.type === 'image')) {
     assert.ok(el.props.src && el.props.alt, `${template.id}: sample image needs a source and alt text`)
     assert.ok(existsSync(new URL(`../apps/studio/public${el.props.src}`, import.meta.url)), `${template.id}: missing bundled image`)
@@ -69,7 +170,32 @@ assert.doesNotMatch(renderToStaticMarkup(React.createElement(FreeElementView, { 
 assert.match(renderToStaticMarkup(React.createElement(FreeOverlay, { elements: [scrollButton] })), /data-scroll-boundary="true"/)
 const { ScrollEffectControls } = compile('../apps/studio/src/app/(editor)/editor/[id]/ScrollEffectControls.tsx', { '@hosso/studio-blocks': scrollEffects })
 const scrollControls = renderToStaticMarkup(React.createElement(ScrollEffectControls, { value: { mode: 'progress' }, onChange: () => {} }))
-for (const label of ['Khi cuộn', 'Parallax', 'Ghim trong section', 'Theo tiến độ cuộn', 'X đầu (px)', 'Tỉ lệ cuối', 'Kết thúc (%)', 'Tắt trên điện thoại']) assert.ok(scrollControls.includes(label))
+for (const label of ['Theo cuộn', 'Parallax', 'Ghim trong section', 'Theo tiến độ cuộn', 'X đầu (px)', 'Tỉ lệ cuối', 'Kết thúc (%)', 'Tắt trên điện thoại']) assert.ok(scrollControls.includes(label), label)
+const { MotionControls } = compile('../apps/studio/src/app/(editor)/editor/[id]/MotionControls.tsx', { '@hosso/studio-blocks': motionEffects, './ScrollEffectControls': { ScrollNumber: () => null } })
+const entranceControls = renderToStaticMarkup(React.createElement(MotionControls, { props: { _scroll: { mode: 'entrance' } }, type: 'heading', onChange: () => {} }))
+for (const label of ['Xuất hiện', 'Chuyển động lặp', 'Hiện dần', 'Phóng nhẹ', 'điện thoại']) assert.ok(entranceControls.includes(label), label)
+assert.doesNotMatch(entranceControls, /Kết thúc \(%\)/)
+const entranceButton = { ...legacyButton, props: { ...legacyButton.props, _scroll: { mode: 'entrance' } } }
+assert.match(renderToStaticMarkup(React.createElement(FreeElementView, { el: entranceButton })), /data-motion-entrance/)
+assert.doesNotMatch(renderToStaticMarkup(React.createElement(FreeElementView, { el: entranceButton, editing: true })), /data-scroll-effect/)
+assert.match(renderToStaticMarkup(React.createElement(FreeElementView, { el: makeElement('swiper', { props: { slides, effect: 'fade', thumbnails: true } }) })), /hs-swiper-thumbs/)
+assert.equal(swiperProps.effect, 'fade')
+const composed = makeElement('image', { props: { src: '/editor-demo/mountain.jpg', rotate: 12, _scroll: { mode: 'parallax' }, _motion: { entrance: { preset: 'zoom', duration: 600, delay: 0 }, loop: { preset: 'float', duration: 2000, delay: 0, iterations: 3, amount: 12 } } } })
+const composedMarkup = renderToStaticMarkup(React.createElement(FreeElementView, { el: composed }))
+assert.match(composedMarkup, /data-motion-entrance/)
+assert.match(composedMarkup, /data-motion-loop/)
+assert.match(composedMarkup, /data-scroll-effect="parallax"/)
+assert.match(composedMarkup, /rotate\(12deg\)/)
+for (const flags of [{ editing: true }, { scrollEffects: false }]) {
+  const markup = renderToStaticMarkup(React.createElement(FreeElementView, { el: composed, ...flags }))
+  assert.doesNotMatch(markup, /data-motion-|data-scroll-effect/)
+  assert.match(markup, /<img/)
+}
+const revealedLink = makeElement('text', { props: { text: 'Xin chào Việt Nam', href: '/hello', _motion: { entrance: { preset: 'text-words', duration: 600, delay: 0 } } } })
+const revealedMarkup = renderToStaticMarkup(React.createElement(FreeElementView, { el: revealedLink }))
+assert.match(revealedMarkup, /href="\/hello"/)
+assert.match(revealedMarkup, /data-motion-unit/)
+assert.match(renderToStaticMarkup(React.createElement(FreeElementView, { el: revealedLink, editing: true })), />Xin chào Việt Nam<\/p>/)
 console.log('PASS: scroll controls, SSR content, state/rotation composition and stable editing geometry')
 assert.match(legacyMarkup, /href="\/legacy"/)
 assert.doesNotMatch(legacyMarkup, /<style>/)
@@ -177,6 +303,7 @@ for (const template of PAGE_TEMPLATES) {
 console.log('PASS: 8 page templates, 4 categories, editable geometry, local assets and independent copies')
 
 const { withStyle } = compile('../packages/blocks/src/puck-config.ts', {
+  './ScrollStory': { ScrollStory: () => null },
   './MediaField': {}, './RefField': {}, './ExtraBlocks': {}, './CoreExtras': {}, './PostList': {}, './FreeCanvas': { FreeOverlay, FreeCanvasView },
   './i18n': {}, './style-fields': {}, './widget-parts': widgetParts, './element-states': elementStates,
 })
