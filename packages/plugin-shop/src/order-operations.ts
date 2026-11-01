@@ -38,7 +38,13 @@ const transitions: Record<string, { from: string[]; to?: string }> = {
 
 export async function operateOrder(req: PayloadRequest) {
   const origin = req.headers.get('origin')
-  if (origin && origin !== new URL(req.url!).origin) return error('invalid_origin', 403)
+  if (origin) {
+    // Next may expose an internal host behind the TLS proxy. Trust deployment config,
+    // never caller-controlled Host or X-Forwarded-* headers, for the public origin.
+    try {
+      if (origin !== new URL(req.payload.config.serverURL || req.url!).origin) return error('invalid_origin', 403)
+    } catch { return error('invalid_origin', 403) }
+  }
   const b = await req.json?.().catch(() => null) as any
   const action = String(b?.action || '')
   const transition = transitions[action]

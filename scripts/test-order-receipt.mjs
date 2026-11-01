@@ -77,7 +77,7 @@ try {
   const getManaged = async () => manage.find((e) => e.method === 'get').handler(await req({ user: { id: 1, roles: ['admin'] }, url: `https://orders.example.test/api/plugins/shop/manage-order?id=${(await order()).id}` }))
   assert.equal((await getManaged()).status, 200)
   assert.equal((await manage.find((e) => e.method === 'post').handler(await req({ json: async () => ({ id: (await order()).id, action: 'paid' }) }))).status, 403)
-  const act = async (action, extra = {}) => { const o = await order(); return manage.find((e) => e.method === 'post').handler(await req({ user: { id: 1, roles: ['admin'] }, json: async () => ({ id: o.id, version: o.operationsVersion || 0, action, ...extra }) })) }
+  const act = async (action, extra = {}) => { const o = await order(); return manage.find((e) => e.method === 'post').handler(await req({ user: { id: 1, roles: ['admin'] }, url: 'http://studio:3000/api/plugins/shop/manage-order', headers: new Headers({ origin: 'https://orders.example.test' }), json: async () => ({ id: o.id, version: o.operationsVersion || 0, action, ...extra }) })) }
   assert.equal((await act('confirm')).status, 409, 'Approved orders cannot be approved a second time')
   assert.equal((await act('prepare', { version: 0 })).status, 409, 'Another admin tab must refresh a changed order')
   assert.equal((await act('prepare')).status, 200)
