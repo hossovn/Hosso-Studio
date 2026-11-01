@@ -122,12 +122,13 @@ export type BlockLoader = (props: Record<string, any>, ctx: LoadContext) => Prom
  * nên mã plugin không được import module chỉ có ở Node lúc chạy (dùng Web Crypto, fetch).
  */
 /** Một dòng hàng trong đơn. */
-export type OrderLine = { productId: string; variantId?: string; name: string; code?: string; price: number; quantity: number; source?: string; remoteId?: string }
+export type OrderLine = { productId: string; variantId?: string; name: string; code?: string; price: number; quantity: number; source?: string; remoteId?: string; image?: string; priceSource?: string; priceGroup?: string }
 
 /** Khoản cộng/trừ vào tổng đơn do plugin thêm (phí ship > 0, giảm giá < 0). */
 export type OrderAdjustment = { label: string; amount: number; source: string; scope?: 'goods' | 'shipping' }
 
 export type OrderCustomer = { name: string; phone: string; address?: string; email?: string }
+export type FulfillmentGroup = { key: string; label: string; lineKeys: string[]; deliveryBy: 'store' | 'partner'; codCollector: 'store' | 'partner'; fee: number; codAmount?: number }
 
 /** Đơn đang soạn lúc thanh toán (chưa lưu). Plugin bán hàng tạo, các plugin khác điều chỉnh qua `hooks.beforeOrder`. */
 export type OrderDraft = {
@@ -140,6 +141,7 @@ export type OrderDraft = {
   payment: string
   /** Dữ liệu thô từ trình duyệt cho plugin đọc (ví dụ mã giảm giá: meta.voucher). */
   meta: Record<string, unknown>
+  shipments?: FulfillmentGroup[]
 }
 
 /** Hook `beforeOrder` có thể từ chối đơn (ví dụ mã giảm giá sai) bằng cách trả `{ reject }`. */
@@ -148,6 +150,7 @@ export type BeforeOrderEvent = { payload: Payload; headers: Headers; draft: Orde
 
 /** Sự kiện đặt đơn thành công. Plugin bán hàng (ví dụ Cửa hàng) phát ra, plugin khác (affiliate, giao vận, thanh toán...) lắng nghe qua `hooks`. */
 export type OrderPlacedEvent = {
+  shipments?: FulfillmentGroup[]
   payload: Payload
   request?: PayloadRequest
   /** Yêu cầu đặt đơn gốc: đọc cookie, header (ví dụ mã giới thiệu). */
@@ -176,7 +179,7 @@ export type OrderPaidEvent = { payload: Payload; request?: PayloadRequest; order
 
 /** Plugin bổ sung thông tin hiển thị cho khách khi tra cứu đơn (ví dụ mã QR chuyển khoản). */
 export type DescribeOrderEvent = { payload: Payload; order: { id: string; total: number; status: string; payment: string; paymentStatus: string } }
-export type OrderExtras = { payment?: { qrUrl?: string; note?: string } }
+export type OrderExtras = { payment?: { qrUrl?: string; note?: string }; shipments?: { key: string; status: string; carrier?: string; trackingCode?: string; url?: string }[] }
 
 export type HossoPlugin = {
   id: string
@@ -188,6 +191,10 @@ export type HossoPlugin = {
     confirmPayment?: (payload: Payload, order: OrderDraft & { id: string }) => Promise<void>
     cancelOrder?: (payload: Payload, order: { id: string }) => Promise<void>
     checkoutData?: (payload: Payload) => Promise<{ branches: { id: string; name: string }[] }>
+    /** Server-authenticated customer pricing; browser-supplied group IDs are never sufficient. */
+    customerPrice?: (event: { payload: Payload; headers: Headers; product: Record<string, any>; variantId?: string; quantity: number; price: number; assistedCustomerToken?: string }) => Promise<{ price: number; group: string; source: string } | undefined>
+    assistedCustomer?: (payload: Payload, headers: Headers, token: string) => Promise<OrderCustomer | undefined>
+    fulfillmentGroups?: (payload: Payload, draft: OrderDraft) => Promise<FulfillmentGroup[]>
   }
   /** Phiếu thông tin hiện ở trang Plugin trong admin (nạp từ hosso.json của plugin). */
   manifest?: PluginManifest

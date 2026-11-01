@@ -5,11 +5,11 @@ import { Portal } from './Portal'
 import { RefCapture } from './RefCapture'
 import { css } from './styles'
 
-const portalBlock: BlockSchema<{ heading: string }> = {
+const portalBlock: BlockSchema<{ heading: string; navigation: string; showAssisted: string; showWithdrawals: string; policyText: string }> = {
   type: 'AffiliatePortal',
   label: 'Cổng cộng tác viên',
-  fields: { heading: { type: 'text', label: 'Tiêu đề' } },
-  defaultProps: { heading: 'Cổng cộng tác viên' },
+  fields: { heading: { type: 'text', label: 'Tiêu đề' }, navigation: { type: 'radio', label: 'Điều hướng', options: [{ label: 'Thanh bên', value: 'sidebar' }, { label: 'Menu ngang', value: 'tabs' }] }, showAssisted: { type: 'radio', label: 'Mục lên đơn hộ', options: [{ label: 'Hiện', value: 'yes' }, { label: 'Ẩn', value: 'no' }] }, showWithdrawals: { type: 'radio', label: 'Mục rút tiền', options: [{ label: 'Hiện', value: 'yes' }, { label: 'Ẩn', value: 'no' }] }, policyText: { type: 'textarea', label: 'Nội dung chính sách bổ sung' } },
+  defaultProps: { heading: 'Cổng cộng tác viên', navigation: 'sidebar', showAssisted: 'yes', showWithdrawals: 'yes', policyText: '' },
 }
 
 // Browser imports keep renderers and metadata without loading Payload's server runtime.
@@ -18,7 +18,7 @@ const plugin: HossoPlugin = {
   manifest: manifest as PluginManifest,
   headerSlot: RefCapture,
   blocks: [portalBlock],
-  fallbackRenderers: { AffiliatePortal: (props) => React.createElement(Portal, { heading: props.heading }) },
+  fallbackRenderers: { AffiliatePortal: (props) => React.createElement(Portal, { ...props, canvasPreview: Boolean(props._noFree) }) },
   css,
   adminEn: { 'Tiếp thị liên kết': 'Affiliate marketing', 'Cổng cộng tác viên': 'Partner portal', 'Tiêu đề': 'Heading' },
   adminNav: [{ label: 'Tiếp thị liên kết', href: '/admin/affiliate', roles: ['admin'] }],

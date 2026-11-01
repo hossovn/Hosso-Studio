@@ -66,7 +66,7 @@ export const categories: BlockSchema<{ heading: string; parent: string; listPath
   defaultProps: { heading: 'Danh mục sản phẩm', parent: '', listPath: '/san-pham' },
 }
 
-export const cart: BlockSchema<{ heading: string; checkoutPath: string; shopPath: string; width: string }> = {
+export const cart: BlockSchema<{ heading: string; checkoutPath: string; shopPath: string; width: string; layout: string; showImages: string; stickySummary: string; summaryHeading: string; checkoutLabel: string; emptyHeading: string; emptyText: string }> = {
   type: 'ShopCart',
   label: 'Giỏ hàng (cửa hàng)',
   fields: {
@@ -74,8 +74,15 @@ export const cart: BlockSchema<{ heading: string; checkoutPath: string; shopPath
     checkoutPath: { type: 'text', label: 'Trang thanh toán (đường dẫn)' },
     shopPath: { type: 'text', label: 'Trang sản phẩm (đường dẫn)' },
     width: WIDTH,
+    layout: { type: 'radio', label: 'Bố cục giỏ', options: [{ label: 'Hai cột', value: 'split' }, { label: 'Một cột', value: 'single' }] },
+    showImages: { type: 'radio', label: 'Ảnh sản phẩm', options: [{ label: 'Hiện', value: 'yes' }, { label: 'Ẩn', value: 'no' }] },
+    stickySummary: { type: 'radio', label: 'Ghim tóm tắt khi cuộn', options: [{ label: 'Có', value: 'yes' }, { label: 'Không', value: 'no' }] },
+    summaryHeading: { type: 'text', label: 'Tiêu đề tóm tắt' },
+    checkoutLabel: { type: 'text', label: 'Nhãn nút thanh toán' },
+    emptyHeading: { type: 'text', label: 'Tiêu đề giỏ trống' },
+    emptyText: { type: 'textarea', label: 'Nội dung giỏ trống' },
   },
-  defaultProps: { heading: 'Giỏ hàng', checkoutPath: '/thanh-toan', shopPath: '/san-pham', width: 'normal' },
+  defaultProps: { heading: 'Giỏ hàng', checkoutPath: '/thanh-toan', shopPath: '/san-pham', width: 'normal', layout: 'split', showImages: 'yes', stickySummary: 'yes', summaryHeading: 'Tóm tắt đơn hàng', checkoutLabel: 'Tiến hành thanh toán', emptyHeading: 'Giỏ hàng của bạn đang trống', emptyText: 'Chọn sản phẩm phù hợp để bắt đầu đơn hàng.' },
 }
 
 export const checkout: BlockSchema<{ heading: string; statusPath: string; cartPath: string; width: string; layout: string }> = {

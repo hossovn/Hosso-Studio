@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 const vnd = (n: number) => `${(n ?? 0).toLocaleString('vi-VN')} đ`
 const cell: React.CSSProperties = { padding: '.65rem', borderBottom: '1px solid var(--theme-elevation-150)', textAlign: 'left' }
 const labels: Record<string, string> = { pending: 'Chưa thu tiền', holding: 'Đang giữ', eligible: 'Đủ điều kiện', approved: 'Đã duyệt', paid: 'Đã trả', cancelled: 'Đã hủy', review: 'Cần đối soát' }
+const approvals: Record<string, string> = { approved: 'Đã duyệt', pending: 'Chờ duyệt', rejected: 'Đã từ chối' }
 export function AffiliateAdmin() {
   const [data, setData] = useState<any>()
   const [error, setError] = useState('')
@@ -34,7 +35,8 @@ export function AffiliateAdmin() {
   const affiliate = chosen[0]?.affiliate
   const affiliateId = (a: any) => a && typeof a === 'object' ? a.id : a
   const name = (a: any) => a && typeof a === 'object' ? a.name : String(a ?? '')
-  return <main style={{ padding: '2rem', maxWidth: '100rem', margin: 'auto' }}>
+  return <main className="af-admin" style={{ padding: '2rem', maxWidth: '100rem', margin: 'auto' }}>
+    <style>{`.af-admin table{min-width:44rem;font-size:.95rem;line-height:1.5}.af-admin th{white-space:nowrap;background:var(--theme-elevation-50)}.af-admin td{vertical-align:top;overflow-wrap:anywhere;max-width:24rem}.af-admin td form{display:grid;gap:.5rem;min-width:12rem;margin-top:.5rem}.af-admin td input{width:100%;min-width:0}.af-admin button{min-height:36px}.af-admin :is(button,input,textarea,select,a):focus-visible{outline:2px solid var(--theme-text);outline-offset:3px}@media(max-width:600px){.af-admin{padding:1rem!important}.af-admin h1{font-size:1.6rem}}`}</style>
     <h1>Tiếp thị liên kết · CPS</h1>
     <p>Hoa hồng chỉ được chi sau khi đã thu đủ tiền, hoàn tất đơn và hết thời gian giữ. Đơn cũ thiếu chính sách cần đối soát riêng.</p>
     {error && <p role="alert" style={{ color: 'var(--theme-error-500)' }}>{error}</p>}
@@ -45,9 +47,12 @@ export function AffiliateAdmin() {
       <p><a href="/admin/collections/affiliates">Cài mức hoa hồng, số ngày giữ và thông tin đối tác</a></p>
       <div style={{ overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead><tr>{['Đối tác', 'Mã', 'Duyệt', 'Thao tác'].map((h) => <th key={h} style={cell}>{h}</th>)}</tr></thead>
-        <tbody>{data?.affiliates.map((a: any) => <tr key={a.id}><td style={cell}>{a.name}</td><td style={cell}>{a.code}</td><td style={cell}>{a.approval} {!a.active && '· Đang khóa'}</td><td style={cell}>{a.approval !== 'approved' && <button onClick={() => manage({ action: 'approve-affiliate', id: a.id })}>Duyệt</button>} {a.approval !== 'rejected' && <button onClick={() => manage({ action: 'reject-affiliate', id: a.id })}>Từ chối</button>}</td></tr>)}</tbody>
+        <tbody>{data?.affiliates.map((a: any) => <tr key={a.id}><td style={cell}>{a.name}</td><td style={cell}>{a.code}</td><td style={cell}>{approvals[a.approval] ?? a.approval} {!a.active && '· Đang khóa'}</td><td style={cell}>{a.approval !== 'approved' && <button onClick={() => manage({ action: 'approve-affiliate', id: a.id })}>Duyệt</button>} {a.approval !== 'rejected' && <button onClick={() => manage({ action: 'reject-affiliate', id: a.id })}>Từ chối</button>}</td></tr>)}</tbody>
       </table></div>
       <h2>Hoa hồng</h2>
+      <p>Kỳ chi cuối tháng: <strong>{data?.withdrawalPolicy?.nextDate || '—'}</strong> · <a href="/admin/globals/affiliate-settings">Chính sách và ngưỡng rút</a></p>
+      <h3>Yêu cầu rút</h3>
+      <div style={{ overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse' }}><thead><tr>{['Đối tác', 'Số tiền', 'Ngày gửi', 'Trạng thái', 'Xử lý'].map((h) => <th key={h} style={cell}>{h}</th>)}</tr></thead><tbody>{data?.withdrawals?.map((w: any) => <tr key={w.id}><td style={cell}>{name(w.affiliate)}</td><td style={cell}>{vnd(w.amount)}</td><td style={cell}>{new Date(w.createdAt).toLocaleDateString('vi-VN')}</td><td style={cell}>{{ pending: 'Chờ duyệt', approved: 'Đã duyệt', rejected: 'Từ chối', paid: 'Đã chi' }[w.status as 'pending']}{w.reason && <p>{w.reason}</p>}</td><td style={cell}>{w.status === 'pending' && <button onClick={() => manage({ action: 'approve-withdrawal', id: w.id })}>Duyệt yêu cầu</button>}{['pending', 'approved'].includes(w.status) && <form onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); void manage({ action: 'reject-withdrawal', id: w.id, reason: f.get('reason') }) }}><input name="reason" aria-label={`Lý do từ chối yêu cầu ${w.id}`} required minLength={3} placeholder="Lý do từ chối" /><button>Từ chối</button></form>}{w.status === 'approved' && <form onSubmit={(e) => { e.preventDefault(); const f = Object.fromEntries(new FormData(e.currentTarget)); void manage({ action: 'payout', affiliate: affiliateId(w.affiliate), withdrawalId: w.id, ids: w.commissions.map((r: any) => r.id), ...f }) }}><label>Mã chuyển khoản<input name="reference" required minLength={3} maxLength={120} /></label><label>Chứng từ<input name="evidence" required minLength={3} maxLength={1000} /></label><button disabled={!data?.canPayout}>Xác nhận đã chuyển {vnd(w.amount)}</button></form>}</td></tr>)}</tbody></table></div>
       <div style={{ overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead><tr>{['Chọn chi', 'Đơn', 'Đối tác', 'Hoa hồng', 'Trạng thái', 'Ngày đủ điều kiện', 'Thao tác'].map((h) => <th key={h} style={cell}>{h}</th>)}</tr></thead>
         <tbody>{rows.map((r) => <tr key={r.id}>
@@ -77,7 +82,7 @@ export function AffiliateAdmin() {
         <label><input name="fullRefund" type="checkbox" /> Hoàn toàn bộ đơn</label><button>Thực hiện</button>
       </form>)}
       <h2>Lịch sử chi trả</h2>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}><thead><tr>{['Đối tác', 'Số tiền', 'Mã giao dịch', 'Ngày trả', 'Chứng từ'].map((h) => <th style={cell} key={h}>{h}</th>)}</tr></thead><tbody>{data?.payouts.map((p: any) => <tr key={p.id}><td style={cell}>{name(p.affiliate)}</td><td style={cell}>{vnd(p.amount)}</td><td style={cell}>{p.reference}</td><td style={cell}>{new Date(p.paidAt).toLocaleString('vi-VN')}</td><td style={cell}>{p.evidence}</td></tr>)}</tbody></table>
+      <div style={{ overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse' }}><thead><tr>{['Đối tác', 'Số tiền', 'Mã giao dịch', 'Ngày trả', 'Chứng từ'].map((h) => <th style={cell} key={h}>{h}</th>)}</tr></thead><tbody>{data?.payouts.map((p: any) => <tr key={p.id}><td style={cell}>{name(p.affiliate)}</td><td style={cell}>{vnd(p.amount)}</td><td style={cell}>{p.reference}</td><td style={cell}>{new Date(p.paidAt).toLocaleString('vi-VN')}</td><td style={cell}>{p.evidence}</td></tr>)}</tbody></table></div>
       <p><a href="/admin/collections/affiliate-audit-logs">Nhật ký đối soát và chi trả</a></p>
       <nav aria-label="Phân trang"><button disabled={page === 1} onClick={() => setPage(page - 1)}>Trang trước</button> {page} <button disabled={!data?.hasNextPage} onClick={() => setPage(page + 1)}>Trang sau</button></nav>
     </fieldset>

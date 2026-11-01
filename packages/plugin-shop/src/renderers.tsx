@@ -193,9 +193,9 @@ const Categories: BlockRenderer = ({ heading, listPath, data }) => {
   )
 }
 
-const Cart: BlockRenderer = ({ heading, checkoutPath, shopPath, width }) => <div className={width ? `sp-w-${width}` : undefined}><CartView heading={heading} checkoutPath={checkoutPath || '/thanh-toan'} shopPath={shopPath || '/san-pham'} /></div>
-const Checkout: BlockRenderer = ({ heading, statusPath, cartPath, width, layout, data }) => (
-  <div className={`${width ? `sp-w-${width}` : ''}${layout === 'split' ? ' sp-split' : ''}`.trim() || undefined}><CheckoutForm heading={heading} bankInfo={(data as Data)?.bankInfo} branches={(data as Data)?.branches} statusPath={(data as Data)?.statusPath || statusPath || '/trang-thai-don'} cartPath={cartPath || '/gio-hang'} /></div>
+const Cart: BlockRenderer = ({ width, _noFree, ...props }) => <div className={width ? `sp-w-${width}` : undefined}><CartView {...props} checkoutPath={props.checkoutPath || '/thanh-toan'} shopPath={props.shopPath || '/san-pham'} preview={Boolean(_noFree)} /></div>
+const Checkout: BlockRenderer = ({ heading, statusPath, cartPath, width, layout, data, _noFree }) => (
+  <div className={`${width ? `sp-w-${width}` : ''}${layout === 'split' ? ' sp-split' : ''}`.trim() || undefined}><CheckoutForm heading={heading} bankInfo={(data as Data)?.bankInfo} branches={(data as Data)?.branches} statusPath={(data as Data)?.statusPath || statusPath || '/trang-thai-don'} cartPath={cartPath || '/gio-hang'} preview={Boolean(_noFree)} /></div>
 )
 const OrderStatus: BlockRenderer = ({ heading }) => <OrderLookup heading={heading} />
 

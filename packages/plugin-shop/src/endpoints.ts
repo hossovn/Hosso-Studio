@@ -5,7 +5,8 @@ import { card, pricingOf } from './loaders'
 import { adjustStock, inTransaction, StockConflict } from './stock'
 import { deliverOrderEvents } from './order-events'
 import { hasStock } from './product-content'
-import { priceOf, slugify, type Product } from './util'
+import { fulfillmentGroups, finalizeFulfillment } from './fulfillment'
+import { imageOf, priceOf, slugify, type Product } from './util'
 
 const json = (body: unknown, status = 200) => Response.json(body, { status })
 const text = (v: unknown, max: number) => String(v ?? '').trim().slice(0, max)
@@ -17,13 +18,13 @@ const isManager = (req: PayloadRequest) => {
 const fail = (status: number, code: string, message: string, extra: object = {}) => json({ ok: false, code, message, ...extra }, status)
 
 type OrderDoc = { id: number | string; orderNo: string; status: string; total: number; subtotal?: number; adjustments?: OrderAdjustment[]; phone: string; email?: string; items: OrderLine[]; paymentMethod: string; paymentStatus: string; fulfillmentType: string; checkoutComplete?: boolean; checkoutState?: string; checkoutKey?: string; lookupToken?: string; checkoutDraft?: OrderDraft & { fingerprint: string }; sourceOrders?: Record<string, unknown> }
-const publicOrder = (o: OrderDoc) => ({ id: o.orderNo, status: o.checkoutDraft && !o.checkoutComplete && o.status !== 'cancelled' ? 'pending' : o.status, total: o.total, subtotal: o.subtotal ?? o.total, adjustments: (o.adjustments ?? []).map(({ label, amount }) => ({ label, amount })), payment: o.paymentMethod, paymentStatus: o.paymentStatus, fulfillment: o.fulfillmentType, items: o.items.map(({ name, quantity, price }) => ({ name, quantity, price })) })
+const publicOrder = (o: OrderDoc) => ({ id: o.orderNo, status: o.checkoutDraft && !o.checkoutComplete && o.status !== 'cancelled' ? 'pending' : o.status, total: o.total, subtotal: o.subtotal ?? o.total, adjustments: (o.adjustments ?? []).map(({ label, amount }) => ({ label, amount })), payment: o.paymentMethod, paymentStatus: o.paymentStatus, fulfillment: o.fulfillmentType, shipments: o.checkoutDraft?.shipments, items: o.items.map(({ productId, variantId, name, quantity, price, image, priceGroup }) => ({ productId, variantId, name, quantity, price, image, priceGroup })) })
 
 type Prepared = { draft: OrderDraft; stock: Record<string, number>; cartId: string; note: string }
 const pluginsOf = (payload: Payload) => (payload.config.custom?.hossoPlugins ?? []) as HossoPlugin[]
 
 /** Đọc và kiểm tra giỏ hàng, lấy giá và tồn kho từ DB (không tin giá từ trình duyệt), dựng đơn nháp. `quote` bỏ qua các trường khách chưa nhập. */
-async function prepare(req: PayloadRequest, input: Record<string, any>, quote: boolean): Promise<Prepared | Response> {
+export async function prepare(req: PayloadRequest, input: Record<string, any>, quote: boolean): Promise<Prepared | Response> {
   const { payload } = req
   if (input.website) return fail(400, 'bad_request', 'bad_request') // ô bẫy bot
   const cartId = text(input.cartId, 64)
@@ -55,7 +56,7 @@ async function prepare(req: PayloadRequest, input: Record<string, any>, quote: b
   for (const l of lines) {
     const p = (l.productId.startsWith('wim:')
       ? (await payload.find({ collection: 'shop-products' as any, where: { wimId: { equals: l.productId.slice(4) } }, limit: 1, depth: 0, overrideAccess: true })).docs[0]
-      : await payload.findByID({ collection: 'shop-products' as any, id: l.productId, depth: 0, overrideAccess: true }).catch(() => null)) as unknown as (Product & { active?: boolean }) | null
+      : await payload.findByID({ collection: 'shop-products' as any, id: l.productId, depth: 1, overrideAccess: true }).catch(() => null)) as unknown as (Product & { active?: boolean }) | null
     if (!p || p.active === false) return fail(409, 'product_not_found', 'gone', { productId: l.productId })
     // Sản phẩm có biến thể: khách phải chọn một biến thể; giá và tồn kho lấy theo biến thể.
     let price = priceOf(p)
@@ -82,23 +83,52 @@ async function prepare(req: PayloadRequest, input: Record<string, any>, quote: b
       available = v.stock ?? 0
       code = v.sku || code
     }
+    let customerPrice: { price: number; group: string; source: string } | undefined
+    try {
+      for (const plugin of pluginsOf(payload)) {
+        customerPrice = await plugin.commerce?.customerPrice?.({ payload, headers: req.headers, product: p, variantId: l.variantId, quantity: l.quantity, price, assistedCustomerToken: typeof input.meta?.assistedCustomerToken === 'string' ? input.meta.assistedCustomerToken : undefined })
+        if (customerPrice) { price = customerPrice.price; break }
+      }
+    } catch { return fail(409, 'customer_price_unavailable', 'Chưa xác nhận được quyền hoặc giá của khách. Vui lòng xác minh lại hoặc liên hệ cửa hàng.') }
+    if (!Number.isSafeInteger(price) || price < 0) return fail(503, 'source_unavailable', 'Giá sản phẩm chưa hợp lệ.')
     const previous = items.find((i) => i.productId === String(p.id) && (i.variantId || '') === (l.variantId || ''))
     const quantity = l.quantity + (previous?.quantity ?? 0)
     if (quantity > 99) return fail(400, 'bad_request', 'quantity')
     if (p.variants?.length || external ? !external?.stockUnmanaged && available < quantity : !hasStock(p, quantity)) return fail(409, 'out_of_stock', 'stock', { productId: l.productId, name, available })
     if (previous) previous.quantity = quantity
-    else items.push({ productId: String(p.id), ...(p.variants?.length && { variantId: l.variantId }), name, code, price, quantity, source: external?.source || p.source || 'shop', ...(external && { remoteId: external.remoteId }) })
+    else items.push({ productId: String(p.id), ...(p.variants?.length && { variantId: l.variantId }), name: (p as any).displayName ? `${(p as any).displayName}${p.variants?.length ? ` (${p.variants.find((v) => v.id === l.variantId)?.name})` : ''}` : name, code, price, quantity, image: imageOf(p), ...(customerPrice && { priceSource: customerPrice.source, priceGroup: customerPrice.group }), source: external?.source || p.source || 'shop', ...(external && { remoteId: external.remoteId }) })
   }
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
   const meta = typeof input.meta === 'object' && input.meta ? (input.meta as Record<string, unknown>) : {}
-  return { draft: { items, subtotal, adjustments: [], customer: { name, phone, address, email }, fulfillment, payment, meta }, stock, cartId, note }
+  const draft: OrderDraft = { items, subtotal, adjustments: [], customer: { name, phone, address, email }, fulfillment, payment, meta }
+  try { draft.shipments = await fulfillmentGroups(payload, draft) }
+  catch { return fail(409, 'fulfillment_unavailable', 'Chưa xác nhận được phương án giao và thu tiền. Vui lòng liên hệ cửa hàng.') }
+  return { draft, stock, cartId, note }
 }
 
 /** Cho plugin điều chỉnh đơn nháp (phí ship, giảm giá); lỗi thì trả Response từ chối. */
-async function priced(req: PayloadRequest, p: Prepared) {
+export async function priced(req: PayloadRequest, p: Prepared) {
   const rejected = await emitBeforeOrder(req.payload, p.draft, req.headers, 'shop')
   if (rejected) return fail(400, rejected.code, rejected.message)
-  return { total: orderTotal(p.draft) }
+  const total = orderTotal(p.draft)
+  finalizeFulfillment(p.draft, total)
+  return { total }
+}
+
+/** Per-line inspection keeps source outages distinct from zero stock. Checkout still revalidates the full order. */
+export async function inspectCart(req: PayloadRequest, input: Record<string, any>) {
+  if (!Array.isArray(input.items) || !input.items.length || input.items.length > 50) return { items: [], issues: [{ code: 'bad_request', message: 'empty' }] }
+  const items: any[] = [], issues: any[] = []
+  for (const line of input.items) {
+    const prepared = await prepare(req, { ...input, items: [line] }, true)
+    if (prepared instanceof Response) { issues.push({ ...(await prepared.json()), productId: line.productId, variantId: line.variantId }); continue }
+    items.push({ ...prepared.draft.items[0], productId: line.productId, variantId: line.variantId })
+  }
+  return { items, issues }
+}
+
+export async function quoteKey(draft: OrderDraft, total: number) {
+  return fingerprint({ items: draft.items, fulfillment: draft.fulfillment, payment: draft.payment, meta: { adjustments: draft.adjustments, shipments: draft.shipments, total } })
 }
 
 async function fingerprint(input: Record<string, any>) {
@@ -170,6 +200,7 @@ export async function placeOrder(req: PayloadRequest, input: Record<string, any>
   if (price instanceof Response) return price
   const { draft } = p
   const { total } = price
+  if (input.quoteKey && input.quoteKey !== await quoteKey(draft, total)) return fail(409, 'quote_changed', 'Giá hoặc phí đã thay đổi. Vui lòng xem lại tổng và xác nhận đặt hàng lần nữa.')
 
   let order: OrderDoc
   try {
@@ -334,14 +365,25 @@ export const endpoints: Endpoint[] = [
   },
   {
     // Xem trước tổng tiền (phí ship, giảm giá do plugin khác thêm) trước khi đặt, không tạo đơn.
+    path: '/plugins/shop/cart', method: 'post', handler: async (req) => {
+      const result = await inspectCart(req, (await req.json?.().catch(() => null)) ?? {})
+      return json({ ok: true, ...result })
+    },
+  },
+  {
     path: '/plugins/shop/quote',
     method: 'post',
     handler: async (req) => {
-      const p = await prepare(req, (await req.json?.().catch(() => null)) ?? {}, true)
-      if (p instanceof Response) return p
+      const input = (await req.json?.().catch(() => null)) ?? {}
+      const p = await prepare(req, input, true)
+      if (p instanceof Response) {
+        const error = await p.json()
+        if (['product_not_found', 'out_of_stock'].includes(error.code)) return fail(p.status, error.code, error.message, await inspectCart(req, input))
+        return json(error, p.status)
+      }
       const price = await priced(req, p)
       if (price instanceof Response) return price
-      return json({ ok: true, subtotal: p.draft.subtotal, adjustments: p.draft.adjustments.map(({ label, amount }) => ({ label, amount })), total: price.total })
+      return json({ ok: true, items: p.draft.items, shipments: p.draft.shipments, quoteKey: await quoteKey(p.draft, price.total), subtotal: p.draft.subtotal, adjustments: p.draft.adjustments.map(({ label, amount }) => ({ label, amount })), total: price.total })
     },
   },
   {

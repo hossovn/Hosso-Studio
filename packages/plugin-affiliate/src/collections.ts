@@ -11,6 +11,7 @@ const date = (name: string): Extract<Field, { type: 'date' }> => ({ name, type: 
 const json = (name: string): Extract<Field, { type: 'json' }> => ({ name, type: 'json' })
 
 export const extraCollections: CollectionConfig[] = [
+  { slug: 'affiliate-withdrawals', admin: { group, defaultColumns: ['affiliate', 'amount', 'status', 'createdAt'] }, access: locked, fields: [relation('affiliate', 'affiliates', true), { ...text('activeKey'), unique: true }, number('amount'), { name: 'status', type: 'select', required: true, defaultValue: 'pending', options: ['pending', 'approved', 'rejected', 'paid'] }, json('commissions'), { name: 'bankInfo', type: 'textarea', required: true }, text('reason'), relation('payout', 'affiliate-payouts'), date('reviewedAt')] },
   { slug: 'affiliate-clicks', admin: { group, defaultColumns: ['affiliate', 'path', 'createdAt', 'expiresAt'] }, access: locked, fields: [relation('affiliate', 'affiliates', true), { ...text('token', true), unique: true, admin: { hidden: true } }, text('path'), date('expiresAt')] },
   { slug: 'affiliate-orders', indexes: [{ fields: ['source', 'orderId'], unique: true }], admin: { group, defaultColumns: ['orderId', 'source', 'orderStatus', 'paymentStatus', 'total'] }, access: locked, fields: [
     { ...text('key', true), unique: true }, text('orderId'), text('source', true), json('policy'), json('items'), text('customerPhone'), number('total'), text('orderStatus'), text('paymentStatus'), number('refundedAmount'), date('completedAt'), text('paymentReference'),
@@ -32,6 +33,7 @@ export function attachShop(collection: CollectionConfig): CollectionConfig {
     } },
     fields: [...collection.fields,
       { ...json('affiliateSnapshot'), access: { read: isAdmin }, admin: { hidden: true } },
+      { ...json('affiliateRefundedLines'), access: { read: isAdmin, update: isAdmin }, label: { vi: 'Hoàn tiền hàng theo dòng (mã sản phẩm: tiền lũy kế)', en: 'Cumulative goods refunds by line key' } },
       { name: 'affiliateRefundedAmount', type: 'number', min: 0, defaultValue: 0, label: { vi: 'Tiền hàng tính hoa hồng đã hoàn (đ)', en: 'Refunded commissionable goods (VND)' }, access: { update: isAdmin }, admin: { description: { vi: 'Nhập lũy kế tiền hàng sau giảm giá đã hoàn, không gồm phí ship.', en: 'Cumulative refunded goods after discounts, excluding shipping.' } } },
       { ...date('affiliateCompletedAt'), admin: { readOnly: true } },
     ],

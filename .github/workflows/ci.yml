@@ -13,13 +13,13 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 24, cache: pnpm }
       - run: pnpm install --frozen-lockfile
+      - run: pnpm check:manifests
       # importMap.js is generated (gitignored); typecheck needs it. / importMap.js do lệnh sinh ra (không commit), typecheck cần nó.
       - run: pnpm --filter @hosso/studio generate:importmap
         env: { HOSSO_SECRET: build-time-placeholder, HOSSO_DATABASE_URL: 'file:/tmp/build.db' }
       - run: pnpm typecheck
       - run: pnpm check:boundaries
       - run: pnpm check:i18n
-      - run: pnpm check:manifests
       - run: pnpm test:kiln
       - run: pnpm test:editor-preview
       - run: pnpm test:site-package

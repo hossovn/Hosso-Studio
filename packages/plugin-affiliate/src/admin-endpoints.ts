@@ -3,6 +3,7 @@ import type { HossoPlugin } from '@hosso/studio-blocks'
 import { AffiliateError, check, idOf, money, sameOrigin } from './core'
 import { admin, atomic, audit, find, refresh, settle, sync } from './service'
 import { refreshWim } from './wim'
+import { reviewWithdrawal, withdrawalPolicy } from './withdrawals'
 
 export const displayStatus = (r: any) => !r.policy && ['pending', 'approved'].includes(r.status) ? 'review' : r.status === 'holding' && r.eligibleAt && Date.parse(r.eligibleAt) <= Date.now() ? 'eligible' : r.status
 const rowFor = async (req: PayloadRequest, id: unknown) => {
@@ -22,7 +23,8 @@ export const adminEndpoints: Endpoint[] = [
       req.payload.find({ collection: 'affiliate-payouts' as any, limit: 50, sort: '-createdAt', page, depth: 1, overrideAccess: true, req }),
       req.payload.find({ collection: 'affiliate-orders' as any, where: { policy: { exists: true } }, limit: 50, sort: '-createdAt', page, depth: 0, overrideAccess: true, req }),
     ])
-    return Response.json({ ok: true, canPayout: req.payload.db.name !== 'sqlite', affiliates: affiliates.docs.map((a: any) => ({ id: a.id, name: a.name, code: a.code, approval: a.approval, active: a.active })), referrals: referrals.docs.map((r: any) => ({ ...r, status: displayStatus(r) })), payouts: payouts.docs, orders: orders.docs, page, hasNextPage: [affiliates, referrals, payouts, orders].some((r) => r.hasNextPage) }, { headers: { 'Cache-Control': 'no-store' } })
+    const withdrawals = await req.payload.find({ collection: 'affiliate-withdrawals' as any, sort: '-createdAt', limit: 50, page, depth: 1, overrideAccess: true, req })
+    return Response.json({ ok: true, withdrawalPolicy: await withdrawalPolicy(req), withdrawals: withdrawals.docs, canPayout: req.payload.db.name !== 'sqlite', affiliates: affiliates.docs.map((a: any) => ({ id: a.id, name: a.name, code: a.code, approval: a.approval, active: a.active })), referrals: referrals.docs.map((r: any) => ({ ...r, status: displayStatus(r) })), payouts: payouts.docs, orders: orders.docs, page, hasNextPage: [affiliates, referrals, payouts, orders, withdrawals].some((r) => r.hasNextPage) }, { headers: { 'Cache-Control': 'no-store' } })
   } },
   { path: '/plugins/affiliate/manage', method: 'post', handler: async (req) => {
     if (!admin(req.user)) return Response.json({ ok: false }, { status: 403 })
@@ -31,6 +33,7 @@ export const adminEndpoints: Endpoint[] = [
       const b = await req.json?.()
       check(b && typeof b === 'object', 'Invalid action')
       if (b.action === 'payout') return Response.json({ ok: true, payout: await settle(req, b) })
+      if (b.action === 'approve-withdrawal' || b.action === 'reject-withdrawal') return Response.json({ ok: true, withdrawal: await reviewWithdrawal(req, b.id, b.action === 'approve-withdrawal', b.reason) })
       return Response.json(await atomic(req, async () => {
         if (b.action === 'approve-affiliate' || b.action === 'reject-affiliate') {
           const aff = (await find(req, 'affiliates', { id: { equals: b.id } }))[0]
@@ -56,7 +59,7 @@ export const adminEndpoints: Endpoint[] = [
           const page = Number(b.page ?? 1)
           check(Number.isInteger(page) && page >= 1, 'Invalid page')
           const result = await req.payload.find({ collection: 'shop-orders' as any, where: { affiliateSnapshot: { exists: true } }, limit: 100, page, depth: 0, overrideAccess: true, req })
-          for (const order of result.docs as any[]) await sync(req, 'shop', { id: order.orderNo || `SO-${String(order.id).padStart(6, '0')}`, total: order.total, status: order.status, paymentStatus: order.paymentStatus, refundedAmount: order.affiliateRefundedAmount, completedAt: order.affiliateCompletedAt }, order.affiliateSnapshot)
+          for (const order of result.docs as any[]) await sync(req, 'shop', { id: order.orderNo || `SO-${String(order.id).padStart(6, '0')}`, total: order.total, status: order.status, paymentStatus: order.paymentStatus, refundedAmount: order.affiliateRefundedAmount, refundedLines: order.affiliateRefundedLines, completedAt: order.affiliateCompletedAt }, order.affiliateSnapshot)
           return { ok: true, hasNextPage: result.hasNextPage }
         } else if (['external-refresh', 'external-payment', 'external-refund', 'external-link'].includes(b.action)) {
           let receipt = (await find(req, 'affiliate-orders', { id: { equals: b.id } }))[0]
