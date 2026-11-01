@@ -156,11 +156,11 @@ async function completeOrder(req: PayloadRequest, order: OrderDoc) {
   } catch (error) {
     if ((error as { definitive?: boolean }).definitive && !Object.keys(sourceOrders).length) {
       await inTransaction(req, async () => {
-        await payload.update({ collection: 'shop-orders' as any, id: order.id, data: { status: 'cancelled', checkoutState: 'source_rejected' }, req, overrideAccess: true, context: { sourceRejected: true } })
+        await payload.update({ collection: 'shop-orders' as any, id: order.id, data: { status: 'cancelled', checkoutState: 'source_rejected', cancellationReason: 'Nguồn hàng từ chối xác nhận đơn.' }, req, overrideAccess: true, context: { sourceRejected: true } })
       })
       return fail(409, 'out_of_stock', 'Nguồn hàng đã từ chối đơn. Vui lòng kiểm tra lại giỏ.', { resetCart: true })
     }
-    payload.logger.error(error, '[shop] Source order pending; retry with the same cart')
+    payload.logger.error(error, '[shop] Source confirmation pending; background recovery will retry')
     return fail(503, 'source_pending', 'Đơn đang chờ nguồn hàng xác nhận. Giữ nguyên giỏ và thử lại.', { orderId: orderNo, lookupToken: order.lookupToken })
   }
   try { for (const plugin of pluginsOf(payload)) await plugin.commerce?.confirmPayment?.(payload, { ...draft, id: orderNo }) }
@@ -174,23 +174,56 @@ async function completeOrder(req: PayloadRequest, order: OrderDoc) {
   return success(await deliverOrderEvents(req, { ...order, checkoutComplete: true }))
 }
 
+/** Reservation is already durable. Source, payment and email processing continue on the server. */
+async function acceptedOrder(req: PayloadRequest, order: OrderDoc, enqueue = false) {
+  if (order.status === 'cancelled') return json({ ok: true, accepted: true, order: publicOrder(order), lookupToken: order.lookupToken })
+  try { if (enqueue) await req.payload.jobs.queue({ task: 'shop-order-recovery', input: {}, queue: 'default' }) }
+  catch (error) { req.payload.logger.error(error, '[shop] Immediate recovery queue failed; scheduled recovery will retry') }
+  return json({ ok: true, accepted: true, order: publicOrder(order), lookupToken: order.lookupToken }, order.checkoutComplete ? 200 : 202)
+}
+
 export async function recoverOrders(req: PayloadRequest) {
   const pending = await req.payload.find({ collection: 'shop-orders' as any, where: { and: [{ checkoutDraft: { exists: true } }, { checkoutState: { not_equals: 'legacy_review' } }, { status: { not_equals: 'cancelled' } }, { or: [{ checkoutComplete: { equals: false } }, { hooksComplete: { not_equals: true } }] }] }, limit: 25, sort: 'updatedAt', depth: 0, overrideAccess: true })
   for (const order of pending.docs as unknown as OrderDoc[]) {
-    try { await completeOrder(req, order) }
-    catch (error) { req.payload.logger.error(error, '[shop] Order recovery failed') }
+    await recoverOrder(req, order)
   }
 }
 
-export async function placeOrder(req: PayloadRequest, input: Record<string, any>) {
+export async function recoverOrder(req: PayloadRequest, order: OrderDoc) {
+  const lease = new Date(Date.now() + 10 * 60000).toISOString()
+  const claimed = await inTransaction(req, () => req.payload.db.updateOne({ collection: 'shop-orders', req, where: { and: [{ id: { equals: order.id } }, { status: { not_equals: 'cancelled' } }, { or: [{ processingUntil: { exists: false } }, { processingUntil: { less_than: new Date().toISOString() } }] }] }, data: { processingUntil: lease }, options: { atomic: true } }))
+  if (!claimed) return
+    try {
+      await deliverOrderEvents(req, order, 'received')
+      const result = await completeOrder(req, order)
+      if (!result.ok) {
+        const body = await result.json()
+        await req.payload.update({ collection: 'shop-orders' as any, id: order.id, data: { processingIssue: body.code === 'out_of_stock' ? null : body.code }, overrideAccess: true, req, context: { skipStatusEvent: true } })
+      } else {
+        const fresh = await req.payload.findByID({ collection: 'shop-orders' as any, id: order.id, depth: 0, overrideAccess: true, req }) as any
+        await req.payload.update({ collection: 'shop-orders' as any, id: order.id, data: { processingIssue: fresh.hooksComplete ? null : 'events_pending' }, overrideAccess: true, req, context: { skipStatusEvent: true } })
+      }
+    }
+    catch (error) {
+      req.payload.logger.error(error, '[shop] Order recovery failed')
+      await req.payload.update({ collection: 'shop-orders' as any, id: order.id, data: { processingIssue: 'retry_pending' }, overrideAccess: true, req, context: { skipStatusEvent: true } })
+    } finally {
+      await inTransaction(req, () => req.payload.db.updateOne({ collection: 'shop-orders', req, where: { and: [{ id: { equals: order.id } }, { processingUntil: { equals: lease } }] }, data: { processingUntil: null }, options: { atomic: true } }))
+    }
+}
+
+export async function placeOrder(req: PayloadRequest, input: Record<string, any>, options: { background?: boolean } = {}) {
   const { payload } = req
   if (input.website) return fail(400, 'bad_request', 'bad_request')
-  const cartId = text(input.cartId, 64)
+  const cartId = text(input.checkoutId || input.cartId, 64)
+  input = { ...input, cartId }
   if (cartId.length < 8) return fail(400, 'bad_request', 'cart')
   const requestFingerprint = await fingerprint(input)
   const dup = (await payload.find({ collection: 'shop-orders' as any, where: { cartId: { equals: cartId } }, limit: 1, depth: 0, overrideAccess: true })).docs[0] as unknown as OrderDoc | undefined
   if (dup) {
     if (dup.checkoutDraft ? dup.checkoutDraft.fingerprint !== requestFingerprint : dup.phone !== text(input.customer?.phone, 20).replace(/[\s.\-()]/g, '')) return fail(409, 'cart_changed', 'Giỏ đã tạo đơn với nội dung khác. Vui lòng tạo giỏ mới.')
+    if (options.background) return acceptedOrder(req, dup)
+    await deliverOrderEvents(req, dup, 'received')
     return completeOrder(req, dup)
   }
   const p = await prepare(req, input, false)
@@ -219,12 +252,18 @@ export async function placeOrder(req: PayloadRequest, input: Record<string, any>
     })
   } catch (error) {
     const existing = (await payload.find({ collection: 'shop-orders' as any, where: { cartId: { equals: cartId } }, limit: 1, depth: 0, overrideAccess: true })).docs[0] as unknown as OrderDoc | undefined
-    if (existing?.checkoutDraft?.fingerprint === requestFingerprint) return completeOrder(req, existing)
+    if (existing?.checkoutDraft?.fingerprint === requestFingerprint) {
+      if (options.background) return acceptedOrder(req, existing)
+      await deliverOrderEvents(req, existing, 'received')
+      return completeOrder(req, existing)
+    }
     if (error instanceof StockConflict) return fail(409, 'out_of_stock', 'Tồn kho đã thay đổi. Vui lòng kiểm tra lại giỏ.')
     payload.logger.error(error, '[shop] Reservation failed; order transaction rolled back')
     return fail(503, 'reservation_failed', 'Chưa giữ được hàng. Vui lòng thử lại.')
   }
 
+  if (options.background) return acceptedOrder(req, order, true)
+  await deliverOrderEvents(req, order, 'received')
   return completeOrder(req, order)
 }
 
@@ -324,6 +363,24 @@ table{border-collapse:collapse;width:100%}th,td{border:1px solid #bbb;padding:6p
 }
 
 export const endpoints: Endpoint[] = [
+  { path: '/plugins/shop/receipt', method: 'post', handler: async (req) => {
+    const input = await req.json?.().catch(() => null) as any
+    if (!/^[a-f0-9]{64}$/.test(input?.checkoutId || '')) return fail(404, 'not_found', 'not_found')
+    const o = (await req.payload.find({ collection: 'shop-orders' as any, where: { cartId: { equals: input.checkoutId } }, limit: 1, depth: 0, overrideAccess: true })).docs[0] as unknown as OrderDoc | undefined
+    if (!o || o.checkoutDraft?.fingerprint !== await fingerprint(input)) return fail(404, 'not_found', 'not_found')
+    const response = await acceptedOrder(req, o)
+    response.headers.set('Cache-Control', 'no-store')
+    response.headers.set('Referrer-Policy', 'no-referrer')
+    return response
+  } },
+  { path: '/plugins/shop/manage-order', method: 'get', handler: async (req) => {
+    if (!isManager(req)) return fail(403, 'forbidden', 'forbidden')
+    return (await import('./order-operations')).readManagedOrder(req)
+  } },
+  { path: '/plugins/shop/manage-order', method: 'post', handler: async (req) => {
+    if (!isManager(req)) return fail(403, 'forbidden', 'forbidden')
+    return (await import('./order-operations')).operateOrder(req)
+  } },
   {
     path: '/plugins/shop/print',
     method: 'get',
@@ -391,7 +448,7 @@ export const endpoints: Endpoint[] = [
     method: 'post',
     handler: async (req) => {
       const body = await req.json?.().catch(() => null)
-      return placeOrder(req, body ?? {})
+      return placeOrder(req, body ?? {}, { background: true })
     },
   },
   {

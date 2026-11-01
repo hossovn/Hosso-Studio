@@ -172,7 +172,7 @@ export type OrderPlacedEvent = {
 /** Hook `onOrderPlaced` có thể trả `{ redirectUrl }` để đưa khách sang cổng thanh toán. */
 export type OrderPlacedResult = void | { redirectUrl?: string }
 
-export type OrderStatusChangedEvent = { payload: Payload; order: { id: string; total: number; status: string; customer?: OrderCustomer }; from: string; to: string; source: string }
+export type OrderStatusChangedEvent = { payload: Payload; request?: PayloadRequest; order: { id: string; total: number; status: string; customer?: OrderCustomer }; from: string; to: string; source: string }
 
 /** Plugin thanh toán báo đơn đã được thanh toán. Plugin bán hàng đánh dấu đơn, plugin thông báo gửi tin. */
 export type OrderPaidEvent = { payload: Payload; request?: PayloadRequest; orderNo: string; amount: number; reference?: string; source: string }
@@ -183,13 +183,14 @@ export type OrderExtras = { payment?: { qrUrl?: string; note?: string }; shipmen
 
 export type HossoPlugin = {
   id: string
-  /** Commerce adapters run strictly: a failed source must never produce a successful checkout. */
+  /** Source confirmation gates fulfillment/payment; a durable local receipt may precede it. */
   commerce?: {
     syncCatalog?: (payload: Payload) => Promise<void>
     resolveProduct?: (payload: Payload, product: Record<string, any>, quantity: number, fulfillment: OrderDraft['fulfillment']) => Promise<{ source: string; remoteId: string; price: number; stock: number; stockUnmanaged?: boolean } | undefined>
     submitOrder?: (payload: Payload, order: OrderDraft & { id: string; checkoutKey?: string }) => Promise<unknown>
     confirmPayment?: (payload: Payload, order: OrderDraft & { id: string }) => Promise<void>
     cancelOrder?: (payload: Payload, order: { id: string }) => Promise<void>
+    resendOrderEmail?: (payload: Payload, orderNo: string, request: PayloadRequest) => Promise<void>
     checkoutData?: (payload: Payload) => Promise<{ branches: { id: string; name: string }[] }>
     /** Server-authenticated customer pricing; browser-supplied group IDs are never sufficient. */
     customerPrice?: (event: { payload: Payload; headers: Headers; product: Record<string, any>; variantId?: string; quantity: number; price: number; assistedCustomerToken?: string }) => Promise<{ price: number; group: string; source: string } | undefined>
@@ -228,6 +229,8 @@ export type HossoPlugin = {
   /** Móc vào sự kiện của lõi/plugin khác. Lỗi trong hook chỉ được ghi log, không làm hỏng đơn hàng. */
   hooks?: {
     beforeOrder?: (e: BeforeOrderEvent) => Promise<BeforeOrderResult>
+    /** Durable local receipt, before background source/payment processing. No fulfillment effects here. */
+    onOrderReceived?: (e: OrderPlacedEvent) => Promise<void>
     onOrderPlaced?: (e: OrderPlacedEvent) => Promise<OrderPlacedResult>
     onOrderStatusChanged?: (e: OrderStatusChangedEvent) => Promise<void>
     onOrderPaid?: (e: OrderPaidEvent) => Promise<void>

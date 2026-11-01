@@ -7,6 +7,9 @@ import { pathToFileURL } from 'node:url'
 
 const fixtureUrl = new URL('./test-product-pool.mjs', import.meta.url)
 let fixture = await readFile(fixtureUrl, 'utf8')
+// Migration assertions use a different backend state and are covered by test-product-pool.
+// Keep the reliability scenarios at the original Shop-backed checkpoint.
+fixture = fixture.replace(/\n  const oldListing = listings\[0\][\s\S]*?(?=\n  console\.log\('Disposable test database:)/, '')
 const replace = (before, after) => {
   assert.ok(fixture.includes(before), 'Fixture changed: ' + before.slice(0, 80))
   fixture = fixture.replace(before, after)
