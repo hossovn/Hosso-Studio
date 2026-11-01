@@ -7,18 +7,22 @@ import { deliverOrderEvents } from './order-events'
 import { hasStock } from './product-content'
 import { fulfillmentGroups, finalizeFulfillment } from './fulfillment'
 import { imageOf, priceOf, slugify, type Product } from './util'
+import { buildProcessingPlan, createProcessingGroups, decideAvailable, groupsFor, processOrderWorkflow, requestCancellation } from './order-workflow'
+import { clientPrincipal, takeCommerceLimit } from '@hosso/studio-blocks/rate-limits'
+import { timingSafeEqual, createHash } from 'node:crypto'
 
 const json = (body: unknown, status = 200) => Response.json(body, { status })
 const text = (v: unknown, max: number) => String(v ?? '').trim().slice(0, max)
 const PHONE = /^(\+?84|0)\d{8,10}$/
+const matchesToken = (a: string, b?: string) => Boolean(b) && timingSafeEqual(createHash('sha256').update(a).digest(), createHash('sha256').update(b || '').digest())
 const isManager = (req: PayloadRequest) => {
   const r = (req.user as { roles?: string[] } | null)?.roles
-  return Boolean(r?.includes('admin') || r?.includes('publisher'))
+  return Boolean(r?.includes('admin'))
 }
 const fail = (status: number, code: string, message: string, extra: object = {}) => json({ ok: false, code, message, ...extra }, status)
 
-type OrderDoc = { id: number | string; orderNo: string; status: string; total: number; subtotal?: number; adjustments?: OrderAdjustment[]; phone: string; email?: string; items: OrderLine[]; paymentMethod: string; paymentStatus: string; fulfillmentType: string; checkoutComplete?: boolean; checkoutState?: string; checkoutKey?: string; lookupToken?: string; checkoutDraft?: OrderDraft & { fingerprint: string }; sourceOrders?: Record<string, unknown> }
-const publicOrder = (o: OrderDoc) => ({ id: o.orderNo, status: o.checkoutDraft && !o.checkoutComplete && o.status !== 'cancelled' ? 'pending' : o.status, total: o.total, subtotal: o.subtotal ?? o.total, adjustments: (o.adjustments ?? []).map(({ label, amount }) => ({ label, amount })), payment: o.paymentMethod, paymentStatus: o.paymentStatus, fulfillment: o.fulfillmentType, shipments: o.checkoutDraft?.shipments, items: o.items.map(({ productId, variantId, name, quantity, price, image, priceGroup }) => ({ productId, variantId, name, quantity, price, image, priceGroup })) })
+type OrderDoc = { id: number | string; workflowVersion?: number; approvalState?: string; workflowState?: string; processingPlan?: any[]; decisionRevision?: number; reservationExpiresAt?: string; orderNo: string; status: string; total: number; subtotal?: number; adjustments?: OrderAdjustment[]; phone: string; email?: string; items: OrderLine[]; paymentMethod: string; paymentStatus: string; fulfillmentType: string; checkoutComplete?: boolean; checkoutState?: string; checkoutKey?: string; lookupToken?: string; checkoutDraft?: OrderDraft & { fingerprint: string }; sourceOrders?: Record<string, unknown> }
+const publicOrder = (o: OrderDoc) => ({ id: o.orderNo, approvalState: o.approvalState, workflowState: o.workflowState, reservationExpiresAt: o.reservationExpiresAt, decisionRevision: o.decisionRevision || 0, status: o.checkoutDraft && !o.checkoutComplete && o.status !== 'cancelled' ? 'pending' : o.status, total: o.total, subtotal: o.subtotal ?? o.total, adjustments: (o.adjustments ?? []).map(({ label, amount }) => ({ label, amount })), payment: o.paymentMethod, paymentStatus: o.paymentStatus, fulfillment: o.fulfillmentType, shipments: o.checkoutDraft?.shipments, items: o.items.map(({ productId, variantId, name, quantity, price, image, priceGroup }) => ({ productId, variantId, name, quantity, price, image, priceGroup })) })
 
 type Prepared = { draft: OrderDraft; stock: Record<string, number>; cartId: string; note: string }
 const pluginsOf = (payload: Payload) => (payload.config.custom?.hossoPlugins ?? []) as HossoPlugin[]
@@ -83,6 +87,7 @@ export async function prepare(req: PayloadRequest, input: Record<string, any>, q
       available = v.stock ?? 0
       code = v.sku || code
     }
+    const sourcePrice = price
     let customerPrice: { price: number; group: string; source: string } | undefined
     try {
       for (const plugin of pluginsOf(payload)) {
@@ -96,7 +101,7 @@ export async function prepare(req: PayloadRequest, input: Record<string, any>, q
     if (quantity > 99) return fail(400, 'bad_request', 'quantity')
     if (p.variants?.length || external ? !external?.stockUnmanaged && available < quantity : !hasStock(p, quantity)) return fail(409, 'out_of_stock', 'stock', { productId: l.productId, name, available })
     if (previous) previous.quantity = quantity
-    else items.push({ productId: String(p.id), ...(p.variants?.length && { variantId: l.variantId }), name: (p as any).displayName ? `${(p as any).displayName}${p.variants?.length ? ` (${p.variants.find((v) => v.id === l.variantId)?.name})` : ''}` : name, code, price, quantity, image: imageOf(p), ...(customerPrice && { priceSource: customerPrice.source, priceGroup: customerPrice.group }), source: external?.source || p.source || 'shop', ...(external && { remoteId: external.remoteId }) })
+    else items.push({ productId: String(p.id), ...(p.variants?.length && { variantId: l.variantId }), name: (p as any).displayName ? `${(p as any).displayName}${p.variants?.length ? ` (${p.variants.find((v) => v.id === l.variantId)?.name})` : ''}` : name, code, price, sourcePrice, quantity, image: imageOf(p), ...(customerPrice && { priceSource: customerPrice.source, priceGroup: customerPrice.group }), source: external?.source || p.source || 'shop', ...(external && { remoteId: external.remoteId }) })
   }
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
   const meta = typeof input.meta === 'object' && input.meta ? (input.meta as Record<string, unknown>) : {}
@@ -141,6 +146,12 @@ async function completeOrder(req: PayloadRequest, order: OrderDoc) {
   const draft = order.checkoutDraft!
   const orderNo = order.orderNo || `SO-${String(order.id).padStart(6, '0')}`
   const success = (redirectUrl?: string) => json({ ok: true, order: { id: orderNo, status: order.status, total: order.total }, lookupToken: order.lookupToken, ...(redirectUrl && { redirectUrl }) })
+  if (order.workflowVersion === 1) {
+    await processOrderWorkflow(req, order)
+    const fresh = await payload.findByID({ collection: 'shop-orders' as any, id: order.id, depth: 0, overrideAccess: true }) as unknown as OrderDoc
+    if (fresh.checkoutComplete && fresh.workflowState === 'ready') await deliverOrderEvents(req, fresh)
+    return json({ ok: true, accepted: true, order: publicOrder(fresh), lookupToken: fresh.lookupToken })
+  }
   if (order.status === 'cancelled') return fail(409, 'order_cancelled', 'Đơn đã hủy. Vui lòng tạo giỏ mới.', { resetCart: true })
   if (order.checkoutComplete || !draft) return success(await deliverOrderEvents(req, order))
   if (order.checkoutState === 'legacy_review') return fail(503, 'reconciliation_required', 'Đơn cũ cần đối soát tồn kho trước khi tiếp tục.')
@@ -183,7 +194,7 @@ async function acceptedOrder(req: PayloadRequest, order: OrderDoc, enqueue = fal
 }
 
 export async function recoverOrders(req: PayloadRequest) {
-  const pending = await req.payload.find({ collection: 'shop-orders' as any, where: { and: [{ checkoutDraft: { exists: true } }, { checkoutState: { not_equals: 'legacy_review' } }, { status: { not_equals: 'cancelled' } }, { or: [{ checkoutComplete: { equals: false } }, { hooksComplete: { not_equals: true } }] }] }, limit: 25, sort: 'updatedAt', depth: 0, overrideAccess: true })
+  const pending = await req.payload.find({ collection: 'shop-orders' as any, where: { and: [{ checkoutDraft: { exists: true } }, { checkoutState: { not_equals: 'legacy_review' } }, { status: { not_equals: 'cancelled' } }, { or: [{ hooksComplete: { not_equals: true } }, { and: [{ approvalState: { not_equals: 'awaiting' } }, { or: [{ checkoutComplete: { equals: false } }, { workflowState: { in: ['cancelling', 'processing', 'awaiting_customer', 'fulfilling'] } }] }] }] }] }, limit: 25, sort: 'updatedAt', depth: 0, overrideAccess: true })
   for (const order of pending.docs as unknown as OrderDoc[]) {
     await recoverOrder(req, order)
   }
@@ -195,13 +206,15 @@ export async function recoverOrder(req: PayloadRequest, order: OrderDoc) {
   if (!claimed) return
     try {
       await deliverOrderEvents(req, order, 'received')
+      if (order.workflowVersion === 1 && order.approvalState === 'awaiting') return
+      if (order.workflowVersion === 1 && ['processing', 'awaiting_customer'].includes(order.workflowState || '') && order.reservationExpiresAt && Date.parse(order.reservationExpiresAt) <= Date.now()) await requestCancellation(req, order, 'Hết thời gian giữ hàng tạm trước khi chốt nguồn')
       const result = await completeOrder(req, order)
       if (!result.ok) {
         const body = await result.json()
         await req.payload.update({ collection: 'shop-orders' as any, id: order.id, data: { processingIssue: body.code === 'out_of_stock' ? null : body.code }, overrideAccess: true, req, context: { skipStatusEvent: true } })
       } else {
         const fresh = await req.payload.findByID({ collection: 'shop-orders' as any, id: order.id, depth: 0, overrideAccess: true, req }) as any
-        await req.payload.update({ collection: 'shop-orders' as any, id: order.id, data: { processingIssue: fresh.hooksComplete ? null : 'events_pending' }, overrideAccess: true, req, context: { skipStatusEvent: true } })
+        if (fresh.workflowVersion !== 1) await req.payload.update({ collection: 'shop-orders' as any, id: order.id, data: { processingIssue: fresh.hooksComplete ? null : 'events_pending' }, overrideAccess: true, req, context: { skipStatusEvent: true } })
       }
     }
     catch (error) {
@@ -212,7 +225,7 @@ export async function recoverOrder(req: PayloadRequest, order: OrderDoc) {
     }
 }
 
-export async function placeOrder(req: PayloadRequest, input: Record<string, any>, options: { background?: boolean } = {}) {
+export async function placeOrder(req: PayloadRequest, input: Record<string, any>, options: { background?: boolean; trustedApproval?: boolean } = {}) {
   const { payload } = req
   if (input.website) return fail(400, 'bad_request', 'bad_request')
   const cartId = text(input.checkoutId || input.cartId, 64)
@@ -226,6 +239,9 @@ export async function placeOrder(req: PayloadRequest, input: Record<string, any>
     await deliverOrderEvents(req, dup, 'received')
     return completeOrder(req, dup)
   }
+  try {
+    if (!await takeCommerceLimit(req, 'checkout-ingress', clientPrincipal(req), 300) || !await takeCommerceLimit(req, 'checkout-customer', text(input.customer?.phone, 30), 30, 600000)) return fail(429, 'too_many', 'Có quá nhiều yêu cầu. Vui lòng thử lại sau ít phút.')
+  } catch { return fail(429, 'too_many', 'Vui lòng thử lại sau ít phút.') }
   const p = await prepare(req, input, false)
   if (p instanceof Response) return p
 
@@ -234,6 +250,9 @@ export async function placeOrder(req: PayloadRequest, input: Record<string, any>
   const { draft } = p
   const { total } = price
   if (input.quoteKey && input.quoteKey !== await quoteKey(draft, total)) return fail(409, 'quote_changed', 'Giá hoặc phí đã thay đổi. Vui lòng xem lại tổng và xác nhận đặt hàng lần nữa.')
+  let processingPlan: Awaited<ReturnType<typeof buildProcessingPlan>>
+  try { processingPlan = await buildProcessingPlan(payload, draft) }
+  catch { return fail(503, 'source_unavailable', 'Chưa lập được phương án xử lý nguồn hàng. Vui lòng thử lại.') }
 
   let order: OrderDoc
   try {
@@ -243,11 +262,11 @@ export async function placeOrder(req: PayloadRequest, input: Record<string, any>
         req,
         overrideAccess: true,
         context: req.context,
-        data: { cartId: p.cartId, checkoutDraft: { ...draft, fingerprint: requestFingerprint }, checkoutComplete: false, checkoutState: 'reserved', checkoutKey: crypto.randomUUID(), lookupToken: crypto.randomUUID().replaceAll('-', '') + crypto.randomUUID().replaceAll('-', ''), subtotal: draft.subtotal, adjustments: draft.adjustments, total, paymentMethod: draft.payment, fulfillmentType: draft.fulfillment.type, branchId: draft.fulfillment.branchId, customerName: draft.customer.name, phone: draft.customer.phone, email: draft.customer.email, address: draft.customer.address, note: p.note, items: draft.items },
+        data: { workflowVersion: 1, approvalState: options.trustedApproval ? 'approved' : 'awaiting', workflowState: options.trustedApproval ? 'processing' : 'awaiting_admin', processingPlan, ...(options.trustedApproval && { approvedAt: new Date().toISOString(), approvedBy: 'trusted-partner', status: 'confirmed' }), cartId: p.cartId, checkoutDraft: { ...draft, fingerprint: requestFingerprint }, checkoutComplete: false, checkoutState: 'awaiting_admin', checkoutKey: crypto.randomUUID(), lookupToken: crypto.randomUUID().replaceAll('-', '') + crypto.randomUUID().replaceAll('-', ''), subtotal: draft.subtotal, adjustments: draft.adjustments, total, paymentMethod: draft.payment, fulfillmentType: draft.fulfillment.type, branchId: draft.fulfillment.branchId, customerName: draft.customer.name, phone: draft.customer.phone, email: draft.customer.email, address: draft.customer.address, note: p.note, items: draft.items },
       })) as unknown as OrderDoc
       const orderNo = `SO-${String(created.id).padStart(6, '0')}`
       await payload.update({ collection: 'shop-orders' as any, id: created.id, req, data: { orderNo }, overrideAccess: true, context: { skipStatusEvent: true } })
-      for (const i of draft.items) await adjustStock(payload, i.productId, i.variantId, -i.quantity, req)
+      if (options.trustedApproval) await createProcessingGroups(req, created)
       return { ...created, orderNo }
     })
   } catch (error) {
@@ -363,6 +382,19 @@ table{border-collapse:collapse;width:100%}th,td{border:1px solid #bbb;padding:6p
 }
 
 export const endpoints: Endpoint[] = [
+  { path: '/plugins/shop/order-decision', method: 'post', handler: async (req) => {
+    if (!await takeCommerceLimit(req, 'order-decision', clientPrincipal(req), 60)) return fail(429, 'rate_limit', 'Vui lòng thử lại sau.')
+    const input = await req.json?.().catch(() => null) as any
+    const token = text(input?.token, 128)
+    const order = (await req.payload.find({ collection: 'shop-orders' as any, where: { orderNo: { equals: text(input?.id, 40) } }, depth: 0, limit: 1, overrideAccess: true })).docs[0] as any
+    if (!order || !/^[a-f0-9]{64}$/.test(token) || !matchesToken(token, order.lookupToken) || order.workflowVersion !== 1) return fail(404, 'not_found', 'not_found')
+    try {
+      await decideAvailable(req, order, String(input?.decision || ''), Number(input?.revision))
+      await req.payload.jobs.queue({ task: 'shop-order-recovery', input: {}, queue: 'default' }).catch(() => undefined)
+      return json({ ok: true })
+    }
+    catch { return fail(409, 'decision_changed', 'Lựa chọn đã thay đổi hoặc hết hạn. Vui lòng tải lại đơn.') }
+  } },
   { path: '/plugins/shop/receipt', method: 'post', handler: async (req) => {
     const input = await req.json?.().catch(() => null) as any
     if (!/^[a-f0-9]{64}$/.test(input?.checkoutId || '')) return fail(404, 'not_found', 'not_found')
@@ -378,7 +410,7 @@ export const endpoints: Endpoint[] = [
     return (await import('./order-operations')).readManagedOrder(req)
   } },
   { path: '/plugins/shop/manage-order', method: 'post', handler: async (req) => {
-    if (!isManager(req)) return fail(403, 'forbidden', 'forbidden')
+    if (!(req.user as { roles?: string[] } | null)?.roles?.includes('admin')) return fail(403, 'forbidden', 'forbidden')
     return (await import('./order-operations')).operateOrder(req)
   } },
   {
@@ -460,13 +492,14 @@ export const endpoints: Endpoint[] = [
       const orderNo = text(sp.get('id'), 40)
       const token = text(sp.get('token'), 128)
       const o = orderNo ? ((await req.payload.find({ collection: 'shop-orders' as any, where: { orderNo: { equals: orderNo } }, limit: 1, depth: 0, overrideAccess: true })).docs[0] as unknown as OrderDoc | undefined) : undefined
-      if (!o || !/^[a-f0-9]{64}$/.test(token) || token !== o.lookupToken) return json({ ok: false }, 404)
+      if (!o || !/^[a-f0-9]{64}$/.test(token) || !matchesToken(token, o.lookupToken)) return json({ ok: false }, 404)
       const extras = o.checkoutDraft && !o.checkoutComplete || o.status === 'cancelled' ? {} : await collectOrderExtras(req.payload, { id: o.orderNo, total: o.total, status: o.status, payment: o.paymentMethod, paymentStatus: o.paymentStatus })
       if ((!o.checkoutDraft || o.checkoutComplete) && o.status !== 'cancelled' && o.paymentMethod === 'bank' && o.paymentStatus !== 'paid' && !('payment' in extras)) {
         const settings = await req.payload.findGlobal({ slug: 'shop-settings' as any, depth: 0, overrideAccess: true }) as { bankInfo?: string }
         if (settings.bankInfo) Object.assign(extras, { payment: { note: settings.bankInfo } })
       }
-      return Response.json({ ok: true, order: publicOrder(o), extras }, { headers: { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' } })
+      const availability = o.workflowVersion === 1 ? (await groupsFor(req.payload, o.id)).map(group => ({ state: group.state, items: group.plan.items.map((line: OrderLine) => ({ name: line.name, quantity: line.quantity })) })) : []
+      return Response.json({ ok: true, order: publicOrder(o), extras, availability }, { headers: { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' } })
     },
   },
   {

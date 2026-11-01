@@ -18,7 +18,7 @@ try {
   const { buildConfig, getPayload, createLocalReq } = await import(pathToFileURL(require.resolve('payload')).href)
   const { sqliteAdapter } = await import(pathToFileURL(require.resolve('@payloadcms/db-sqlite')).href)
   let offline = true, sourceCalls = 0, placed = 0
-  const sources = { id: 'fixture-source', commerce: { resolveProduct: async (_p, p) => p.code === 'SOURCE' ? { source: 'fixture-source', remoteId: 'fixture', price: p.price, stock: 100 } : undefined, submitOrder: async () => { sourceCalls++; if (offline) throw new Error('Fixture source unavailable'); return { id: 'REMOTE-1' } }, cancelOrder: async () => {} } }
+  const sources = { id: 'fixture-source', commerce: { resolveProduct: async (_p, p) => p.code === 'SOURCE' ? { source: 'fixture-source', remoteId: 'fixture', price: p.price, stock: 100 } : undefined, processGroup: async () => { sourceCalls++; if (offline) throw new Error('Fixture source unavailable'); return { id: 'REMOTE-1', status: 'reserved' } }, cancelGroup: async () => {} } }
   const plugins = [shop, notify, sources, { id: 'observer', hooks: { onOrderPlaced: async () => { placed++ } } }]
   let config = { serverURL: 'https://orders.example.test', secret: 'isolated-receipt-test-secret', db: sqliteAdapter({ client: { url: 'file:' + join(directory, 'test.db') }, transactionOptions: {} }), collections: [{ slug: 'users', auth: true, fields: [] }, { slug: 'media', upload: { staticDir: join(directory, 'media') }, fields: [] }], globals: [], custom: { hossoPlugins: plugins }, jobs: { autoRun: [] }, admin: { user: 'users' } }
   for (const p of plugins) if (p.payload) config = p.payload(config)
@@ -36,7 +36,7 @@ try {
   const receipt = await first.json(); assert.equal(receipt.ok, true); assert.equal(sourceCalls, 0, 'Source processing is deferred')
   for (let i = 0; i < 3; i++) assert.equal((await (await checkout(base)).json()).order.id, receipt.order.id)
   assert.equal((await payload.count({ collection: 'shop-orders' })).totalDocs, 1)
-  assert.equal((await payload.findByID({ collection: 'shop-products', id: product.id })).stock, 99)
+  assert.equal((await payload.findByID({ collection: 'shop-products', id: product.id })).stock, 100, 'No stock effect before approval')
   const recoverReceipt = endpoints.find((e) => e.path.endsWith('/receipt'))
   assert.equal((await recoverReceipt.handler(await req({ json: async () => base }))).status, 202)
   assert.equal((await recoverReceipt.handler(await req({ json: async () => ({ ...base, customer: { ...base.customer, phone: '0900000000' } }) }))).status, 404)
@@ -45,8 +45,10 @@ try {
   await recovery()
   assert.equal(placed, 0, 'Receipt does not prematurely trigger fulfillment/commission events')
   const order = async () => (await payload.find({ collection: 'shop-orders', where: { orderNo: { equals: receipt.order.id } } })).docs[0]
-  assert.equal((await order()).processingIssue, 'source_pending')
-  const runMail = () => payload.jobs.run({ where: { taskSlug: { equals: 'notify-order-email' } }, sequential: true, limit: 50, silent: true })
+  assert.equal((await order()).approvalState, 'awaiting')
+  assert.equal(sourceCalls, 0, 'Background recovery must respect admin approval')
+  const { drainCommerceEvents } = await load('../packages/blocks/src/durable-events.ts')
+  const runMail = async () => { await drainCommerceEvents(payload); await payload.jobs.run({ where: { taskSlug: { equals: 'notify-order-email' } }, sequential: true, limit: 50, silent: true }) }
   if (!shopOnly) {
   await runMail()
   assert.equal(sent.filter((m) => m.to === 'buyer@example.test').length, 1, 'Owner SMTP failure cannot prevent the customer receipt')
@@ -59,7 +61,11 @@ try {
   await payload.update({ collection: 'payload-jobs', id: failedJob.id, data: { waitUntil: new Date(Date.now() - 1000).toISOString() } })
   await runMail(); assert.equal(sent.filter((m) => m.to === 'owner@example.test').length, 1)
   }
-  offline = false; await recovery(); assert.equal(placed, 1)
+  const { approveOrder, retryOrderGroups } = await load('../packages/plugin-shop/src/order-workflow.ts')
+  const adminReq = () => req({ user: { id: 1, roles: ['admin'] } })
+  await approveOrder(await adminReq(), await order(), 0)
+  await recovery(); assert.equal(placed, 0); assert.equal(sourceCalls, 1)
+  offline = false; await retryOrderGroups(await adminReq(), await order()); await recovery(); assert.equal(placed, 1)
   await recovery(); assert.equal(placed, 1)
   const second = await (await checkout({ ...base, cartId: crypto.randomUUID(), checkoutId: crypto.randomUUID() })).json()
   assert.notEqual(second.order.id, receipt.order.id, 'Customer can place another identical order')
@@ -72,14 +78,16 @@ try {
   assert.equal((await getManaged()).status, 200)
   assert.equal((await manage.find((e) => e.method === 'post').handler(await req({ json: async () => ({ id: (await order()).id, action: 'paid' }) }))).status, 403)
   const act = async (action, extra = {}) => { const o = await order(); return manage.find((e) => e.method === 'post').handler(await req({ user: { id: 1, roles: ['admin'] }, json: async () => ({ id: o.id, version: o.operationsVersion || 0, action, ...extra }) })) }
-  assert.equal((await act('confirm')).status, 200)
+  assert.equal((await act('confirm')).status, 409, 'Approved orders cannot be approved a second time')
   assert.equal((await act('prepare', { version: 0 })).status, 409, 'Another admin tab must refresh a changed order')
   assert.equal((await act('prepare')).status, 200)
-  assert.equal((await act('paid')).status, 200); assert.equal((await order()).paymentStatus, 'paid')
-  assert.equal((await act('paid')).status, 409)
+  assert.equal((await act('paid')).status, 400, 'A verified receipt reference is required')
+  assert.equal((await act('paid', { reason: 'Verified fixture receipt' })).status, 200); assert.equal((await order()).paymentStatus, 'paid')
+  assert.equal((await act('paid', { reason: 'Verified fixture receipt' })).status, 409)
   assert.equal((await act('resend')).status, shopOnly ? 409 : 200)
   assert.equal((await act('cancel')).status, 400)
   assert.equal((await act('cancel', { reason: 'Khách yêu cầu hủy' })).status, 200)
+  await recovery()
   assert.equal((await order()).cancellationReason, 'Khách yêu cầu hủy')
   assert.equal((await act('confirm')).status, 409)
   const summary = await (await getManaged()).json()
@@ -89,8 +97,10 @@ try {
   await runMail()
   const customerEmails = sent.filter((m) => m.to === 'buyer@example.test')
   assert.ok(customerEmails.length >= 4)
+  const mailedOrders = (await payload.find({ collection: 'shop-orders', limit: 100 })).docs
   for (const m of customerEmails) {
-    assert.ok(m.text.includes(receipt.lookupToken), 'Each customer email includes its access code')
+    const mailedOrder = mailedOrders.find(o => m.subject.includes(o.orderNo))
+    assert.ok(mailedOrder && m.text.includes(mailedOrder.lookupToken), 'Each customer email includes its own order access code')
     assert.ok(m.html.includes('Mã bảo mật tra cứu đơn'))
     assert.ok(m.html.includes('https://orders.example.test/trang-thai-don?'))
     assert.ok(m.html.includes('Xem đơn hàng'))

@@ -76,6 +76,23 @@ export const prepareShopOrder: CollectionBeforeChangeHook = async ({ data, origi
       originalDoc = await req.payload.findByID({ collection: 'shop-orders' as any, id: originalDoc.id, depth: 0, overrideAccess: true, req })
     }
     data.affiliateSnapshot = originalDoc.affiliateSnapshot
+    if (originalDoc.affiliateSnapshot && data.customerDecision === 'accept_available' && Array.isArray(data.items)) {
+      const policy = originalDoc.affiliateSnapshot as Snapshot
+      const kept = new Set(data.items.map((line: any) => `${line.productId}${line.variantId ? ':' + line.variantId : ''}`))
+      if (policy.lines?.length) {
+        const lines = { ...(originalDoc.affiliateRefundedLines || {}) }
+        for (const line of policy.lines) {
+          const key = `${line.productId}${line.variantId ? ':' + line.variantId : ''}`
+          if (!kept.has(key)) lines[key] = line.base
+        }
+        data.affiliateRefundedLines = lines
+        data.affiliateRefundedAmount = Object.values(lines).reduce((sum: number, amount) => sum + Number(amount), 0)
+      } else {
+        const originalSubtotal = originalDoc.checkoutDraft?.subtotal || originalDoc.subtotal
+        const keptSubtotal = data.items.reduce((sum: number, line: any) => sum + line.price * line.quantity, 0)
+        data.affiliateRefundedAmount = Math.max(originalDoc.affiliateRefundedAmount || 0, policy.base - Math.round(policy.base * keptSubtotal / originalSubtotal))
+      }
+    }
     data.affiliateCompletedAt = originalDoc.affiliateCompletedAt || ((data.status ?? originalDoc.status) === 'completed' ? new Date().toISOString() : null)
     const refunded = money(data.affiliateRefundedAmount ?? originalDoc.affiliateRefundedAmount ?? 0)
     check(refunded >= (originalDoc.affiliateRefundedAmount ?? 0), 'Refunded goods cannot decrease; record a separate correction')

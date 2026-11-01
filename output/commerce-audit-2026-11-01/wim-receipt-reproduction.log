@@ -1,0 +1,19 @@
+TAP version 13
+# (node:32432) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# REPRODUCED F05: receipt remains, remote orders=0, retry performs GET only and never resumes POST
+# Subtest: F05: WIM supplier receipt created before a failed POST cannot resume when remote never accepted it
+ok 1 - F05: WIM supplier receipt created before a failed POST cannot resume when remote never accepted it
+  ---
+  duration_ms: 72.252
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 514.2057

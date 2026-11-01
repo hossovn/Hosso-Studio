@@ -12,7 +12,8 @@
     "typecheck": "tsc -p ."
   },
   "dependencies": {
-    "@hosso/studio-blocks": "workspace:*"
+    "@hosso/studio-blocks": "workspace:*",
+    "lucide-react": "^1.60.0"
   },
   "peerDependencies": {
     "react": "19.3.1"

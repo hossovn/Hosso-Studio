@@ -1,3 +1,4 @@
+import * as migration_20261101_180000_order_workflow from './20261101_180000_order_workflow';
 import * as migration_20261030_120000_affiliate_cps from './20261030_120000_affiliate_cps';
 import * as migration_20261020_090000_bookings_maintenance from './20261020_090000_bookings_maintenance';
 import * as migration_20261016_175939_initial from './20261016_175939_initial';
@@ -114,4 +115,5 @@ export const migrations = [
   { up: migration_20261031_170000_order_reliability.up, down: migration_20261031_170000_order_reliability.down, name: '20261031_170000_order_reliability' },
   { up: migration_20261101_060000_commerce_blocks.up, down: migration_20261101_060000_commerce_blocks.down, name: '20261101_060000_commerce_blocks' },
   { up: migration_20261101_120000_order_operations.up, down: migration_20261101_120000_order_operations.down, name: '20261101_120000_order_operations' },
+  { up: migration_20261101_180000_order_workflow.up, down: migration_20261101_180000_order_workflow.down, name: '20261101_180000_order_workflow' },
 ];

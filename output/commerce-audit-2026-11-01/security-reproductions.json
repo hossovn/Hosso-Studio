@@ -1,0 +1,51 @@
+{
+  "scope": "local fixtures only",
+  "evidence": [
+    {
+      "id": "S01",
+      "description": "Woo consumer key alone authenticates inbound partner requests",
+      "acceptedWithoutConsumerSecret": true
+    },
+    {
+      "id": "S04",
+      "description": "Partner URL validator accepts private/link-local HTTPS hosts",
+      "accepted": [
+        "127.0.0.1",
+        "10.0.0.1",
+        "169.254.169.254"
+      ],
+      "networkRequests": 0
+    },
+    {
+      "id": "S05",
+      "description": "WIM HTTP client forwards X-API-Key across a redirect to a different origin",
+      "forwardedToOtherOrigin": true,
+      "syntheticCredential": true
+    },
+    {
+      "id": "F10",
+      "description": "Bank webhook acknowledges paid row despite a failed downstream paid-event consumer; replay does not redeliver event",
+      "providerAcknowledged": true,
+      "paymentRow": "paid",
+      "consumerCallsAfterReplay": 1
+    },
+    {
+      "id": "F11",
+      "description": "Split transfers overwrite received amount instead of accumulating a transaction ledger",
+      "due": 100000,
+      "actualTransferred": 100000,
+      "recordedPaidAmount": 40000,
+      "status": "underpaid"
+    },
+    {
+      "id": "F07",
+      "description": "Woo supplier response with different product and quantity is accepted if key and total match",
+      "requestedProduct": "7",
+      "requestedQuantity": 1,
+      "returnedProduct": 999,
+      "returnedQuantity": 8,
+      "accepted": true,
+      "externalNetworkRequests": 0
+    }
+  ]
+}

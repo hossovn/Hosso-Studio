@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./server": "./src/endpoints.ts",
     "./stock": "./src/stock.ts",
+    "./workflow": "./src/order-workflow.ts",
     "./cart": "./src/cart.ts",
     "./blocks": "./src/blocks.ts",
     "./loaders": "./src/loaders.ts",

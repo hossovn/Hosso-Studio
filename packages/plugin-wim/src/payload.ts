@@ -9,6 +9,7 @@ import { applyEvent, verifyWebhook } from './webhook'
 import { WimError, wimFetch } from './client'
 import type { Branch, Named } from './client'
 import { L, bi, msg } from './lang'
+import { fetchExternal } from '@hosso/studio-blocks/server-security'
 
 type Roled = { roles?: string[] | null } | null | undefined
 const isAdmin = (u: unknown) => Boolean((u as Roled)?.roles?.includes('admin'))
@@ -171,9 +172,9 @@ const endpoints: Endpoint[] = [
       const cfg = await getWimConfig(req.payload)
       if (!cfg || !id || id.length > 200) return new Response(null, { status: 404 })
       try {
-        const r = await fetch(new URL(`/v1/products/${encodeURIComponent(id)}/image`, cfg.apiUrl).toString(), { headers: { 'X-API-Key': cfg.apiKey }, signal: AbortSignal.timeout(cfg.timeoutMs) })
+        const r = await fetchExternal(new URL(`/v1/products/${encodeURIComponent(id)}/image`, cfg.apiUrl), { headers: { 'X-API-Key': cfg.apiKey }, timeoutMs: cfg.timeoutMs, maxBytes: 8_000_000 })
         const type = r.headers.get('content-type') ?? ''
-        if (!r.ok || !type.startsWith('image/')) return new Response(null, { status: 404 })
+        if (!r.ok || !/^image\/(png|jpeg|webp|gif|avif)(;|$)/i.test(type)) return new Response(null, { status: 404 })
         return new Response(await r.arrayBuffer(), { headers: { 'Content-Type': type, 'Cache-Control': 'public, max-age=3600', 'X-Content-Type-Options': 'nosniff' } })
       } catch {
         return new Response(null, { status: 404 })

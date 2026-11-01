@@ -6,7 +6,7 @@
   "description": "Plugin nối Hosso Studio với Hosso WIM. Mã nguồn đóng, không phát hành công khai.",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
+    ".": { "browser": "./src/browser.ts", "default": "./src/index.ts" },
     "./admin": "./src/admin.tsx",
     "./server": "./src/server.ts"
   },

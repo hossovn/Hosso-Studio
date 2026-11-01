@@ -10,6 +10,8 @@ import { fallbackRenderers } from './renderers'
 import { css } from './styles'
 import { exportCatalog, importCatalog } from './portable'
 import { imageOf, priceOf, vnd, type Product } from './util'
+import { withCommerceEvents } from '@hosso/studio-blocks/durable-events'
+import { OrderGroups } from './order-workflow'
 
 /** Plugin cửa hàng: web bán hàng chạy độc lập (không cần WIM). Phát `onOrderPlaced` nên Tiếp thị liên kết và Giao vận dùng được ngay. */
 const plugin: HossoPlugin = {
@@ -73,11 +75,12 @@ const plugin: HossoPlugin = {
     return (r.docs as unknown as Product[]).map((p) => ({ title: p.name, href: `/chi-tiet?p=${p.slug}`, description: [p.brand, p.code, vnd(priceOf(p))].filter(Boolean).join(' · '), image: imageOf(p) })) as { title: string; href: string; description?: string }[]
   },
   payload: (config: Config): Config => {
+    config = withCommerceEvents(config)
     const views = (config.admin?.components as { views?: Record<string, unknown> } | undefined)?.views ?? {}
     return {
       ...config,
       jobs: { ...config.jobs, tasks: [...(config.jobs?.tasks ?? []), { slug: 'shop-order-recovery', schedule: [{ cron: '* * * * *', queue: 'default' }], handler: async ({ req }) => { await recoverOrders(req); return { output: {} } } }] },
-      collections: [...(config.collections ?? []), Categories, Products, Reviews, Orders],
+      collections: [...(config.collections ?? []), Categories, Products, Reviews, Orders, OrderGroups],
       globals: [...(config.globals ?? []), Settings],
       endpoints: [...(config.endpoints ?? []), ...endpoints],
       admin: { ...config.admin, components: { ...config.admin?.components, views: { ...views, shopImport: { Component: '@hosso/plugin-shop/admin#ImportView', path: '/shop-import' } } } },
@@ -89,7 +92,7 @@ const plugin: HossoPlugin = {
     onOrderPaid: async ({ payload, orderNo, amount, request }) => {
       const o = (await payload.find({ collection: 'shop-orders' as any, where: { orderNo: { equals: orderNo } }, limit: 1, depth: 0, overrideAccess: true })).docs[0] as { id: number | string; status: string; paymentStatus: string; total: number } | undefined
       if (!o || o.paymentStatus === 'paid' || amount < o.total) return
-      await payload.update({ collection: 'shop-orders' as any, id: o.id, req: request, data: { paymentStatus: 'paid', ...(o.status === 'new' && { status: 'confirmed' }) }, overrideAccess: true })
+      await payload.update({ collection: 'shop-orders' as any, id: o.id, req: request, data: { paymentStatus: 'paid' }, overrideAccess: true })
     },
   },
   loaders: { ShopReviewList: loadReviewList, ShopWishlistButton: loadWishlistButton, ShopProductGrid: loadGrid, ShopProductDetail: loadDetail, ShopCategories: loadCategories, ShopCheckout: loadCheckout },

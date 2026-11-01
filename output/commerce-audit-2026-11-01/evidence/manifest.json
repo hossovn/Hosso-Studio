@@ -1,0 +1,26 @@
+{
+  "date": "2026-11-01",
+  "purpose": "Synthetic local audit reproductions, asserting existing defects. Restore original paths before running.",
+  "files": [
+    {
+      "source": "C:/Code/Hosso-Studio/.tmp/audit-commerce-security.mjs",
+      "snapshot": "evidence/audit-commerce-security.mjs",
+      "sha256": "33e19cf57a6309a050807667a91c05a0e75d729f2fc67c4a27ea15da3f7e0e19"
+    },
+    {
+      "source": "C:/Code/Hosso-Studio/.tmp/audit-commerce-payload.mjs",
+      "snapshot": "evidence/audit-commerce-payload.mjs",
+      "sha256": "fe63cd306c8a138c58ddf689428b593459fec80cbcf7a370e2b512cb9c3f6a8d"
+    },
+    {
+      "source": "C:/Code/Hosso-Studio/.tmp/audit-wim-receipt.mjs",
+      "snapshot": "evidence/audit-wim-receipt.mjs",
+      "sha256": "c10c4470f9dbcff74723621460702ce6caefb94f98df3d47fb08846493e179a0"
+    },
+    {
+      "source": "C:/Code/TCAP-ERPNEXT/WIM/test/commerce-audit-20261101.spec.ts",
+      "snapshot": "evidence/commerce-audit-20261101.spec.ts",
+      "sha256": "f5e395cd5ba6984144b6cfab54721e827b288f5d6525c9afab77cc7f4745b09f"
+    }
+  ]
+}

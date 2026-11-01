@@ -5,6 +5,8 @@ import type { CollectionConfig, Config, Endpoint, GlobalConfig, Payload, Payload
 import React from 'react'
 import { FINAL, GHN_NAME, createGhnOrder, getGhnConfig, getGhnFee, getGhnStatus, mapStatus, type Shipment } from './ghn'
 import { Track } from './Track'
+import { timingSafeEqual, createHash } from 'node:crypto'
+import { clientPrincipal, takeCommerceLimit } from '@hosso/studio-blocks/rate-limits'
 
 const isAdmin = ({ req }: { req: { user?: unknown } }) => Boolean((req.user as { roles?: string[] } | null)?.roles?.includes('admin'))
 const adminOnly = { read: isAdmin, create: isAdmin, update: isAdmin, delete: isAdmin }
@@ -40,6 +42,7 @@ const Settings: GlobalConfig = {
       type: 'collapsible',
       label: bi('Phí vận chuyển ở bước thanh toán', 'Shipping fee at checkout'),
       fields: [
+        { name: 'feeMode', type: 'select', defaultValue: 'order', label: bi('Phạm vi tính phí', 'Shipping fee scope'), options: [{ label: 'Một mức cho toàn đơn', value: 'order' }, { label: 'Theo từng nhóm giao', value: 'shipment' }] },
         { name: 'flatFee', type: 'number', min: 0, defaultValue: 0, label: bi('Phí cố định mỗi đơn giao tận nơi (đ)', 'Flat fee per delivery order (VND)'), admin: { description: bi('0 là không thu phí. Dùng khi không tính phí qua GHN hoặc khi GHN không tính được.', '0 means no fee. Used when the GHN fee is off or GHN cannot calculate it.') } },
         { name: 'freeShipOver', type: 'number', min: 0, defaultValue: 0, label: bi('Miễn phí vận chuyển cho đơn từ (đ)', 'Free shipping for orders from (VND)'), admin: { description: bi('0 là không áp dụng.', '0 means off.') } },
         { name: 'useGhnFee', type: 'checkbox', defaultValue: false, label: bi('Tính phí theo GHN (cần bật GHN bên dưới)', 'Use the GHN fee (requires GHN below)') },
@@ -82,6 +85,8 @@ const statusLabels = {
 
 // Tạo đơn trên GHN cho vận đơn; lỗi được ghi vào `ghnError` để quản trị viên sửa địa chỉ rồi lưu lại (afterChange sẽ thử lại).
 async function tryCreateGhn(payload: Payload, s: Shipment, req?: PayloadRequest) {
+  const order = (await payload.find({ collection: 'shop-orders' as any, where: { orderNo: { equals: s.orderId } }, limit: 1, depth: 0, overrideAccess: true, req })).docs[0] as any
+  if (!order || order.status !== 'shipping' || (order.workflowVersion === 1 && order.workflowState !== 'ready') || (s as any).deliveryBy === 'partner') return
   const cfg = await getGhnConfig(payload)
   if (!cfg || s.trackingCode) return
   const update = (data: object) => payload.update({ collection: 'shipments' as any, id: s.id, data, overrideAccess: true, req, context: { skipGhn: true } })
@@ -90,12 +95,16 @@ async function tryCreateGhn(payload: Payload, s: Shipment, req?: PayloadRequest)
     await update({ carrier: GHN_NAME, trackingCode: r.orderCode, districtId: r.districtId, wardCode: r.wardCode, ghnStatus: 'ready_to_pick', ghnError: null, syncedAt: new Date().toISOString() })
   } catch (e) {
     await update({ ghnError: e instanceof Error ? e.message : String(e) })
+    throw new Error('Carrier creation pending; retry with the same shipment key')
   }
 }
 
 /** Áp trạng thái GHN lên vận đơn (webhook và đồng bộ khi khách tra cứu cùng dùng). */
 async function applyGhnStatus(payload: Payload, id: number | string, ghn: string) {
   const status = mapStatus(ghn)
+  const current = await payload.findByID({ collection: 'shipments' as any, id, depth: 0, overrideAccess: true }) as any
+  const rank: Record<string, number> = { pending: 0, handed_over: 1, delivering: 2, delivered: 3, returned: 4, cancelled: 4 }
+  if (status && (rank[status] < rank[current.status] || (['returned', 'cancelled'].includes(current.status) && status !== current.status))) return
   await payload.update({ collection: 'shipments' as any, id, data: { ghnStatus: ghn, syncedAt: new Date().toISOString(), ...(status && { status }) }, overrideAccess: true, context: { skipGhn: true } })
 }
 
@@ -105,7 +114,11 @@ const Shipments: CollectionConfig = {
   admin: { group: GROUP, useAsTitle: 'orderId', defaultColumns: ['orderId', 'customerName', 'carrier', 'trackingCode', 'status', 'createdAt'] },
   access: adminOnly,
   fields: [
-    { name: 'orderId', type: 'text', required: true, unique: true, label: bi('Mã đơn', 'Order ID') },
+    { name: 'orderId', type: 'text', required: true, index: true, label: bi('Mã đơn', 'Order ID') },
+    { name: 'shipmentKey', type: 'text', unique: true },
+    { name: 'deliveryBy', type: 'select', options: ['store', 'partner'], defaultValue: 'store' },
+    { name: 'codCollector', type: 'select', options: ['store', 'partner'], defaultValue: 'store' },
+    { name: 'groupLabel', type: 'text' },
     { name: 'customerName', type: 'text', label: bi('Người nhận', 'Recipient') },
     { name: 'phone', type: 'text', label: bi('Điện thoại', 'Phone') },
     { name: 'address', type: 'textarea', label: bi('Địa chỉ giao', 'Delivery address') },
@@ -134,17 +147,24 @@ const Shipments: CollectionConfig = {
 
 const endpoints: Endpoint[] = [
   {
-    // Khách tra cứu: cần mã đơn + 4 số cuối điện thoại.
+    // Khách tra cứu: cần mã đơn và mã truy cập riêng.
     path: '/plugins/shipping/track',
     method: 'get',
     handler: async (req) => {
       const sp = new URL(req.url!).searchParams
       const orderId = String(sp.get('orderId') ?? '').trim().slice(0, 40)
-      const phone4 = String(sp.get('phone4') ?? '').trim()
+      const token = String(sp.get('token') ?? '').trim()
       const notFound = () => Response.json({ ok: false }, { status: 404 })
-      if (!orderId || !/^\d{4}$/.test(phone4)) return notFound()
-      let s = (await req.payload.find({ collection: 'shipments' as any, where: { orderId: { equals: orderId } }, limit: 1, depth: 0, overrideAccess: true })).docs[0] as unknown as Shipment | undefined
-      if (!s || !(s.phone ?? '').endsWith(phone4)) return notFound()
+      if (!await takeCommerceLimit(req, 'shipping-track', clientPrincipal(req), 60)) return Response.json({ ok: false }, { status: 429 })
+      if (!orderId || !/^[a-f0-9]{64}$/i.test(token)) return notFound()
+      const order = (await req.payload.find({ collection: 'shop-orders' as any, where: { orderNo: { equals: orderId } }, limit: 1, depth: 0, overrideAccess: true })).docs[0] as any
+      if (!order?.lookupToken || !timingSafeEqual(createHash('sha256').update(token).digest(), createHash('sha256').update(order.lookupToken).digest())) return notFound()
+      const found = (await req.payload.find({ collection: 'shipments' as any, where: { orderId: { equals: orderId } }, limit: 100, depth: 0, overrideAccess: true })).docs as unknown as (Shipment & { groupLabel?: string })[]
+      const allowed = found
+      if (!allowed.length) return notFound()
+      const shipments = []
+      const cfg = (await req.payload.findGlobal({ slug: SETTINGS as any, depth: 0, overrideAccess: true }).catch(() => null)) as { carriers?: { name: string; trackingUrl?: string }[] } | null
+      for (let s of allowed) {
       // Vận đơn GHN chưa kết thúc và dữ liệu cũ hơn 1 phút: hỏi GHN lấy trạng thái mới (lỗi mạng thì dùng bản đang có).
       if (s.carrier === GHN_NAME && s.trackingCode && !FINAL.includes(s.status) && Date.now() - new Date(s.syncedAt ?? 0).getTime() > 60_000) {
         try {
@@ -157,10 +177,12 @@ const endpoints: Endpoint[] = [
           // giữ trạng thái hiện có
         }
       }
-      const cfg = (await req.payload.findGlobal({ slug: SETTINGS as any, depth: 0, overrideAccess: true }).catch(() => null)) as { carriers?: { name: string; trackingUrl?: string }[] } | null
       const tpl = cfg?.carriers?.find((c) => c.name === s.carrier)?.trackingUrl
-      const url = tpl && s.trackingCode ? tpl.replace('{code}', encodeURIComponent(s.trackingCode)) : undefined
-      return Response.json({ ok: true, status: s.status, carrier: s.carrier || undefined, trackingCode: s.trackingCode || undefined, url })
+      let url: string | undefined
+      try { const u = new URL(tpl?.replace('{code}', encodeURIComponent(s.trackingCode || '')) || ''); if (u.protocol === 'https:' && !u.username && !u.password && s.trackingCode) url = u.href } catch {}
+      shipments.push({ label: s.groupLabel || undefined, status: s.status, carrier: s.carrier || undefined, trackingCode: s.trackingCode || undefined, url })
+      }
+      return Response.json({ ok: true, ...shipments[0], shipments }, { headers: { 'Cache-Control': 'no-store' } })
     },
   },
   {
@@ -170,11 +192,17 @@ const endpoints: Endpoint[] = [
     handler: async (req) => {
       const key = process.env.HOSSO_GHN_WEBHOOK_KEY?.trim()
       if (!key) return Response.json({ ok: false }, { status: 503 })
-      if (new URL(req.url!).searchParams.get('key') !== key) return Response.json({ ok: false }, { status: 401 })
+      const supplied = req.headers.get('x-hosso-webhook-key') || new URL(req.url!).searchParams.get('key') || ''
+      if (!timingSafeEqual(createHash('sha256').update(supplied).digest(), createHash('sha256').update(key).digest())) return Response.json({ ok: false }, { status: 401 })
       const b = ((await req.json?.().catch(() => null)) ?? {}) as { OrderCode?: string; Status?: string }
       if (!b.OrderCode || !b.Status) return Response.json({ ok: false }, { status: 400 })
       const s = (await req.payload.find({ collection: 'shipments' as any, where: { trackingCode: { equals: b.OrderCode } }, limit: 1, depth: 0, overrideAccess: true })).docs[0]
-      if (s) await applyGhnStatus(req.payload, s.id, b.Status)
+      // The callback is a hint: always read the carrier's current state to discard stale events.
+      if (s) {
+        const cfg = await getGhnConfig(req.payload)
+        if (!cfg) return Response.json({ ok: false }, { status: 503 })
+        await applyGhnStatus(req.payload, s.id, await getGhnStatus(cfg, b.OrderCode))
+      }
       return Response.json({ ok: true })
     },
   },
@@ -217,11 +245,21 @@ const plugin: HossoPlugin = {
   }),
   hooks: {
     // Thêm phí vận chuyển vào tổng đơn giao tận nơi: GHN (nếu bật) hoặc phí cố định; miễn phí khi đủ giá trị đơn.
+    describeOrder: async ({ payload, order }) => {
+      const result = await payload.find({ collection: 'shipments' as any, where: { orderId: { equals: order.id } }, depth: 0, limit: 100, overrideAccess: true })
+      const cfg: any = await payload.findGlobal({ slug: SETTINGS as any, depth: 0, overrideAccess: true })
+      return { shipments: result.docs.map((s: any) => {
+        const template = cfg.carriers?.find((c: any) => c.name === s.carrier)?.trackingUrl
+        let url: string | undefined
+        try { const u = new URL(template?.replace('{code}', encodeURIComponent(s.trackingCode || ''))); if (u.protocol === 'https:' && !u.username && !u.password && s.trackingCode) url = u.href } catch {}
+        return { key: s.shipmentKey?.slice(order.id.length + 1) || 'store', status: s.status, carrier: s.carrier || undefined, trackingCode: s.trackingCode || undefined, url }
+      }) }
+    },
     beforeOrder: async ({ payload, draft }) => {
       if (draft.fulfillment.type !== 'delivery') return
-      const cfg = (await payload.findGlobal({ slug: SETTINGS as any, depth: 0, overrideAccess: true }).catch(() => null)) as { flatFee?: number; freeShipOver?: number; useGhnFee?: boolean } | null
+      const cfg = (await payload.findGlobal({ slug: SETTINGS as any, depth: 0, overrideAccess: true }).catch(() => null)) as { flatFee?: number; freeShipOver?: number; useGhnFee?: boolean; feeMode?: string } | null
       if (!cfg) return
-      if (cfg.freeShipOver && draft.subtotal >= cfg.freeShipOver) return
+      if (cfg.freeShipOver && draft.subtotal >= cfg.freeShipOver) { draft.shipments?.forEach((g) => { g.fee = 0 }); return }
       let fee = cfg.flatFee ?? 0
       const ghn = cfg.useGhnFee && draft.customer.address ? await getGhnConfig(payload) : null
       if (ghn) {
@@ -231,19 +269,38 @@ const plugin: HossoPlugin = {
           // GHN không tính được (địa chỉ chưa nhận ra, lỗi mạng): dùng phí cố định.
         }
       }
-      if (fee > 0) draft.adjustments.push({ label: draft.meta.locale === 'en' ? 'Shipping fee' : 'Phí vận chuyển', amount: fee, source: 'shipping' })
+      if (draft.shipments?.length) {
+        if (cfg.feeMode === 'shipment') {
+          for (const group of draft.shipments) {
+            if (group.deliveryBy === 'store') group.fee = fee
+            if (!Number.isSafeInteger(group.fee) || group.fee < 0) return { reject: { code: 'shipping_config', message: 'Phí giao hàng chưa hợp lệ.' } }
+            if (group.fee > 0) draft.adjustments.push({ label: (draft.meta.locale === 'en' ? 'Delivery: ' : 'Giao hàng: ') + group.label, amount: group.fee, source: 'shipping', scope: 'shipping' })
+          }
+          return
+        }
+        draft.shipments.forEach((g, n) => { g.fee = n === 0 ? fee : 0 })
+      }
+      if (fee > 0) draft.adjustments.push({ label: draft.meta.locale === 'en' ? 'Shipping fee' : 'Phí vận chuyển', amount: fee, source: 'shipping', scope: 'shipping' })
     },
-    onOrderPlaced: async ({ payload, order, customer, fulfillment, payment, request }) => {
+    onOrderPlaced: async ({ payload, order, customer, fulfillment, payment, request, shipments }) => {
       if (fulfillment.type !== 'delivery') return
-      const existing = (await payload.find({ collection: 'shipments' as any, where: { orderId: { equals: order.id } }, depth: 0, limit: 1, overrideAccess: true, req: request })).docs[0]
-      if (existing) return
-        const created = (await payload.create({
+      const groups = shipments?.length ? shipments : [{ key: 'store', label: 'Cửa hàng', deliveryBy: 'store', codCollector: 'store', codAmount: order.total }]
+      for (const group of groups) {
+        const key = order.id + ':' + group.key
+        const existing = (await payload.find({ collection: 'shipments' as any, where: { or: [{ shipmentKey: { equals: key } }, { and: [{ orderId: { equals: order.id } }, { shipmentKey: { exists: false } }] }] }, depth: 0, limit: 1, overrideAccess: true, req: request })).docs[0]
+        if (existing) continue
+        await payload.create({
           collection: 'shipments' as any,
           overrideAccess: true,
           req: request,
-          data: { orderId: order.id, customerName: customer.name, phone: customer.phone, address: customer.address, orderTotal: order.total, paymentMethod: payment },
-        })) as unknown as Shipment
-        await tryCreateGhn(payload, created, request)
+          data: { orderId: order.id, shipmentKey: key, groupLabel: group.label, deliveryBy: group.deliveryBy, codCollector: group.codCollector, customerName: customer.name, phone: customer.phone, address: customer.address, orderTotal: group.codAmount || 0, paymentMethod: payment },
+        })
+      }
+    },
+    onOrderStatusChanged: async ({ payload, order, to, request }) => {
+      if (to !== 'shipping') return
+      const rows = await payload.find({ collection: 'shipments' as any, where: { orderId: { equals: order.id } }, limit: 100, depth: 0, req: request, overrideAccess: true })
+      for (const shipment of rows.docs) await tryCreateGhn(payload, shipment as unknown as Shipment, request)
     },
   },
 }
