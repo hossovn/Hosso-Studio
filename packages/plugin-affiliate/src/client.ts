@@ -18,7 +18,8 @@ const plugin: HossoPlugin = {
   manifest: manifest as PluginManifest,
   headerSlot: RefCapture,
   blocks: [portalBlock],
-  fallbackRenderers: { AffiliatePortal: (props) => React.createElement(Portal, { ...props, canvasPreview: Boolean(props._noFree) }) },
+  // Editor runtime callbacks cannot cross the server/client component boundary.
+  fallbackRenderers: { AffiliatePortal: ({ heading, navigation, showAssisted, showWithdrawals, policyText, _noFree }) => React.createElement(Portal, { heading, navigation, showAssisted, showWithdrawals, policyText, canvasPreview: Boolean(_noFree) }) },
   css,
   adminEn: { 'Tiếp thị liên kết': 'Affiliate marketing', 'Cổng cộng tác viên': 'Partner portal', 'Tiêu đề': 'Heading' },
   adminNav: [{ label: 'Tiếp thị liên kết', href: '/admin/affiliate', roles: ['admin'] }],
