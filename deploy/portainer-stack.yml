@@ -34,6 +34,7 @@ services:
       HOSSO_SEED: ${HOSSO_SEED:-false}
       HOSSO_LICENSE_KEY: ${HOSSO_LICENSE_KEY:-}
       HOSSO_WIM_API_URL: ${HOSSO_WIM_API_URL:-}
+      HOSSO_PRIVATE_API_HOSTS: ${HOSSO_PRIVATE_API_HOSTS:-}
       HOSSO_WIM_API_KEY: ${HOSSO_WIM_API_KEY:-}
       HOSSO_WIM_WEBHOOK_SECRET: ${HOSSO_WIM_WEBHOOK_SECRET:-}
       HOSSO_SMTP_URL: ${HOSSO_SMTP_URL:-}
@@ -62,6 +63,9 @@ services:
       HOSSO_PUBLIC_URL: ${HOSSO_PUBLIC_URL}
       HOSSO_BACKUP_DIR: /app/backups
     entrypoint: ['sh', '-c', 'sleep 120; while true; do pnpm studio:backup || true; sleep 86400; done']
+    # This worker has no HTTP server; the image's web probe does not apply.
+    healthcheck:
+      disable: true
     volumes:
       - media:/app/media
       - backups:/app/backups
