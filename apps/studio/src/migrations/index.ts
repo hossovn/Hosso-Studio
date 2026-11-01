@@ -22,6 +22,7 @@ import * as migration_20261031_090000_cross_sell_catalog_sync from './20261031_0
 import * as migration_20261031_160000_shared_product_pool from './20261031_160000_shared_product_pool';
 import * as migration_20261031_170000_order_reliability from './20261031_170000_order_reliability';
 import * as migration_20261101_060000_commerce_blocks from './20261101_060000_commerce_blocks';
+import * as migration_20261101_120000_order_operations from './20261101_120000_order_operations';
 
 export const migrations = [
   {
@@ -112,4 +113,5 @@ export const migrations = [
   { up: migration_20261031_160000_shared_product_pool.up, down: migration_20261031_160000_shared_product_pool.down, name: '20261031_160000_shared_product_pool' },
   { up: migration_20261031_170000_order_reliability.up, down: migration_20261031_170000_order_reliability.down, name: '20261031_170000_order_reliability' },
   { up: migration_20261101_060000_commerce_blocks.up, down: migration_20261101_060000_commerce_blocks.down, name: '20261101_060000_commerce_blocks' },
+  { up: migration_20261101_120000_order_operations.up, down: migration_20261101_120000_order_operations.down, name: '20261101_120000_order_operations' },
 ];

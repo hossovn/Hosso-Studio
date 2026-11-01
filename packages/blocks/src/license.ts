@@ -93,10 +93,12 @@ export function withLicense(plugin: HossoPlugin): HossoPlugin {
       customerPrice: wrap(plugin.commerce.customerPrice, undefined),
       assistedCustomer: wrap(plugin.commerce.assistedCustomer, undefined),
       fulfillmentGroups: wrap(plugin.commerce.fulfillmentGroups, []),
+      resendOrderEmail: wrap(plugin.commerce.resendOrderEmail, undefined),
     },
     manifest: plugin.manifest && { ...plugin.manifest, commercial: true },
     hooks: hooks && {
       beforeOrder: wrap(hooks.beforeOrder, undefined),
+      onOrderReceived: wrap(hooks.onOrderReceived, undefined),
       onOrderPlaced: wrap(hooks.onOrderPlaced, undefined),
       onOrderStatusChanged: wrap(hooks.onOrderStatusChanged, undefined),
       onOrderPaid: wrap(hooks.onOrderPaid, undefined),

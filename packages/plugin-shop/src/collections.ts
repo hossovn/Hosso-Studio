@@ -183,7 +183,7 @@ export const Reviews: CollectionConfig = {
 export const Orders: CollectionConfig = {
   slug: 'shop-orders',
   labels: { singular: bi('Đơn hàng', 'Order'), plural: bi('Đơn hàng', 'Orders') },
-  admin: { group: GROUP, useAsTitle: 'orderNo', defaultColumns: ['orderNo', 'customerName', 'phone', 'total', 'status', 'createdAt'], components: { beforeListTable: ['@hosso/plugin-shop/admin-list#OrderTabs'] } },
+  admin: { group: GROUP, useAsTitle: 'orderNo', defaultColumns: ['orderNo', 'customerName', 'phone', 'total', 'paymentStatus', 'status', 'createdAt'], components: { beforeListTable: ['@hosso/plugin-shop/admin-list#OrderTabs'] } },
   defaultSort: '-createdAt',
   // Đơn chỉ được tạo qua endpoint thanh toán; quản trị viên xem và đổi trạng thái.
   access: { read: manager, create: () => false, update: manager, delete: manager },
@@ -202,7 +202,7 @@ export const Orders: CollectionConfig = {
     afterChange: [
       async ({ doc, previousDoc, req, operation }) => {
         if (operation === 'update' && previousDoc?.status && previousDoc.status !== doc.status && !req.context.skipStatusEvent)
-          await emitOrderStatusChanged(req.payload, { order: { id: doc.orderNo, total: doc.total, status: doc.status, customer: { name: doc.customerName, phone: doc.phone, address: doc.address, email: doc.email || undefined } }, from: previousDoc.status, to: doc.status, source: 'shop' })
+          await emitOrderStatusChanged(req.payload, { request: req, order: { id: doc.orderNo, total: doc.total, status: doc.status, customer: { name: doc.customerName, phone: doc.phone, address: doc.address, email: doc.email || undefined } }, from: previousDoc.status, to: doc.status, source: 'shop' })
         if (operation !== 'update' || doc.status !== 'cancelled' || doc.restocked || req.context.skipRestock) return doc
         await inTransaction(req, async () => {
           const claimed = await req.payload.db.updateOne({ collection: 'shop-orders', req, where: { and: [{ id: { equals: doc.id } }, { restocked: { not_equals: true } }] }, data: { restocked: true }, options: { atomic: true } })
@@ -217,22 +217,27 @@ export const Orders: CollectionConfig = {
     { name: 'orderNo', type: 'text', unique: true, index: true, label: bi('Mã đơn', 'Order number'), admin: { position: 'sidebar', readOnly: true } },
     { name: 'cartId', type: 'text', unique: true, admin: { hidden: true } },
     { name: 'checkoutDraft', type: 'json', admin: { hidden: true } },
-    { name: 'checkoutComplete', type: 'checkbox', defaultValue: false, admin: { readOnly: true } },
-    { name: 'checkoutState', type: 'text', admin: { readOnly: true } },
+    { name: 'checkoutComplete', type: 'checkbox', defaultValue: false, admin: { hidden: true } },
+    { name: 'checkoutState', type: 'text', admin: { hidden: true } },
+    { name: 'processingIssue', type: 'text', admin: { hidden: true } },
+    { name: 'processingUntil', type: 'date', admin: { hidden: true } },
+    { name: 'operationsVersion', type: 'number', defaultValue: 0, admin: { hidden: true } },
+    { name: 'operationHistory', type: 'json', admin: { hidden: true } },
+    { name: 'cancellationReason', type: 'textarea', label: bi('Lý do hủy', 'Cancellation reason'), admin: { readOnly: true } },
     { name: 'checkoutKey', type: 'text', admin: { hidden: true } },
-    { name: 'lookupToken', type: 'text', admin: { readOnly: true } },
+    { name: 'lookupToken', type: 'text', admin: { hidden: true } },
     { name: 'placedHooks', type: 'json', admin: { hidden: true } },
     { name: 'hookLeaseUntil', type: 'date', admin: { hidden: true } },
     { name: 'hooksComplete', type: 'checkbox', defaultValue: false, admin: { hidden: true } },
-    { name: 'sourceOrders', type: 'json', admin: { readOnly: true } },
-    { name: 'branchId', type: 'text', admin: { readOnly: true } },
+    { name: 'sourceOrders', type: 'json', admin: { hidden: true } },
+    { name: 'branchId', type: 'text', label: bi('Chi nhánh', 'Branch'), admin: { readOnly: true } },
     {
       name: 'status',
       type: 'select',
       defaultValue: 'new',
       required: true,
       label: bi('Trạng thái', 'Status'),
-      admin: { position: 'sidebar' },
+      admin: { position: 'sidebar', readOnly: true },
       options: [
         { value: 'new', label: bi('Mới', 'New') },
         { value: 'confirmed', label: bi('Đã xác nhận', 'Confirmed') },
@@ -260,7 +265,7 @@ export const Orders: CollectionConfig = {
       type: 'select',
       defaultValue: 'unpaid',
       label: bi('Tình trạng thanh toán', 'Payment status'),
-      admin: { position: 'sidebar' },
+      admin: { position: 'sidebar', readOnly: true },
       options: [
         { value: 'unpaid', label: bi('Chưa thanh toán', 'Unpaid') },
         { value: 'paid', label: bi('Đã thanh toán', 'Paid') },

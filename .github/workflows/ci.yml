@@ -22,6 +22,9 @@ jobs:
       - run: pnpm check:i18n
       - run: pnpm test:kiln
       - run: pnpm test:editor-preview
+      - run: node scripts/test-checkout-identity.mjs
+      - run: node scripts/test-checkout-form.mjs
+      - run: node scripts/test-order-receipt.mjs --shop-only
       - run: pnpm test:site-package
 
   # Builds the image (includes `next build`) without pushing it. / Dựng image (đã gồm next build), không đẩy.

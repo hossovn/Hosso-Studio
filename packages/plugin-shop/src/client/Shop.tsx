@@ -2,7 +2,7 @@
 import { localizeHref, useLocale, useEditorPreview, type FulfillmentGroup, type OrderExtras } from '@hosso/studio-blocks'
 import React, { useState } from 'react'
 import { ArrowLeft, ArrowRight, ImageOff, Minus, Plus, ShoppingBag, Trash2, Undo2 } from 'lucide-react'
-import { addToCart, cartCount, cartTotal, clearCart, renewCart, lineKey, removeFromCart, refreshCart, setQuantity, useCart, type CartLine } from '../cart'
+import { addToCart, cartCount, cartTotal, consumeCart, checkoutIdentity, renewCart, lineKey, removeFromCart, refreshCart, setQuantity, useCart, type CartLine } from '../cart'
 import { vnd } from '../util'
 
 const S = {
@@ -36,6 +36,17 @@ const S = {
 const useS = () => {
   const { locale, defaultLocale } = useLocale()
   return { t: S[locale === 'en' ? 'en' : 'vi'], href: (p: string) => localizeHref(p, locale, defaultLocale), locale }
+}
+
+function receiveCheckout(body: any, cart: { id: string; lines: CartLine[] }, customer: Record<string, unknown>, target: string) {
+  window.dispatchEvent(new CustomEvent('hs:purchase', { detail: { id: body.order.id, total: body.order.total, items: cart.lines } }))
+  consumeCart(cart.id)
+  try {
+    localStorage.setItem('hs_lookup_' + body.order.id, body.lookupToken)
+    localStorage.setItem('hs_customer', JSON.stringify({ ...JSON.parse(localStorage.getItem('hs_customer') || '{}'), ...customer }))
+    localStorage.removeItem('hs_checkout_pending_' + cart.id)
+  } catch { /* The success link also carries the token. */ }
+  window.location.href = body.redirectUrl || `${target}?id=${encodeURIComponent(body.order.id)}&token=${encodeURIComponent(body.lookupToken)}&new=1`
 }
 
 /** Liên kết giỏ hàng trên header (số lượng lấy từ localStorage). */
@@ -181,6 +192,7 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath, branches
   const [quoting, setQuoting] = useState(false)
   const [issues, setIssues] = useState<{ productId: string; variantId?: string; code: string; available?: number; name?: string }[]>([])
   const quoteRequest = React.useRef<AbortController | null>(null)
+  const submitting = React.useRef(false)
 
   const items = cart.lines.map((l) => ({ productId: l.productId, variantId: l.variantId, quantity: l.quantity }))
   const itemsKey = JSON.stringify(items)
@@ -223,6 +235,20 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath, branches
   // Tự điền từ tài khoản khách (plugin Tài khoản lưu thông tin ở localStorage khóa hs_customer).
   const hasLines = cart.lines.length > 0
   React.useEffect(() => {
+    if (preview || !cart.id) return
+    let pending: any
+    try { pending = JSON.parse(localStorage.getItem('hs_checkout_pending_' + cart.id) || 'null') } catch { return }
+    if (!pending?.checkoutId) return
+    let live = true
+    submitting.current = true; setBusy(true)
+    void fetch('/api/plugins/shop/receipt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pending) }).then((r) => r.json()).then((body) => {
+      if (live && body?.ok) receiveCheckout(body, cart, pending.customer, href(statusPath))
+    }).catch(() => {}).finally(() => { if (live) { submitting.current = false; setBusy(false) } })
+    return () => { live = false; submitting.current = false; setBusy(false) }
+    // A basket generation changes only when the customer edits the items.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart.id, preview])
+  React.useEffect(() => {
     if (preview) return
     try {
       const c = JSON.parse(localStorage.getItem('hs_customer') || 'null') as Record<string, string> | null
@@ -244,31 +270,25 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath, branches
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (preview || busy || quoting || !quote) return
+    if (preview || submitting.current || busy || quoting || !quote) return
     const f = new FormData(e.currentTarget)
+    submitting.current = true
     setBusy(true)
     setError(null)
     try {
+      const customer = { name: String(f.get('name') || '').trim(), phone: String(f.get('phone') || '').trim(), email: String(f.get('email') || '').trim(), address: String(f.get('address') || '').trim(), note: String(f.get('note') || '').trim() }
+      const intent = { items, customer, fulfillment: { type, ...(type === 'pickup' && branchId && { branchId }) }, payment: pay, meta: { voucher: voucher.trim(), locale } }
+      const checkoutId = await checkoutIdentity(cart.id, intent)
+      const request = { cartId: cart.id, checkoutId, quoteKey: quote.quoteKey, ...intent, website: f.get('website') }
+      try { localStorage.setItem('hs_checkout_pending_' + cart.id, JSON.stringify(request)) } catch { /* Same-page retries still use the stable identity. */ }
       const res = await fetch('/api/plugins/shop/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cartId: cart.id,
-          quoteKey: quote.quoteKey,
-          items,
-          customer: { name: f.get('name'), phone: f.get('phone'), email: f.get('email'), address: f.get('address'), note: f.get('note') },
-          fulfillment: { type, ...(type === 'pickup' && branchId && { branchId }) },
-          payment: pay,
-          meta: { voucher: voucher.trim(), locale },
-          website: f.get('website'),
-        }),
+        body: JSON.stringify(request),
       })
       const body = await res.json().catch(() => null)
       if (body?.ok) {
-        window.dispatchEvent(new CustomEvent('hs:purchase', { detail: { id: body.order.id, total: body.order.total, items: cart.lines } }))
-        clearCart()
-        try { localStorage.setItem('hs_lookup_' + body.order.id, body.lookupToken) } catch { /* The success link also carries the token. */ }
-        window.location.href = body.redirectUrl || `${href(statusPath)}?id=${encodeURIComponent(body.order.id)}&token=${encodeURIComponent(body.lookupToken)}&new=1`
+        receiveCheckout(body, cart, customer, href(statusPath))
         return
       }
       const known = body?.code === 'bad_request' || body?.code === 'out_of_stock' || body?.code === 'product_not_found'
@@ -278,6 +298,7 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath, branches
     } catch {
       setError({ code: 'network' })
     }
+    submitting.current = false
     setBusy(false)
   }
 
@@ -337,7 +358,7 @@ type Order = { id: string; status: string; total: number; subtotal: number; adju
 type Extras = OrderExtras
 
 export function OrderLookup({ heading }: { heading?: string }) {
-  const { t, locale } = useS()
+  const { t, locale, href } = useS()
   const [order, setOrder] = useState<Order | null | undefined>(undefined)
   const [extras, setExtras] = useState<Extras>({})
   const [isNew, setIsNew] = useState(false)
@@ -373,8 +394,8 @@ export function OrderLookup({ heading }: { heading?: string }) {
         {order === null && <p className="sp-note sp-error" role="alert">{t.notFound}</p>}
         {order && (
           <div className="sp-order" role="status">
-            {isNew && <p><strong>{t.done} {order.id}</strong><br />{t.keepCode}</p>}
-            {isNew && <p>{locale === 'en' ? 'Keep this private order access code:' : 'Lưu mã bảo mật tra cứu đơn:'} <code style={{ overflowWrap: 'anywhere' }}>{accessCode}</code></p>}
+            {isNew && <header className="sp-receipt-head"><span className="sp-meta">{locale === 'en' ? 'ORDER RECEIVED' : 'ĐÃ NHẬN ĐƠN HÀNG'}</span><h3>{locale === 'en' ? 'Thank you for your order' : 'Cảm ơn bạn đã đặt hàng'}</h3><p>{locale === 'en' ? 'The store will confirm and prepare your order. You can continue shopping now.' : 'Cửa hàng sẽ xác nhận và chuẩn bị đơn. Bạn có thể tiếp tục mua sắm ngay.'}</p><div className="sp-receipt-actions"><a className="sp-btn" href={href('/san-pham')}>{t.continue}<ArrowRight size={16} /></a><a className="sp-link" href={`?${new URLSearchParams({ id: order.id, token: accessCode })}`}>{locale === 'en' ? 'View order' : 'Xem đơn hàng'}</a></div></header>}
+            {isNew && <details className="sp-receipt-code"><summary>{locale === 'en' ? 'Private order access code' : 'Mã bảo mật tra cứu đơn'}</summary><p>{t.keepCode}</p><code style={{ overflowWrap: 'anywhere' }}>{accessCode}</code></details>}
             <p>{t.orderNo}: <strong>{order.id}</strong> · {t.status}: <strong>{t.statuses[order.status] ?? order.status}</strong> · {t.payStatus}: <strong>{t.payStatuses[order.paymentStatus] ?? order.paymentStatus}</strong></p>
             <ul className="sp-checkout-lines">{order.items.map((i, n) => (<li key={n}><ProductImage src={i.image} name={i.name} /><div><strong>{i.name}</strong><span>{t.qty}: {i.quantity}</span><strong>{vnd(i.price * i.quantity)}</strong></div></li>))}</ul>
             <ul className="sp-cart sp-cart-summary">{order.adjustments.map((a, n) => (<li key={`a${n}`}><span>{a.label}</span><strong>{a.amount < 0 ? '−' : '+'}{vnd(Math.abs(a.amount))}</strong></li>))}</ul>

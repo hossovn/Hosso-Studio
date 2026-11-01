@@ -86,23 +86,35 @@ export function addToCart(line: Omit<CartLine, 'quantity'>, quantity = 1) {
   const i = lines.findIndex((l) => lineKey(l) === lineKey(line))
   if (i >= 0) lines[i] = { ...lines[i], ...line, quantity: qty(lines[i].quantity + quantity) }
   else if (lines.length < 50) lines.push({ ...line, quantity })
-  write({ id: cart.id || newId(), lines })
+  write({ id: newId(), lines })
 }
 
 export function setQuantity(key: string, quantity: number) {
   const cart = read()
   const lines = cart.lines.map((l) => (lineKey(l) === key ? { ...l, quantity: qty(quantity) } : l))
-  write({ ...cart, lines })
+  if (JSON.stringify(lines) !== JSON.stringify(cart.lines)) write({ id: newId(), lines })
 }
 
 export function removeFromCart(key: string) {
   const cart = read()
-  write({ ...cart, lines: cart.lines.filter((l) => lineKey(l) !== key) })
+  const lines = cart.lines.filter((l) => lineKey(l) !== key)
+  if (lines.length !== cart.lines.length) write({ id: newId(), lines })
 }
 
 /** Sau khi đặt thành công: xóa giỏ và đổi cartId để giỏ mới có Idempotency-Key mới. */
 export function clearCart() {
   write({ id: newId(), lines: [] })
+}
+
+/** A delayed response from another tab must not erase a newer basket. */
+export function consumeCart(expectedId: string) {
+  if (read().id === expectedId) clearCart()
+}
+
+/** Stable for network retries and reloads, unique for a later purchase of the same items. */
+export async function checkoutIdentity(cartId: string, input: Record<string, unknown>) {
+  const bytes = new TextEncoder().encode(JSON.stringify({ cartId, ...input }))
+  return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), (b) => b.toString(16).padStart(2, '0')).join('')
 }
 
 export function renewCart() { write({ ...read(), id: newId() }) }
