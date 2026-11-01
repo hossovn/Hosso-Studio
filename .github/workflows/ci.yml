@@ -25,6 +25,7 @@ jobs:
       - run: node scripts/test-checkout-identity.mjs
       - run: node scripts/test-checkout-form.mjs
       - run: node scripts/test-order-receipt.mjs --shop-only
+      - run: node scripts/test-order-origin.mjs
       - run: node scripts/test-commerce-security.mjs
       - run: node scripts/test-shipping-workflow.mjs
       - run: pnpm test:site-package
