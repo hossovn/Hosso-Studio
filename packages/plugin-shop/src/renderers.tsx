@@ -193,7 +193,12 @@ const Categories: BlockRenderer = ({ heading, listPath, data }) => {
   )
 }
 
-const Cart: BlockRenderer = ({ width, _noFree, ...props }) => <div className={width ? `sp-w-${width}` : undefined}><CartView {...props} checkoutPath={props.checkoutPath || '/thanh-toan'} shopPath={props.shopPath || '/san-pham'} preview={Boolean(_noFree)} /></div>
+// Puck also supplies callbacks; only cart settings may cross the server/client boundary.
+const Cart: BlockRenderer = ({ width, _noFree, heading, checkoutPath, shopPath, layout, showImages, stickySummary, summaryHeading, checkoutLabel, emptyHeading, emptyText }) => (
+  <div className={width ? `sp-w-${width}` : undefined}>
+    <CartView heading={heading} checkoutPath={checkoutPath || '/thanh-toan'} shopPath={shopPath || '/san-pham'} layout={layout} showImages={showImages} stickySummary={stickySummary} summaryHeading={summaryHeading} checkoutLabel={checkoutLabel} emptyHeading={emptyHeading} emptyText={emptyText} preview={Boolean(_noFree)} />
+  </div>
+)
 const Checkout: BlockRenderer = ({ heading, statusPath, cartPath, width, layout, data, _noFree }) => (
   <div className={`${width ? `sp-w-${width}` : ''}${layout === 'split' ? ' sp-split' : ''}`.trim() || undefined}><CheckoutForm heading={heading} bankInfo={(data as Data)?.bankInfo} branches={(data as Data)?.branches} statusPath={(data as Data)?.statusPath || statusPath || '/trang-thai-don'} cartPath={cartPath || '/gio-hang'} preview={Boolean(_noFree)} /></div>
 )
