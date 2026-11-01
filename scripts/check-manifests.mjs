@@ -7,6 +7,19 @@ const errors = []
 const read = (p) => JSON.parse(readFileSync(p, 'utf8'))
 const pairs = (v) => v && typeof v.vi === 'string' && v.vi && typeof v.en === 'string' && v.en
 
+// A frozen lockfile can retain a link to an uninstalled private plugin.
+const workspaces = ['apps', 'packages', 'tools'].flatMap((root) =>
+  readdirSync(root).map((dir) => `${root}/${dir}/package.json`).filter(existsSync),
+).map((file) => ({ file, pkg: read(file) }))
+const installed = new Set(workspaces.map(({ pkg }) => pkg.name))
+for (const { file, pkg } of workspaces) {
+  for (const field of ['dependencies', 'devDependencies', 'optionalDependencies']) {
+    for (const [name, version] of Object.entries(pkg[field] ?? {})) {
+      if (String(version).startsWith('workspace:') && !installed.has(name)) errors.push(`${file}: missing workspace package ${name}`)
+    }
+  }
+}
+
 for (const dir of readdirSync('packages').filter((d) => /^(plugin|theme)-/.test(d) && existsSync(`packages/${d}/package.json`))) {
   const file = `packages/${dir}/hosso.json`
   const fail = (m) => errors.push(`${file}: ${m}`)

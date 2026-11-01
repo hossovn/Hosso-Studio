@@ -40,7 +40,7 @@ The public Studio and private commercial plugin branches must be deployed togeth
 
 1. Review both branches and back up the database, uploads, site export and environment configuration. Verify the backup can be restored in staging.
 2. Check out the matching Studio and private plugin revisions in a staging checkout. From the private repository, run `node tools/install.mjs ../Hosso-Studio accounts,shipping,wim,cross-sell` with the actual checkout path.
-3. Run `pnpm install --frozen-lockfile` in Studio. Keep existing secrets and commercial licenses in environment configuration.
+3. Run `pnpm install` in Studio after the private installer changes the workspace manifests; retain the resulting lockfile with the deployment checkout. Subsequent installs of that same checkout can use `pnpm install --frozen-lockfile`. Keep existing secrets and commercial licenses in environment configuration. The public default configuration does not import Cross-sell; its private installer registers it when the package is installed.
 4. Stop order writes for the schema upgrade. Run `pnpm migrate`. The new migration is `20261101_060000_commerce_blocks`; all prior migrations remain required.
 5. Run `pnpm build`, restart the application, then smoke-test account login, cart images/quantity, authoritative quotes, assisted ordering, source retries and private lookup with staging fixtures.
 6. Review garage groups, overrides, partner delivery/COD settings and affiliate policy. Keep imported WIM/supplier prices and stock authoritative. Configure actual banking, fees and source credentials explicitly.
