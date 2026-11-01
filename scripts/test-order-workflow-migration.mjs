@@ -6,7 +6,8 @@ import { beforeOrderWorkflow, workflowColumns, workflowTables } from './lib/orde
 
 assert.ok(process.env.COMMERCE_TEST_DATABASE_URL, 'Set COMMERCE_TEST_DATABASE_URL to a disposable PostgreSQL instance with CREATE DATABASE permission')
 const require = createRequire(new URL('../apps/studio/package.json', import.meta.url))
-const { Pool } = require('pg'), { generateMigration } = require('drizzle-kit/api'), { PgDialect } = require('drizzle-orm/pg-core')
+const postgresRequire = createRequire(require.resolve('@payloadcms/db-postgres'))
+const { Pool } = postgresRequire('pg'), { generateMigration } = postgresRequire('drizzle-kit/api'), { PgDialect } = postgresRequire('drizzle-orm/pg-core')
 const { sql } = await import(pathToFileURL(require.resolve('@payloadcms/db-postgres')).href)
 const current = JSON.parse(await readFile(new URL('../apps/studio/src/migrations/20261101_180000_order_workflow.json', import.meta.url)))
 assert.ok(Object.keys(current.tables).length > 80, 'A release snapshot must include the whole application')

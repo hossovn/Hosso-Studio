@@ -21,6 +21,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fontsource/jetbrains-mono": "5.3.0",
     "@fontsource/roboto": "^5.3.0",
     "@hosso/plugin-accounts": "workspace:*",
     "@hosso/plugin-affiliate": "workspace:*",
