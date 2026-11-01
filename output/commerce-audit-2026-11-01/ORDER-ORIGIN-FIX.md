@@ -35,5 +35,34 @@ Chưa coi thao tác xử lý đơn production đã được nghiệm thu.
 - Release build đạt: https://github.com/hossovn/Hosso-Deploy/actions/runs/41332412126. Checkout và provenance xác nhận đúng hai commit trên.
 - Image: `ghcr.io/hossovn/hosso-tcap:1.4.1-20261102.1`.
 - Manifest digest: `sha256:c8b65c5fb0a583599420b48a9a7f1edc5cc3313bee2728178fba4d3e68f995af`.
-- Đã điền HOSSO_IMAGE vào form của stack hosso-tcap-web (47); chưa bấm Update. Chờ xác nhận ngay trước thao tác triển khai theo Computer Use.
+- Người dùng đã xác nhận và đã triển khai image này vào stack hosso-tcap-web (47).
 - Bản sửa không thêm migration; nếu cần rollback, dùng lại image `1.4.0-20261101.1` với volumes và secrets hiện hữu.
+
+## Triển khai và nghiệm thu ngày 02/11/2026
+
+Portainer tạo container Studio `55b94a46d54f47f28218373bcc06704f028718c8f0a878bc57dbab272fa5eaca` và backup `e08fef880ee0abbc143a4399fc1c4f652d097f8dc7fd2b794db7e2c82febe8aa` với image `1.4.1-20261102.1`. PostgreSQL giữ container và volume hiện hữu.
+
+### Sự cố hết dung lượng trong quá trình triển khai
+
+- Container mới ban đầu không tạo được `/tmp/tsx-1000` (`ENOSPC`); web trả 502. PostgreSQL sau đó cũng không ghi được checkpoint/lock file và phải khởi động lại. Chưa có migration mới được áp dụng.
+- Đo từ worker backup: filesystem 98 GB, used 95 GB, available 0, 100%; inode chỉ dùng 36%. Đây là thiếu dung lượng ghi, không phải hết inode.
+- Sau từng xác nhận trực tiếp của người dùng, đã xóa image Hosso-Hub không dùng `sha256:a198fe2a34c56f0ac9985791305c33a70e077f74483f93d14e4de6ce0d4bf9b1` và 13 image TCAP cũ được Portainer đánh dấu Unused: `1.2.0–1.2.7`, `1.2.9`, `1.3.0–1.3.2`, `1.3.4`. Không force xóa image đang được container sử dụng.
+- Sau dọn: used 71 GB, available 23 GB, 76%; inode 27%. Danh sách TCAP sau Refresh chỉ còn `1.2.8` đang được một container khác dùng, bản rollback `1.4.0-20261101.1`, và bản mới `1.4.1-20261102.1`.
+- PostgreSQL và Studio tự khởi động lại sau khi có chỗ trống. Startup chạy kiểm tra migration xong (`Done.`), Next báo Ready. Portainer xác nhận PostgreSQL và Studio healthy, backup running.
+
+### Kiểm tra sau cập nhật
+
+API client xác thực riêng bằng tài khoản do người dùng cung cấp, không ghi token/mật khẩu vào báo cáo hoặc file:
+
+| Kiểm tra | Kết quả |
+| --- | --- |
+| GET `/api/health` | HTTP 200, `status: ok`, `db: up` |
+| POST manage-order, action vô hiệu, Origin TCAP | HTTP 400 `invalid_action`: đã vượt origin guard; trước cập nhật là 403 `invalid_origin` |
+| Cùng POST, origin ngoài site | HTTP 403 `invalid_origin`: chống giả mạo vẫn hoạt động |
+| Cùng POST, không có Origin | HTTP 400 `invalid_action`, giữ hành vi API client |
+| GET manage-order id 3 | HTTP 200; SO-000003, new, awaiting, history 0 |
+| Tải lại trang admin của SO-000003 | Trang tải được và hiện nút Approve and process |
+
+Các POST thử nghiệm không có ID đơn và bị chặn tại kiểm tra action, trước khi đọc/ghi đơn. Không xác nhận đơn thật, ghi tiền, gửi email hay thay đổi tồn để nghiệm thu. Nghiệm thu này xác nhận lỗi origin 403 đã hết trên live, chưa xác nhận toàn bộ quy trình đơn nguồn WIM/Woo.
+
+Bằng chứng ảnh cục bộ: `originfix-deployed.jpg`, `originfix-disk-recovered.jpg`, `originfix-old-images-removed.jpg`. Không commit ảnh hoặc dữ liệu khách hàng. Cần đưa kiểm tra dung lượng khả dụng thành bước bắt buộc trước các lần pull/redeploy tiếp theo và đặt cảnh báo dung lượng ở hệ thống giám sát.
