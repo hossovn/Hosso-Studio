@@ -5,7 +5,7 @@ import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Window } from 'happy-dom'
 
-const require = createRequire(new URL('../package.json', import.meta.url))
+const require = createRequire(new URL('../apps/studio/package.json', import.meta.url))
 const ts = require('typescript')
 const React = require('react')
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
