@@ -1,9 +1,13 @@
 import type { Endpoint, Payload, PayloadRequest, Where } from 'payload'
 import type { HossoPlugin } from '@hosso/studio-blocks'
-import { all, rateLimit } from './service'
+import { all, rateLimit, snapshot } from './service'
 import { adminEndpoints, displayStatus } from './admin-endpoints'
-import { DAY, REF_COOKIE, sameOrigin } from './core'
+import { DAY, REF_COOKIE, sameOrigin, commission, eligibleAmount } from './core'
 import { hashPassword, makeSession, readSession, sessionCookie, verifyPassword } from './auth'
+import { requestWithdrawal, withdrawalPolicy } from './withdrawals'
+import { AffiliateError } from './core'
+import { card } from '@hosso/plugin-shop/loaders'
+import { placeOrder, prepare, priced, quoteKey } from '@hosso/plugin-shop/server'
 
 // Mọi thao tác của cộng tác viên đi qua các endpoint này (overrideAccess), collection thì chỉ admin đọc/ghi được.
 
@@ -38,6 +42,55 @@ async function startSession(req: PayloadRequest, a: Aff) {
 
 const routes: Endpoint[] = [
   ...adminEndpoints,
+  { path: '/plugins/affiliate/checkout-options', method: 'get', handler: async (req) => {
+    if ((await current(req))?.approval !== 'approved') return err(403, 'unauthorized')
+    const branches = []
+    for (const plugin of (req.payload.config.custom?.hossoPlugins || []) as HossoPlugin[]) {
+      const data = await plugin.commerce?.checkoutData?.(req.payload)
+      if (data) branches.push(...data.branches)
+    }
+    return json({ ok: true, branches })
+  } },
+  { path: '/plugins/affiliate/products', method: 'get', handler: async (req) => {
+    const a = await current(req)
+    if (a?.approval !== 'approved') return err(403, 'unauthorized')
+    const q = str(new URL(req.url!).searchParams.get('q'), 80)
+    const products = await req.payload.find({ collection: 'shop-products' as any, where: { and: [{ active: { equals: true } }, ...(q ? [{ or: [{ name: { contains: q } }, { code: { contains: q } }] }] : [])] }, limit: 20, depth: 1, overrideAccess: true, req })
+    return json({ ok: true, items: products.docs.map((p: any) => card(p)) })
+  } },
+  { path: '/plugins/affiliate/assisted-customer', method: 'post', handler: async (req) => {
+    const a = await current(req)
+    if (a?.approval !== 'approved') return err(403, 'unauthorized')
+    const b = await body(req)
+    const plugins = (req.payload.config.custom?.hossoPlugins || []) as HossoPlugin[]
+    const resolver = plugins.find((p) => p.commerce?.assistedCustomer)?.commerce?.assistedCustomer
+    if (!resolver || !b.token) return err(400, 'Cần mã đồng ý từ tài khoản khách hàng.')
+    try {
+      const customer = await resolver(req.payload, req.headers, String(b.token))
+      return customer ? json({ ok: true, customer }) : err(400, 'Mã khách hàng không hợp lệ.')
+    } catch { return err(400, 'Mã đồng ý đã hết hạn hoặc không dành cho bạn. Hãy nhờ khách cấp mã mới.') }
+  } },
+  ...(['quote', 'checkout'] as const).map((action): Endpoint => ({ path: `/plugins/affiliate/assisted-${action}`, method: 'post', handler: async (req) => {
+    const a = await current(req)
+    if (a?.approval !== 'approved') return err(403, 'unauthorized')
+    const input: any = await body(req)
+    input.meta = { voucher: input.meta?.voucher || '', locale: input.meta?.locale || 'vi', assistedCustomerToken: input.meta?.assistedCustomerToken || 'retail', assisted: true, assistedAffiliate: String(a.id) }
+    req.context = { ...req.context, assistedAffiliate: a.id }
+    if (action === 'checkout') return placeOrder(req, input)
+    const prepared = await prepare(req, input, true)
+    if (prepared instanceof Response) return prepared
+    const price = await priced(req, prepared)
+    if (price instanceof Response) return price
+    const policy = await snapshot(req, eligibleAmount(prepared.draft.subtotal, prepared.draft.adjustments), prepared.draft.customer.email, prepared.draft.items)
+    return json({ ok: true, ...price, items: prepared.draft.items, shipments: prepared.draft.shipments, commissionPreview: policy ? { amount: commission(policy), review: policy.selfReferral, holdDays: policy.holdDays } : null, subtotal: prepared.draft.subtotal, adjustments: prepared.draft.adjustments, quoteKey: await quoteKey(prepared.draft, price.total) })
+  } })),
+  { path: '/plugins/affiliate/withdraw', method: 'post', handler: async (req) => {
+    const a = await current(req)
+    if (!a) return err(401, 'unauthorized')
+    if (!await rateLimit(req, `withdraw:${a.id}`, 5, 1)) return err(429, 'rate_limit')
+    try { return json({ ok: true, request: await requestWithdrawal(req, a) }) }
+    catch (error) { if (error instanceof AffiliateError) return err(400, error.message); throw error }
+  } },
   { path: '/plugins/affiliate/click', method: 'post', handler: async (req) => {
     const b = await body(req)
     const code = typeof b.code === 'string' ? b.code.trim() : ''
@@ -103,9 +156,12 @@ const routes: Endpoint[] = [
       const filtered = status ? refs.filter((r) => displayStatus(r) === status) : refs
       const payouts = await req.payload.find({ collection: 'affiliate-payouts' as any, where: { affiliate: { equals: a.id } }, sort: '-paidAt', limit: 20, page: payoutPage, depth: 0, overrideAccess: true, req })
       const clicks = await req.payload.count({ collection: 'affiliate-clicks' as any, where: { affiliate: { equals: a.id } }, overrideAccess: true, req })
-      return json({ ok: true, profile: publicProfile(a), totals, clicks: clicks.totalDocs, orderCount: refs.filter((r) => !r.parent).length, page, hasNextPage: filtered.length > page * 20, payoutPage, hasNextPayoutPage: payouts.hasNextPage,
+      const withdrawals = await req.payload.find({ collection: 'affiliate-withdrawals' as any, where: { affiliate: { equals: a.id } }, sort: '-createdAt', limit: 20, depth: 0, overrideAccess: true, req })
+      const policy = await withdrawalPolicy(req)
+      return json({ ok: true, profile: { ...publicProfile(a), commissionPct: a.commissionPct ?? policy.defaultRate }, totals, clicks: clicks.totalDocs, orderCount: refs.filter((r) => !r.parent).length, page, hasNextPage: filtered.length > page * 20, payoutPage, hasNextPayoutPage: payouts.hasNextPage,
         referrals: filtered.slice((page - 1) * 20, page * 20).map((r) => ({ id: r.id, source: r.source, orderId: r.orderId, orderTotal: r.orderTotal, commission: r.commission, status: displayStatus(r), eligibleAt: r.eligibleAt, createdAt: r.createdAt })),
         payouts: payouts.docs.map((p: any) => ({ id: p.id, amount: p.amount, reference: p.reference, evidence: p.evidence, paidAt: p.paidAt })),
+        withdrawalPolicy: { ...policy, enabled: req.payload.db.name !== 'sqlite' }, withdrawals: withdrawals.docs.map((w: any) => ({ id: w.id, amount: w.amount, status: w.status, reason: w.reason, createdAt: w.createdAt })),
       })
     },
   },

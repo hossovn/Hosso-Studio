@@ -30,9 +30,10 @@ const ENUMS: Record<string, string[]> = {
   textAlign: ['left', 'center', 'right'], borderStyle: ['solid', 'dashed', 'none'],
 }
 
-export const validPartPath = (path: unknown): path is string => typeof path === 'string' && path.length <= 2000 && PATH.test(path)
+const NAMED = /^@([a-z][a-z0-9-]{0,63})$/
+export const validPartPath = (path: unknown): path is string => typeof path === 'string' && path.length <= 2000 && (PATH.test(path) || NAMED.test(path))
 export const widgetPartScope = (id: string) => 'wp-' + Array.from(id).map((c) => c.codePointAt(0)!.toString(16)).join('-')
-export const widgetPartSelector = (id: string, path: string) => validPartPath(path) ? '[data-hs-parts="' + widgetPartScope(id) + '"] > ' + path : ''
+export const widgetPartSelector = (id: string, path: string) => validPartPath(path) ? '[data-hs-parts="' + widgetPartScope(id) + '"]' + (NAMED.test(path) ? ' [data-hs-part="' + path.slice(1) + '"]' : ' > ' + path) : ''
 
 export function widgetPartCss(id: string, parts: unknown): string {
   if (!parts || typeof parts !== 'object' || Array.isArray(parts)) return ''
@@ -74,6 +75,8 @@ export function patchWidgetPart(parts: unknown, path: string, patch: WidgetPartS
 export function widgetPartPath(root: Element, target: Element): string {
   const path: string[] = []
   let node: Element | null = target
+  const named = target.getAttribute('data-hs-part')
+  if (named && root.contains(target) && NAMED.test('@' + named)) return '@' + named
   while (node && node !== root) {
     if (!node.parentElement || ['style', 'script', 'path'].includes(node.localName)) return ''
     const tag = node.localName

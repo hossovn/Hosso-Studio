@@ -16,8 +16,8 @@ export function WidgetPartPicker({ block, sel, setSel, docs }: { block: Block; s
     const collect = () => setItems(Array.from(root.querySelectorAll('*')).flatMap((el) => {
       if (!el.getClientRects().length || ['style', 'script', 'option'].includes(el.localName) || el.closest('[aria-hidden="true"], [hidden]') || (el.closest('svg') && el.localName !== 'svg')) return []
       const path = widgetPartPath(root, el)
-      return path ? [{ path, label: '  '.repeat(Math.min(8, path.split(' > ').length - 1)) + el.localName + ' · ' + (el.getAttribute('aria-label') || el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 45) }] : []
-    }))
+      return path ? [{ path, label: path.startsWith('@') ? (el.getAttribute('data-hs-part-label') || path.slice(1)) + ' · Tất cả phần cùng loại' : '  '.repeat(Math.min(8, path.split(' > ').length - 1)) + el.localName + ' · ' + (el.getAttribute('aria-label') || el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 45) }] : []
+    }).filter((item, n, items) => items.findIndex((other) => other.path === item.path) === n))
     collect()
     const observer = new MutationObserver(collect)
     observer.observe(root, { childList: true, subtree: true })

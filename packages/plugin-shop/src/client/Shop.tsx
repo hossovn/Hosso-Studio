@@ -1,7 +1,8 @@
 'use client'
-import { localizeHref, useLocale } from '@hosso/studio-blocks'
+import { localizeHref, useLocale, useEditorPreview, type FulfillmentGroup, type OrderExtras } from '@hosso/studio-blocks'
 import React, { useState } from 'react'
-import { addToCart, cartCount, cartTotal, clearCart, renewCart, lineKey, removeFromCart, setQuantity, useCart } from '../cart'
+import { ArrowLeft, ArrowRight, ImageOff, Minus, Plus, ShoppingBag, Trash2, Undo2 } from 'lucide-react'
+import { addToCart, cartCount, cartTotal, clearCart, renewCart, lineKey, removeFromCart, refreshCart, setQuantity, useCart, type CartLine } from '../cart'
 import { vnd } from '../util'
 
 const S = {
@@ -78,30 +79,71 @@ export function AddToCart({ product, cartPath, inStock, variants }: { product: {
   )
 }
 
-export function CartView({ heading, checkoutPath, shopPath }: { heading?: string; checkoutPath: string; shopPath: string }) {
+export function ProductImage({ src, name }: { src?: string; name: string }) {
+  const [failed, setFailed] = useState(false)
+  React.useEffect(() => setFailed(false), [src])
+  return <div className="sp-line-image" data-hs-part="product-image">{src && !failed ? <img src={src} alt={name} loading="lazy" onError={() => setFailed(true)} /> : <ImageOff size={24} aria-label={name} />}</div>
+}
+
+export type CartOptions = { heading?: string; checkoutPath: string; shopPath: string; layout?: string; showImages?: string; stickySummary?: string; summaryHeading?: string; checkoutLabel?: string; emptyHeading?: string; emptyText?: string; preview?: boolean }
+const PREVIEW_CART: { id: string; lines: CartLine[] } = { id: 'editor-preview', lines: [{ productId: 'preview', name: 'Sản phẩm xem trước', price: 0, quantity: 2 }] }
+
+export function CartView({ heading, checkoutPath, shopPath, layout = 'split', showImages = 'yes', stickySummary = 'yes', summaryHeading, checkoutLabel, emptyHeading, emptyText, preview: canvasPreview }: CartOptions) {
   const { t, href } = useS()
-  const cart = useCart()
+  const editor = useEditorPreview()
+  const preview = Boolean(canvasPreview || editor)
+  const stored = useCart()
+  const cart = preview ? PREVIEW_CART : stored
+  const en = t === S.en
+  const [removed, setRemoved] = useState<CartLine | null>(null)
+  const [syncError, setSyncError] = useState('')
+  const key = JSON.stringify(cart.lines.map(({ productId, variantId, quantity }) => ({ productId, variantId, quantity })))
+  React.useEffect(() => {
+    if (preview || !cart.lines.length) return
+    const controller = new AbortController()
+    void fetch('/api/plugins/shop/cart', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: JSON.parse(key) }), signal: controller.signal }).then((r) => r.json()).then((data) => {
+      if (controller.signal.aborted) return
+      if (data.ok) { refreshCart(data.items); setSyncError(data.issues?.length ? (en ? 'Some items need review at checkout.' : 'Có sản phẩm cần kiểm tra lại khi thanh toán.') : '') }
+      else setSyncError(en ? 'Unable to refresh your cart. Try again at checkout.' : 'Chưa cập nhật được giỏ. Vui lòng kiểm tra lại khi thanh toán.')
+    }).catch(() => { if (!controller.signal.aborted) setSyncError(en ? 'Connection interrupted. Your cart is kept.' : 'Kết nối bị gián đoạn. Giỏ hàng vẫn được giữ.') })
+    return () => controller.abort()
+  }, [key, preview, en])
   return (
-    <section className="sp-section">
+    <section className="sp-section sp-commerce">
       <div className="sp-wrap">
-        {heading && <h2>{heading}</h2>}
+        <header className="sp-commerce-heading" data-hs-part="cart-heading">{heading && <h2>{heading}</h2>}<span>{cartCount(cart)} {en ? 'items' : 'sản phẩm'}</span></header>
         {cart.lines.length === 0 ? (
-          <p className="sp-note">{t.empty} <a href={href(shopPath)}>{t.continue}</a></p>
+          <div className="sp-empty" data-hs-part="cart-empty"><ShoppingBag size={40} strokeWidth={1.5} aria-hidden="true" /><h3>{emptyHeading || t.empty}</h3>{emptyText && <p>{emptyText}</p>}<a className="sp-btn sp-action" href={href(shopPath)}><ArrowLeft size={18} />{t.continue}</a></div>
         ) : (
-          <>
-            <ul className="sp-cart">
+          <div className={`sp-cart-layout${layout === 'single' ? ' sp-cart-single' : ''}`} data-hs-part="cart-layout">
+            <div className="sp-cart-main">
+            <ul className="sp-cart-lines" aria-label={t.items}>
               {cart.lines.map((l) => (
-                <li key={lineKey(l)}>
-                  <div><strong>{l.name}</strong><span className="sp-meta">{vnd(l.price)}</span></div>
-                  <label><span className="sp-sr">{t.qty}</span><input type="number" min={1} max={99} value={l.quantity} onChange={(e) => setQuantity(lineKey(l), Number(e.target.value) || 1)} /></label>
-                  <strong>{vnd(l.price * l.quantity)}</strong>
-                  <button className="sp-link" type="button" onClick={() => removeFromCart(lineKey(l))}>{t.remove}</button>
+                <li key={lineKey(l)} className={showImages === 'no' ? 'sp-no-image' : undefined} data-hs-part="cart-line">
+                  {showImages !== 'no' && <ProductImage src={l.image} name={l.name} />}
+                  <div className="sp-line-info" data-hs-part="product-info"><strong>{l.name}</strong><span className="sp-meta">{vnd(l.price)} / {en ? 'item' : 'sản phẩm'}</span></div>
+                  <div className="sp-quantity" data-hs-part="quantity" role="group" aria-label={`${t.qty}: ${l.name}`}>
+                    <button type="button" title={en ? 'Decrease quantity' : 'Giảm số lượng'} aria-label={`${en ? 'Decrease quantity' : 'Giảm số lượng'}: ${l.name}`} disabled={preview || l.quantity <= 1} onClick={() => setQuantity(lineKey(l), l.quantity - 1)}><Minus size={16} /></button>
+                    <input aria-label={`${t.qty}: ${l.name}`} type="number" inputMode="numeric" min={1} max={99} value={l.quantity} disabled={preview} onChange={(e) => setQuantity(lineKey(l), Number(e.target.value))} />
+                    <button type="button" title={en ? 'Increase quantity' : 'Tăng số lượng'} aria-label={`${en ? 'Increase quantity' : 'Tăng số lượng'}: ${l.name}`} disabled={preview || l.quantity >= 99} onClick={() => setQuantity(lineKey(l), l.quantity + 1)}><Plus size={16} /></button>
+                  </div>
+                  <strong className="sp-line-total" data-hs-part="line-total">{vnd(l.price * l.quantity)}</strong>
+                  <button className="sp-icon-button sp-remove" title={t.remove} aria-label={`${t.remove}: ${l.name}`} type="button" disabled={preview} onClick={() => { setRemoved(l); removeFromCart(lineKey(l)) }}><Trash2 size={18} /></button>
                 </li>
               ))}
             </ul>
-            <p className="sp-total">{t.total}: <strong>{vnd(cartTotal(cart))}</strong></p>
-            <a className="sp-btn sp-btn-link" href={href(checkoutPath)}>{t.checkout}</a>
-          </>
+            <a className="sp-back sp-action" href={href(shopPath)}><ArrowLeft size={16} />{t.continue}</a>
+            {removed && <div className="sp-cart-feedback" role="status"><span>{en ? 'Item removed.' : 'Đã xóa sản phẩm.'}</span><button className="sp-link sp-action" onClick={() => { addToCart(removed, removed.quantity); setRemoved(null) }}><Undo2 size={16} />{en ? 'Undo' : 'Hoàn tác'}</button></div>}
+            {syncError && <p className="sp-note" role="status">{syncError}</p>}
+            </div>
+            <aside className={`sp-cart-totals${stickySummary === 'no' ? '' : ' sp-sticky'}`} data-hs-part="cart-summary" aria-label={summaryHeading || t.total}>
+              <h3>{summaryHeading || (en ? 'Order summary' : 'Tóm tắt đơn hàng')}</h3>
+              <dl><div><dt>{en ? 'Subtotal' : 'Tiền hàng'}</dt><dd>{vnd(cartTotal(cart))}</dd></div><div><dt>{en ? 'Delivery' : 'Phí giao hàng'}</dt><dd className="sp-meta">{en ? 'Calculated at checkout' : 'Tính khi thanh toán'}</dd></div></dl>
+              <div className="sp-summary-total" data-hs-part="cart-total"><span>{en ? 'Estimated total' : 'Tạm tính'}</span><strong aria-live="polite" aria-atomic="true">{vnd(cartTotal(cart))}</strong></div>
+              <a className="sp-btn sp-action sp-checkout-action" href={preview ? undefined : href(checkoutPath)} aria-disabled={preview} data-hs-part="checkout-button">{checkoutLabel || t.checkout}<ArrowRight size={18} /></a>
+              <p className="sp-meta">{en ? 'Final prices, availability and delivery are confirmed at checkout.' : 'Giá, tồn kho và phí giao hàng được xác nhận ở bước thanh toán.'}</p>
+            </aside>
+          </div>
         )}
       </div>
     </section>
@@ -109,12 +151,25 @@ export function CartView({ heading, checkoutPath, shopPath }: { heading?: string
 }
 
 type Err = { code: string; name?: string; available?: number; text?: string }
-type Quote = { subtotal: number; adjustments: { label: string; amount: number }[]; total: number }
+type Quote = { subtotal: number; adjustments: { label: string; amount: number }[]; total: number; items?: CartLine[]; quoteKey?: string; shipments?: FulfillmentGroup[] }
 
-export function CheckoutForm({ heading, bankInfo, statusPath, cartPath, branches = [] }: { heading?: string; bankInfo?: string; statusPath: string; cartPath: string; branches?: { id: string; name: string }[] }) {
+export function ShipmentSummary({ groups, items, payment, en, tracking = [] }: { groups?: FulfillmentGroup[]; items: Pick<CartLine, 'productId' | 'variantId' | 'name'>[]; payment: string; en: boolean; tracking?: NonNullable<OrderExtras['shipments']> }) {
+  if (!groups?.length) return null
+  const statuses: Record<string, string> = en ? { pending: 'Awaiting pickup', handed_over: 'Handed to carrier', delivering: 'Out for delivery', delivered: 'Delivered', returned: 'Returned', cancelled: 'Cancelled' } : { pending: 'Chờ lấy hàng', handed_over: 'Đã bàn giao', delivering: 'Đang giao', delivered: 'Đã giao', returned: 'Hoàn hàng', cancelled: 'Đã hủy' }
+  return <section className="sp-shipments" data-hs-part="shipment-groups"><h3>{en ? 'Delivery groups' : 'Phân nhóm giao hàng'}</h3><ul>{groups.map((g) => {
+    const live = tracking.find((s) => s.key === g.key)
+    return <li key={g.key} data-hs-part="shipment-group"><strong>{g.label}</strong><span className="sp-meta">{g.deliveryBy === 'partner' ? (en ? 'Delivered by partner' : 'Đối tác giao trực tiếp') : (en ? 'Prepared by store' : 'Cửa hàng chuẩn bị')}</span><ul>{items.filter((l) => g.lineKeys.includes(lineKey(l))).map((l) => <li key={lineKey(l)}>{l.name}</li>)}</ul><dl><div><dt>{en ? 'Delivery fee' : 'Phí giao'}</dt><dd>{vnd(g.fee)}</dd></div>{payment === 'cod' && <div><dt>{en ? 'Collect on receipt' : 'Thu khi nhận'}</dt><dd>{vnd(g.codAmount || 0)}</dd></div>}</dl>{payment === 'cod' && <span className="sp-meta">{g.codCollector === 'partner' ? (en ? 'Partner collects payment' : 'Đối tác thu hộ') : (en ? 'Store collects payment' : 'Cửa hàng thu hộ')}</span>}{live && <p>{statuses[live.status] || live.status}{live.carrier && ` · ${live.carrier}`}{live.trackingCode && <span> · {live.trackingCode}</span>}{live.url && <a href={live.url} target="_blank" rel="noopener noreferrer">{en ? 'Track shipment' : 'Theo dõi vận đơn'}</a>}</p>}</li>
+  })}</ul></section>
+}
+
+export function CheckoutForm({ heading, bankInfo, statusPath, cartPath, branches = [], preview: canvasPreview }: { heading?: string; bankInfo?: string; statusPath: string; cartPath: string; branches?: { id: string; name: string }[]; preview?: boolean }) {
   const { t, href, locale } = useS()
-  const cart = useCart()
+  const editor = useEditorPreview()
+  const preview = Boolean(canvasPreview || editor)
+  const stored = useCart()
+  const cart = preview ? PREVIEW_CART : stored
   const formRef = React.useRef<HTMLFormElement>(null)
+  const formId = React.useId()
   const [type, setType] = useState<'delivery' | 'pickup'>('delivery')
   const [branchId, setBranchId] = useState(branches[0]?.id || '')
   const [pay, setPay] = useState<'cod' | 'bank'>('cod')
@@ -123,36 +178,52 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath, branches
   const [quoteError, setQuoteError] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<Err | null>(null)
+  const [quoting, setQuoting] = useState(false)
+  const [issues, setIssues] = useState<{ productId: string; variantId?: string; code: string; available?: number; name?: string }[]>([])
+  const quoteRequest = React.useRef<AbortController | null>(null)
 
   const items = cart.lines.map((l) => ({ productId: l.productId, variantId: l.variantId, quantity: l.quantity }))
   const itemsKey = JSON.stringify(items)
 
   // Tính lại tổng tiền (phí ship, giảm giá do plugin khác thêm) khi giỏ, cách nhận hàng, địa chỉ hoặc mã giảm giá đổi.
   const runQuote = React.useCallback(async () => {
-    if (!items.length) return
+    quoteRequest.current?.abort()
+    if (preview || !items.length) return
+    const controller = new AbortController()
+    quoteRequest.current = controller
+    setQuoting(true)
+    setQuote(null)
     const f = formRef.current ? new FormData(formRef.current) : null
     const r = await fetch('/api/plugins/shop/quote', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
       body: JSON.stringify({ items, customer: { address: f?.get('address') ?? '' }, fulfillment: { type, ...(type === 'pickup' && branchId && { branchId }) }, payment: pay, meta: { voucher: voucher.trim(), locale } }),
     }).catch(() => null)
     const j = await r?.json().catch(() => null)
+    if (controller.signal.aborted) return
+    setQuoting(false)
     if (j?.ok) {
       setQuote(j)
       setQuoteError('')
-    } else if (j?.message && j.code !== 'out_of_stock' && j.code !== 'product_not_found') {
-      setQuoteError(String(j.message))
+      setIssues([])
+      if (j.items) refreshCart(j.items)
+    } else {
+      setIssues(j?.issues || [])
+      setQuoteError(j?.code === 'out_of_stock' || j?.code === 'product_not_found' ? (locale === 'en' ? 'Some items are unavailable. Review your cart below.' : 'Một số sản phẩm không đủ hàng. Vui lòng kiểm tra danh sách bên dưới.') : j?.message && !t.errors[j.message] ? String(j.message) : t.errors[j?.message] || t.errors.network)
       setQuote(null)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itemsKey, type, branchId, pay, voucher, locale])
+  }, [itemsKey, type, branchId, pay, voucher, locale, preview])
   React.useEffect(() => {
     void runQuote()
+    return () => quoteRequest.current?.abort()
   }, [itemsKey, type, pay, runQuote])
 
   // Tự điền từ tài khoản khách (plugin Tài khoản lưu thông tin ở localStorage khóa hs_customer).
   const hasLines = cart.lines.length > 0
   React.useEffect(() => {
+    if (preview) return
     try {
       const c = JSON.parse(localStorage.getItem('hs_customer') || 'null') as Record<string, string> | null
       const f = formRef.current
@@ -164,7 +235,7 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath, branches
     } catch {
       // dữ liệu hỏng: bỏ qua
     }
-  }, [hasLines, type])
+  }, [hasLines, type, preview])
 
   if (cart.lines.length === 0)
     return (
@@ -173,6 +244,7 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath, branches
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (preview || busy || quoting || !quote) return
     const f = new FormData(e.currentTarget)
     setBusy(true)
     setError(null)
@@ -182,6 +254,7 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath, branches
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           cartId: cart.id,
+          quoteKey: quote.quoteKey,
           items,
           customer: { name: f.get('name'), phone: f.get('phone'), email: f.get('email'), address: f.get('address'), note: f.get('note') },
           fulfillment: { type, ...(type === 'pickup' && branchId && { branchId }) },
@@ -200,6 +273,7 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath, branches
       }
       const known = body?.code === 'bad_request' || body?.code === 'out_of_stock' || body?.code === 'product_not_found'
       if (body?.resetCart) renewCart()
+      if (body?.code === 'quote_changed') void runQuote()
       setError(body ? { code: body.code === 'bad_request' ? body.message : body.code, name: body.name, available: body.available, text: known ? undefined : body.message } : { code: 'network' })
     } catch {
       setError({ code: 'network' })
@@ -212,19 +286,16 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath, branches
   const total = quote?.total ?? cartTotal(cart)
 
   return (
-    <section className="sp-section">
+    <section className="sp-section sp-commerce">
       <div className="sp-wrap sp-checkout">
         {heading && <h2>{heading}</h2>}
-        <ul className="sp-cart sp-cart-summary">
-          {cart.lines.map((l) => (<li key={lineKey(l)}><span>{l.name} × {l.quantity}</span><strong>{vnd(l.price * l.quantity)}</strong></li>))}
-          {quote?.adjustments.map((a, n) => (<li key={n}><span>{a.label}</span><strong>{a.amount < 0 ? '−' : '+'}{vnd(Math.abs(a.amount))}</strong></li>))}
-        </ul>
-        <p className="sp-total">{t.total}: <strong>{vnd(total)}</strong></p>
-        <form className="sp-form" onSubmit={submit} ref={formRef}>
+        <div className="sp-checkout-body">
+        <form id={formId} className="sp-form" onSubmit={submit} ref={formRef}>
+          <h3>{locale === 'en' ? 'Contact details' : 'Thông tin người nhận'}</h3>
           <label>{t.name}<input name="name" required maxLength={120} autoComplete="name" /></label>
           <label>{t.phone}<input name="phone" required inputMode="tel" autoComplete="tel" /></label>
           <label>{t.email}<input name="email" type="email" autoComplete="email" /></label>
-          <fieldset>
+          <fieldset data-hs-part="fulfillment-options">
             <legend>{t.receive}</legend>
             <label className="sp-radio"><input type="radio" checked={type === 'delivery'} onChange={() => setType('delivery')} /> {t.delivery}</label>
             <label className="sp-radio"><input type="radio" checked={type === 'pickup'} onChange={() => setType('pickup')} /> {t.pickup}</label>
@@ -237,6 +308,7 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath, branches
             <button type="button" className="sp-btn" onClick={() => void runQuote()}>{t.apply}</button>
           </div>
           {quoteError && <p className="sp-note sp-error" role="alert">{quoteError}</p>}
+          {issues.length > 0 && <div className="sp-availability"><ul>{issues.map((issue) => <li key={`${issue.productId}:${issue.variantId || ''}`}>{issue.name || cart.lines.find((l) => l.productId === issue.productId)?.name}: {issue.code === 'out_of_stock' ? (locale === 'en' ? `Only ${issue.available ?? 0} available` : `Còn ${issue.available ?? 0}`) : (locale === 'en' ? 'Unavailable' : 'Không còn bán')}</li>)}</ul><button className="sp-link" type="button" onClick={() => { for (const issue of issues) { const k = lineKey(issue); if (issue.code === 'out_of_stock' && (issue.available ?? 0) > 0) setQuantity(k, issue.available!); else if (['out_of_stock', 'product_not_found'].includes(issue.code)) removeFromCart(k) } }}>{locale === 'en' ? 'Keep available items and review total' : 'Chỉ giữ phần còn hàng và xem lại tổng'}</button></div>}
           <fieldset>
             <legend>{t.pay}</legend>
             <label className="sp-radio"><input type="radio" checked={pay === 'cod'} onChange={() => setPay('cod')} /> {t.cod}</label>
@@ -245,15 +317,24 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath, branches
           </fieldset>
           <input className="sp-hp" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" />
           {error && <p className="sp-note sp-error" role="alert">{msg(error)} {t.keep}</p>}
-          <button className="sp-btn" disabled={busy || Boolean(quoteError)}>{busy ? t.placing : t.place}</button>
         </form>
+        <aside className="sp-cart-totals" data-hs-part="checkout-summary" aria-busy={quoting}>
+          <h3>{locale === 'en' ? 'Your order' : 'Đơn hàng của bạn'}</h3>
+          <ul className="sp-checkout-lines">{cart.lines.map((l) => (<li key={lineKey(l)} data-hs-part="checkout-line"><ProductImage src={l.image} name={l.name} /><div><strong>{l.name}</strong><span className="sp-meta">{t.qty}: {l.quantity}</span><span>{vnd(l.price * l.quantity)}</span></div></li>))}</ul>
+          <dl>{quote?.adjustments.map((a, n) => (<div key={n}><dt>{a.label}</dt><dd>{a.amount < 0 ? '−' : '+'}{vnd(Math.abs(a.amount))}</dd></div>))}</dl>
+          <div className="sp-summary-total"><span>{t.total}</span><strong aria-live="polite">{vnd(total)}</strong></div>
+          <ShipmentSummary groups={quote?.shipments} items={quote?.items || cart.lines} payment={pay} en={locale === 'en'} />
+          <button type="submit" form={formId} className="sp-btn sp-action sp-checkout-action" disabled={preview || busy || quoting || !quote || Boolean(quoteError)}>{busy ? t.placing : quoting ? (locale === 'en' ? 'Checking prices…' : 'Đang kiểm tra giá…') : t.place}</button>
+          <a className="sp-action sp-back" href={preview ? undefined : href(cartPath)}><ArrowLeft size={16} />{t.view}</a>
+        </aside>
+        </div>
       </div>
     </section>
   )
 }
 
-type Order = { id: string; status: string; total: number; subtotal: number; adjustments: { label: string; amount: number }[]; payment: string; paymentStatus: string; items: { name: string; quantity: number; price: number }[] }
-type Extras = { payment?: { qrUrl?: string; note?: string } }
+type Order = { id: string; status: string; total: number; subtotal: number; adjustments: { label: string; amount: number }[]; payment: string; paymentStatus: string; items: CartLine[]; shipments?: FulfillmentGroup[] }
+type Extras = OrderExtras
 
 export function OrderLookup({ heading }: { heading?: string }) {
   const { t, locale } = useS()
@@ -278,26 +359,27 @@ export function OrderLookup({ heading }: { heading?: string }) {
     }
   }, [])
 
-  return (
-    <section className="sp-section">
-      <div className="sp-wrap">
-        <h2>{heading || t.lookup}</h2>
-        <form className="sp-form" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); setIsNew(false); const id = String(f.get('id')).trim(); let token = String(f.get('token')).trim(); try { token ||= localStorage.getItem('hs_lookup_' + id) || '' } catch {} void find(id, token) }}>
+  const lookupForm = <form className="sp-form" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); setIsNew(false); const id = String(f.get('id')).trim(); let token = String(f.get('token')).trim(); try { token ||= localStorage.getItem('hs_lookup_' + id) || '' } catch {} void find(id, token) }}>
           <label>{t.orderNo}<input name="id" required maxLength={40} /></label>
           <label>{locale === 'en' ? 'Order access code' : 'Mã bảo mật tra cứu đơn'}<input name="token" autoComplete="off" maxLength={64} /></label>
           <button className="sp-btn">{t.go}</button>
         </form>
+
+  return (
+    <section className="sp-section">
+      <div className="sp-wrap">
+        <h2>{heading || t.lookup}</h2>
+        {!order && lookupForm}
         {order === null && <p className="sp-note sp-error" role="alert">{t.notFound}</p>}
         {order && (
           <div className="sp-order" role="status">
             {isNew && <p><strong>{t.done} {order.id}</strong><br />{t.keepCode}</p>}
             {isNew && <p>{locale === 'en' ? 'Keep this private order access code:' : 'Lưu mã bảo mật tra cứu đơn:'} <code style={{ overflowWrap: 'anywhere' }}>{accessCode}</code></p>}
             <p>{t.orderNo}: <strong>{order.id}</strong> · {t.status}: <strong>{t.statuses[order.status] ?? order.status}</strong> · {t.payStatus}: <strong>{t.payStatuses[order.paymentStatus] ?? order.paymentStatus}</strong></p>
-            <ul className="sp-cart sp-cart-summary">
-              {order.items.map((i, n) => (<li key={n}><span>{i.name} × {i.quantity}</span><strong>{vnd(i.price * i.quantity)}</strong></li>))}
-              {order.adjustments.map((a, n) => (<li key={`a${n}`}><span>{a.label}</span><strong>{a.amount < 0 ? '−' : '+'}{vnd(Math.abs(a.amount))}</strong></li>))}
-            </ul>
+            <ul className="sp-checkout-lines">{order.items.map((i, n) => (<li key={n}><ProductImage src={i.image} name={i.name} /><div><strong>{i.name}</strong><span>{t.qty}: {i.quantity}</span><strong>{vnd(i.price * i.quantity)}</strong></div></li>))}</ul>
+            <ul className="sp-cart sp-cart-summary">{order.adjustments.map((a, n) => (<li key={`a${n}`}><span>{a.label}</span><strong>{a.amount < 0 ? '−' : '+'}{vnd(Math.abs(a.amount))}</strong></li>))}</ul>
             <p className="sp-total">{t.total}: <strong>{vnd(order.total)}</strong></p>
+            <ShipmentSummary groups={order.shipments} items={order.items} payment={order.payment} en={locale === 'en'} tracking={extras.shipments} />
             {order.paymentStatus !== 'paid' && order.payment === 'bank' && extras.payment && (
               <div className="sp-qr">
                 {extras.payment.qrUrl && <img src={extras.payment.qrUrl} alt={t.qr} width={240} height={240} referrerPolicy="no-referrer" />}
@@ -306,6 +388,7 @@ export function OrderLookup({ heading }: { heading?: string }) {
             )}
           </div>
         )}
+        {order && <details className="sp-lookup-another"><summary>{locale === 'en' ? 'Look up another order' : 'Tra cứu đơn hàng khác'}</summary>{lookupForm}</details>}
       </div>
     </section>
   )

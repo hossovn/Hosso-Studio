@@ -13,7 +13,9 @@
     "test": "node --experimental-strip-types --import ./test/register.mjs --test test/*.test.mjs"
   },
   "dependencies": {
-    "@hosso/studio-blocks": "workspace:*"
+    "@hosso/studio-blocks": "workspace:*",
+    "@hosso/plugin-shop": "workspace:*",
+    "lucide-react": "^1.60.0"
   },
   "peerDependencies": {
     "react": "19.3.1"

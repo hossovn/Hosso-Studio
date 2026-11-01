@@ -377,9 +377,10 @@ assert.deepEqual(await actions.listPreviewProducts('shop', '', 'vi'), { items: [
 
 let accountPreview = null
 const { Portal } = compile('../packages/plugin-affiliate/src/Portal.tsx', {
+  './AssistedOrder': compile('../packages/plugin-affiliate/src/AssistedOrder.tsx', {}),
   '@hosso/studio-blocks': { useEditorPreview: () => accountPreview, useLocale: () => ({ locale: 'en', defaultLocale: 'en' }) },
 })
-assert.equal(renderToStaticMarkup(React.createElement(Portal)), '')
+assert.match(renderToStaticMarkup(React.createElement(Portal)), /role="status">Loading your account/)
 accountPreview = preview
 const partner = renderToStaticMarkup(React.createElement(Portal))
 assert.match(partner, /Preview Partner/)

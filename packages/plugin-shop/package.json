@@ -9,6 +9,7 @@
     "./server": "./src/endpoints.ts",
     "./stock": "./src/stock.ts",
     "./cart": "./src/cart.ts",
+    "./blocks": "./src/blocks.ts",
     "./loaders": "./src/loaders.ts",
     "./renderers": "./src/renderers.tsx",
     "./product-content": "./src/product-content.ts",
@@ -16,7 +17,7 @@
     "./admin-list": "./src/admin-list.tsx"
   },
   "scripts": { "typecheck": "tsc -p ." },
-  "dependencies": { "@hosso/studio-blocks": "workspace:*" },
+  "dependencies": { "@hosso/studio-blocks": "workspace:*", "lucide-react": "^1.60.0" },
   "peerDependencies": { "react": "19.3.1" },
   "devDependencies": { "@payloadcms/ui": "3.91.0", "@types/react": "19.3.0", "payload": "3.91.0", "react": "19.3.1", "typescript": "5.9.3" }
 }

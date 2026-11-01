@@ -47,5 +47,8 @@
       "esbuild",
       "unrs-resolver"
     ]
+  },
+  "devDependencies": {
+    "happy-dom": "^20.14.6"
   }
 }
