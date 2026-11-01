@@ -1,7 +1,7 @@
 'use client'
 import { localizeHref, useLocale, useEditorPreview, type FulfillmentGroup, type OrderExtras } from '@hosso/studio-blocks'
 import React, { useState } from 'react'
-import { ArrowLeft, ArrowRight, ImageOff, Minus, Plus, ShoppingBag, Trash2, Undo2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CircleCheck, ImageOff, Minus, Plus, ShoppingBag, Trash2, Undo2 } from 'lucide-react'
 import { addToCart, cartCount, cartTotal, consumeCart, checkoutIdentity, renewCart, lineKey, removeFromCart, refreshCart, setQuantity, useCart, type CartLine } from '../cart'
 import { vnd } from '../util'
 
@@ -387,26 +387,38 @@ export function OrderLookup({ heading }: { heading?: string }) {
         </form>
 
   return (
-    <section className="sp-section">
+    <section className="sp-section sp-order-page">
       <div className="sp-wrap">
-        <h2>{heading || t.lookup}</h2>
+        {(!order || !isNew) && <h2>{heading || t.lookup}</h2>}
         {!order && lookupForm}
         {order === null && <p className="sp-note sp-error" role="alert">{t.notFound}</p>}
         {order && (
-          <div className="sp-order" role="status">
-            {isNew && <header className="sp-receipt-head"><span className="sp-meta">{locale === 'en' ? 'ORDER RECEIVED' : 'ĐÃ NHẬN ĐƠN HÀNG'}</span><h3>{locale === 'en' ? 'Thank you for your order' : 'Cảm ơn bạn đã đặt hàng'}</h3><p>{locale === 'en' ? 'The store will confirm and prepare your order. You can continue shopping now.' : 'Cửa hàng sẽ xác nhận và chuẩn bị đơn. Bạn có thể tiếp tục mua sắm ngay.'}</p><div className="sp-receipt-actions"><a className="sp-btn" href={href('/san-pham')}>{t.continue}<ArrowRight size={16} /></a><a className="sp-link" href={`?${new URLSearchParams({ id: order.id, token: accessCode })}`}>{locale === 'en' ? 'View order' : 'Xem đơn hàng'}</a></div></header>}
-            {isNew && <details className="sp-receipt-code"><summary>{locale === 'en' ? 'Private order access code' : 'Mã bảo mật tra cứu đơn'}</summary><p>{t.keepCode}</p><code style={{ overflowWrap: 'anywhere' }}>{accessCode}</code></details>}
-            <p>{t.orderNo}: <strong>{order.id}</strong> · {t.status}: <strong>{t.statuses[order.status] ?? order.status}</strong> · {t.payStatus}: <strong>{t.payStatuses[order.paymentStatus] ?? order.paymentStatus}</strong></p>
-            <ul className="sp-checkout-lines">{order.items.map((i, n) => (<li key={n}><ProductImage src={i.image} name={i.name} /><div><strong>{i.name}</strong><span>{t.qty}: {i.quantity}</span><strong>{vnd(i.price * i.quantity)}</strong></div></li>))}</ul>
-            <ul className="sp-cart sp-cart-summary">{order.adjustments.map((a, n) => (<li key={`a${n}`}><span>{a.label}</span><strong>{a.amount < 0 ? '−' : '+'}{vnd(Math.abs(a.amount))}</strong></li>))}</ul>
-            <p className="sp-total">{t.total}: <strong>{vnd(order.total)}</strong></p>
-            <ShipmentSummary groups={order.shipments} items={order.items} payment={order.payment} en={locale === 'en'} tracking={extras.shipments} />
+          <div className="sp-order sp-order-receipt">
+            {isNew && <header className="sp-receipt-head">
+              <span className="sp-receipt-icon" aria-hidden="true"><CircleCheck size={28} /></span>
+              <div className="sp-receipt-intro"><span className="sp-receipt-eyebrow" role="status">{locale === 'en' ? 'ORDER RECEIVED' : 'ĐÃ NHẬN ĐƠN HÀNG'}</span><h3>{locale === 'en' ? 'Thank you for your order' : 'Cảm ơn bạn đã đặt hàng'}</h3><p>{locale === 'en' ? 'The store will confirm and prepare your order. You can continue shopping now.' : 'Cửa hàng sẽ xác nhận và chuẩn bị đơn. Bạn có thể tiếp tục mua sắm ngay.'}</p>
+                <div className="sp-receipt-actions"><a className="sp-btn sp-action" href={href('/san-pham')}>{t.continue}<ArrowRight size={16} aria-hidden="true" /></a><a className="sp-link" href="#sp-order-details">{locale === 'en' ? 'View order details' : 'Xem chi tiết đơn'}</a></div>
+              </div>
+            </header>}
+            <div className="sp-receipt-layout">
+              <div className="sp-receipt-products" id="sp-order-details">
+                <h3>{locale === 'en' ? 'Order details' : 'Chi tiết đơn hàng'}<span>{order.items.reduce((sum, item) => sum + item.quantity, 0)} {locale === 'en' ? 'items' : 'sản phẩm'}</span></h3>
+                <ul className="sp-checkout-lines">{order.items.map((i, n) => (<li key={n}><ProductImage src={i.image} name={i.name} /><div><strong>{i.name}</strong><span>{t.qty}: {i.quantity}</span></div><strong className="sp-receipt-price">{vnd(i.price * i.quantity)}</strong></li>))}</ul>
+                <dl className="sp-receipt-totals"><div><dt>{locale === 'en' ? 'Subtotal' : 'Tạm tính'}</dt><dd>{vnd(order.subtotal)}</dd></div>{order.adjustments.map((a, n) => (<div key={n}><dt>{a.label}</dt><dd>{a.amount < 0 ? '−' : '+'}{vnd(Math.abs(a.amount))}</dd></div>))}<div className="sp-receipt-total"><dt>{t.total}</dt><dd>{vnd(order.total)}</dd></div></dl>
+                <ShipmentSummary groups={order.shipments} items={order.items} payment={order.payment} en={locale === 'en'} tracking={extras.shipments} />
+              </div>
+              <aside className="sp-receipt-info" aria-label={locale === 'en' ? 'Order information' : 'Thông tin đơn hàng'}>
+                <div className="sp-receipt-id"><span>{t.orderNo}</span><strong>{order.id}</strong></div>
+                <dl className="sp-receipt-status"><div><dt>{t.status}</dt><dd><span className="sp-receipt-badge">{t.statuses[order.status] ?? order.status}</span></dd></div><div><dt>{t.payStatus}</dt><dd>{t.payStatuses[order.paymentStatus] ?? order.paymentStatus}</dd></div><div><dt>{locale === 'en' ? 'Payment method' : 'Phương thức'}</dt><dd>{order.payment === 'bank' ? (locale === 'en' ? 'Bank transfer' : 'Chuyển khoản') : (locale === 'en' ? 'Cash on delivery' : 'Thanh toán khi nhận hàng')}</dd></div></dl>
+                <details className="sp-receipt-code"><summary>{locale === 'en' ? 'Private order access code' : 'Mã bảo mật tra cứu đơn'}</summary><p>{t.keepCode}</p><code>{accessCode}</code></details>
             {order.paymentStatus !== 'paid' && order.payment === 'bank' && extras.payment && (
               <div className="sp-qr">
                 {extras.payment.qrUrl && <img src={extras.payment.qrUrl} alt={t.qr} width={240} height={240} referrerPolicy="no-referrer" />}
                 {extras.payment.note && <p style={{ whiteSpace: 'pre-line' }}>{extras.payment.note}</p>}
               </div>
             )}
+              </aside>
+            </div>
           </div>
         )}
         {order && <details className="sp-lookup-another"><summary>{locale === 'en' ? 'Look up another order' : 'Tra cứu đơn hàng khác'}</summary>{lookupForm}</details>}
