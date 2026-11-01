@@ -44,4 +44,29 @@ if (!process.execArgv.includes('--conditions=react-server')) {
     assert.ok(output.includes(`"preview":${preview}`))
   }
   console.log('PASS: actual ShopCart renderer serializes through React Flight, preserves options and excludes editor callbacks')
+  const affiliatePath = fileURLToPath(new URL('../packages/plugin-affiliate/src/client.ts', import.meta.url))
+  const affiliateModule = new Module(affiliatePath)
+  affiliateModule.filename = affiliatePath
+  affiliateModule.paths = Module._nodeModulePaths(dirname(affiliatePath))
+  const affiliateStubs = {
+    '@hosso/studio-blocks': {},
+    '../hosso.json': {},
+    './Portal': { Portal: client('Portal') },
+    './RefCapture': { RefCapture: client('RefCapture') },
+    './styles': { css: '' },
+  }
+  affiliateModule.require = id => Object.hasOwn(affiliateStubs, id) ? affiliateStubs[id] : require(id)
+  affiliateModule._compile(ts.transpileModule(readFileSync(affiliatePath, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText, affiliatePath)
+  const PortalRenderer = affiliateModule.exports.default.fallbackRenderers.AffiliatePortal
+  const portalOptions = { heading: 'Cổng cộng tác viên', navigation: 'tabs', showAssisted: 'no', showWithdrawals: 'yes', policyText: 'Hoa hồng 15%' }
+  for (const preview of [false, true]) {
+    const errors = []
+    const stream = await renderToReadableStream(React.createElement(PortalRenderer, { ...portalOptions, id: 'partners', _noFree: preview, puck, data: { unusedCallback() {} } }), { 'shop-client#Portal': { id: 'shop-client', chunks: [], name: 'Portal' } }, { onError: error => { errors.push(error.message) } })
+    const output = await new Response(stream).text()
+    assert.deepEqual(errors, [], 'AffiliatePortal must not send Puck callbacks to its client component')
+    assert.doesNotMatch(output, /renderDropZone|unusedCallback|dragRef/)
+    for (const value of Object.values(portalOptions)) assert.ok(output.includes(value), `Preserve portal option: ${value}`)
+    assert.ok(output.includes(`"canvasPreview":${preview}`))
+  }
+  console.log('PASS: actual AffiliatePortal renderer crosses React Flight without editor callbacks')
 }
