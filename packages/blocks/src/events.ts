@@ -1,5 +1,6 @@
 import type { Payload } from 'payload'
 import type { BeforeOrderEvent, DescribeOrderEvent, HossoPlugin, OrderDraft, OrderExtras, OrderPaidEvent, OrderPlacedEvent, OrderStatusChangedEvent } from './types'
+import { enqueueCommerceEvent } from './durable-events'
 
 const pluginsOf = (payload: Payload) => (payload.config.custom?.hossoPlugins ?? []) as HossoPlugin[]
 
@@ -36,9 +37,9 @@ export async function emitOrderPlaced(payload: Payload, e: Omit<OrderPlacedEvent
   return { redirectUrl }
 }
 
-export const emitOrderStatusChanged = (payload: Payload, e: Omit<OrderStatusChangedEvent, 'payload'>) => each<OrderStatusChangedEvent>({ ...e, payload }, (p) => p.hooks?.onOrderStatusChanged, 'onOrderStatusChanged')
+export const emitOrderStatusChanged = (payload: Payload, e: Omit<OrderStatusChangedEvent, 'payload'>) => enqueueCommerceEvent(payload, 'onOrderStatusChanged', e, `${e.source}:${e.order.id}:${e.from}:${e.to}:${e.eventId || crypto.randomUUID()}`, e.request)
 
-export const emitOrderPaid = (payload: Payload, e: Omit<OrderPaidEvent, 'payload'>) => each<OrderPaidEvent>({ ...e, payload }, (p) => p.hooks?.onOrderPaid, 'onOrderPaid')
+export const emitOrderPaid = (payload: Payload, e: Omit<OrderPaidEvent, 'payload'>) => enqueueCommerceEvent(payload, 'onOrderPaid', e, `${e.source}:${e.orderNo}:${e.reference || 'payment'}`, e.request)
 
 /** Gom thông tin hiển thị thêm cho khách khi tra cứu đơn. */
 export async function collectOrderExtras(payload: Payload, order: DescribeOrderEvent['order']) {

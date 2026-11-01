@@ -122,7 +122,7 @@ export type BlockLoader = (props: Record<string, any>, ctx: LoadContext) => Prom
  * nên mã plugin không được import module chỉ có ở Node lúc chạy (dùng Web Crypto, fetch).
  */
 /** Một dòng hàng trong đơn. */
-export type OrderLine = { productId: string; variantId?: string; name: string; code?: string; price: number; quantity: number; source?: string; remoteId?: string; image?: string; priceSource?: string; priceGroup?: string }
+export type OrderLine = { productId: string; variantId?: string; name: string; code?: string; price: number; sourcePrice?: number; quantity: number; source?: string; remoteId?: string; image?: string; priceSource?: string; priceGroup?: string }
 
 /** Khoản cộng/trừ vào tổng đơn do plugin thêm (phí ship > 0, giảm giá < 0). */
 export type OrderAdjustment = { label: string; amount: number; source: string; scope?: 'goods' | 'shipping' }
@@ -172,10 +172,10 @@ export type OrderPlacedEvent = {
 /** Hook `onOrderPlaced` có thể trả `{ redirectUrl }` để đưa khách sang cổng thanh toán. */
 export type OrderPlacedResult = void | { redirectUrl?: string }
 
-export type OrderStatusChangedEvent = { payload: Payload; request?: PayloadRequest; order: { id: string; total: number; status: string; customer?: OrderCustomer }; from: string; to: string; source: string }
+export type OrderStatusChangedEvent = { payload: Payload; request?: PayloadRequest; eventId?: string; order: { id: string; total: number; status: string; customer?: OrderCustomer }; from: string; to: string; source: string }
 
 /** Plugin thanh toán báo đơn đã được thanh toán. Plugin bán hàng đánh dấu đơn, plugin thông báo gửi tin. */
-export type OrderPaidEvent = { payload: Payload; request?: PayloadRequest; orderNo: string; amount: number; reference?: string; source: string }
+export type OrderPaidEvent = { payload: Payload; request?: PayloadRequest; eventId?: string; orderNo: string; amount: number; reference?: string; source: string }
 
 /** Plugin bổ sung thông tin hiển thị cho khách khi tra cứu đơn (ví dụ mã QR chuyển khoản). */
 export type DescribeOrderEvent = { payload: Payload; order: { id: string; total: number; status: string; payment: string; paymentStatus: string } }
@@ -185,6 +185,15 @@ export type HossoPlugin = {
   id: string
   /** Source confirmation gates fulfillment/payment; a durable local receipt may precede it. */
   commerce?: {
+    recordPayment?: (payload: Payload, input: { orderNo: string; total: number; reference: string; reason: string }, request: PayloadRequest) => Promise<void>
+    recordRefund?: (request: PayloadRequest, input: { orderNo: string; amount: number; reference: string; reason: string }) => Promise<{ refundDue: number; refundedAmount: number }>
+    processingGroups?: (payload: Payload, draft: OrderDraft) => Promise<{ key: string; label: string; items: OrderLine[]; data: Record<string, any> }[]>
+    processGroup?: (payload: Payload, group: { key: string; data: Record<string, any>; reservationExpiresAt?: string; draft: OrderDraft & { id: string; checkoutKey?: string } }) => Promise<{ id: string; status: string; total?: number; [key: string]: unknown }>
+    cancelGroup?: (payload: Payload, group: { key: string; data: Record<string, any>; result?: Record<string, any> }) => Promise<void>
+    commitGroup?: (payload: Payload, group: { key: string; data: Record<string, any>; result: Record<string, any>; draft: OrderDraft }) => Promise<Record<string, any>>
+    fulfillGroup?: (payload: Payload, group: { key: string; data: Record<string, any>; result: Record<string, any>; stage: 'shipping' | 'completed' }) => Promise<Record<string, any>>
+    revisePayment?: (req: PayloadRequest, orderNo: string, total: number) => Promise<{ paidAmount: number; refundDue: number; paymentStatus: 'paid' | 'unpaid' }>
+    notifyShortage?: (payload: Payload, orderNo: string, request: PayloadRequest) => Promise<void>
     syncCatalog?: (payload: Payload) => Promise<void>
     resolveProduct?: (payload: Payload, product: Record<string, any>, quantity: number, fulfillment: OrderDraft['fulfillment']) => Promise<{ source: string; remoteId: string; price: number; stock: number; stockUnmanaged?: boolean } | undefined>
     submitOrder?: (payload: Payload, order: OrderDraft & { id: string; checkoutKey?: string }) => Promise<unknown>

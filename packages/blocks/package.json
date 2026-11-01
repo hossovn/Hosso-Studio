@@ -6,6 +6,10 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./server-security": "./src/server-security.ts",
+    "./durable-events": "./src/durable-events.ts",
+    "./transactions": "./src/transactions.ts",
+    "./rate-limits": "./src/rate-limits.ts",
     "./swiper.css": "./src/swiper.css"
   },
   "scripts": {

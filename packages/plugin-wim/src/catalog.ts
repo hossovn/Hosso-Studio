@@ -85,6 +85,41 @@ export async function upsertWimProduct(payload: Payload, product: Product, categ
 }
 
 export const commerce: NonNullable<HossoPlugin['commerce']> = {
+  commitGroup: async (payload, group) => {
+    const cfg = await getWimConfig(payload)
+    if (!cfg) throw new Error('WIM is not configured')
+    const source = await wimFetch<any>(cfg, '/v1/orders/by-key/commit', { method: 'POST', body: { key: group.key } })
+    if (source.id !== group.result.id || source.reservationCommitted !== true) throw new Error('WIM commitment is not confirmed')
+    return { ...group.result, ...source }
+  },
+  fulfillGroup: async (payload, group) => {
+    const cfg = await getWimConfig(payload)
+    if (!cfg) throw new Error('WIM is not configured')
+    const source = await wimFetch<any>(cfg, '/v1/orders/by-key/fulfill', { method: 'POST', body: { key: group.key, stage: group.stage } })
+    if (source.id !== group.result.id || source.fulfillmentStage !== group.stage) throw new Error('WIM dispatch outcome differs')
+    return { ...group.result, ...source }
+  },
+  processGroup: async (payload, group) => {
+    const cfg = await getWimConfig(payload)
+    if (!cfg) throw new Error('WIM is not configured')
+    const capabilities = await wimFetch<any>(cfg, '/v1/commerce/capabilities')
+    if (capabilities.version !== 1 || !capabilities.atomicReservation || !capabilities.idempotentEnsure || !capabilities.cancelByKey || !capabilities.commit || !capabilities.reservationExpiry) throw new Error('WIM reservation contract upgrade required')
+    const order = group.draft
+    const body = { items: order.items.map(line => ({ productId: line.remoteId!, quantity: line.quantity, expectedUnitPrice: line.sourcePrice ?? line.price })), customer: { name: order.customer.name, phone: order.customer.phone, ...(order.customer.address && { address: order.customer.address }) }, fulfillment: order.fulfillment, ...(group.reservationExpiresAt && { reservationExpiresAt: group.reservationExpiresAt }) }
+    let created: Order
+    try { created = await wimFetch<Order>(cfg, '/v1/orders', { method: 'POST', body, headers: { 'Idempotency-Key': group.key } }) }
+    catch (error) {
+      if (error instanceof WimError && error.status === 409 && ['out_of_stock', 'price_changed', 'order_cancelled'].includes(error.code || '')) Object.assign(error, { definitive: true })
+      throw error
+    }
+    if (!created.id || created.items?.length !== body.items.length || !order.items.every(line => created.items.some(remote => remote.productId === line.remoteId && remote.quantity === line.quantity && remote.unitPrice === (line.sourcePrice ?? line.price)))) throw new Error('WIM reservation snapshot differs')
+    return { id: created.id, status: created.status, total: created.total }
+  },
+  cancelGroup: async (payload, group) => {
+    const cfg = await getWimConfig(payload)
+    if (!cfg) throw new Error('WIM is not configured')
+    await wimFetch(cfg, '/v1/orders/by-key/cancel', { method: 'POST', body: { key: group.key } })
+  },
   syncCatalog: syncWimCatalog,
   resolveProduct: async (payload, product, _quantity, fulfillment) => {
     if (!product.wimId || product.source === 'cross-sell') return
@@ -102,7 +137,7 @@ export const commerce: NonNullable<HossoPlugin['commerce']> = {
   submitOrder: async (payload, order) => {
     const cfg = await getWimConfig(payload)
     if (!cfg) throw new Error('WIM is not configured')
-    const body = { items: order.items.map((i) => ({ productId: i.remoteId!, quantity: i.quantity })), customer: order.customer, fulfillment: order.fulfillment }
+    const body = { items: order.items.map((i) => ({ productId: i.remoteId!, quantity: i.quantity })), customer: { name: order.customer.name, phone: order.customer.phone, ...(order.customer.address && { address: order.customer.address }) }, fulfillment: order.fulfillment }
     const key = await idempotencyKey(order.checkoutKey || order.id, body)
     let created: Order
     try { created = await wimFetch<Order>(cfg, '/v1/orders', { method: 'POST', body, headers: { 'Idempotency-Key': key } }) }

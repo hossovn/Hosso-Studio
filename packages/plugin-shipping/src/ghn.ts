@@ -1,4 +1,5 @@
 import type { Payload } from 'payload'
+import { createHash } from 'node:crypto'
 
 // Tích hợp Giao Hàng Nhanh (GHN) API v2. Token đọc từ HOSSO_GHN_TOKEN (không lưu trong DB), các cài đặt còn lại ở global `shipping-settings`.
 // Tài liệu: https://api.ghn.vn/home/docs/detail?id=122 (tạo đơn), id=47 (callback trạng thái).
@@ -12,6 +13,7 @@ export type GhnConfig = { token: string; shopId: number; baseUrl: string; weight
 export type Shipment = {
   id: number | string
   orderId: string
+  shipmentKey?: string
   customerName?: string
   phone?: string
   address?: string
@@ -49,6 +51,7 @@ async function call<T>(cfg: GhnConfig, path: string, body?: unknown, method: 'GE
     headers: { Token: cfg.token, ShopId: String(cfg.shopId), 'Content-Type': 'application/json' },
     body: method === 'POST' ? JSON.stringify(body ?? {}) : undefined,
     signal: AbortSignal.timeout(10_000),
+    redirect: 'error',
   })
   const json = (await res.json().catch(() => null)) as { code?: number; message?: string; code_message_value?: string; data?: T } | null
   if (!res.ok || !json || json.code !== 200) throw new Error(`GHN: ${json?.code_message_value || json?.message || res.status}`)
@@ -103,7 +106,7 @@ export async function createGhnOrder(cfg: GhnConfig, s: Shipment) {
     payment_type_id: 1,
     required_note: cfg.requiredNote,
     service_type_id: 2,
-    client_order_code: s.orderId,
+    client_order_code: 'hs-' + createHash('sha256').update(s.shipmentKey || `${s.orderId}:${s.id}`).digest('hex').slice(0, 40),
     to_name: s.customerName,
     to_phone: s.phone,
     to_address: s.address,

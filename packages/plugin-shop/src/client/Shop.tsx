@@ -354,7 +354,7 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath, branches
   )
 }
 
-type Order = { id: string; status: string; total: number; subtotal: number; adjustments: { label: string; amount: number }[]; payment: string; paymentStatus: string; items: CartLine[]; shipments?: FulfillmentGroup[] }
+type Order = { id: string; status: string; approvalState?: string; workflowState?: string; reservationExpiresAt?: string; decisionRevision?: number; total: number; subtotal: number; adjustments: { label: string; amount: number }[]; payment: string; paymentStatus: string; items: CartLine[]; shipments?: FulfillmentGroup[] }
 type Extras = OrderExtras
 
 export function OrderLookup({ heading }: { heading?: string }) {
@@ -363,14 +363,40 @@ export function OrderLookup({ heading }: { heading?: string }) {
   const [extras, setExtras] = useState<Extras>({})
   const [isNew, setIsNew] = useState(false)
   const [accessCode, setAccessCode] = useState('')
+  const [availability, setAvailability] = useState<{ state: string; items: { name: string; quantity: number }[] }[]>([])
+  const [deciding, setDeciding] = useState(false)
+  const [decisionError, setDecisionError] = useState('')
+  const lookupRequest = React.useRef<AbortController | null>(null)
 
   const find = async (id: string, token: string) => {
+    lookupRequest.current?.abort()
+    const controller = new AbortController()
+    lookupRequest.current = controller
     setAccessCode(token)
-    const r = await fetch(`/api/plugins/shop/order?${new URLSearchParams({ id, token })}`).catch(() => null)
+    const r = await fetch(`/api/plugins/shop/order?${new URLSearchParams({ id, token })}`, { signal: controller.signal, cache: 'no-store' }).catch(() => null)
     const j = r?.ok ? await r.json() : null
+    if (controller.signal.aborted) return
     setOrder(j?.order ?? null)
     setExtras(j?.extras ?? {})
+    setAvailability(j?.availability ?? [])
   }
+  const decide = async (decision: string) => {
+    if (!order || deciding) return
+    lookupRequest.current?.abort()
+    setDeciding(true); setDecisionError('')
+    try {
+      const res = await fetch('/api/plugins/shop/order-decision', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: order.id, token: accessCode, revision: order.decisionRevision || 0, decision }) })
+      if (!res.ok) setDecisionError(locale === 'en' ? 'The order changed. Review the refreshed order.' : 'Đơn đã thay đổi hoặc hết thời gian giữ hàng. Vui lòng xem lại thông tin mới.')
+      await find(order.id, accessCode)
+    } catch { setDecisionError(locale === 'en' ? 'Connection lost. Reload to check your choice.' : 'Mất kết nối. Tải lại đơn để kiểm tra lựa chọn của bạn.') }
+    finally { setDeciding(false) }
+  }
+  React.useEffect(() => {
+    if (!order || !accessCode || deciding || !['processing', 'awaiting_customer', 'cancelling', 'fulfilling'].includes(order.workflowState || '')) return
+    const until = Date.now() + 30 * 60000
+    const timer = setInterval(() => { if (!document.hidden && Date.now() < until) void find(order.id, accessCode) }, 10000)
+    return () => { clearInterval(timer); lookupRequest.current?.abort() }
+  }, [order?.id, order?.workflowState, accessCode, deciding])
   // Mở từ trang đặt hàng thành công bằng mã tra cứu riêng.
   React.useEffect(() => {
     const q = new URLSearchParams(location.search)
@@ -402,6 +428,15 @@ export function OrderLookup({ heading }: { heading?: string }) {
             </header>}
             <div className="sp-receipt-layout">
               <div className="sp-receipt-products" id="sp-order-details">
+                {order.approvalState === 'awaiting' && <p className="sp-note" role="status">{locale === 'en' ? 'Awaiting store approval. You can place another order at any time.' : 'Đơn đang chờ cửa hàng xác nhận. Bạn vẫn có thể đặt thêm đơn mới bất cứ lúc nào.'}</p>}
+                {order.workflowState === 'awaiting_customer' && <section className="sp-availability" aria-busy={deciding}>
+                  <h3>{locale === 'en' ? 'Some items are unavailable' : 'Một phần đơn chưa đủ hàng'}</h3>
+                  <p>{locale === 'en' ? 'Available items are being held. Choose how to continue.' : 'Cửa hàng đang giữ phần còn hàng. Bạn chọn cách tiếp tục nhé.'}</p>
+                  <ul>{availability.map((group, index) => <li key={index}><strong>{['accepted', 'fulfilled'].includes(group.state) ? (locale === 'en' ? 'Available' : 'Đã giữ hàng') : (locale === 'en' ? 'Unavailable' : 'Chưa đủ hàng')}</strong>: {group.items.map(item => `${item.name} × ${item.quantity}`).join(', ')}</li>)}</ul>
+                  {order.reservationExpiresAt && <p>{locale === 'en' ? 'Held until: ' : 'Giữ đến: '}<time dateTime={order.reservationExpiresAt}>{new Date(order.reservationExpiresAt).toLocaleString(locale === 'en' ? 'en-GB' : 'vi-VN')}</time></p>}
+                  <div className="sp-receipt-actions"><button type="button" className="sp-btn" disabled={deciding} onClick={() => void decide('accept_available')}>{locale === 'en' ? 'Order available items' : 'Nhận phần còn hàng'}</button><button type="button" className="sp-link" disabled={deciding} onClick={() => void decide('cancel_all')}>{locale === 'en' ? 'Cancel this order' : 'Hủy toàn bộ đơn này'}</button></div>
+                  {decisionError && <p role="alert">{decisionError}</p>}
+                </section>}
                 <h3>{locale === 'en' ? 'Order details' : 'Chi tiết đơn hàng'}<span>{order.items.reduce((sum, item) => sum + item.quantity, 0)} {locale === 'en' ? 'items' : 'sản phẩm'}</span></h3>
                 <ul className="sp-checkout-lines">{order.items.map((i, n) => (<li key={n}><ProductImage src={i.image} name={i.name} /><div><strong>{i.name}</strong><span>{t.qty}: {i.quantity}</span></div><strong className="sp-receipt-price">{vnd(i.price * i.quantity)}</strong></li>))}</ul>
                 <dl className="sp-receipt-totals"><div><dt>{locale === 'en' ? 'Subtotal' : 'Tạm tính'}</dt><dd>{vnd(order.subtotal)}</dd></div>{order.adjustments.map((a, n) => (<div key={n}><dt>{a.label}</dt><dd>{a.amount < 0 ? '−' : '+'}{vnd(Math.abs(a.amount))}</dd></div>))}<div className="sp-receipt-total"><dt>{t.total}</dt><dd>{vnd(order.total)}</dd></div></dl>

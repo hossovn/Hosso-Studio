@@ -185,11 +185,15 @@ export const Orders: CollectionConfig = {
   labels: { singular: bi('Đơn hàng', 'Order'), plural: bi('Đơn hàng', 'Orders') },
   admin: { group: GROUP, useAsTitle: 'orderNo', defaultColumns: ['orderNo', 'customerName', 'phone', 'total', 'paymentStatus', 'status', 'createdAt'], components: { beforeListTable: ['@hosso/plugin-shop/admin-list#OrderTabs'] } },
   defaultSort: '-createdAt',
-  // Đơn chỉ được tạo qua endpoint thanh toán; quản trị viên xem và đổi trạng thái.
-  access: { read: manager, create: () => false, update: manager, delete: manager },
+  // All business changes go through versioned commands; admin UI flags are not authorization.
+  access: { read: ({ req }) => Boolean((req.user as Roled)?.roles?.includes('admin')), create: () => false, update: () => false, delete: () => false },
   hooks: {
     beforeChange: [async ({ data, originalDoc, operation, req }) => {
       if (operation !== 'update' || data.status !== 'cancelled' || originalDoc.status === 'cancelled') return data
+      if (originalDoc.workflowVersion === 1) {
+        if (!req.context.workflowCancellation) throw new Error('Use the order cancellation command')
+        return data
+      }
       if (!req.context.sourceRejected && originalDoc.checkoutDraft && !originalDoc.checkoutComplete && originalDoc.items?.some((i: any) => i.remoteId)) throw new Error('Reconcile the pending source order before cancelling')
       for (const [source, order] of Object.entries(originalDoc.sourceOrders ?? {})) {
         const cancel = ((req.payload.config.custom?.hossoPlugins ?? []) as HossoPlugin[]).find((p) => p.id === source)?.commerce?.cancelOrder
@@ -203,7 +207,7 @@ export const Orders: CollectionConfig = {
       async ({ doc, previousDoc, req, operation }) => {
         if (operation === 'update' && previousDoc?.status && previousDoc.status !== doc.status && !req.context.skipStatusEvent)
           await emitOrderStatusChanged(req.payload, { request: req, order: { id: doc.orderNo, total: doc.total, status: doc.status, customer: { name: doc.customerName, phone: doc.phone, address: doc.address, email: doc.email || undefined } }, from: previousDoc.status, to: doc.status, source: 'shop' })
-        if (operation !== 'update' || doc.status !== 'cancelled' || doc.restocked || req.context.skipRestock) return doc
+        if (operation !== 'update' || doc.status !== 'cancelled' || doc.workflowVersion === 1 || doc.restocked || req.context.skipRestock) return doc
         await inTransaction(req, async () => {
           const claimed = await req.payload.db.updateOne({ collection: 'shop-orders', req, where: { and: [{ id: { equals: doc.id } }, { restocked: { not_equals: true } }] }, data: { restocked: true }, options: { atomic: true } })
           if (claimed) for (const l of doc.items ?? []) await adjustStock(req.payload, String(l.productId), l.variantId || undefined, l.quantity, req)
@@ -214,6 +218,19 @@ export const Orders: CollectionConfig = {
   },
   fields: [
     { name: 'printLink', type: 'ui', admin: { components: { Field: '@hosso/plugin-shop/admin#PrintLink' } } },
+    { name: 'workflowVersion', type: 'number', admin: { hidden: true } },
+    { name: 'approvalState', type: 'select', options: ['awaiting', 'approved', 'rejected'], admin: { readOnly: true }, label: bi('Duyệt đơn', 'Approval') },
+    { name: 'approvedAt', type: 'date', admin: { readOnly: true } },
+    { name: 'approvedBy', type: 'text', admin: { readOnly: true } },
+    { name: 'workflowState', type: 'text', admin: { readOnly: true }, label: bi('Tiến độ xử lý', 'Processing progress') },
+    { name: 'fulfillmentIntent', type: 'select', options: ['shipping', 'completed'], admin: { readOnly: true } },
+    { name: 'processingPlan', type: 'json', admin: { hidden: true } },
+    { name: 'customerDecision', type: 'select', options: ['accept_available', 'cancel_all'], admin: { readOnly: true } },
+    { name: 'decisionAt', type: 'date', admin: { readOnly: true } },
+    { name: 'decisionRevision', type: 'number', defaultValue: 0, admin: { hidden: true } },
+    { name: 'reservationExpiresAt', type: 'date', admin: { readOnly: true } },
+    { name: 'originalTotal', type: 'number', admin: { readOnly: true } },
+    { name: 'refundDue', type: 'number', defaultValue: 0, admin: { readOnly: true } },
     { name: 'orderNo', type: 'text', unique: true, index: true, label: bi('Mã đơn', 'Order number'), admin: { position: 'sidebar', readOnly: true } },
     { name: 'cartId', type: 'text', unique: true, admin: { hidden: true } },
     { name: 'checkoutDraft', type: 'json', admin: { hidden: true } },
@@ -310,6 +327,7 @@ export const Settings: GlobalConfig = {
   admin: { group: GROUP },
   access: { read: () => true, update: manager },
   fields: [
+    { name: 'reservationMinutes', type: 'number', min: 5, max: 1440, defaultValue: 30, label: bi('Thời gian chờ khách khi thiếu hàng (phút)', 'Partial-order customer decision timeout (minutes)') },
     {
       name: 'showPrices',
       type: 'checkbox',

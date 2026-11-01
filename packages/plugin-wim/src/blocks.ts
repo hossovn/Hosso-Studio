@@ -1,4 +1,5 @@
 import type { BlockSchema } from '@hosso/studio-blocks'
+import { cart as shopCart, checkout as shopCheckout } from '@hosso/plugin-shop/blocks'
 
 // Block thương mại của plugin WIM (không thuộc lõi). Dữ liệu động đến qua loader (xem loaders.ts).
 export const vehicleSelector: BlockSchema<{ heading: string; targetPath: string }> = {
@@ -78,26 +79,14 @@ export const productDetail: BlockSchema<{ backPath: string; cartPath: string }> 
   defaultProps: { backPath: '/san-pham', cartPath: '/gio-hang' },
 }
 
-export const cart: BlockSchema<{ heading: string; checkoutPath: string; shopPath: string }> = {
+export const cart = { ...shopCart,
   type: 'WimCart',
   label: 'Giỏ hàng',
-  fields: {
-    heading: { type: 'text', label: 'Tiêu đề' },
-    checkoutPath: { type: 'text', label: 'Trang thanh toán (đường dẫn)' },
-    shopPath: { type: 'text', label: 'Trang sản phẩm (đường dẫn)' },
-  },
-  defaultProps: { heading: 'Giỏ hàng', checkoutPath: '/thanh-toan', shopPath: '/san-pham' },
 }
 
-export const checkout: BlockSchema<{ heading: string; statusPath: string; cartPath: string }> = {
+export const checkout = { ...shopCheckout,
   type: 'WimCheckout',
   label: 'Thanh toán (COD hoặc nhận tại chi nhánh)',
-  fields: {
-    heading: { type: 'text', label: 'Tiêu đề' },
-    statusPath: { type: 'text', label: 'Trang trạng thái đơn (đường dẫn)' },
-    cartPath: { type: 'text', label: 'Trang giỏ hàng (đường dẫn)' },
-  },
-  defaultProps: { heading: 'Đặt hàng', statusPath: '/trang-thai-don', cartPath: '/gio-hang' },
 }
 
 export const orderStatus: BlockSchema<{ heading: string }> = {

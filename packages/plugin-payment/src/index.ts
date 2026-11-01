@@ -1,6 +1,10 @@
-import { emitOrderPaid, orderTotal, licensed, type HossoPlugin, type PluginManifest, withLicense } from '@hosso/studio-blocks'
+import { orderTotal, licensed, type HossoPlugin, type PluginManifest, withLicense } from '@hosso/studio-blocks'
 import type { CollectionConfig, Config, Endpoint, GlobalConfig, Payload } from 'payload'
 import manifest from '../hosso.json'
+import { withCommerceEvents } from '@hosso/studio-blocks/durable-events'
+import { sameSecret } from './security'
+import { allocateUnmatched, receiptOrderNo, recordReceipt, recordRefund, Refunds, Transactions } from './ledger'
+import { inTransaction } from '@hosso/studio-blocks/transactions'
 
 type Roled = { roles?: string[] | null } | null | undefined
 const isAdmin = ({ req }: { req: { user?: unknown } }) => Boolean((req.user as Roled)?.roles?.includes('admin'))
@@ -30,18 +34,11 @@ const Payments: CollectionConfig = {
   labels: { singular: bi('Khoản thanh toán', 'Payment'), plural: bi('Khoản thanh toán', 'Payments') },
   admin: { group: GROUP, useAsTitle: 'orderNo', defaultColumns: ['orderNo', 'amount', 'status', 'paidAmount', 'paidAt'] },
   defaultSort: '-createdAt',
-  access: { read: manager, create: () => false, update: manager, delete: manager },
-  hooks: {
-    // Quản trị viên đổi sang "Đã nhận" thì coi như tiền đã về (xác nhận tay).
-    afterChange: [
-      async ({ doc, previousDoc, req, operation }) => {
-        if (operation === 'update' && doc.status === 'paid' && previousDoc?.status !== 'paid' && !req.context.fromWebhook)
-          await emitOrderPaid(req.payload, { request: req, orderNo: doc.orderNo, amount: doc.paidAmount || doc.amount, reference: 'manual', source: 'payment' })
-        return doc
-      },
-    ],
-  },
+  access: { read: isAdmin, create: () => false, update: () => false, delete: () => false },
   fields: [
+    { name: 'version', type: 'number', defaultValue: 0, admin: { hidden: true } },
+    { name: 'openingPaidAmount', type: 'number', defaultValue: 0, admin: { hidden: true } },
+    { name: 'refundedAmount', type: 'number', defaultValue: 0, min: 0, admin: { readOnly: true }, label: bi('Đã hoàn cho khách (đ)', 'Customer refunds (VND)') },
     { name: 'orderNo', type: 'text', required: true, unique: true, index: true, label: bi('Mã đơn', 'Order number'), admin: { readOnly: true } },
     { name: 'amount', type: 'number', required: true, label: bi('Số tiền cần thu (đ)', 'Amount due (VND)'), admin: { readOnly: true } },
     {
@@ -66,7 +63,6 @@ const getCfg = async (payload: Payload) => (await payload.findGlobal({ slug: SET
 const configured = (c: Cfg | null): c is Required<Pick<Cfg, 'bank' | 'accountNumber'>> & Cfg => Boolean(c?.bank && c?.accountNumber)
 
 async function ensurePayment(payload: Payload, order: { id: string; total: number }, payment?: string, req?: import('payload').PayloadRequest) {
-  if (payment !== 'bank' || !configured(await getCfg(payload))) return
   const existing = (await payload.find({ collection: 'payments' as any, where: { orderNo: { equals: order.id } }, limit: 1, depth: 0, overrideAccess: true, req })).docs[0] as any
   if (existing) {
     if (existing.amount !== order.total) throw new Error('Payment amount differs; reconcile the order')
@@ -80,11 +76,6 @@ async function ensurePayment(payload: Payload, order: { id: string; total: numbe
   }
 }
 
-// Ngân hàng thường bỏ dấu gạch và khoảng trắng trong nội dung chuyển khoản: so khớp theo chuỗi chỉ gồm chữ và số.
-const norm = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, '')
-
-type PaymentDoc = { id: number | string; orderNo: string; amount: number; status: string }
-
 const endpoints: Endpoint[] = [
   {
     // Webhook SePay: header "Authorization: Apikey <HOSSO_SEPAY_KEY>". Đăng ký URL /api/plugins/payment/sepay/webhook với SePay.
@@ -93,28 +84,19 @@ const endpoints: Endpoint[] = [
     handler: async (req) => {
       const key = process.env.HOSSO_SEPAY_KEY?.trim()
       if (!key) return Response.json({ success: false }, { status: 503 })
-      if (req.headers.get('authorization') !== `Apikey ${key}`) return Response.json({ success: false }, { status: 401 })
-      const b = ((await req.json?.().catch(() => null)) ?? {}) as { id?: number | string; transferType?: string; transferAmount?: number; content?: string; code?: string; referenceCode?: string }
-      if (b.transferType !== 'in' || !b.transferAmount) return Response.json({ success: true }) // tiền ra hoặc không có số tiền: bỏ qua
-      const haystack = norm(`${b.code ?? ''} ${b.content ?? ''}`)
-      const pending = (await req.payload.find({ collection: 'payments' as any, where: { status: { in: ['pending', 'underpaid'] } }, limit: 500, depth: 0, pagination: false, overrideAccess: true })).docs as unknown as PaymentDoc[]
-      const hit = pending.find((p) => haystack.includes(norm(p.orderNo)))
-      if (!hit) return Response.json({ success: true }) // không khớp đơn nào: ghi nhận đã nhận, không làm gì
-      const txn = String(b.id ?? b.referenceCode ?? '')
-      if (txn) {
-        const dup = await req.payload.count({ collection: 'payments' as any, where: { transactionId: { equals: txn } }, overrideAccess: true })
-        if (dup.totalDocs) return Response.json({ success: true }) // SePay gọi lại cùng giao dịch
+      if (!await sameSecret(req.headers.get('authorization') || '', `Apikey ${key}`)) return Response.json({ success: false }, { status: 401 })
+      const b = ((await req.json?.().catch(() => null)) ?? {}) as { id?: number | string; transferType?: string; transferAmount?: number; content?: string; code?: string; referenceCode?: string; accountNumber?: string; currency?: string }
+      if (b.transferType === 'out') return Response.json({ success: true })
+      const cfg = await getCfg(req.payload)
+      if (!configured(cfg)) return Response.json({ success: false }, { status: 503 })
+      if (b.transferType !== 'in' || !Number.isSafeInteger(b.transferAmount) || Number(b.transferAmount) <= 0 || !b.id || b.accountNumber !== cfg.accountNumber || (b.currency && b.currency !== 'VND')) return Response.json({ success: false }, { status: 400 })
+      try {
+        await recordReceipt(req, { provider: 'sepay', reference: String(b.id), amount: Number(b.transferAmount), accountNumber: b.accountNumber, currency: 'VND', orderNo: receiptOrderNo(b.code, b.content) })
+        return Response.json({ success: true })
+      } catch {
+        req.payload.logger.error('[payment] Receipt could not commit; provider must retry')
+        return Response.json({ success: false }, { status: 503 })
       }
-      const enough = b.transferAmount >= hit.amount
-      await req.payload.update({
-        collection: 'payments' as any,
-        id: hit.id,
-        data: { status: enough ? 'paid' : 'underpaid', paidAmount: b.transferAmount, transactionId: txn || undefined, paidAt: new Date().toISOString() },
-        overrideAccess: true,
-        context: { fromWebhook: true },
-      })
-      if (enough) await emitOrderPaid(req.payload, { request: req, orderNo: hit.orderNo, amount: b.transferAmount, reference: txn, source: 'payment' })
-      return Response.json({ success: true })
     },
   },
 ]
@@ -122,7 +104,27 @@ const endpoints: Endpoint[] = [
 /** Plugin thanh toán chuyển khoản: QR VietQR cho khách và tự xác nhận khi tiền về. Dùng `onOrderPaid` để plugin bán hàng đánh dấu đơn đã thanh toán. */
 const plugin: HossoPlugin = {
   id: 'payment',
-  commerce: { confirmPayment: async (payload, order) => { if (order.payment === 'bank' && !await licensed('payment')) throw new Error('Payment license required'); await ensurePayment(payload, { id: order.id, total: orderTotal(order) }, order.payment) } },
+  commerce: {
+    recordRefund,
+    revisePayment: async (req, orderNo, total) => inTransaction(req, async () => {
+      const payment = (await req.payload.find({ collection: 'payments' as any, where: { orderNo: { equals: orderNo } }, limit: 1, depth: 0, req, overrideAccess: true })).docs[0] as any
+      if (!payment || !Number.isSafeInteger(total) || total < 0 || total > payment.amount) throw new Error('Invalid payment revision')
+      const version = payment.version || 0
+      const claimed = await req.payload.db.updateOne({ collection: 'payments', req, where: { and: [{ id: { equals: payment.id } }, { version: { equals: version } }] }, data: { version: version + 1 }, options: { atomic: true } })
+      if (!claimed) throw new Error('Payment changed; retry revision')
+      const paidAmount = Number(payment.paidAmount || 0)
+      await req.payload.update({ collection: 'payments' as any, id: payment.id, req, overrideAccess: true, data: { amount: total, status: paidAmount >= total ? 'paid' : paidAmount > 0 ? 'underpaid' : 'pending' } })
+      const net = paidAmount - Number(payment.refundedAmount || 0)
+      return { paidAmount, refundDue: Math.max(0, net - total), paymentStatus: net >= total ? 'paid' as const : 'unpaid' as const }
+    }),
+    confirmPayment: async (payload, order) => { if (order.payment === 'bank' && !await licensed('payment')) throw new Error('Payment license required'); await ensurePayment(payload, { id: order.id, total: orderTotal(order) }, order.payment) },
+    recordPayment: async (payload, input, req) => {
+      await ensurePayment(payload, { id: input.orderNo, total: input.total }, undefined, req)
+      const payment = (await payload.find({ collection: 'payments' as any, where: { orderNo: { equals: input.orderNo } }, limit: 1, depth: 0, req, overrideAccess: true })).docs[0] as any
+      const amount = input.total - (payment?.paidAmount || 0)
+      if (amount > 0) await recordReceipt(req, { provider: 'manual', reference: input.reference, amount, orderNo: input.orderNo, actor: String(req.user?.id || ''), reason: input.reason })
+    },
+  },
   manifest: manifest as PluginManifest,
   adminEn: { 'Thanh toán': 'Payments' },
   adminNav: [
@@ -131,20 +133,24 @@ const plugin: HossoPlugin = {
   ],
   portable: { globals: [{ slug: SETTINGS, secretFields: [] }] },
   checklist: async (payload) => [{ label: 'Tài khoản nhận tiền chuyển khoản', done: configured(await getCfg(payload)), href: '/admin/globals/payment-settings' }],
-  payload: (config: Config): Config => ({
+  payload: (config: Config): Config => withCommerceEvents({
     ...config,
-    collections: [...(config.collections ?? []), Payments],
+    collections: [...(config.collections ?? []), Payments, Transactions, Refunds],
     globals: [...(config.globals ?? []), Settings],
     endpoints: [...(config.endpoints ?? []), ...endpoints],
   }),
   hooks: {
+    onOrderReceived: async ({ payload, order, payment, request }) => { await ensurePayment(payload, order, payment, request); if (request) await allocateUnmatched(request, order.id) },
     // Đơn chọn chuyển khoản: mở một khoản chờ tiền về để webhook đối chiếu.
     onOrderPlaced: async ({ payload, order, payment, request }) => ensurePayment(payload, order, payment, request),
     // Trang tra cứu đơn: QR đúng số tiền và nội dung cho đơn chuyển khoản chưa thanh toán.
     describeOrder: async ({ payload, order }) => {
       const c = await getCfg(payload)
       if (order.payment !== 'bank' || order.paymentStatus === 'paid' || order.status === 'cancelled' || !configured(c)) return
-      const q = new URLSearchParams({ amount: String(order.total), addInfo: order.id })
+      const payment = (await payload.find({ collection: 'payments' as any, where: { orderNo: { equals: order.id } }, limit: 1, depth: 0, overrideAccess: true })).docs[0] as any
+      const remaining = Math.max(0, order.total - Number(payment?.paidAmount || 0))
+      if (!remaining) return
+      const q = new URLSearchParams({ amount: String(remaining), addInfo: order.id })
       if (c.accountName) q.set('accountName', c.accountName)
       const info = `${c.bank} · ${c.accountNumber}${c.accountName ? ` · ${c.accountName}` : ''}\n${order.id}`
       return { payment: { qrUrl: `https://img.vietqr.io/image/${encodeURIComponent(c.bank)}-${encodeURIComponent(c.accountNumber)}-compact2.png?${q}`, note: `${info}${c.note ? `\n${c.note}` : ''}` } }

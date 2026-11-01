@@ -2,6 +2,7 @@ import { L } from './lang'
 import type { components } from './api/schema'
 import { cached } from './cache'
 import type { WimConfig } from './config'
+import { fetchExternal } from '@hosso/studio-blocks/server-security'
 
 export type Product = components['schemas']['Product']
 export type Availability = components['schemas']['Availability']
@@ -34,12 +35,11 @@ export async function wimFetch<T>(cfg: WimConfig, path: string, opts: Opts = {})
 
   let res: Response
   try {
-    res = await fetch(url, {
+    res = await fetchExternal(url, {
       method: opts.method ?? 'GET',
       headers: { 'X-API-Key': cfg.apiKey, Accept: 'application/json', ...(opts.body ? { 'Content-Type': 'application/json' } : {}), ...opts.headers },
       body: opts.body ? JSON.stringify(opts.body) : undefined,
-      signal: AbortSignal.timeout(cfg.timeoutMs),
-      cache: 'no-store',
+      timeoutMs: cfg.timeoutMs,
     })
   } catch (e) {
     const timeout = e instanceof Error && (e.name === 'TimeoutError' || e.name === 'AbortError')
