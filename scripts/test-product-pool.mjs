@@ -81,7 +81,7 @@ let payload
 let pgAdmin, pgDatabase, pgUrl
 try {
   if (process.env.COMMERCE_TEST_DATABASE_URL) {
-    const { Pool } = require('pg')
+    const { Pool } = createRequire(require.resolve('@payloadcms/db-postgres'))('pg')
     pgAdmin = new Pool({ connectionString: process.env.COMMERCE_TEST_DATABASE_URL })
     pgDatabase = 'product_pool_' + Date.now()
     await pgAdmin.query('CREATE DATABASE "' + pgDatabase + '"')

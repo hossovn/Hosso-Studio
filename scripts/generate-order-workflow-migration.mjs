@@ -19,7 +19,7 @@ await unlink(schemaModule)
 const { getPayload } = await import(pathToFileURL(require.resolve('payload')).href)
 const payload = await getPayload({ config, disableDBConnect: true, disableOnInit: true })
 try {
-  const { generateDrizzleJson, generateMigration } = require('drizzle-kit/api')
+  const { generateDrizzleJson, generateMigration } = createRequire(require.resolve('@payloadcms/db-postgres'))('drizzle-kit/api')
   const current = generateDrizzleJson(payload.db.schema)
   const previous = beforeOrderWorkflow(current)
   const statements = await generateMigration(previous, current)
