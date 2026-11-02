@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { pageEditors, publishers } from '../lib/access'
 import { builderLinkField, onlyPublishersPublish } from '../lib/content'
+import { lockSiteMutation } from '../lib/site-publication-lock'
 
 /** Khối dùng lại (giống widget/pattern của WordPress): dựng một lần, chèn vào nhiều trang bằng block "Khối dùng lại". */
 export const ReusableBlocks: CollectionConfig = {
@@ -15,7 +16,7 @@ export const ReusableBlocks: CollectionConfig = {
     delete: publishers,
   },
   versions: { drafts: { autosave: true }, maxPerDoc: 20 },
-  hooks: { beforeChange: [onlyPublishersPublish] },
+  hooks: { beforeOperation: [lockSiteMutation], beforeChange: [onlyPublishersPublish] },
   fields: [
     builderLinkField,
     { name: 'title', type: 'text', required: true, label: 'Tên khối' },

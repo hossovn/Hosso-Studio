@@ -14,6 +14,7 @@ import { isAdmin } from '@/lib/access'
 import { fontClassNames } from '@/lib/fonts'
 import { currentLocale, defaultLocaleCode } from '@/lib/locale'
 import { loadSite } from '@/lib/site'
+import { sitePreview } from '@/lib/site-preview'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,6 +27,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { default: chrome.siteName, template: `%s | ${chrome.siteName}` },
     icons: { icon: favicon },
     openGraph: { siteName: chrome.siteName, locale: locale === 'vi' ? 'vi_VN' : locale },
+    ...(await sitePreview() ? { robots: { index: false, follow: false } } : {}),
   }
 }
 

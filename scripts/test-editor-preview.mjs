@@ -137,7 +137,9 @@ const scrollRuntime = compile('../packages/blocks/src/ScrollEffect.tsx', { './sc
 const motionScope = compile('../packages/blocks/src/MotionScope.tsx', {})
 const motionRuntime = compile('../packages/blocks/src/MotionEffects.tsx', { './motion-effects': motionEffects, './MotionScope': motionScope })
 const motionText = compile('../packages/blocks/src/MotionText.tsx', { './motion-effects': motionEffects })
+const responsiveLayout = compile('../packages/blocks/src/responsive-layout.ts', {})
 const { FreeElementView, FreeOverlay, FreeCanvasView, makeElement } = compile('../packages/blocks/src/FreeCanvas.tsx', {
+  './responsive-layout': responsiveLayout,
   './MotionEffects': motionRuntime, './MotionScope': motionScope, './MotionText': motionText, './motion-effects': motionEffects,
   './ScrollEffect': scrollRuntime, './scroll-effects': scrollEffects,
   './free-style': freeStyle, './free-extra': {}, './icons-data': { ICON_BODY: { test: '<path d="M4 4h16v16H4z" />' } }, './FreeSwiper': { FreeSwiper }, './free-geometry': { newId }, './element-states': elementStates,
@@ -303,6 +305,7 @@ for (const template of PAGE_TEMPLATES) {
 console.log('PASS: 8 page templates, 4 categories, editable geometry, local assets and independent copies')
 
 const { withStyle } = compile('../packages/blocks/src/puck-config.ts', {
+  './responsive-layout': responsiveLayout,
   './ScrollStory': { ScrollStory: () => null },
   './MediaField': {}, './RefField': {}, './ExtraBlocks': {}, './CoreExtras': {}, './PostList': {}, './FreeCanvas': { FreeOverlay, FreeCanvasView },
   './i18n': {}, './style-fields': {}, './widget-parts': widgetParts, './element-states': elementStates,
@@ -310,6 +313,7 @@ const { withStyle } = compile('../packages/blocks/src/puck-config.ts', {
 const Button = withStyle(({ submitLabel }) => React.createElement('form', { action: '/submit' }, React.createElement('button', { type: 'submit' }, submitLabel)))
 const StyledSection = withStyle(FreeCanvasView)
 const { expandReusable } = compile('../apps/studio/src/lib/site.tsx', {
+  './site-preview': { sitePreview: async () => false },
   '@payload-config': {}, '@hosso-config': { locales: [{ code: 'vi' }] }, '@hosso/studio-blocks': {}, './core-loaders': {},
   'next/headers': {}, react: { ...React, cache: (fn) => fn },
   payload: { getPayload: async () => ({ find: async () => ({ docs: [{ content: { content: [{ type: 'Text', props: { id: 'inner', _hide: 'd' } }] } }] }) }) },

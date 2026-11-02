@@ -1,6 +1,8 @@
 import type { Field, GlobalConfig } from 'payload'
 
-import { publishers } from '../lib/access'
+import { pageEditors, canPublish } from '../lib/access'
+import { APIError } from 'payload'
+import { lockSiteMutation } from '../lib/site-publication-lock'
 
 export const AREAS = [
   { name: 'siteHeader', label: 'Header của site (thay header của theme; dùng chung mọi trang)' },
@@ -19,7 +21,12 @@ export const SiteAreas: GlobalConfig = {
   slug: 'site-areas',
   label: 'Header và footer (kéo thả)',
   admin: { group: 'Hệ thống' },
-  access: { read: () => true, update: publishers },
+  access: { read: pageEditors, readVersions: pageEditors, update: pageEditors },
+  versions: { drafts: { autosave: true }, max: 20 },
+  hooks: { beforeOperation: [lockSiteMutation], beforeChange: [({ data, req }) => {
+    if (req.user && data._status === 'published' && !canPublish(req.user)) throw new APIError('Bạn không có quyền xuất bản.', 403)
+    return data
+  }] },
   fields: [
     { name: 'editors', type: 'ui', admin: { components: { Field: '/components/admin/AreaLinks#AreaLinks' } } },
     ...AREAS.map((a) => area(a.name)),

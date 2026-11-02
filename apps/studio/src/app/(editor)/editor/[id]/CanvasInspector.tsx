@@ -1,5 +1,5 @@
 'use client'
-import { elementFamily, type WidgetPartDevice, type ElementState, type ElementDevice } from '@hosso/studio-blocks'
+import { DEVICE_WIDTH, elementFamily, type WidgetPartDevice, type ElementState, type ElementDevice } from '@hosso/studio-blocks'
 import { BOX_SHADOWS, CLIPS, CLIP_LABEL, ColorControl, FREE_FONTS, ICON_BODY, ICON_CATS, MediaField, SHADOW_LABEL, TEXT_SHADOWS, RangeControl, SegControl, type FreeElement } from '@hosso/studio-blocks'
 import React from 'react'
 import { SlidersHorizontal, X, FileText, Paintbrush, LayoutGrid, Sparkles, Monitor, Settings2, ChevronDown, Type, Image, MousePointer2, Square, Shapes, LayoutTemplate, ArrowUp, ArrowDown, Copy, Trash2, Plus } from 'lucide-react'
@@ -154,6 +154,7 @@ function IconPicker({ value, onChange }: { value: string; onChange: (n: string) 
 type StateInspectorProps = { state: ElementState; onStateChange: (state: ElementState) => void; device: ElementDevice; onDeviceChange: (device: ElementDevice) => void }
 function ComponentInspector({ el, block, data, commit, setSel, state, onStateChange, device, onDeviceChange }: { el: FreeElement; block: Block; data: PageData; commit: (d: PageData, key?: string) => void; setSel: (s: Sel) => void } & StateInspectorProps) {
   const [unit, setUnit] = React.useState<'px' | '%'>('px')
+  const pixelScale = DEVICE_WIDTH[device] / 1200
   const sectionHeight = Number(block.props.height) || 400
   const denominator = (key: string) => key === 'x' || key === 'w' ? 1200 : sectionHeight
   const [tab, setTab] = React.useState('content')
@@ -184,7 +185,7 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
         <button type="button" onClick={() => setSel({ block: '', el: '' })} style={{ border: 0, background: 'transparent', color: 'inherit', cursor: 'pointer', font: 'inherit', padding: 0 }}>Trang</button>›
         <button type="button" onClick={() => setSel({ block: blockId(block), el: '' })} style={{ border: 0, background: 'transparent', color: 'inherit', cursor: 'pointer', font: 'inherit', padding: 0 }}>{blockId(block) === '@page' ? 'Lớp nổi' : 'Phần'}</button>›
       </div>
-      <div className="cv-object-heading"><span className="cv-module-icon"><ObjectIcon size={20} aria-hidden="true" /></span><div><strong>{NAMES[el.type]}</strong><span>{Math.round(el.w)} × {Math.round(el.h)} px</span></div></div>
+      <div className="cv-object-heading"><span className="cv-module-icon"><ObjectIcon size={20} aria-hidden="true" /></span><div><strong>{NAMES[el.type]}</strong><span>{Math.round(el.w * pixelScale)} × {Math.round(el.h * pixelScale)} px · {device}</span></div></div>
       {['button', 'image', 'text', 'heading'].includes(el.type) && <ElementStateControls props={p} state={state} onStateChange={onStateChange} device={device} onDeviceChange={onDeviceChange} supported={el.type === 'button' || p.href ? ['normal', 'hover', 'focus', 'active'] : ['normal', 'hover']} onChange={(props, key) => commit(updateEl(data, el.id, (current) => ({ ...current, props })), 'state:' + el.id + ':' + device + ':' + state + ':' + key)} />}
       <div className="cv-align" role="group" aria-label="Căn chỉnh nhanh" style={{ borderBottom: '1px solid #f1f5f9', background: '#fafafa', padding: '6px 12px' }}>
         {([
@@ -205,7 +206,7 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
         <fieldset disabled={Boolean(p._locked)} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
         <SegControl value={unit} onChange={(v) => setUnit(v as 'px' | '%')} options={[{ label: 'px', value: 'px' }, { label: '%', value: '%' }]} />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          {(['x', 'y', 'w', 'h'] as const).map((key) => <Num key={key} label={key.toUpperCase() + ' (' + unit + ')'} value={unit === 'px' ? el[key] : Number((el[key] / denominator(key) * 100).toFixed(2))} onChange={(v) => { const n = unit === 'px' ? v : v / 100 * denominator(key); geo({ [key]: key === 'w' || key === 'h' ? Math.max(8, n) : n }) }} />)}
+          {(['x', 'y', 'w', 'h'] as const).map((key) => <Num key={key} label={key.toUpperCase() + ' (' + unit + ')'} value={unit === 'px' ? Number((el[key] * pixelScale).toFixed(2)) : Number((el[key] / denominator(key) * 100).toFixed(2))} onChange={(v) => { const n = unit === 'px' ? v / pixelScale : v / 100 * denominator(key); geo({ [key]: key === 'w' || key === 'h' ? Math.max(8, n) : n }) }} />)}
         </div>
         <Row label="Container"><select style={ctl} value={el.parentId || ''} onChange={(e) => commit(updateEl(data, el.id, (it) => ({ ...it, parentId: e.target.value || undefined })))}><option value="">Section</option>{elsOf(block).filter((it) => it.type === 'container' && !elementFamily(elsOf(block), el.id).some((child) => child.id === it.id)).map((it) => <option key={it.id} value={it.id}>{it.props.name || it.id}</option>)}</select></Row>
         </fieldset>
@@ -296,8 +297,8 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
             </Row>
             <Row label="Màu nhấn (mục đang chọn)"><ColorControl value={p.accent ?? '#15803d'} onChange={(v) => put({ accent: v })} /></Row>
             <Row label="Mục đang chọn (số thứ tự, -1 là không)"><RangeControl value={p.active ?? 0} onChange={(v) => put({ active: Number(v) })} min={-1} max={9} /></Row>
-            <Row label="Cỡ chữ"><RangeControl value={p.size} onChange={(v) => put({ size: Number(v) || 8 })} min={8} max={60} /></Row>
-            <Row label="Khoảng cách giữa các mục"><RangeControl value={p.gap ?? 24} onChange={(v) => put({ gap: Number(v) || 0 })} min={0} max={120} /></Row>
+            <Row label="Cỡ chữ"><RangeControl value={Number((p.size * pixelScale).toFixed(2))} onChange={(v) => put({ size: (Number(v) || 8) / pixelScale })} min={8} max={60} /></Row>
+            <Row label="Khoảng cách giữa các mục"><RangeControl value={(p.gap ?? 24) * pixelScale} onChange={(v) => put({ gap: (Number(v) || 0) / pixelScale })} min={0} max={120} /></Row>
             <Row label="Hướng"><SegControl value={p.vertical ? 'v' : 'h'} onChange={(v) => put({ vertical: v === 'v' })} options={[{ label: 'Ngang', value: 'h' }, { label: 'Dọc', value: 'v' }]} /></Row>
             <Row label="Căn lề"><SegControl value={p.align ?? 'left'} onChange={(v) => put({ align: v })} options={[{ label: 'Trái', value: 'left' }, { label: 'Giữa', value: 'center' }, { label: 'Phải', value: 'right' }]} /></Row>
             <Row label="Màu chữ"><ColorControl value={p.color} onChange={(v) => put({ color: v })} /></Row>
@@ -305,7 +306,7 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
         )}
         {(el.type === 'heading' || el.type === 'text' || el.type === 'button') && (
           <>
-            <Row label="Cỡ chữ"><RangeControl value={p.size} onChange={(v) => put({ size: Number(v) || 8 })} min={8} max={200} /></Row>
+            <Row label="Cỡ chữ"><RangeControl value={Number(((p.size ?? 18) * pixelScale).toFixed(2))} onChange={(v) => put({ size: (Number(v) || 8) / pixelScale })} min={8} max={200} /></Row>
             <Row label="Độ đậm"><SegControl value={String(p.weight)} onChange={(v) => put({ weight: Number(v) })} options={[{ label: 'Thường', value: '400' }, { label: 'Vừa', value: '500' }, { label: 'Đậm', value: '700' }]} /></Row>
             {el.type !== 'button' && <Row label="Căn lề"><SegControl value={p.align ?? 'left'} onChange={(v) => put({ align: v })} options={[{ label: 'Trái', value: 'left' }, { label: 'Giữa', value: 'center' }, { label: 'Phải', value: 'right' }]} /></Row>}
             <Row label="Màu chữ"><ColorControl value={p.color} onChange={(v) => put({ color: v })} /></Row>
@@ -336,7 +337,7 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
         )}
         {(el.type === 'countdown' || el.type === 'number' || el.type === 'table' || el.type === 'tabs' || el.type === 'breadcrumb') && (
           <>
-            <Row label="Cỡ chữ"><RangeControl value={p.size ?? 16} onChange={(v) => put({ size: Number(v) || 8 })} min={8} max={160} /></Row>
+            <Row label="Cỡ chữ"><RangeControl value={Number(((p.size ?? 16) * pixelScale).toFixed(2))} onChange={(v) => put({ size: (Number(v) || 8) / pixelScale })} min={8} max={160} /></Row>
             {el.type !== 'table' && <Row label="Màu chữ / số"><ColorControl value={p.color ?? ''} onChange={(v) => put({ color: v })} /></Row>}
             {(el.type === 'countdown' || el.type === 'tabs') && <Row label="Màu nền ô"><ColorControl value={p.bg ?? ''} onChange={(v) => put({ bg: v })} /></Row>}
             {(el.type === 'tabs' || el.type === 'breadcrumb') && <Row label="Màu nhấn"><ColorControl value={p.accent ?? '#15803d'} onChange={(v) => put({ accent: v })} /></Row>}

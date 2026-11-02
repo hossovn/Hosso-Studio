@@ -67,6 +67,7 @@ export interface Config {
   };
   blocks: {};
   collections: {
+    'site-releases': SiteRelease;
     pages: Page;
     posts: Post;
     'post-categories': PostCategory;
@@ -113,6 +114,7 @@ export interface Config {
   };
   collectionsJoins: {};
   collectionsSelect: {
+    'site-releases': SiteReleasesSelect<false> | SiteReleasesSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
     'post-categories': PostCategoriesSelect<false> | PostCategoriesSelect<true>;
@@ -1488,7 +1490,8 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'cross-sell-events';
         value: number | CrossSellEvent;
-      } | null);
+      } | null)
+    | ({ relationTo: 'site-releases'; value: number | SiteRelease } | null);
   globalSlug?: string | null;
   user: {
     relationTo: 'users';
@@ -2527,6 +2530,7 @@ export interface SiteSetting {
    */
   maintenanceMode?: boolean | null;
   maintenanceMessage?: string | null;
+  _status?: ('draft' | 'published') | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -2599,6 +2603,7 @@ export interface SiteArea {
     | number
     | boolean
     | null;
+  _status?: ('draft' | 'published') | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -2882,6 +2887,7 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   commentsAutoApprove?: T;
   maintenanceMode?: T;
   maintenanceMessage?: T;
+  _status?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -2898,6 +2904,7 @@ export interface SiteAreasSelect<T extends boolean = true> {
   beforeFooter?: T;
   afterFooter?: T;
   postSidebar?: T;
+  _status?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -3085,4 +3092,54 @@ export interface Auth {
 
 declare module 'payload' {
   export interface GeneratedTypes extends Config {}
+}
+export interface SiteRelease {
+  id: number;
+  title: string;
+  actor: string;
+  action: 'publish' | 'restore';
+  sourceRelease?: string | null;
+  reviewToken: string;
+  before:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  after:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  summary:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+
+export interface SiteReleasesSelect<T extends boolean = true> {
+  title?: T;
+  actor?: T;
+  action?: T;
+  sourceRelease?: T;
+  reviewToken?: T;
+  before?: T;
+  after?: T;
+  summary?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }

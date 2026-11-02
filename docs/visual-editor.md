@@ -24,7 +24,7 @@ Full-page templates are not offered while editing a shared header or footer.
 These are layout starters, not configured stores or booking systems. Replace the
 sample brand, photos, copy and hello@example.com before publishing. Category names
 do not activate plugins, payments, inventory, reservations or authentication.
-Device previews still scale one layout rather than generate independent breakpoints.
+Device layouts inherit the desktop layout until tablet or mobile overrides are saved.
 
 Template photos are bundled under public/editor-templates, downloaded from Unsplash:
 workspace 1497366811353-6870744d04b2, watch 1523275335684-37898b6baf30,
@@ -58,8 +58,20 @@ Run pnpm test:canvas and the studio/blocks typechecks. Browser checks cover sect
 transfer, group transfer, undo/redo, eight resize directions, widget insertion,
 text editing, media interaction, navigation protection, and device widths.
 
-Device previews scale the existing design; this change does not introduce independent
-breakpoint layouts, collaboration, or a replacement publishing system.
+Tablet and mobile now have independent element geometry/style and section spacing
+overrides. Text, media, links, element membership and section order remain shared.
+Use **Tự xếp dọc** on a FreeCanvas section for a one-step vertical layout suggestion,
+then refine it by dragging or editing its properties. **Dùng bố cục gốc** removes
+the selected device's overrides for the selected element or section.
+
+The underlying coordinate system remains 1200 design pixels. Geometry and font-size
+controls display pixels at the selected device width (1200, 768 or 390). Published
+layouts use desktop above 1024px, tablet at 601–1024px, and mobile at 600px or below.
+Sizes continue to scale within each range. Vertical stacking is an undoable layout
+suggestion; it does not continuously reflow content after later edits.
+
+See [Studio publishing](studio-publishing.md) for draft preview, pre-publish checks,
+website releases, restoration, permissions and the database migration.
 
 Demo photographs: Unsplash photo IDs 1464822759023-fed622ff2c3b and
 1551632811-561732d1e306, downloaded to public/editor-demo. The sample video is the

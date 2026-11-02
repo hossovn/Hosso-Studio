@@ -152,9 +152,9 @@ assert.deepEqual(patchWidgetPart({ [partPath]: { x: 1 } }, partPath, { x: '' }),
 assert.equal(widgetPartCss('id', { [partPath]: { color: '</style><script>', width: -1, x: Infinity, y: NaN, display: 'none', position: 'fixed', columns: 1.2 } }), '')
 for (const invalid of [null, [], 'bad', { '*': { color: '#ffffff' } }, { [partPath]: null }]) assert.equal(widgetPartCss('id', invalid), '')
 const partRoot = { children: [] }
-const partSection = { localName: 'section', parentElement: partRoot, children: [] }
-const partButton1 = { localName: 'button', parentElement: partSection }
-const partButton2 = { localName: 'button', parentElement: partSection }
+const partSection = { localName: 'section', parentElement: partRoot, children: [], getAttribute: () => null }
+const partButton1 = { localName: 'button', parentElement: partSection, getAttribute: () => null }
+const partButton2 = { localName: 'button', parentElement: partSection, getAttribute: () => null }
 partRoot.children = [partSection]
 partSection.children = [partButton1, partButton2]
 assert.equal(widgetPartPath(partRoot, partButton2), partPath)

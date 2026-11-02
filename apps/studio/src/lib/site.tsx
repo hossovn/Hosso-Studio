@@ -17,6 +17,7 @@ import { getPayload } from 'payload'
 import { cache } from 'react'
 
 import { coreLoaders } from './core-loaders'
+import { sitePreview } from './site-preview'
 
 export const allBlocks = (): BlockSchema<any>[] => [...coreBlocks, ...hosso.plugins.flatMap((p) => p.blocks ?? [])]
 
@@ -41,9 +42,9 @@ const menu = (items: any[] | undefined, locale: string): MenuItem[] =>
   }))
 
 /** Theme đang chọn, token đã gộp (token của theme, ghi đè bởi quản trị viên) thành CSS, và dữ liệu khung site theo ngôn ngữ. */
-export const loadSite = cache(async (locale: string = defaultLocale): Promise<{ theme: Theme; css: string; siteName?: string; chrome: SiteChrome; favicon: string; maintenance?: { message: string } }> => {
+export const loadSite = cache(async (locale: string = defaultLocale, editorDraft = false): Promise<{ theme: Theme; css: string; siteName?: string; chrome: SiteChrome; favicon: string; maintenance?: { message: string } }> => {
   const payload = await getPayload({ config })
-  const settings = (await payload.findGlobal({ slug: 'site-settings', depth: 1, locale: locale as any })) as Record<string, any>
+  const settings = (await payload.findGlobal({ slug: 'site-settings', draft: editorDraft || await sitePreview(), depth: 1, locale: locale as any })) as Record<string, any>
   const theme = hosso.themes.find((t) => t.manifest.name === settings.theme) ?? hosso.themes[0]
   const ov: Overrides = settings[`tokens_${theme.manifest.name}`] ?? {}
   const base = theme.manifest.tokens
@@ -100,6 +101,7 @@ type Item = { type: string; props: Record<string, any> }
 export async function expandReusable<T extends { content: Item[] }>(data: T, locale: string): Promise<T> {
   if (!data.content.some((c) => c.type === 'Reusable')) return data
   const payload = await getPayload({ config })
+  const preview = await sitePreview()
   const out: Item[] = []
   for (const item of data.content) {
     if (item.type !== 'Reusable') {
@@ -108,7 +110,8 @@ export async function expandReusable<T extends { content: Item[] }>(data: T, loc
     }
     const found = await payload.find({
       collection: 'reusable-blocks',
-      where: { and: [{ slug: { equals: String(item.props.slug ?? '') } }, { _status: { equals: 'published' } }] },
+      where: { and: [{ slug: { equals: String(item.props.slug ?? '') } }, ...(preview ? [] : [{ _status: { equals: 'published' } }])] },
+      draft: preview,
       limit: 1,
       depth: 0,
       locale: locale as any,
