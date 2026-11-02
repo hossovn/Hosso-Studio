@@ -52,6 +52,7 @@ if (existsSync(new URL('../packages/plugin-cross-sell/src/service.ts', import.me
   await assert.rejects(authenticate({ payload, headers: new Headers({ authorization: 'Bearer ' + partner.consumerKey }) }), /Unauthorized/)
   assert.equal((await authenticate({ payload, headers: new Headers({ authorization: 'Basic ' + Buffer.from(partner.consumerKey + ':' + partner.consumerSecret).toString('base64') }) })).id, partner.id)
   await assert.rejects(authenticate({ payload, headers: new Headers({ authorization: 'Basic ' + Buffer.from(partner.consumerKey + ':wrong-secret').toString('base64') }) }), /Unauthorized/)
+  await assert.rejects(authenticate({ payload: { find: async () => ({ docs: [partner, { ...partner, id: 2 }] }) }, headers: new Headers({ authorization: 'Basic ' + Buffer.from(partner.consumerKey + ':' + partner.consumerSecret).toString('base64') }) }), /Unauthorized/, 'Duplicate legacy Basic credentials cannot select another partner')
   console.log('PASS supplier authentication: Woo requires the key and secret; consumer key alone cannot authenticate as a Hosso partner')
   const { ensurePurchase } = await load('../packages/plugin-cross-sell/src/remote.ts')
   let posts = 0, expirySupported = false
