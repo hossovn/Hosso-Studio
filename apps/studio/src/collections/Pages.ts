@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { pageEditors, publishers } from '../lib/access'
 import { builderLinkField, onlyPublishersPublish, seoFields } from '../lib/content'
+import { lockSiteMutation } from '../lib/site-publication-lock'
 
 export const Pages: CollectionConfig = {
   slug: 'pages',
@@ -16,7 +17,7 @@ export const Pages: CollectionConfig = {
     delete: publishers,
   },
   versions: { drafts: { autosave: true, schedulePublish: true }, maxPerDoc: 20 },
-  hooks: { beforeChange: [onlyPublishersPublish] },
+  hooks: { beforeOperation: [lockSiteMutation], beforeChange: [onlyPublishersPublish] },
   fields: [
     { name: 'title', type: 'text', label: 'Tiêu đề', required: true, localized: true },
     builderLinkField,

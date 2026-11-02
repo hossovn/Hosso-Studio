@@ -13,6 +13,7 @@ import { resolveMotionConfig } from './motion-effects'
 import { MotionEffects } from './MotionEffects'
 import { MotionScope } from './MotionScope'
 import { MotionText } from './MotionText'
+import { blockForDevice, elementForDevice, type DevicePatch } from './responsive-layout'
 export { newId } from './free-geometry'
 
 /**
@@ -23,7 +24,7 @@ export const FREE_W = 1200
 export const FREE_MAX_PX = 1440
 
 export type FreeType = 'heading' | 'text' | 'button' | 'shape' | 'line' | 'icon' | 'image' | 'video' | 'menu' | 'countdown' | 'number' | 'table' | 'map' | 'embed' | 'tabs' | 'breadcrumb' | 'container' | 'swiper'
-export type FreeElement = { id: string; parentId?: string; type: FreeType; x: number; y: number; w: number; h: number; props: Record<string, any> }
+export type FreeElement = { id: string; parentId?: string; type: FreeType; x: number; y: number; w: number; h: number; props: Record<string, any>; responsive?: Partial<Record<'tablet' | 'mobile', DevicePatch>> }
 
 const ICON_PATHS: Record<string, string> = {
   user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-6 8-6s8 2 8 6',
@@ -217,11 +218,13 @@ function FreeElementBody({ el, unit, scale, editing, state }: { el: FreeElement;
 export const FreeOverlay = ({ elements }: { elements: FreeElement[] }) => (
   <div className="hs-free-layer" data-scroll-boundary style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, width: `min(100%, ${FREE_MAX_PX}px)`, margin: '0 auto', containerType: 'inline-size', pointerEvents: 'none' }}>
     <MotionScope enabled={elements.some((el) => !el.props._hidden && resolveMotionConfig(el.props)?.loop?.preset && resolveMotionConfig(el.props)?.loop?.preset !== 'none')}>
-    {elements.map((el) => (
+    {(elements.some((el) => el.responsive?.mobile || el.responsive?.tablet) ? ['desktop', 'tablet', 'mobile'] as const : ['desktop'] as const).map((device, _, devices) => <div key={device} className={devices.length > 1 ? `hs-free-device-${device}` : undefined} style={{ position: 'absolute', inset: 0 }}>
+    {elements.map((original) => { const el = elementForDevice(original, device); return (
       <div key={el.id} className={el.props._hide ? 'hs-hide-' + el.props._hide : undefined} style={{ display: el.props._hidden ? 'none' : undefined, position: 'absolute', left: `${(el.x / FREE_W) * 100}%`, top: `${(el.y / FREE_W) * 100}cqw`, width: `${(el.w / FREE_W) * 100}%`, height: `${(el.h / FREE_W) * 100}cqw`, pointerEvents: el.type === 'container' ? 'none' : 'auto', zIndex: el.type === 'container' ? 0 : 1 }}>
         <FreeElementView el={el} />
       </div>
-    ))}
+    )})}
+    </div>)}
     </MotionScope>
   </div>
 )
@@ -230,7 +233,7 @@ export const FreeOverlay = ({ elements }: { elements: FreeElement[] }) => (
  * Block "Vùng tự do": chỉ là khoảng trống có chiều cao; các phần tử nằm ở lớp phủ chung (`_els`, cũng dùng cho mọi block khác).
  * `elements` là tên prop cũ, vẫn đọc được. `_noFree` được editor đặt khi nó tự vẽ lớp chỉnh sửa.
  */
-export const FreeCanvasView: BlockRenderer = (props: { id?: string; height?: number; bgImage?: string; bgVideo?: string; bgOverlay?: number; _els?: FreeElement[]; elements?: FreeElement[]; _noFree?: boolean; _states?: unknown; _editorState?: ElementState }) => {
+export const FreeCanvasView: BlockRenderer = (props: { id?: string; height?: number; bgImage?: string; bgVideo?: string; bgOverlay?: number; _els?: FreeElement[]; elements?: FreeElement[]; _noFree?: boolean; _states?: unknown; _editorState?: ElementState; _responsive?: Record<string, any> }) => {
   const { height = 0, bgImage, bgVideo, bgOverlay = 0, _els, elements, _noFree } = props
   const stateCss = props.id ? elementStatesCss(props.id, props) : ''
   const els = _els ?? elements ?? []
@@ -243,7 +246,11 @@ export const FreeCanvasView: BlockRenderer = (props: { id?: string; height?: num
       {bgVideo && <video src={bgVideo} autoPlay muted loop playsInline aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
       {bgOverlay > 0 && <div style={{ position: 'absolute', inset: 0, background: '#000', opacity: Math.min(100, Math.max(0, bgOverlay)) / 100 }} />}
       <div style={{ position: 'relative', maxWidth: FREE_MAX_PX, margin: '0 auto', containerType: 'inline-size' }}>
-        <div style={{ width: '100%', height: `${(h / FREE_W) * 100}cqw` }} />
+        {(props._responsive?.mobile || props._responsive?.tablet ? ['desktop', 'tablet', 'mobile'] as const : ['desktop'] as const).map((device, _, devices) => {
+          const resolved = blockForDevice({ type: 'FreeCanvas', props }, device).props
+          const deviceHeight = device === 'desktop' ? h : Number(resolved.height) > 0 ? Number(resolved.height) : freeHeight(0, resolved._els)
+          return <div key={device} className={devices.length > 1 ? `hs-free-device-${device}` : undefined} style={{ width: '100%', height: `${(deviceHeight / FREE_W) * 100}cqw` }} />
+        })}
       </div>
       </div>
     </section>

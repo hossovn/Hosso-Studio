@@ -16,6 +16,7 @@ import { CommentForm } from '@/components/CommentForm'
 import { FreeOverlay, PostList, type FreeElement } from '@hosso/studio-blocks'
 import { publishedPostsWhere } from '@/lib/core-loaders'
 import { verifyShareToken } from '@/lib/share'
+import { sitePreview } from '@/lib/site-preview'
 import { attachBlockData, defaultLocale, expandReusable, href, loadSite, mediaUrl, renderConfig } from '@/lib/site'
 
 export type SP = { [k: string]: string | string[] | undefined }
@@ -101,7 +102,7 @@ export async function pageMeta(slug: string, locale: string, sp: SP): Promise<Me
   return {
     title: slug === 'home' ? { absolute: seo.title || (await loadSite(locale)).chrome.siteName } : title,
     description: page.description ?? undefined,
-    robots: seo.noindex || shared ? { index: false, follow: false } : undefined,
+    robots: seo.noindex || shared || await sitePreview() ? { index: false, follow: false } : undefined,
     alternates: alternates(path, locale),
     openGraph: { title, description: page.description ?? undefined, type: 'website', images: image ? [image] : undefined, locale: locale === 'vi' ? 'vi_VN' : locale },
   }
@@ -145,7 +146,7 @@ export async function postMeta(slug: string, locale: string, sp: SP): Promise<Me
   return {
     title,
     description: post.excerpt ?? undefined,
-    robots: seo.noindex || shared ? { index: false, follow: false } : undefined,
+    robots: seo.noindex || shared || await sitePreview() ? { index: false, follow: false } : undefined,
     alternates: alternates(`/bai-viet/${post.slug}`, locale),
     openGraph: { title, description: post.excerpt ?? undefined, type: 'article', publishedTime: post.publishedAt ?? undefined, images: image ? [image] : undefined },
   }

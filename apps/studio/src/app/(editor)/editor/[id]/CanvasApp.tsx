@@ -1,6 +1,6 @@
 'use client'
 import { FREE_MAX_PX, FREE_W, cloneElements, elementFamily, patchWidgetPart, widgetPartKey, widgetPartsForDevice, type FreeElement, type ElementState } from '@hosso/studio-blocks'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createStore, useStore } from 'zustand'
 import { ArrowLeft, ChevronRight, Copy, Eye, HelpCircle, Layers, Monitor, Pencil, PanelLeftClose, PanelRightClose, Redo2, Smartphone, Tablet, Trash2, Undo2 } from 'lucide-react'
 import { elsOf } from './canvas-model'
@@ -13,6 +13,7 @@ import { PagesDropdown } from './PagesDropdown'
 import { CanvasStage } from './CanvasStage'
 import { StyleClipboardContext } from './FreeCanvasEditor'
 import type { SiteCtx } from './SectionTemplates'
+import { DEVICE_WIDTH, pageForDevice, mergeDevicePage, resetDeviceLayout, stackDeviceSection } from '@hosso/studio-blocks'
 import {
   NO_SEL, PAGE, addEls, placeElement, placementOwner, blockId, commitHist, dupEl, findEl, initHist, insertBlock, isSection, newBlockId, patchBlock, redoHist, removeEl, undoHist, updateEl,
   type Block, type Hist, type PageData, type Sel,
@@ -51,9 +52,10 @@ type Props = {
   siteCtx?: SiteCtx
   nav?: NavCtx
   initialSelection?: Sel
+  initialDevice?: 'desktop' | 'tablet' | 'mobile'
 }
 
-export function CanvasApp({ config, data: initial, onChange, css, htmlClass, title, backHref, menu, actions, labelOf, lang, rootRender, scopes, areaKind = '', siteCtx = {}, nav, initialSelection }: Props) {
+export function CanvasApp({ config, data: initial, onChange, css, htmlClass, title, backHref, menu, actions, labelOf, lang, rootRender, scopes, areaKind = '', siteCtx = {}, nav, initialSelection, initialDevice = 'desktop' }: Props) {
   const [store] = useState(() => createStore<{ hist: Hist; sel: Sel; preview: boolean }>(() => ({ hist: initHist(normalize(initial)), sel: initialSelection ?? NO_SEL, preview: false })))
   const { hist, sel, preview } = useStore(store)
   const setSel = useCallback((next: Sel) => store.setState({ sel: next }), [store])
@@ -79,7 +81,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
     if (window.innerWidth <= 800) setLeftOpen(false)
   }, [])
   const [tab, setTab] = useState<Tab>('sections')
-  const [device, setDevice] = useState<(typeof DEVICES)[number]['id']>('desktop')
+  const [device, setDevice] = useState<(typeof DEVICES)[number]['id']>(initialDevice)
   const [elementState, setElementState] = useState<ElementState>('normal')
   useEffect(() => setElementState('normal'), [sel.el, sel.block, preview])
   const [docs, setDocs] = useState<Document[]>([])
@@ -92,8 +94,8 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
     docs.forEach((doc) => doc.addEventListener('hosso-inspect', inspect))
     return () => docs.forEach((doc) => doc.removeEventListener('hosso-inspect', inspect))
   }, [docs])
-  const data = hist.present
-  const revealBlock = useRef('')
+  const data = useMemo(() => pageForDevice(hist.present, device), [hist.present, device])
+  const revealBlock = useRef(initialSelection?.block ?? '')
   useEffect(() => {
     const id = revealBlock.current
     if (!id || !docs[0]) return
@@ -103,7 +105,8 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
     })
     return () => cancelAnimationFrame(frame)
   }, [data, docs])
-  const commit = useCallback((next: PageData, key?: string) => store.setState((s) => ({ hist: commitHist(s.hist, next, key) })), [store])
+  const commit = useCallback((next: PageData, key?: string) => store.setState((s) => ({ hist: commitHist(s.hist, mergeDevicePage(s.hist.present, next, device), key ? device + ':' + key : undefined) })), [store, device])
+  const commitLayout = (next: PageData) => store.setState((s) => ({ hist: commitHist(s.hist, next) }))
   const undo = useCallback(() => store.setState((s) => {
     const hist = undoHist(s.hist), hit = findEl(hist.present, s.sel.el)
     return { hist, sel: hit ? { block: blockId(hit.block), el: hit.el.id } : NO_SEL }
@@ -154,7 +157,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
       }
       if (!s.el || !findEl(d, s.el)) return
       if (findEl(d, s.el)?.el.props._locked && k !== 'escape') return
-      const step = e.shiftKey ? 10 : 1
+      const step = (e.shiftKey ? 10 : 1) * 1200 / DEVICE_WIDTH[st.current.device]
       const nudge: Record<string, [number, number]> = { arrowleft: [-step, 0], arrowright: [step, 0], arrowup: [0, -step], arrowdown: [0, step] }
       if (k === 'delete' || k === 'backspace') { e.preventDefault(); commit(removeEl(d, s.el)); setSel({ block: s.block, el: '' }) }
       else if (mod && k === 'd') { e.preventDefault(); const r = dupEl(d, s.el); commit(r.data); setSel({ block: s.block, el: r.id }) }
@@ -297,6 +300,8 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
           <option value="0.5">50%</option><option value="0.75">75%</option><option value="1">100%</option><option value="1.25">125%</option>
         </select>
         <span className="cv-device-label">{dev.label}{typeof dev.width === 'number' ? ' · ' + dev.width + ' px' : ''}</span>
+        {!preview && device !== 'desktop' && selectedBlock?.type === 'FreeCanvas' && <button type="button" className="cv-act" onClick={() => commitLayout(stackDeviceSection(hist.present, sel.block, device))}>{lang === 'en' ? 'Stack vertically' : 'Tự xếp dọc'}</button>}
+        {!preview && device !== 'desktop' && sel.block && <button type="button" className="cv-act" onClick={() => commitLayout(resetDeviceLayout(hist.present, sel.block, device, sel.el || undefined))}>{lang === 'en' ? 'Use base layout' : 'Dùng bố cục gốc'}</button>}
         <div className="cv-panel-tools">
           {!preview && <>
             <button type="button" className="cv-ib" title="Cấu trúc trang" aria-label="Cấu trúc trang" aria-pressed={leftOpen && tab === 'layers'} onClick={() => { if (!leftOpen || tab === 'layers') toggleLeft(); setTab('layers') }}><Layers size={17} /></button>

@@ -9,6 +9,7 @@ export function proxy(request: NextRequest) {
   const locale = hosso.locales.some((l) => l.code === first) ? first : defaultLocale.code
   const headers = new Headers(request.headers)
   headers.set('x-hosso-locale', locale)
+  headers.set('x-hosso-preview', request.nextUrl.searchParams.get('preview') === '1' ? '1' : '0')
   return NextResponse.next({ request: { headers } })
 }
 

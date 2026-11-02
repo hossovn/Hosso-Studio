@@ -12,6 +12,7 @@ import { toStyleField } from './style-fields'
 import type { BlockField, BlockRenderer, BlockSchema, HossoPlugin, Theme } from './types'
 import { widgetPartResponsiveCss, widgetPartScope } from './widget-parts'
 import { elementStateScope, elementStatesCss } from './element-states'
+import { responsiveBlockCss } from './responsive-layout'
 
 const toPuckField = (f: BlockField, L: (vi: string) => string = (v) => v): any => {
   if (f.type === 'media') return { type: 'custom', label: f.label && L(f.label), render: ({ value, onChange, readOnly }: any) => createElement(MediaField, { value, onChange, readOnly, kind: f.kind }) }
@@ -81,6 +82,7 @@ export const withStyle = (Inner: BlockRenderer): BlockRenderer => {
     const reusableHide = ['m', 't', 'd'].includes(props._reusableHide) ? props._reusableHide : ''
     const style = inlineStyle(props)
     const stateCss = typeof props.id === 'string' ? elementStatesCss(props.id, props) : ''
+    const layoutCss = typeof props.id === 'string' ? responsiveBlockCss(props.id, props) : ''
     let content = createElement(Inner, stateCss ? { ...props, _states: undefined } : props)
     if (typeof props.id === 'string' && (props._editParts || props._parts || props._partsTablet || props._partsMobile)) {
       const css = widgetPartResponsiveCss(props.id, props)
@@ -88,9 +90,9 @@ export const withStyle = (Inner: BlockRenderer): BlockRenderer => {
     }
     // Lớp phần tử tự do (prop _els) phủ lên mọi block; editor tự vẽ lớp chỉnh sửa nên đặt _noFree để bỏ lớp này.
     const layer = !props._noFree && Array.isArray(props._els) && props._els.length ? createElement(FreeOverlay, { elements: props._els }) : null
-    if (!_bg && !_pt && !_pb && !_align && !_fs && !_bd && !_rd && !_sh && !_an && !_hv && !_hide && !reusableHide && !style && !layer && !stateCss) return content
+    if (!_bg && !_pt && !_pb && !_align && !_fs && !_bd && !_rd && !_sh && !_an && !_hv && !_hide && !reusableHide && !style && !layer && !stateCss && !layoutCss) return content
     const cls = ['hs-styled', _hide && `hs-hide-${_hide}`, reusableHide && `hs-hide-${reusableHide}`, _bg && `hs-bg-${_bg}`, _pt && `hs-pt-${_pt}`, _pb && `hs-pb-${_pb}`, _align && `hs-ta-${_align}`, _fs && `hs-fs-${_fs}`, _bd && `hs-bd-${_bd}`, _rd && `hs-rd-${_rd}`, _sh && `hs-sh-${_sh}`, _an && `hs-an-${_an}`, _hv && `hs-hv-${_hv}`].filter(Boolean).join(' ')
-    return createElement('div', { className: cls + (stateCss ? ' ' + elementStateScope(props.id) : ''), style: layer ? { position: 'relative', ...style } : style }, stateCss ? createElement('style', null, stateCss) : null, content, layer)
+    return createElement('div', { className: cls + (stateCss ? ' ' + elementStateScope(props.id) : ''), 'data-hs-layout': layoutCss ? encodeURIComponent(props.id) : undefined, style: layer ? { position: 'relative', ...style } : style }, stateCss ? createElement('style', null, stateCss) : null, layoutCss ? createElement('style', null, layoutCss) : null, content, layer)
   }
   return Styled
 }

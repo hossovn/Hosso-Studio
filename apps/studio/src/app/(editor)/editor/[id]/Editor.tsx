@@ -45,6 +45,8 @@ type Props = {
   from?: string
   /** 'canvas' (mặc định): editor Page → Section → Component; 'puck': editor cũ theo block. */
   mode?: 'canvas' | 'puck'
+  initialSelection?: { block: string; el: string }
+  initialDevice?: 'desktop' | 'tablet' | 'mobile'
 }
 
 // Dịch chuỗi giao diện trình dựng theo ngôn ngữ admin (props.lang); các thành phần con lấy qua context.
@@ -226,20 +228,6 @@ function ActionsView({ id, collection, publicHref, canPublish, busy, locale, onS
   const T = useET()
   const Ic = ({ d }: { d: string }) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>
 
-  if (collection === 'area') {
-    // Vùng giao diện không có bản nháp: lưu là hiển thị ngay trên site.
-    return (
-      <div className="cv-document-actions" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <a className="cv-act" href={publicHref} target="_blank" rel="noreferrer">
-          <Ic d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
-          {T('Xem site')}
-        </a>
-        <button className="cv-act is-primary" disabled={busy || !canPublish} title={canPublish ? T('Lưu và hiển thị ngay trên site') : T('Chỉ quản trị viên và người xuất bản được lưu')} onClick={() => onSave(getData(), true)}>
-          {T('Lưu (hiển thị ngay)')}
-        </button>
-      </div>
-    )
-  }
   return (
     <div className="cv-document-actions" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
       {collection !== 'reusable-blocks' && (
@@ -248,7 +236,7 @@ function ActionsView({ id, collection, publicHref, canPublish, busy, locale, onS
           {T('Xem trước')}
         </a>
       )}
-      <a className="cv-act" href={`/admin/collections/${collection}/${id}/versions?locale=${locale}`} target="_blank" rel="noreferrer">
+      <a className="cv-act" href={collection === 'area' ? '/admin/releases' : `/admin/collections/${collection}/${id}/versions?locale=${locale}`} target="_blank" rel="noreferrer">
         <Ic d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2" />
         {T('Lịch sử')}
       </a>
@@ -257,7 +245,7 @@ function ActionsView({ id, collection, publicHref, canPublish, busy, locale, onS
         {T('Lưu nháp')}
       </button>
       <button className="cv-act is-primary" disabled={busy || !canPublish} title={canPublish ? '' : T('Chỉ quản trị viên và người xuất bản được xuất bản')} onClick={() => onSave(getData(), true)}>
-        {T('Xuất bản')}
+        {T('Kiểm tra và xuất bản')}
       </button>
     </div>
   )
@@ -395,27 +383,30 @@ export function Editor(props: Props) {
     }
     setBusy(true)
     setStatus(auto ? T('Đang tự lưu…') : T('Đang lưu…'))
-    const res = isArea
-      ? await fetch(`/api/globals/site-areas?locale=${props.locale}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [props.id]: data }) })
-      : await fetch(`/api/${props.collection}/${props.id}${publish ? `?locale=${props.locale}` : `?draft=true${auto ? '&autosave=true' : ''}&locale=${props.locale}`}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: data, _status: publish ? 'published' : 'draft' }),
-        })
-    const body = await res.json().catch(() => ({}))
-    if (res.ok) {
-      savedJson.current = JSON.stringify(data)
-      setDirty(JSON.stringify(dataRef.current) !== savedJson.current)
-      setStatus(isArea ? T('Đã lưu') : publish ? T('Đã xuất bản') : auto ? T('Đã tự lưu nháp') : T('Đã lưu nháp'))
-    } else {
-      setStatus(`${T('Lỗi')}: ${body?.errors?.[0]?.message ?? res.status}`)
-    }
-    setBusy(false)
+    try {
+      const res = isArea
+        ? await fetch(`/api/globals/site-areas?draft=true${auto ? '&autosave=true' : ''}&locale=${props.locale}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [props.id]: data, _status: 'draft' }) })
+        : await fetch(`/api/${props.collection}/${props.id}?draft=true${auto ? '&autosave=true' : ''}&locale=${props.locale}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: data, _status: 'draft' }),
+          })
+      const body = await res.json().catch(() => ({}))
+      if (res.ok) {
+        savedJson.current = JSON.stringify(data)
+        setDirty(JSON.stringify(dataRef.current) !== savedJson.current)
+        setStatus(auto ? T('Đã tự lưu nháp') : T('Đã lưu nháp'))
+        if (publish) window.location.assign('/admin/releases?select=' + encodeURIComponent(isArea ? 'site-areas' : `${props.collection}:${props.id}`))
+      } else {
+        setStatus(`${T('Lỗi')}: ${body?.errors?.[0]?.message ?? res.status}`)
+      }
+    } catch { setStatus(T('Không lưu được. Kiểm tra kết nối và thử lại.')) }
+    finally { setBusy(false) }
   }
 
-  // Tự lưu nháp 4 giây sau thay đổi cuối (không áp dụng cho vùng giao diện vì lưu là hiển thị ngay); cảnh báo khi rời trang chưa lưu.
+  // Tự lưu nháp 4 giây sau thay đổi; vùng giao diện cũng được giữ riêng với bản công khai.
   useEffect(() => {
-    if (isArea || !dirty || busy || lockedBy) return
+    if (!dirty || busy || lockedBy) return
     const t = setTimeout(() => persist(dataRef.current, false, true), 4000)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -552,6 +543,8 @@ export function Editor(props: Props) {
       {canvasMode ? (
         <CanvasBoundary fallbackHref={puckHref}>
           <CanvasApp
+            initialSelection={props.initialSelection}
+            initialDevice={props.initialDevice}
             config={config}
             data={props.data}
             onChange={(d) => {

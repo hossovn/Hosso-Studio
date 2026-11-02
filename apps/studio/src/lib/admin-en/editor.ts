@@ -1,4 +1,10 @@
 export const editor: Record<string, string> = {
+  'Kiểm tra và xuất bản': 'Review and publish',
+  'Không lưu được. Kiểm tra kết nối và thử lại.': 'Could not save. Check your connection and try again.',
+  'Đã lưu nháp giao diện. Mở Xuất bản website để áp dụng.': 'Appearance draft saved. Open Publish website to apply it.',
+  'Xuất bản website': 'Publish website',
+  'Tự xếp dọc': 'Stack vertically',
+  'Dùng bố cục gốc': 'Use base layout',
   'Trình dựng trang': 'Page builder',
   'Ngôn ngữ đang chỉnh': 'Language being edited',
   'Chuyển {noun}': 'Switch {noun}',

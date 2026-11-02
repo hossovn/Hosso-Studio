@@ -1,3 +1,4 @@
+import * as migration_20261102_061337_studio_releases from './20261102_061337_studio_releases';
 import * as migration_20261102_040000_partner_connections from './20261102_040000_partner_connections';
 import * as migration_20261101_180000_order_workflow from './20261101_180000_order_workflow';
 import * as migration_20261030_120000_affiliate_cps from './20261030_120000_affiliate_cps';
@@ -118,4 +119,5 @@ export const migrations = [
   { up: migration_20261101_120000_order_operations.up, down: migration_20261101_120000_order_operations.down, name: '20261101_120000_order_operations' },
   { up: migration_20261101_180000_order_workflow.up, down: migration_20261101_180000_order_workflow.down, name: '20261101_180000_order_workflow' },
   { up: migration_20261102_040000_partner_connections.up, down: migration_20261102_040000_partner_connections.down, name: '20261102_040000_partner_connections' },
+  { up: migration_20261102_061337_studio_releases.up, down: migration_20261102_061337_studio_releases.down, name: '20261102_061337_studio_releases' },
 ];

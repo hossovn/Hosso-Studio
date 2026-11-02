@@ -42,8 +42,8 @@ export function CustomizeClient({ themes, current, overrides, fonts }: { themes:
   const save = async () => {
     setMsg(T('Đang lưu…'))
     const clean = Object.fromEntries(Object.entries(ov).filter(([, v]) => v))
-    const r = await fetch('/api/globals/site-settings', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ theme: t.name, [`tokens_${t.name}`]: clean }) })
-    setMsg(r.ok ? T('Đã lưu. Site công khai dùng giao diện mới.') : T('Lỗi lưu ({status}): kiểm tra mã màu dạng #rrggbb.', { status: r.status }))
+    const r = await fetch('/api/globals/site-settings?draft=true', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ theme: t.name, [`tokens_${t.name}`]: clean, _status: 'draft' }) })
+    setMsg(r.ok ? T('Đã lưu nháp giao diện. Mở Xuất bản website để áp dụng.') : T('Lỗi lưu ({status}): kiểm tra mã màu dạng #rrggbb.', { status: r.status }))
     if (r.ok && t.name !== current) frame.current?.contentWindow?.location.reload()
   }
 
@@ -101,6 +101,7 @@ export function CustomizeClient({ themes, current, overrides, fonts }: { themes:
           <button style={btn} onClick={save}>
             {T('Lưu')}
           </button>
+          <a style={{ ...ghost, textDecoration: 'none' }} href="/admin/releases?select=site-settings">{T('Kiểm tra và xuất bản')}</a>
           <button style={ghost} onClick={() => setAll({ ...all, [t.name]: {} })}>
             {T('Về mặc định')}
           </button>
@@ -121,7 +122,7 @@ export function CustomizeClient({ themes, current, overrides, fonts }: { themes:
           </button>
         </div>
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center', background: 'var(--theme-elevation-100)', overflow: 'auto' }}>
-          <iframe ref={frame} title={T('Xem trước site')} src={path} onLoad={push} style={{ width: VIEW[view], maxWidth: '100%', height: '100%', border: 0, background: '#fff' }} />
+          <iframe ref={frame} title={T('Xem trước site')} src={`${path}${path.includes('?') ? '&' : '?'}preview=1`} onLoad={push} style={{ width: VIEW[view], maxWidth: '100%', height: '100%', border: 0, background: '#fff' }} />
         </div>
       </section>
     </div>

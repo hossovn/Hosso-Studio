@@ -1,5 +1,8 @@
 // CSS cho các phần của lõi không thuộc theme: danh sách bài viết, bài viết, tìm kiếm, 404. Chỉ dùng biến --hs-*.
 export const baseCss = `
+.hs-free-device-tablet,.hs-free-device-mobile{display:none}
+@media(min-width:601px) and (max-width:1024px){.hs-free-device-desktop{display:none}.hs-free-device-tablet{display:block}}
+@media(max-width:600px){.hs-free-device-desktop{display:none}.hs-free-device-mobile{display:block}}
 .ss-section{padding:calc(var(--hs-space)*2.5) 0}
 .ss-wrap{max-width:68rem;margin:0 auto;padding:0 var(--hs-space)}
 .ss-muted{color:var(--hs-muted)}

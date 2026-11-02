@@ -11,7 +11,7 @@ import { CustomizeClient } from './CustomizeClient'
 export const CustomizeView = async ({ initPageResult }: AdminViewServerProps) => {
   const { req } = initPageResult
   if (!hasRole(req.user as { roles?: string[] } | null, 'admin')) return <p style={{ padding: 24 }}>{makeT(adminLang(req.i18n?.language))('Chỉ quản trị viên được tùy biến giao diện.')}</p>
-  const settings = (await req.payload.findGlobal({ slug: 'site-settings', depth: 0 })) as Record<string, any>
+  const settings = (await req.payload.findGlobal({ slug: 'site-settings', draft: true, depth: 0 })) as Record<string, any>
   const themes = hosso.themes.map((t) => ({
     name: t.manifest.name,
     title: t.manifest.title,

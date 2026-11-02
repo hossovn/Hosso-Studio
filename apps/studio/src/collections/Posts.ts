@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { ownOrEditor, postWriters, publishers } from '../lib/access'
 import { builderLinkField, onlyPublishersPublish, seoFields } from '../lib/content'
+import { lockSiteMutation } from '../lib/site-publication-lock'
 
 /** Bài viết / tin tức / cẩm nang. Nội dung dựng bằng cùng trình dựng kéo thả như trang. Địa chỉ công khai: /bai-viet/<slug>. */
 export const Posts: CollectionConfig = {
@@ -16,6 +17,7 @@ export const Posts: CollectionConfig = {
   },
   versions: { drafts: { autosave: true, schedulePublish: true }, maxPerDoc: 20 },
   hooks: {
+    beforeOperation: [lockSiteMutation],
     // Xóa bài thì xóa luôn bình luận của bài (tránh vướng khóa ngoại).
     beforeDelete: [
       async ({ id, req }) => {

@@ -4,6 +4,7 @@ import type { Field, GlobalConfig } from 'payload'
 import hosso from '@hosso-config'
 import { adminOnly } from '../lib/access'
 import { msg } from '../lib/lang'
+import { lockSiteMutation } from '../lib/site-publication-lock'
 
 const hex = (v: unknown, { req }: { req?: { i18n?: { language?: string } } } = {}) => !v || /^#[0-9a-fA-F]{6}$/.test(String(v)) || msg(req, 'Dùng mã màu dạng #rrggbb', 'Use a color code like #rrggbb')
 const fontOptions = Object.entries(FONTS).map(([value, label]) => ({ label, value }))
@@ -61,7 +62,9 @@ export const SiteSettings: GlobalConfig = {
   slug: 'site-settings',
   label: 'Cài đặt website',
   admin: { group: 'Hệ thống' },
-  access: { read: () => true, update: adminOnly },
+  access: { read: adminOnly, readVersions: adminOnly, update: adminOnly },
+  versions: { drafts: { autosave: true }, max: 20 },
+  hooks: { beforeOperation: [lockSiteMutation] },
   fields: [
     {
       type: 'tabs',

@@ -6,7 +6,7 @@ import { getPayload } from 'payload'
 import React from 'react'
 
 import { AREAS } from '@/globals/SiteAreas'
-import { canPublish, hasRole } from '@/lib/access'
+import { canPublish, canEditPages } from '@/lib/access'
 import { adminLang, makeT } from '@/lib/admin-i18n'
 import { fontClassNames } from '@/lib/fonts'
 import { defaultLocaleCode, isLocale } from '@/lib/locale'
@@ -24,7 +24,7 @@ export async function generateMetadata() {
 type Kind = 'pages' | 'posts' | 'reusable-blocks' | 'area'
 const KINDS: Kind[] = ['posts', 'reusable-blocks', 'area']
 
-export default async function EditorPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ c?: string; locale?: string; v?: string; from?: string }> }) {
+export default async function EditorPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ c?: string; locale?: string; v?: string; from?: string; block?: string; element?: string; device?: string }> }) {
   const { id } = await params
   const sp = await searchParams
   const collection: Kind = KINDS.includes(sp.c as Kind) ? (sp.c as Kind) : 'pages'
@@ -37,7 +37,7 @@ export default async function EditorPage({ params, searchParams }: { params: Pro
   if (locale !== defaultLocaleCode) q.set('locale', locale)
   if (!user) redirect('/admin/login?redirect=' + encodeURIComponent(`/editor/${id}${q.size ? `?${q}` : ''}`))
 
-  const site = await loadSite(locale)
+  const site = await loadSite(locale, true)
   const lang = adminLang((await cookies()).get('payload-lng')?.value)
   const common = {
     lang,
@@ -52,16 +52,18 @@ export default async function EditorPage({ params, searchParams }: { params: Pro
     mode: (sp.v === 'puck' ? 'puck' : 'canvas') as 'canvas' | 'puck',
     // chỉ nhận đường dẫn nội bộ làm nơi quay lại
     from: sp.from && /^\/(?!\/)/.test(sp.from) ? sp.from : undefined,
+    initialSelection: sp.block ? { block: sp.block, el: sp.element ?? '' } : undefined,
+    initialDevice: (sp.device === 'tablet' || sp.device === 'mobile' ? sp.device : 'desktop') as 'desktop' | 'tablet' | 'mobile',
   }
 
   if (collection === 'area') {
     const area = AREAS.find((a) => a.name === id)
-    if (!area || !hasRole(user as { roles?: string[] }, 'admin', 'publisher')) notFound()
-    const doc = (await payload.findGlobal({ slug: 'site-areas', locale: locale as any, depth: 0 })) as Record<string, any>
-    return <Editor {...common} collection="area" id={id} title={area.label} slug="" status="published" data={doc[id] ?? { content: [], root: { props: {} } }} publicHref={href('/', locale)} />
+    if (!area || !canEditPages(user)) notFound()
+    const doc = (await payload.findGlobal({ slug: 'site-areas', draft: true, locale: locale as any, depth: 0, user, overrideAccess: false })) as Record<string, any>
+    return <Editor {...common} collection="area" id={id} title={area.label} slug="" status={doc._status ?? 'published'} data={doc[id] ?? { content: [], root: { props: {} } }} publicHref={href('/', locale)} />
   }
 
-  const sharedAreas = (await payload.findGlobal({ slug: 'site-areas', locale: locale as any, depth: 0 }).catch(() => ({}))) as Record<string, any>
+  const sharedAreas = (await payload.findGlobal({ slug: 'site-areas', draft: true, locale: locale as any, depth: 0 }).catch(() => ({}))) as Record<string, any>
   const chromeAreas = { header: sharedAreas.siteHeader?.content?.length ? sharedAreas.siteHeader : null, footer: sharedAreas.siteFooter?.content?.length ? sharedAreas.siteFooter : null }
   const doc = await payload.findByID({ collection, id, draft: true, locale: locale as any, user, overrideAccess: false }).catch(() => null)
   if (!doc) notFound()

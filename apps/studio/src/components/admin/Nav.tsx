@@ -118,6 +118,7 @@ export const Nav = async ({ payload, user, i18n }: Props) => {
         { label: 'Khối dùng lại', href: '/admin/collections/reusable-blocks' },
       ],
     })
+  if (editor) content.push({ id: 'releases', label: 'Xuất bản website', href: '/admin/releases', icon: 'file' })
   if (canModerate(u))
     content.push({
       id: 'comments',
