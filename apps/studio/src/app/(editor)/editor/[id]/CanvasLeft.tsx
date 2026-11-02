@@ -1,14 +1,17 @@
 'use client'
-import { ICON_CATS, makeElement, type FreeElement, type FreeType } from '@hosso/studio-blocks'
+import { ICON_CATS, makeElement, type FreeElement, type FreeType, type Pattern } from '@hosso/studio-blocks'
 import { Type, MousePointer2, Square, GalleryHorizontal, Video, Image, PanelsTopLeft, LayoutTemplate, Shapes, ShoppingBag, TextCursorInput, Blocks, Library, Ellipsis, Layers as LayersIcon, Search, Plus, X, ChevronUp, ChevronDown, ChevronRight, Trash2 } from 'lucide-react'
-import React, { useRef, useState } from 'react'
+import { Palette } from 'lucide-react'
+import React, { useState } from 'react'
+import { PageTemplatePicker } from './PageTemplatePicker'
+import { SectionLibrary } from './SectionLibrary'
 
-import { ELEMENT_CATALOG, LIBRARY, Preview, SectionPreview, Wire, sectionTitle } from './BlockPanels'
+import { ELEMENT_CATALOG, LIBRARY, Preview, Wire, sectionTitle } from './BlockPanels'
 import { PAGE, blockId, elsOf, floatOf, isSection, moveBlock, orderEl, removeBlock, removeEl, type Block, type PageData, type Sel } from './canvas-model'
 import { GlobalPanel, type NavCtx } from './SitePanels'
 import { FOOTER_TEMPLATES, HEADER_TEMPLATES, SECTION_TEMPLATES, type SectionTemplate, type SiteCtx } from './SectionTemplates'
 
-export type Tab = 'sections' | 'text' | 'elements' | 'media' | 'store' | 'input' | 'widgets' | 'library' | 'more' | 'layers' | 'global'
+export type Tab = 'sections' | 'text' | 'elements' | 'media' | 'store' | 'input' | 'widgets' | 'library' | 'more' | 'layers' | 'global' | 'brand'
 const SHOP_WIDGETS = ['ShopProductGrid', 'ShopCategories', 'ShopProductDetail', 'WimProductGrid', 'WimProductDetail', 'WimProductSearch', 'WimVehicleSelector', 'CategoryGrid', 'ShopCart', 'ShopCheckout', 'ShopOrderStatus', 'WimCart', 'WimCheckout', 'WimOrderStatus', 'ShippingTrack']
 const INPUT_WIDGETS = ['Form', 'ContactForm', 'SearchBox', 'NavMenu']
 const TABS: { id: Tab; title: string; icon: typeof Type; groups?: string[]; widgets?: string[] }[] = [
@@ -21,6 +24,7 @@ const TABS: { id: Tab; title: string; icon: typeof Type; groups?: string[]; widg
   { id: 'input', title: 'Nhập liệu', icon: TextCursorInput, groups: ['Menu'], widgets: INPUT_WIDGETS },
   { id: 'widgets', title: 'Tính năng', icon: Blocks },
   { id: 'library', title: 'Kho mẫu', icon: Library },
+  { id: 'brand', title: 'Thương hiệu', icon: Palette },
   { id: 'more', title: 'Khác', icon: Ellipsis, groups: ['Đếm ngược', 'Số liệu', 'Bảng', 'Bản đồ và nhúng', 'Tab và đường dẫn'] },
   { id: 'layers', title: 'Cấu trúc', icon: LayersIcon },
 ]
@@ -35,6 +39,7 @@ export type LeftOps = {
   addEls: (els: FreeElement[]) => void
   addSection: (tpl: { height: number; bg?: string; els: FreeElement[] }) => void
   addWidget: (type: string, props?: Record<string, unknown>) => void
+  addPattern: (pattern: Pattern) => void
 }
 
 export function CanvasLeft({
@@ -54,6 +59,7 @@ export function CanvasLeft({
   onOpen,
   onClose,
   open,
+  brandPanel,
 }: {
   nav?: NavCtx
   tab: Tab
@@ -71,13 +77,12 @@ export function CanvasLeft({
   onOpen: () => void
   onClose: () => void
   open: boolean
+  brandPanel?: React.ReactNode
 }) {
   const [q, setQ] = useState('')
-  const dragging = useRef(false)
   const m = q.trim().toLowerCase()
   const cur = TABS.find((t) => t.id === tab)!
   const CurrentIcon = cur.icon
-  const [kind, setKind] = useState<'all' | 'section' | 'container'>('all')
   const showTab = (id: Tab) => {
     if (tab !== id) setQ('')
     setTab(id)
@@ -94,35 +99,7 @@ export function CanvasLeft({
   let body: React.ReactNode = null
   if (tab === 'sections') {
     const source: SectionTemplate[] = areaKind ? (areaKind === 'header' ? HEADER_TEMPLATES : FOOTER_TEMPLATES).map((t) => ({ ...t, build: () => t.build(siteCtx) })) : SECTION_TEMPLATES
-    const isBox = (t: SectionTemplate) => t.id.startsWith('container-')
-    const tpls = source.filter((t) => t.label.toLowerCase().includes(m) && (kind === 'all' || (kind === 'container') === isBox(t)))
-    body = (
-      <>
-        {search}
-        {!areaKind && (
-          <div className="cv-seg" role="tablist" aria-label="Loại mẫu">
-            {([['all', 'Tất cả'], ['section', 'Phần'], ['container', 'Container']] as const).map(([k, l]) => (
-              <button key={k} type="button" role="tab" aria-selected={kind === k} onClick={() => setKind(k)}>{l}</button>
-            ))}
-          </div>
-        )}
-        {!m && kind !== 'container' && (
-          <button type="button" className="cv-create" draggable onDragStart={(e) => { e.dataTransfer.setData('text/plain', 'hosso-section:blank'); e.dataTransfer.effectAllowed = 'copy' }} onClick={() => ops.addSection({ height: 400, els: [] })}>
-            <Plus size={18} />
-            Tạo phần trống
-          </button>
-        )}
-        <h3 className="cv-catalog-heading">{areaKind === 'header' ? 'Mẫu header' : areaKind === 'footer' ? 'Mẫu footer' : kind === 'container' ? 'Container' : 'Mẫu'}<span>{tpls.length}</span></h3>
-        <div style={{ display: 'grid', gap: 10 }}>
-          {tpls.map((tpl: SectionTemplate) => (
-            <button key={tpl.id} type="button" className="he-card" draggable aria-label={tpl.label} onDragStart={(e) => { e.dataTransfer.setData('text/plain', 'hosso-section:' + tpl.id); e.dataTransfer.effectAllowed = 'copy' }} onClick={() => ops.addSection({ height: tpl.height, bg: tpl.bg, els: tpl.build() })} style={{ cursor: 'pointer', font: 'inherit' }}>
-              <SectionPreview tpl={tpl} />
-              <span className="cv-item-label"><span>{tpl.label}</span><Plus size={14} aria-hidden="true" /></span>
-            </button>
-          ))}
-        </div>
-      </>
-    )
+    body = <>{search}<SectionLibrary templates={source} query={m} areaKind={areaKind} onInsert={ops.addSection} /></>
   } else if (cur.groups || cur.widgets) {
     const groups = LIBRARY.filter((g) => (cur.groups ?? []).includes(g.title))
       .map((g) => ({ ...g, items: g.items.filter((it) => `${g.title} ${it.label}`.toLowerCase().includes(m)) }))
@@ -177,7 +154,9 @@ export function CanvasLeft({
       </>
     )
   } else if (tab === 'library') {
-    body = <div className="cv-empty"><Library size={32} strokeWidth={1.5} aria-hidden="true" /><p>Chưa có mẫu.</p></div>
+    body = areaKind ? <p className="cv-panel-note">Mở một trang để thêm mẫu trang hoàn chỉnh. Dùng mục Phần để chọn mẫu đầu trang hoặc chân trang.</p> : <>{search}<p className="cv-panel-note">Chọn một mẫu để xem trước. Các phần được thêm vào trang hiện tại; bạn có thể hoàn tác.</p><PageTemplatePicker query={m} onInsert={ops.addPattern} /></>
+  } else if (tab === 'brand') {
+    body = brandPanel
   } else if (tab === 'global') {
     body = !nav ? null : <GlobalPanel ctx={nav} data={data} addReusable={(slug) => ops.addWidget('Reusable', { slug })} />
   } else if (tab === 'layers') {
@@ -187,13 +166,6 @@ export function CanvasLeft({
   return (
     <div
       className="cv-left"
-      onDragStart={() => { dragging.current = true }}
-      onDragEnd={(e) => { dragging.current = false; if (!e.currentTarget.matches(':hover')) onClose() }}
-      onPointerLeave={(e) => {
-        const active = e.currentTarget.ownerDocument.activeElement
-        if (!dragging.current && e.pointerType === 'mouse' && !(active?.matches('input, textarea, select, [contenteditable]') && e.currentTarget.contains(active))) onClose()
-      }}
-      onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget) && !e.currentTarget.matches(':hover')) onClose() }}
       onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } }}
       style={{ display: 'flex', flex: '0 0 auto' }}
     >
@@ -209,12 +181,10 @@ export function CanvasLeft({
               aria-label={t.title}
               aria-pressed={on}
               aria-expanded={on}
-              onPointerEnter={(e) => { if (e.pointerType === 'mouse') showTab(t.id) }}
-              onFocus={() => showTab(t.id)}
-              onClick={() => showTab(t.id)}
+              onClick={() => { if (on) onClose(); else showTab(t.id) }}
             >
               <span className="cv-chip" aria-hidden="true">
-                <img src={`/editor-icons/${t.id}.png`} alt="" width={44} height={44} draggable={false} decoding="async" />
+                <t.icon size={22} strokeWidth={1.6} />
               </span>
               {t.title}
             </button>
@@ -234,8 +204,8 @@ export function CanvasLeft({
             <X size={16} />
           </button>
         </div>
-        <div className="cv-panel-body">
-        {['sections', 'text', 'elements', 'media'].includes(tab) && <div className="cv-quick-add tw:grid tw:grid-cols-3 tw:gap-2 tw:mb-4" aria-label="Thêm phần tử">
+        <div className="cv-panel-body" key={tab}>
+        {['text', 'elements', 'media'].includes(tab) && <div className="cv-quick-add tw:grid tw:grid-cols-3 tw:gap-2 tw:mb-4" aria-label="Thêm phần tử">
           {([{ type: 'text', label: 'Văn bản', Icon: Type }, { type: 'button', label: 'Nút bấm', Icon: MousePointer2 }, { type: 'container', label: 'Nhóm', Icon: Square }, { type: 'image', label: 'Hình ảnh', Icon: Image }, { type: 'swiper', label: 'Trình chiếu', Icon: GalleryHorizontal }, { type: 'video', label: 'Video', Icon: Video }] satisfies { type: FreeType; label: string; Icon: typeof Type }[]).map(({ type, label, Icon }) => (
             <button key={type} type="button" draggable title={label} onDragStart={(e) => { e.dataTransfer.setData('text/plain', 'hosso-widget:' + type); e.dataTransfer.effectAllowed = 'copy' }} onClick={() => ops.addEls([ELEMENT_CATALOG.find((item) => item.type === type)?.create() ?? makeElement(type)])}><span className="cv-quick-icon"><Icon size={20} strokeWidth={1.6} /></span>{label}</button>
           ))}

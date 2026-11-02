@@ -5,6 +5,7 @@ import { ActionBar, usePuck } from '@puckeditor/core'
 import dynamic from 'next/dynamic'
 import { buildBlockPlugins } from './BlockPanels'
 import { CanvasApp, CanvasBoundary } from './CanvasApp'
+import type { BrandTheme } from './BrandPanel'
 import { useInsertSection, withFreeLayer } from './FreeCanvasEditor'
 import '@puckeditor/core/puck.css'
 import '@fontsource/roboto/400.css'
@@ -34,6 +35,8 @@ type Props = {
   css: string
   chrome: SiteChrome
   canPublish: boolean
+  brandTheme?: BrandTheme
+  canEditBrand?: boolean
   fontClass: string
   locale: string
   defaultLocale: string
@@ -543,6 +546,8 @@ export function Editor(props: Props) {
       {canvasMode ? (
         <CanvasBoundary fallbackHref={puckHref}>
           <CanvasApp
+            brandTheme={props.brandTheme}
+            canEditBrand={props.canEditBrand}
             initialSelection={props.initialSelection}
             initialDevice={props.initialDevice}
             config={config}

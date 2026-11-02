@@ -7,6 +7,7 @@ import { WidgetPartPicker, WidgetPartsInspector } from './WidgetPartsInspector'
 import { ElementStateControls } from './StateStyleEditor'
 import { ScrollEffectControls } from './ScrollEffectControls'
 import { MotionControls } from './MotionControls'
+import { ProductSelection } from './ProductSelection'
 
 import { blockId, dupEl, elsOf, findEl, isSection, orderEl, patchBlock, patchElProps, removeEl, updateEl, type Block, type PageData, type Sel, NO_SEL } from './canvas-model'
 
@@ -436,7 +437,7 @@ function BlockInspector({ block, config, data, commit, labelOf, state, onStateCh
         <Row label="Ảnh nền"><MediaField value={block.props.bgImage ?? ''} onChange={(v) => put({ bgImage: v })} kind="image" /></Row>
         <Row label="Video nền MP4"><MediaField value={block.props.bgVideo ?? ''} onChange={(v) => put({ bgVideo: v })} kind="video" /></Row>
         <Row label="Lớp tối (%)"><RangeControl value={block.props.bgOverlay ?? 0} onChange={(v) => put({ bgOverlay: Math.min(100, Math.max(0, Number(v) || 0)) })} min={0} max={100} /></Row>
-      </> : <FieldsForm fields={fields} values={block.props} onChange={(k, v) => put({ [k]: v })} />}
+      </> : <>{block.type === 'ShopProductGrid' && <ProductSelection value={block.props.productIds} onChange={(ids) => put({ productIds: ids ?? null })} />}<FieldsForm fields={fields} values={block.props} onChange={(k, v) => put({ [k]: v })} /></>}
     </Group>
     <Group title="Thiết kế" show={tab === 'style'}>
       <Row label="Màu nền"><ColorControl value={block.props._bgHex ?? ''} onChange={(v) => put({ _bgHex: v })} /></Row>

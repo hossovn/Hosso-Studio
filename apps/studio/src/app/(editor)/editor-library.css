@@ -1,0 +1,103 @@
+/* Studio editor, Operate: a wide website canvas and tools opened by intent.
+   OWN-WORLD: white work surfaces, quiet gray separators and Hosso green actions.
+   STORY: choose a section/page, edit the result, preview and publish through existing controls.
+   FIRST VIEWPORT: compact top bars, 72px tool rail, canvas, contextual inspector.
+   FORM: Wix references supplied by the owner; preserve the existing document engine. */
+.cv-panel[data-module=sections],.cv-panel[data-module=library]{width:min(900px,calc(100vw - 88px))}
+.cv-panel[data-module=sections] .cv-panel-body,.cv-panel[data-module=library] .cv-panel-body{padding:24px}
+.cv-panel-note{margin:0 0 16px;color:var(--cv-muted);font-size:12px;line-height:1.65}
+.cv-mobile-actions{display:none}
+.cv-gallery-layout{display:flex;gap:24px;align-items:flex-start}
+.cv-gallery-categories{display:grid;gap:4px;flex:0 0 160px;position:sticky;top:0}
+.cv-gallery-categories button{min-height:40px;border:0;border-radius:5px;padding:9px 12px;text-align:left;background:transparent;color:var(--cv-muted);font:500 12px/1.5 system-ui,sans-serif;cursor:pointer}
+.cv-gallery-categories button:hover{background:var(--cv-soft);color:var(--cv-ink)}
+.cv-gallery-categories button[aria-pressed=true]{background:var(--cv-accent-soft);color:var(--hosso-brand)}
+.cv-gallery-content{flex:1;min-width:0}
+.cv-gallery-intro{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:20px}
+.cv-gallery-intro h3,.cv-brand-intro h3{margin:0 0 7px;font-size:18px;line-height:1.35;letter-spacing:-.02em;font-weight:650}
+.cv-gallery-intro p,.cv-brand-intro p{margin:0;font-size:12px;line-height:1.6;color:var(--cv-muted)}
+.cv-gallery-intro>span{white-space:nowrap;font-size:11px;color:var(--cv-muted)}
+.cv-section-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 18px}
+.cv-section-card,.cv-blank-template{display:flex;flex-direction:column;gap:10px;padding:0;min-width:0;border:0;background:transparent;color:var(--cv-ink);font:inherit;text-align:left;cursor:pointer}
+.cv-section-card>strong,.cv-blank-template>strong{font-size:12px;line-height:1.5;font-weight:550}
+.cv-section-art{position:relative;display:grid;align-items:center;min-height:150px;width:100%;overflow:hidden;border-radius:6px;background:#f0f2f5;box-shadow:0 0 0 1px #18233312;transition:box-shadow .16s}
+.cv-section-art>div{box-shadow:none!important;border-radius:0!important}
+.cv-section-add{position:absolute;right:10px;bottom:10px;display:grid;place-items:center;width:30px;height:30px;background:#fff;color:var(--hosso-brand);border-radius:50%;box-shadow:0 2px 8px #18233326}
+.cv-section-card:hover .cv-section-art,.cv-section-card:focus-visible .cv-section-art{box-shadow:0 0 0 2px var(--hosso-brand)}
+.cv-blank-template>span{display:grid;place-items:center;width:100%;min-height:150px;border:1px dashed #bcc8c1;background:#f9fbfa;border-radius:6px;color:var(--hosso-brand)}
+.cv-blank-template>small{margin-top:-7px;color:var(--cv-muted);font-size:11px}
+.cv-panel[data-module=library] .cv-template-filter{max-width:220px}
+.cv-panel[data-module=library] .cv-template-list{grid-template-columns:repeat(3,minmax(0,1fr));gap:24px 18px}
+.cv-template-card{border:0;box-shadow:0 0 0 1px #18233312;border-radius:6px}
+.cv-template-thumb{position:relative;height:230px;overflow:hidden;background:#f0f2f5}
+.cv-page-miniature{position:absolute;inset:0 0 auto;pointer-events:none}
+.cv-page-miniature>div{border-radius:0!important;box-shadow:none!important}
+.cv-template-view{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:5px;background:#fff;color:var(--cv-ink);font:500 11px system-ui,sans-serif;box-shadow:0 2px 10px #18233324;white-space:nowrap}
+.cv-template-actions{flex-wrap:wrap}
+.cv-template-actions button{flex:1;font-family:inherit;font-size:11px;min-height:34px}
+.cv-brand-panel{display:grid;gap:16px}
+.cv-brand-panel h4{margin:8px 0 0;font-size:13px;font-weight:650}
+.cv-brand-sample{padding:24px 20px;border-radius:8px;overflow:hidden}
+.cv-brand-sample>span:first-child{display:block;margin-bottom:28px;font-size:10px;font-weight:600;letter-spacing:.06em}
+.cv-brand-sample>strong{font-size:26px;line-height:1.2;font-weight:650;letter-spacing:-.03em}
+.cv-brand-sample>p{margin:12px 0 20px;font-size:11px;line-height:1.6}
+.cv-brand-sample-button{display:inline-block;padding:9px 16px;border-radius:4px;color:#fff;font-size:11px;font-weight:600}
+.cv-brand-colors{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 12px}
+.cv-brand-color{display:flex;align-items:center;gap:9px;min-width:0}
+.cv-brand-color>input{width:34px;height:36px;flex-shrink:0;border:0;border-radius:5px;padding:0;background:transparent;cursor:pointer}
+.cv-brand-color>span{display:grid;gap:3px;min-width:0}
+.cv-brand-color strong{font-size:11px;font-weight:500;color:var(--cv-muted)}
+.cv-brand-color>span>input{width:100%;max-width:88px;border:0;padding:1px 0;background:transparent;font:12px system-ui,sans-serif;color:var(--cv-ink)}
+.cv-brand-field{display:grid;gap:7px;font-size:12px;color:var(--cv-muted)}
+.cv-brand-field select{width:100%;min-height:38px;padding:7px 9px;border:1px solid var(--cv-border);border-radius:5px;background:#fff;color:var(--cv-ink);font:12px system-ui,sans-serif}
+.cv-brand-panel .cv-panel-note{margin:0}
+.cv-brand-actions{display:flex;gap:8px;padding:16px 0 0;border-top:1px solid var(--cv-line)}
+.cv-brand-actions button,.cv-product-pagination button{display:flex;align-items:center;justify-content:center;gap:6px;min-height:38px;flex:1;padding:8px;border:1px solid var(--cv-border);border-radius:5px;background:#fff;color:var(--cv-ink);font:500 12px system-ui,sans-serif;cursor:pointer}
+.cv-brand-actions button:last-child{background:var(--hosso-brand);border-color:var(--hosso-brand);color:#fff}
+.cv-brand-actions button:disabled,.cv-product-pagination button:disabled{opacity:.45;cursor:not-allowed}
+.cv-form-error{margin:0;color:#b42318;font-size:12px;line-height:1.6}
+.cv-form-success{display:flex;gap:6px;align-items:center;margin:0;color:#16704a;font-size:12px}
+.cv-product-selection{display:grid;gap:12px;padding-bottom:20px;margin-bottom:20px;border-bottom:1px solid var(--cv-line)}
+.cv-product-selection .cv-panel-note,.cv-product-selection .cv-search{margin:0}
+.cv-product-selected{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px}
+.cv-product-selected button,.cv-text-action{display:inline-flex;align-items:center;gap:6px;border:0;padding:5px 0;background:transparent;color:var(--hosso-brand);font:inherit;font-size:11px;cursor:pointer}
+.cv-text-action{display:flex}
+.cv-product-chips{display:flex;flex-wrap:wrap;gap:5px;list-style:none;padding:0;margin:0;max-height:160px;overflow:auto}
+.cv-product-chips li{display:flex;align-items:center;gap:4px;max-width:100%;padding:5px 7px;background:var(--cv-accent-soft);border-radius:4px;font-size:11px}
+.cv-product-chips li>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cv-product-chips button{display:grid;place-items:center;border:0;padding:2px;background:transparent;color:var(--cv-ink);cursor:pointer}
+.cv-product-options{display:grid;gap:2px;max-height:330px;overflow:auto}
+.cv-product-option{display:flex;align-items:center;gap:9px;min-width:0;padding:8px 5px;cursor:pointer;border-radius:5px}
+.cv-product-option:hover{background:var(--cv-soft)}
+.cv-product-option[data-selected=true]{background:#f0f7f3}
+.cv-product-option>input{flex:0 0 auto;accent-color:var(--hosso-brand)}
+.cv-product-option>img,.cv-product-placeholder{display:grid;place-items:center;width:36px;height:36px;object-fit:cover;flex-shrink:0;border-radius:4px;background:var(--cv-soft);color:var(--cv-muted)}
+.cv-product-option>span:last-child{display:grid;gap:3px;min-width:0}
+.cv-product-option strong{font-size:11px;line-height:1.5;font-weight:500;overflow-wrap:anywhere}
+.cv-product-option small{font-size:10px;color:var(--cv-muted)}
+.cv-product-pagination{display:flex;align-items:center;gap:8px;font-size:11px}
+.cv-product-pagination button{flex:0 0 auto;min-height:30px;font-size:11px}
+.cv-product-pagination>span{flex:1;text-align:center}
+@media(min-width:1500px){.cv-panel[data-module=sections],.cv-panel[data-module=library]{width:1040px}.cv-section-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:1000px){.cv-panel[data-module=library] .cv-template-list{grid-template-columns:repeat(2,minmax(0,1fr))}.cv-gallery-categories{flex-basis:140px}.cv-section-art,.cv-blank-template>span{min-height:120px}}
+@media(max-width:700px){
+  .cv-top{position:relative;min-height:58px}
+  .cv-mobile-actions{display:flex;align-items:center;justify-content:center;min-height:34px;margin-left:auto;padding:6px 10px;border:1px solid var(--cv-border);border-radius:5px;background:#fff;color:var(--cv-ink);font:500 12px system-ui,sans-serif;cursor:pointer}
+  .cv-top>.cv-dev{margin-left:0}
+  .cv-top .cv-file-actions{position:absolute;top:100%;left:8px;right:8px;padding:12px;background:#fff;box-shadow:var(--cv-shadow);border-radius:0 0 6px 6px;z-index:8;max-height:calc(100dvh - 70px);overflow:auto}
+  .cv-top .cv-file-actions[data-open=false]{display:none}
+  .cv-panel[data-module=sections],.cv-panel[data-module=library]{width:calc(100vw - 60px)}
+  .cv-panel[data-module=sections] .cv-panel-body,.cv-panel[data-module=library] .cv-panel-body{padding:16px}
+  .cv-gallery-layout{flex-direction:column;gap:18px}
+  .cv-gallery-categories{position:static;display:flex;flex-wrap:wrap;gap:4px;flex-basis:auto;width:100%}
+  .cv-gallery-categories button{min-height:34px;padding:6px 9px;font-size:11px}
+  .cv-gallery-content{width:100%}
+  .cv-gallery-intro{gap:8px}.cv-gallery-intro h3{font-size:16px}
+  .cv-section-grid{gap:18px 12px}.cv-section-art,.cv-blank-template>span{min-height:100px}
+  .cv-panel[data-module=library] .cv-template-list{grid-template-columns:minmax(0,1fr)}
+  .cv-template-thumb{height:280px}
+  .cv-workbar .cv-device-label{display:none}
+}
+@media(max-width:400px){.cv-section-grid{grid-template-columns:minmax(0,1fr)}}
+@media(pointer:coarse){.cv-gallery-categories button,.cv-brand-actions button,.cv-product-option,.cv-brand-field select{min-height:44px}.cv-product-chips button{min-width:28px;min-height:28px}}
+@media(prefers-reduced-motion:reduce){.cv-section-art{transition:none}}

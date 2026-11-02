@@ -19,7 +19,7 @@ export function PageTemplatePicker({ query, onInsert }: { query: string; onInser
     <div className="cv-template-results" role="status">{templates.length} mẫu trang</div>
     <div className="cv-template-list">
       {templates.map((t) => <article key={t.id} className="cv-template-card" data-template={t.id}>
-        <button type="button" className="cv-template-thumb" aria-label={'Xem mẫu ' + t.label} onClick={() => setPreview(t)}><SectionPreview tpl={t.sections[0]} /></button>
+        <button type="button" className="cv-template-thumb" aria-label={'Xem mẫu ' + t.label} onClick={() => setPreview(t)}><div className="cv-page-miniature">{t.sections.map((section) => <SectionPreview key={section.id} tpl={section} />)}</div><span className="cv-template-view"><Eye size={15} />Xem mẫu</span></button>
         <div className="cv-template-info"><strong>{t.label}</strong><span>{TEMPLATE_CATEGORIES.find((c) => c.id === t.category)!.label} · {t.sections.length} phần</span></div>
         <div className="cv-template-actions">
           <button type="button" onClick={() => setPreview(t)}><Eye size={14} />Xem mẫu</button>

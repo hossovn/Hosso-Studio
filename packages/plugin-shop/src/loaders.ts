@@ -50,6 +50,8 @@ const categoryTree = async (payload: Payload, slug: string) => {
 }
 
 export const loadGrid: BlockLoader = async (props, ctx) => {
+  // An empty manual selection must never expand into the entire catalog.
+  if (Array.isArray(props.productIds) && !props.productIds.length) return { status: 'ok', items: [], page: 1, pages: 1, total: 0 }
   const { payload, searchParams: sp } = ctx
   await syncSources(payload)
   const listing = props.pager === 'yes' // danh sách có phân trang đọc bộ lọc từ URL; mục nổi bật chỉ dùng thuộc tính của block

@@ -7,6 +7,7 @@ import { elsOf } from './canvas-model'
 import { visibleCanvasBlock, visibleCanvasRange } from './canvas-viewport'
 
 import { CanvasInspector } from './CanvasInspector'
+import { BrandPanel, useBrandDraft, type BrandTheme } from './BrandPanel'
 import { CanvasLeft, elLabel, type LeftOps, type Tab } from './CanvasLeft'
 import type { NavCtx } from './SitePanels'
 import { PagesDropdown } from './PagesDropdown'
@@ -53,9 +54,12 @@ type Props = {
   nav?: NavCtx
   initialSelection?: Sel
   initialDevice?: 'desktop' | 'tablet' | 'mobile'
+  brandTheme?: BrandTheme
+  canEditBrand?: boolean
 }
 
-export function CanvasApp({ config, data: initial, onChange, css, htmlClass, title, backHref, menu, actions, labelOf, lang, rootRender, scopes, areaKind = '', siteCtx = {}, nav, initialSelection, initialDevice = 'desktop' }: Props) {
+export function CanvasApp({ config, data: initial, onChange, css, htmlClass, title, backHref, menu, actions, labelOf, lang, rootRender, scopes, areaKind = '', siteCtx = {}, nav, initialSelection, initialDevice = 'desktop', brandTheme, canEditBrand = false }: Props) {
+  const brandDraft = useBrandDraft(brandTheme, canEditBrand, nav?.locale ?? lang, !nav)
   const [store] = useState(() => createStore<{ hist: Hist; sel: Sel; preview: boolean }>(() => ({ hist: initHist(normalize(initial)), sel: initialSelection ?? NO_SEL, preview: false })))
   const { hist, sel, preview } = useStore(store)
   const setSel = useCallback((next: Sel) => store.setState({ sel: next }), [store])
@@ -75,6 +79,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
   }
   const [zoom, setZoom] = useState<'fit' | 0.5 | 0.75 | 1 | 1.25>('fit')
   const [showShortcuts, setShowShortcuts] = useState(false)
+  const [mobileActionsOpen, setMobileActionsOpen] = useState(false)
   const [copiedStyle, setCopiedStyle] = useState<Record<string, unknown> | null>(null)
   useEffect(() => {
     if (window.innerWidth <= 1100) setRightOpen(false)
@@ -261,6 +266,23 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
       commit(insertBlock(data, nb, afterVisible()))
       setSel({ block: blockId(nb), el: '' })
     },
+    addPattern: (pattern) => {
+      let next = data
+      let after = afterVisible()
+      let firstId = ''
+      for (const block of pattern.blocks) {
+        if (!config.components[block.type]) continue
+        const id = newBlockId(block.type)
+        const inserted = { type: block.type, props: { ...block.props, id } }
+        next = insertBlock(next, inserted, after)
+        firstId ||= id
+        after = id
+      }
+      if (!firstId) return
+      revealBlock.current = firstId
+      commit(next)
+      setSel({ block: firstId, el: '' })
+    },
   }
 
   api.current = ops
@@ -275,7 +297,8 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
         <span className="cv-brand">HOSSO<span>STUDIO</span></span>
         {nav && <PagesDropdown ctx={nav} />}
         <div className="cv-document" title={title}>{title}</div>
-        <div className="cv-file-actions">{menu}{actions}</div>
+        <button type="button" className="cv-mobile-actions" aria-label="Tác vụ trang" aria-expanded={mobileActionsOpen} aria-controls="cv-file-actions" onClick={() => setMobileActionsOpen((open) => !open)}>Tác vụ</button>
+        <div id="cv-file-actions" className="cv-file-actions" data-open={mobileActionsOpen} onKeyDown={(event) => { if (event.key === 'Escape') setMobileActionsOpen(false) }}>{menu}{actions}</div>
         <div className="cv-dev" role="group" aria-label="Chế độ">
           <button type="button" title="Chế độ sửa" aria-label="Chế độ sửa" aria-pressed={!preview} onClick={() => store.setState({ preview: false })}><Pencil size={17} /></button>
           <button type="button" title="Xem trước trang" aria-label="Xem trước trang" aria-pressed={preview} onClick={() => store.setState({ preview: true })}><Eye size={17} /></button>
@@ -331,6 +354,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
               nav={nav}
               onOpen={openLeft}
               onClose={() => setLeftOpen(false)}
+              brandPanel={<BrandPanel theme={brandTheme} enabled={canEditBrand} draft={brandDraft} />}
             />
           </div>
         )}
@@ -348,7 +372,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
             labelOf={labelOf}
             width={dev.width}
             zoom={zoom}
-            css={css}
+            css={css + brandDraft.css}
             htmlClass={htmlClass}
             rootRender={rootRender}
             areaKind={areaKind}

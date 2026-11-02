@@ -6,7 +6,7 @@ import { getPayload } from 'payload'
 import React from 'react'
 
 import { AREAS } from '@/globals/SiteAreas'
-import { canPublish, canEditPages } from '@/lib/access'
+import { canPublish, canEditPages, isAdmin } from '@/lib/access'
 import { adminLang, makeT } from '@/lib/admin-i18n'
 import { fontClassNames } from '@/lib/fonts'
 import { defaultLocaleCode, isLocale } from '@/lib/locale'
@@ -46,6 +46,8 @@ export default async function EditorPage({ params, searchParams }: { params: Pro
     chrome: site.chrome,
     fontClass: fontClassNames,
     canPublish: canPublish(user as { roles?: string[] }),
+    canEditBrand: isAdmin(user as { roles?: string[] }),
+    brandTheme: { name: site.theme.manifest.name, title: site.theme.manifest.title, tokens: site.theme.manifest.tokens },
     locale,
     defaultLocale: defaultLocaleCode,
     locales: hosso.locales,

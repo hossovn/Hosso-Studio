@@ -21,6 +21,7 @@
     "test:studio-layout": "node --experimental-strip-types scripts/test-studio-layout.mjs",
     "test:site-releases": "node scripts/test-site-releases.mjs",
     "test:studio-browser": "node scripts/test-studio-browser.mjs",
+    "test:studio-workbench": "node scripts/test-studio-workbench.mjs",
     "test:editor-preview": "node --experimental-strip-types scripts/test-editor-preview.mjs",
     "test:site-package": "node scripts/test-site-package.mjs",
     "test:admin-views": "node scripts/test-admin-views.mjs",

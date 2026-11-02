@@ -250,7 +250,8 @@ export const Preview = ({ el, compact }: { el: FreeElement; compact?: boolean })
 
 /** Xem trước một mẫu section bằng chính các phần tử của nó. */
 export const SectionPreview = ({ tpl }: { tpl: SectionTemplate }) => {
-  const els = useMemo(() => tpl.build(), [tpl])
+  // Thumbnails show the settled design and never mount animation/pause controls inside a card button.
+  const els = useMemo(() => tpl.build().map((el) => ({ ...el, props: { ...el.props, _motion: undefined, _scroll: undefined } })), [tpl])
   return (
     <div style={{ position: 'relative', containerType: 'inline-size', width: '100%', background: tpl.bg ?? '#fff', borderRadius: 6, overflow: 'hidden', pointerEvents: 'none', boxShadow: 'inset 0 0 0 1px #e5e7eb' }}>
       <div style={{ height: `${(tpl.height / 1200) * 100}cqw` }} />

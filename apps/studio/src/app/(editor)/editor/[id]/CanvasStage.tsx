@@ -78,6 +78,7 @@ export function StageFrame({
       if (!d || d.body?.dataset.ready) return
       document.head.querySelectorAll('style, link[rel="stylesheet"]').forEach((n) => d.head.appendChild(n.cloneNode(true)))
       const s = d.createElement('style')
+      s.dataset.canvasTheme = 'true'
       s.textContent = `${css}\nhtml,body{margin:0}\nhtml,*{scrollbar-width:none}::-webkit-scrollbar{display:none}\n${HF_CSS}`
       d.head.appendChild(s)
       d.documentElement.className = htmlClass
@@ -90,6 +91,11 @@ export function StageFrame({
     return () => f.removeEventListener('load', setup)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    const style = doc?.querySelector<HTMLStyleElement>('style[data-canvas-theme]')
+    if (style) style.textContent = `${css}\nhtml,body{margin:0}\nhtml,*{scrollbar-width:none}::-webkit-scrollbar{display:none}\n${HF_CSS}`
+  }, [doc, css])
 
   const targetW = typeof width === 'number' ? width : 1200
   const fitScale = Math.min(1, Math.max(0.1, (containerW - 32) / targetW))

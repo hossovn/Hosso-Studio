@@ -1,0 +1,300 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-02T09:06:30.321Z",
+  "title": "Design System: Hosso Studio Editor",
+  "extensions": {
+    "colorMeta": {
+      "brand": {
+        "role": "primary",
+        "displayName": "Hosso green",
+        "tonalRamp": [
+          "oklch(15% 0.1020 159.67)",
+          "oklch(27% 0.1020 159.67)",
+          "oklch(38% 0.1020 159.67)",
+          "oklch(50% 0.1020 159.67)",
+          "oklch(61% 0.1020 159.67)",
+          "oklch(73% 0.1020 159.67)",
+          "oklch(84% 0.1020 159.67)",
+          "oklch(95% 0.1020 159.67)"
+        ]
+      },
+      "accent-soft": {
+        "role": "primary",
+        "displayName": "Pale green",
+        "tonalRamp": [
+          "oklch(15% 0.0141 162.47)",
+          "oklch(27% 0.0141 162.47)",
+          "oklch(38% 0.0141 162.47)",
+          "oklch(50% 0.0141 162.47)",
+          "oklch(61% 0.0141 162.47)",
+          "oklch(73% 0.0141 162.47)",
+          "oklch(84% 0.0141 162.47)",
+          "oklch(95% 0.0141 162.47)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "White work surface",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.88)",
+          "oklch(27% 0.0000 89.88)",
+          "oklch(38% 0.0000 89.88)",
+          "oklch(50% 0.0000 89.88)",
+          "oklch(61% 0.0000 89.88)",
+          "oklch(73% 0.0000 89.88)",
+          "oklch(84% 0.0000 89.88)",
+          "oklch(95% 0.0000 89.88)"
+        ]
+      },
+      "soft": {
+        "role": "neutral",
+        "displayName": "Soft gray",
+        "tonalRamp": [
+          "oklch(15% 0.0034 247.86)",
+          "oklch(27% 0.0034 247.86)",
+          "oklch(38% 0.0034 247.86)",
+          "oklch(50% 0.0034 247.86)",
+          "oklch(61% 0.0034 247.86)",
+          "oklch(73% 0.0034 247.86)",
+          "oklch(84% 0.0034 247.86)",
+          "oklch(95% 0.0034 247.86)"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Structural gray",
+        "tonalRamp": [
+          "oklch(15% 0.0081 253.86)",
+          "oklch(27% 0.0081 253.86)",
+          "oklch(38% 0.0081 253.86)",
+          "oklch(50% 0.0081 253.86)",
+          "oklch(61% 0.0081 253.86)",
+          "oklch(73% 0.0081 253.86)",
+          "oklch(84% 0.0081 253.86)",
+          "oklch(95% 0.0081 253.86)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Divider gray",
+        "tonalRamp": [
+          "oklch(15% 0.0063 255.48)",
+          "oklch(27% 0.0063 255.48)",
+          "oklch(38% 0.0063 255.48)",
+          "oklch(50% 0.0063 255.48)",
+          "oklch(61% 0.0063 255.48)",
+          "oklch(73% 0.0063 255.48)",
+          "oklch(84% 0.0063 255.48)",
+          "oklch(95% 0.0063 255.48)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Dark ink",
+        "tonalRamp": [
+          "oklch(15% 0.0144 261.67)",
+          "oklch(27% 0.0144 261.67)",
+          "oklch(38% 0.0144 261.67)",
+          "oklch(50% 0.0144 261.67)",
+          "oklch(61% 0.0144 261.67)",
+          "oklch(73% 0.0144 261.67)",
+          "oklch(84% 0.0144 261.67)",
+          "oklch(95% 0.0144 261.67)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted slate",
+        "tonalRamp": [
+          "oklch(15% 0.0206 253.45)",
+          "oklch(27% 0.0206 253.45)",
+          "oklch(38% 0.0206 253.45)",
+          "oklch(50% 0.0206 253.45)",
+          "oklch(61% 0.0206 253.45)",
+          "oklch(73% 0.0206 253.45)",
+          "oklch(84% 0.0206 253.45)",
+          "oklch(95% 0.0206 253.45)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "title": {
+        "displayName": "Panel introduction",
+        "purpose": "Gallery and brand section headings."
+      },
+      "body": {
+        "displayName": "Control body",
+        "purpose": "Controls and explanatory notes."
+      },
+      "label": {
+        "displayName": "Compact label",
+        "purpose": "Template metadata and selection chips."
+      },
+      "rail": {
+        "displayName": "Tool rail label",
+        "purpose": "Small labels beneath line icons."
+      }
+    },
+    "shadows": [
+      {
+        "name": "panel",
+        "value": "0 12px 36px #1823331f",
+        "purpose": "Temporary side panels and menus."
+      },
+      {
+        "name": "template-outline",
+        "value": "0 0 0 1px #18233312",
+        "purpose": "Thin template-card boundary without panel elevation."
+      },
+      {
+        "name": "template-dialog",
+        "value": "0 16px 60px #10281a33",
+        "purpose": "Full-page template preview."
+      }
+    ],
+    "motion": [
+      {
+        "name": "panel-open",
+        "value": "160ms cubic-bezier(.16,1,.3,1)",
+        "purpose": "Panel opacity from .75 and translation from -6px to its settled position."
+      },
+      {
+        "name": "control-feedback",
+        "value": "160ms ease-out",
+        "purpose": "Tool and gallery-category hover colors."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "prefers-reduced-motion: reduce",
+        "purpose": "Disable interface animation and transition."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "wide-gallery",
+        "value": "1500px"
+      },
+      {
+        "name": "header-wrap",
+        "value": "1200px"
+      },
+      {
+        "name": "inspector-overlay",
+        "value": "1100px"
+      },
+      {
+        "name": "gallery-two-columns",
+        "value": "1000px"
+      },
+      {
+        "name": "mobile-tools",
+        "value": "700px"
+      },
+      {
+        "name": "small-header",
+        "value": "480px"
+      },
+      {
+        "name": "single-section-column",
+        "value": "400px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary action",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "A compact file action using the editor's primary color.",
+      "html": "<button class=\"ds-primary\">Lưu thương hiệu</button>",
+      "css": ".ds-primary{min-height:36px;padding:0 12px;border:1px solid var(--hosso-brand,#16704a);border-radius:5px;background:var(--hosso-brand,#16704a);color:#fff;font:500 12px system-ui,sans-serif;cursor:pointer}.ds-primary:hover:not(:disabled){filter:brightness(1.07)}.ds-primary:disabled{opacity:.5;cursor:not-allowed}.ds-primary:focus-visible{outline:2px solid var(--hosso-brand,#16704a);outline-offset:2px}"
+    },
+    {
+      "name": "Secondary action",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A quiet action beside a primary control.",
+      "html": "<button class=\"ds-secondary\">Hủy thay đổi</button>",
+      "css": ".ds-secondary{min-height:36px;padding:0 12px;border:1px solid var(--cv-line,#e9ecf0);border-radius:5px;background:var(--cv-surface,#fff);color:var(--cv-ink,#20242b);font:500 12px system-ui,sans-serif;cursor:pointer}.ds-secondary:hover{background:var(--cv-soft,#f4f6f8)}.ds-secondary:focus-visible{outline:2px solid var(--hosso-brand,#16704a);outline-offset:2px}"
+    },
+    {
+      "name": "Catalog search",
+      "kind": "input",
+      "refersTo": "search",
+      "description": "Leading-icon search for libraries and products.",
+      "html": "<label class=\"ds-search\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><circle cx=\"10.5\" cy=\"10.5\" r=\"6.5\"/><path d=\"m16 16 4 4\"/></svg><input type=\"search\" aria-label=\"Tìm kiếm\" placeholder=\"Tìm kiếm…\"></label>",
+      "css": ".ds-search{display:flex;align-items:center;gap:8px;min-height:38px;padding:0 10px;border:1px solid var(--cv-line,#e9ecf0);border-radius:6px;background:var(--cv-soft,#f4f6f8);color:var(--cv-muted,#626b76)}.ds-search input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:var(--cv-ink,#20242b);font:12px system-ui,sans-serif}.ds-search input::placeholder{color:var(--cv-muted,#626b76);opacity:1}.ds-search:focus-within{border-color:var(--hosso-brand,#16704a)}"
+    },
+    {
+      "name": "Selected rail tool",
+      "kind": "nav",
+      "refersTo": "navigation-selected",
+      "description": "A deliberately opened tool with line icon and compact label.",
+      "html": "<nav aria-label=\"Công cụ\"><button class=\"ds-tool\" aria-pressed=\"true\" aria-expanded=\"true\"><svg viewBox=\"0 0 24 24\" width=\"22\" height=\"22\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"5\" rx=\"1\"/><rect x=\"3\" y=\"12\" width=\"7\" height=\"9\" rx=\"1\"/><rect x=\"14\" y=\"12\" width=\"7\" height=\"9\" rx=\"1\"/></svg>Phần</button></nav>",
+      "css": ".ds-tool{display:grid;justify-items:center;align-content:center;gap:6px;min-height:62px;width:60px;padding:7px 2px;border:0;border-radius:6px;background:var(--cv-accent-soft,#e8f3ed);color:var(--hosso-brand,#16704a);font:650 10px/1.3 system-ui,sans-serif;cursor:pointer;transition:background .16s ease-out,color .16s ease-out}.ds-tool:hover{background:#e8f3ed}.ds-tool:focus-visible{outline:2px solid var(--hosso-brand,#16704a);outline-offset:2px}@media(prefers-reduced-motion:reduce){.ds-tool{transition:none}}"
+    },
+    {
+      "name": "Selected product chip",
+      "kind": "chip",
+      "refersTo": "selection-chip",
+      "description": "Selected product names retain a visible removal control.",
+      "html": "<span class=\"ds-chip\"><span>Workbench Alpha</span><button aria-label=\"Bỏ chọn Workbench Alpha\"><svg viewBox=\"0 0 24 24\" width=\"13\" height=\"13\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><path d=\"m6 6 12 12M6 18 18 6\"/></svg></button></span>",
+      "css": ".ds-chip{display:inline-flex;align-items:center;gap:4px;max-width:100%;padding:5px 7px;border-radius:4px;background:var(--cv-accent-soft,#e8f3ed);color:var(--cv-ink,#20242b);font:11px system-ui,sans-serif}.ds-chip>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ds-chip button{display:grid;place-items:center;border:0;padding:2px;background:transparent;color:inherit;cursor:pointer}.ds-chip button:hover{background:var(--cv-soft,#f4f6f8)}.ds-chip button:focus-visible{outline:2px solid var(--hosso-brand,#16704a);outline-offset:2px}"
+    },
+    {
+      "name": "Template card metadata",
+      "kind": "card",
+      "refersTo": "template-card",
+      "description": "The metadata and action region beneath an actual page-template miniature.",
+      "html": "<article class=\"ds-card\"><div class=\"ds-info\"><strong>Tư vấn doanh nghiệp</strong><span>Doanh nghiệp · 3 phần</span></div><div class=\"ds-actions\"><button>Xem mẫu</button><button>Chèn mẫu</button></div></article>",
+      "css": ".ds-card{max-width:280px;border-radius:6px;background:var(--cv-surface,#fff);color:var(--cv-ink,#20242b);box-shadow:0 0 0 1px #18233312;overflow:hidden;font-family:system-ui,sans-serif}.ds-info{display:grid;gap:5px;padding:12px 12px 8px}.ds-info strong{font-size:12px;font-weight:600;line-height:1.4}.ds-info span{font-size:10px;color:var(--cv-muted,#626b76);line-height:1.4}.ds-actions{display:flex;gap:6px;padding:0 12px 12px}.ds-actions button{flex:1;min-height:34px;border:1px solid #dfe7e1;border-radius:4px;padding:5px 9px;background:#fff;color:#4d6054;font:500 11px system-ui,sans-serif;cursor:pointer}.ds-actions button:last-child{background:#1c6d49;border-color:#1c6d49;color:#fff}.ds-actions button:hover{border-color:#438761}.ds-actions button:last-child:hover{background:#155438}.ds-actions button:focus-visible{outline:2px solid var(--hosso-brand,#16704a);outline-offset:2px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Working Canvas",
+    "overview": "This is an extracted description of Studio's editor, scoped to this directory. The canvas carries the website; compact white controls surround it. The owner supplied Wix references and authorized implementation decisions directly. The familiar editor structure is retained with Hosso's green action color.\n\nThe interface supports repeated, precise work: choose a section or page template, edit content, preview devices and save through the existing publication flow. This record concerns editor controls. Website theme tokens, template artwork, and the Thanh Cuong storefront identity belong to their own surfaces.",
+    "keyCharacteristics": [
+      "Compact toolbars and a line-icon navigation rail.",
+      "White controls separated by quiet gray rules.",
+      "Visual libraries with real, settled content previews.",
+      "Deliberate panel opening and persistent editing state.",
+      "Green actions and selected states, with responsive tool access."
+    ],
+    "rules": [
+      {
+        "name": "The Separate Surfaces Rule",
+        "body": "Website brand changes preview inside the canvas; they do not recolor editor controls.",
+        "section": "colors"
+      },
+      {
+        "name": "The Interface Type Rule",
+        "body": "Keep control typography stable when the customer's website font changes.",
+        "section": "typography"
+      },
+      {
+        "name": "The Deliberate Panel Rule",
+        "body": "Open tools with a click. Moving the pointer away does not close the panel; the active tool, close control or Escape closes it.",
+        "section": "layout"
+      },
+      {
+        "name": "The Overlay Depth Rule",
+        "body": "Use panel elevation to distinguish temporary tools from the persistent workspace.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep website content visually separate from editor controls.",
+      "Do use real template previews and catalog photos when available.",
+      "Do expose loading, empty, error and disabled states for data-dependent tools.",
+      "Do retain pending brand edits when switching tools.",
+      "Do preserve keyboard focus indicators and reduced-motion behavior."
+    ],
+    "donts": [
+      "Don't reopen the old hover-to-open panel behavior.",
+      "Don't start website animations inside template thumbnails.",
+      "Don't treat an empty manual product selection as the full catalog.",
+      "Don't apply a customer's storefront colors to Studio's editor chrome.",
+      "Don't present a draft brand save as publication of the website."
+    ]
+  }
+}
