@@ -34,9 +34,10 @@ typography:
     lineHeight: 1.3
 rounded:
   compact: "4px"
-  control: "5px"
-  card: "6px"
-  dialog: "8px"
+  control: "10px"
+  card: "14px"
+  panel: "18px"
+  dialog: "20px"
 spacing:
   small: "8px"
   medium: "16px"
@@ -47,22 +48,22 @@ components:
     textColor: "{colors.surface}"
     rounded: "{rounded.control}"
     typography: "{typography.body}"
-    padding: "0 12px"
-    height: "36px"
+    padding: "0 14px"
+    height: "38px"
   button-secondary:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
     rounded: "{rounded.control}"
     typography: "{typography.body}"
-    padding: "0 12px"
-    height: "36px"
+    padding: "0 14px"
+    height: "38px"
   search:
     backgroundColor: "{colors.soft}"
     textColor: "{colors.ink}"
     rounded: "{rounded.card}"
     typography: "{typography.body}"
-    padding: "0 10px"
-    height: "38px"
+    padding: "0 12px"
+    height: "40px"
   navigation-selected:
     backgroundColor: "{colors.accent-soft}"
     textColor: "{colors.brand}"
@@ -129,17 +130,17 @@ Panel headers use a slightly stronger title treatment (14px, weight 650). Select
 
 ## Layout
 
-The editor fills the viewport. Its top header is compact (58px) and the workbar beneath it starts at 46px, wrapping when needed. The desktop tool rail is 72px wide. The canvas fills the remaining space, and the contextual inspector is 304px wide.
+The editor fills the viewport. Its top header is compact (58px). The workbar beneath it starts at 48px and sits within a 12px workspace gutter, wrapping when needed. The desktop tool rail has a 60px white surface within a 72px slot. The canvas fills the remaining space, and the contextual inspector is 304px wide with space around its outer edge.
 
-Ordinary tool panels are overlays anchored beside the rail (340px wide). Section and page libraries expand to a bounded wide panel. Sections use two columns by default and three on viewports from 1500px. Page templates use three columns, two below 1000px, and one below 700px.
+Ordinary tool panels are overlays anchored beside the rail (360px wide), with a visible gap above and below. Section and page libraries expand to a bounded wide panel. Sections use two columns by default and three on viewports from 1500px. Page templates use three columns, two below 1000px, and one below 700px.
 
-Below 1100px, the inspector becomes an overlay and opening one side panel closes the other. Below 700px, the rail narrows to 60px, library categories wrap above their content, and file actions move into **Tác vụ**. At widths below 400px, section previews also use one column. The rail and panel bodies scroll independently.
+Below 1100px, the inspector becomes an overlay and opening one side panel closes the other. Below 700px, the rail narrows to a 52px surface within a 60px slot, gutters reduce to 8px, library categories wrap above their content, and file actions move into **Tác vụ**. At widths below 400px, section previews also use one column. The rail and panel bodies scroll independently.
 
 **The Deliberate Panel Rule.** Open tools with a click. Moving the pointer away does not close the panel; the active tool, close control or Escape closes it.
 
 ## Elevation & Depth
 
-The main header, workbar, inspector and selection bar are flat. Overlay panels and menus use the shared offset shadow recorded in the sidecar. Template cards use a thin inset outline effect rather than the panel shadow. The template preview dialog has a stronger shadow and dimmed backdrop because it interrupts the canvas for a full-page preview.
+The header stays flat. The workbar and selection bar read as white surfaces on a cool gray workspace; the rail and inspector have a light offset shadow. Overlay panels and menus use the shared offset shadow recorded in the sidecar. Template cards use a thin border. The template preview dialog has a stronger shadow and dimmed backdrop because it interrupts the canvas for a full-page preview.
 
 Panel entrance motion is brief (160ms) and moves a few pixels into place. Reduced-motion preferences disable interface transitions and animations. Library thumbnails show a settled design without running content animations.
 
@@ -147,7 +148,7 @@ Panel entrance motion is brief (160ms) and moves a few pixels into place. Reduce
 
 ## Shapes
 
-Controls and chips use compact, gently curved corners. Cards are a little softer, while the structural workspace stays rectangular. The round plus affordance belongs to a section preview's insertion action; it is not the shape of every control.
+The owner found the 1.5.1 editor too square. Controls now use visibly curved corners, cards are softer, and detached tool surfaces have the most generous radius. Segmented controls use smaller inner corners to fit their rounded container. The customer's website canvas and authored page geometry remain rectangular. The round plus affordance belongs to a section preview's insertion action; it is not the shape of every control.
 
 ## Components
 

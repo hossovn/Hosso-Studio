@@ -291,7 +291,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
   const selectedEl = sel.el ? findEl(data, sel.el) : null
   return (
     <StyleClipboardContext.Provider value={{ style: copiedStyle, setStyle: setCopiedStyle }}>
-    <div className="cv-editor" style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', background: '#edf0f4', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif', fontSize: 14, color: '#20242b' }}>
+    <div className="cv-editor" style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', background: 'var(--cv-workspace)', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif', fontSize: 14, color: '#20242b' }}>
       <header className="cv-top">
         <a className="cv-ib" href={backHref} title="Về trang quản trị" aria-label="Về trang quản trị"><ArrowLeft size={18} /></a>
         <span className="cv-brand">HOSSO<span>STUDIO</span></span>

@@ -117,7 +117,7 @@ export function StageFrame({
         alignItems: 'stretch',
         padding: '20px 16px',
         boxSizing: 'border-box',
-        background: '#e9ecea',
+        background: 'var(--cv-workspace, #f1f3f6)',
       }}
     >
       <div style={{ width: targetW * scale, height: frameHeight * scale, margin: '0 auto', flexShrink: 0 }}>
