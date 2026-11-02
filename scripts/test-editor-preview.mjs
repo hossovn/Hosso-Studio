@@ -223,16 +223,24 @@ assert.match(hidden, /hs-hide-m/)
 const { ELEMENT_CATALOG } = compile('../apps/studio/src/app/(editor)/editor/[id]/BlockPanels.tsx', {
   '@puckeditor/core': {}, '@hosso/studio-blocks': { makeElement, ICON_CATS: {} }, './FreeCanvasEditor': {}, './SectionTemplates': {},
 })
+const templatePreviews = { SectionPreview: () => React.createElement('div', { 'data-section-preview': true }) }
+const pageTemplatePicker = compile('../apps/studio/src/app/(editor)/editor/[id]/PageTemplatePicker.tsx', {
+  './BlockPanels': templatePreviews, './PageTemplates': { PAGE_TEMPLATES, TEMPLATE_CATEGORIES, pageTemplatePattern },
+})
+const sectionLibrary = compile('../apps/studio/src/app/(editor)/editor/[id]/SectionLibrary.tsx', { './BlockPanels': templatePreviews })
 const { CanvasLeft } = compile('../apps/studio/src/app/(editor)/editor/[id]/CanvasLeft.tsx', {
   '@hosso/studio-blocks': { ICON_CATS: {}, makeElement }, './BlockPanels': {
     LIBRARY: [{ title: 'Văn bản', cols: 1, items: [{ label: 'Đoạn văn', make: () => makeElement('text') }] }],
     Preview: () => React.createElement('div', { 'data-preview': true }),
   }, './canvas-model': {}, './SitePanels': {}, './SectionTemplates': {},
+  './PageTemplatePicker': pageTemplatePicker, './SectionLibrary': sectionLibrary,
 })
-const libraryMarkup = renderToStaticMarkup(React.createElement(CanvasLeft, { tab: 'library', open: true }))
+const libraryMarkup = renderToStaticMarkup(React.createElement(CanvasLeft, { tab: 'library', open: true, ops: { addPattern() {} } }))
 assert.match(libraryMarkup, /aria-label="Kho mẫu"/)
-assert.match(libraryMarkup, /Chưa có mẫu/)
-assert.doesNotMatch(libraryMarkup, /Mẫu trang|Mẫu khối|he-card|aria-label="Trang"/)
+assert.match(libraryMarkup, /8 mẫu trang/)
+assert.equal((libraryMarkup.match(/data-template=/g) ?? []).length, 8)
+assert.match(libraryMarkup, /aria-label="Danh mục mẫu"/)
+assert.doesNotMatch(libraryMarkup, /Chưa có mẫu|aria-label="Trang"/)
 const catalogMarkup = renderToStaticMarkup(React.createElement(CanvasLeft, { tab: 'text', open: true, config: { components: {} } }))
 assert.match(catalogMarkup, /class="cv-catalog-heading"/)
 assert.match(catalogMarkup, /aria-label="Đoạn văn"/)
@@ -240,14 +248,10 @@ assert.match(catalogMarkup, /class="cv-item-label"/)
 assert.ok((catalogMarkup.match(/class="cv-chip"/g) ?? []).length > 0)
 assert.match(catalogMarkup, /data-module="media"/)
 const railMarkup = catalogMarkup.match(/<nav class="cv-rail"[\s\S]*?<\/nav>/)?.[0] ?? ''
-const railIcons = [...railMarkup.matchAll(/<img[^>]+src="([^"]+)"[^>]*>/g)]
-assert.equal(railIcons.length, 11)
-for (const [tag, src] of railIcons) {
-  assert.match(src, /^\/editor-icons\/[a-z]+\.png$/)
-  assert.ok(existsSync(new URL(`../apps/studio/public${src}`, import.meta.url)), `Missing toolbar icon: ${src}`)
-  assert.match(tag, /alt=""/)
-  assert.match(tag, /width="44" height="44"/)
-}
+assert.equal((railMarkup.match(/<button/g) ?? []).length, 12)
+assert.equal((railMarkup.match(/<svg/g) ?? []).length, 12)
+assert.match(railMarkup, /aria-label="Thương hiệu"/)
+assert.doesNotMatch(railMarkup, /<img/)
 const { StatePicker, DevicePicker } = compile('../apps/studio/src/app/(editor)/editor/[id]/StateStyleEditor.tsx', { '@hosso/studio-blocks': elementStates })
 let selectedState = 'normal'
 const states = StatePicker({ value: 'hover', supported: ['normal', 'hover'], onChange: (value) => { selectedState = value } }).props.children
@@ -271,7 +275,7 @@ assert.ok(pagesMarkup.includes(`id="${pagesMarkup.match(/popoverTarget="([^"]+)"
 assert.match(pagesMarkup, /popover="auto"/)
 assert.match(pagesMarkup, /role="dialog" aria-label="Trang"/)
 assert.match(pagesMarkup, /aria-label="Tìm trang"/)
-console.log('PASS: empty template library retained, pages moved out of rail and accessible header dropdown')
+console.log('PASS: populated template library, line-icon rail with brand tool and accessible pages dropdown')
 assert.deepEqual(ELEMENT_CATALOG.map((item) => item.type), ['text', 'button', 'image'])
 for (const item of ELEMENT_CATALOG) { assert.equal(item.create().type, item.type); assert.ok(item.preview); assert.notEqual(item.create().id, item.create().id) }
 console.log('PASS: first-slice catalog, legacy/state rendering, canvas state preview, section scope, reduced motion and serialized round-trip')
