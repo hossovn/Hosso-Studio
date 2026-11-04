@@ -144,15 +144,17 @@ const motionScope = compile('../packages/blocks/src/MotionScope.tsx', {})
 const motionRuntime = compile('../packages/blocks/src/MotionEffects.tsx', { './motion-effects': motionEffects, './MotionScope': motionScope })
 const motionText = compile('../packages/blocks/src/MotionText.tsx', { './motion-effects': motionEffects })
 const responsiveLayout = compile('../packages/blocks/src/responsive-layout.ts', { './layout-constraints.ts': layoutConstraints, './responsive-breakpoints.ts': breakpoints })
+const canvasWidgets = compile('../packages/blocks/src/canvas-widgets.tsx', {})
+const frameLayout = compile('../packages/blocks/src/frame-layout.ts', { './free-geometry.ts': freeGeometry })
 const { FreeElementView, FreeOverlay, FreeCanvasView, makeElement } = compile('../packages/blocks/src/FreeCanvas.tsx', {
-  './responsive-layout': responsiveLayout,
+  './canvas-widgets': canvasWidgets, './responsive-layout': responsiveLayout,
   './responsive-breakpoints': breakpoints,
   './MotionEffects': motionRuntime, './MotionScope': motionScope, './MotionText': motionText, './motion-effects': motionEffects,
   './ScrollEffect': scrollRuntime, './scroll-effects': scrollEffects,
   './free-style': freeStyle, './free-extra': {}, './icons-data': { ICON_BODY: { test: '<path d="M4 4h16v16H4z" />' } }, './FreeSwiper': { FreeSwiper }, './free-geometry': freeGeometry, './element-states': elementStates, './rich-text': richText,
 })
 const legacyButton = makeElement('button', { id: 'legacy-button', props: { text: 'Legacy', href: '/legacy' } })
-const { SECTION_TEMPLATES, SECTION_TEMPLATES_MORE, HEADER_TEMPLATES } = compile('../apps/studio/src/app/(editor)/editor/[id]/SectionTemplates.ts', { '@hosso/studio-blocks': { makeElement } })
+const { SECTION_TEMPLATES, SECTION_TEMPLATES_MORE, HEADER_TEMPLATES } = compile('../apps/studio/src/app/(editor)/editor/[id]/SectionTemplates.ts', { '@hosso/studio-blocks': { makeElement }, '../../../../../../../packages/blocks/src/frame-layout': frameLayout })
 for (const template of [...SECTION_TEMPLATES, ...SECTION_TEMPLATES_MORE]) {
   const first = template.build(), second = template.build()
   assert.ok(second.every((el) => !first.some((other) => other.id === el.id)), `${template.id}: independent IDs`)
@@ -246,6 +248,7 @@ const { CanvasLeft } = compile('../apps/studio/src/app/(editor)/editor/[id]/Canv
   './PageTemplatePicker': pageTemplatePicker, './SectionLibrary': sectionLibrary,
   './LayersPanel': {}, './MediaLibraryPanel': {},
   './WorkbenchPanels': compile('../apps/studio/src/app/(editor)/editor/[id]/WorkbenchPanels.tsx', { '@hosso/studio-blocks': responsiveLayout, './canvas-model': {}, './editor-tools': {}, '../../../../../../../packages/blocks/src/responsive-breakpoints': breakpoints, '../../../../../../../packages/blocks/src/free-geometry': freeGeometry }),
+  './FrameLibrary': compile('../apps/studio/src/app/(editor)/editor/[id]/FrameLibrary.tsx', { '../../../../../../../packages/blocks/src/frame-layout': frameLayout }),
   './FloatingDock': compile('../apps/studio/src/app/(editor)/editor/[id]/FloatingDock.tsx', { './DrawingTools': { DrawingContext: React.createContext({ rulers: false }) } }),
 })
 const libraryMarkup = renderToStaticMarkup(React.createElement(CanvasLeft, { tab: 'library', open: true, data: { content: [] }, sel: {}, ops: { addPattern() {} } }))
@@ -264,8 +267,8 @@ assert.match(catalogMarkup, /class="cv-item-label"/)
 assert.ok((catalogMarkup.match(/class="cv-chip"/g) ?? []).length > 0)
 assert.match(catalogMarkup, /data-module="media"/)
 const railMarkup = catalogMarkup.match(/<nav class="cv-rail"[\s\S]*?<\/nav>/)?.[0] ?? ''
-assert.equal((railMarkup.match(/<button/g) ?? []).length, 17)
-assert.equal((railMarkup.match(/<svg/g) ?? []).length, 17)
+assert.equal((railMarkup.match(/<button/g) ?? []).length, 18)
+assert.equal((railMarkup.match(/<svg/g) ?? []).length, 18)
 for (const label of ['Thiết bị', 'Lịch sử', 'Kiểm tra', 'Căn chỉnh', 'Popup']) assert.ok(railMarkup.includes(`aria-label="${label}"`))
 assert.match(railMarkup, /aria-label="Thương hiệu"/)
 assert.doesNotMatch(railMarkup, /<img/)
@@ -327,7 +330,7 @@ console.log('PASS: 8 page templates, 4 categories, editable geometry, local asse
 
 const { withStyle } = compile('../packages/blocks/src/puck-config.ts', {
   './link-actions': linkActions,
-  './responsive-layout': responsiveLayout,
+  './canvas-widgets': canvasWidgets, './responsive-layout': responsiveLayout,
   './ScrollStory': { ScrollStory: () => null },
   './MediaField': {}, './RefField': {}, './ExtraBlocks': {}, './CoreExtras': {}, './PostList': {}, './FreeCanvas': { FreeOverlay, FreeCanvasView },
   './i18n': {}, './style-fields': {}, './widget-parts': widgetParts, './element-states': elementStates,

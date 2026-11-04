@@ -31,6 +31,8 @@ export const configLabels: Record<string, string> = {
   'Điện thoại': 'Phone',
   'Biểu mẫu': 'Forms',
   'Tên biểu mẫu': 'Form name',
+  'Bước, điều kiện và giới hạn trường': 'Steps, conditions and field limits',
+  'Chỉnh trực quan trong Studio → Nhập liệu → Sửa biểu mẫu.': 'Edit visually in Studio → Input → Edit form.',
   'Kết nối biểu mẫu': 'Form integrations',
   'Mã (dùng khi chèn vào trang)': 'Code (used when inserting into a page)',
   'Các trường': 'Fields',

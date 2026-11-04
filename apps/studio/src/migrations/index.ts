@@ -122,4 +122,6 @@ export const migrations = [
   { up: migration_20261102_040000_partner_connections.up, down: migration_20261102_040000_partner_connections.down, name: '20261102_040000_partner_connections' },
   { up: migration_20261102_061337_studio_releases.up, down: migration_20261102_061337_studio_releases.down, name: '20261102_061337_studio_releases' },
   { up: migration_20261104_090000_form_delivery.up, down: migration_20261104_090000_form_delivery.down, name: '20261104_090000_form_delivery' },
+  { up: migration_20261104_120000_editor_frames_and_forms.up, down: migration_20261104_120000_editor_frames_and_forms.down, name: '20261104_120000_editor_frames_and_forms' },
 ];
+import * as migration_20261104_120000_editor_frames_and_forms from './20261104_120000_editor_frames_and_forms';

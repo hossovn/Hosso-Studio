@@ -1,4 +1,5 @@
 import React from 'react'
+import { CANVAS_WIDGET_CSS } from './canvas-widgets'
 import { BLOB_RADIUS, BOX_SHADOWS, CLIPS, TEXT_SHADOWS, fillCss, fontImport, fontStack, shadowCss } from './free-style'
 import { FreeBreadcrumb, FreeCountdown, FreeEmbed, FreeFoldMenu, FreeMap, FreeTable, FreeTabs } from './free-extra'
 import { ICON_BODY } from './icons-data'
@@ -25,7 +26,7 @@ export { newId } from './free-geometry'
 export const FREE_W = 1200
 export const FREE_MAX_PX = 1440
 
-export type FreeType = 'heading' | 'text' | 'button' | 'shape' | 'line' | 'icon' | 'image' | 'video' | 'menu' | 'countdown' | 'number' | 'table' | 'map' | 'embed' | 'tabs' | 'breadcrumb' | 'container' | 'swiper'
+export type FreeType = 'heading' | 'text' | 'button' | 'shape' | 'line' | 'icon' | 'image' | 'video' | 'menu' | 'countdown' | 'number' | 'table' | 'map' | 'embed' | 'tabs' | 'breadcrumb' | 'container' | 'swiper' | 'widget'
 export type FreeElement = { id: string; parentId?: string; type: FreeType; x: number; y: number; w: number; h: number; props: Record<string, any>; responsive?: Partial<Record<'tablet' | 'mobile' | `bp-${number}`, DevicePatch>> }
 
 const ICON_PATHS: Record<string, string> = {
@@ -63,6 +64,7 @@ export const freeHeight = (min: number | undefined, elements: FreeElement[] = []
 export function makeElement(type: FreeType, over: Partial<FreeElement> & { props?: Record<string, any> } = {}): FreeElement {
   const base: Record<FreeType, Omit<FreeElement, 'id'>> = {
     container: { type: 'container', x: 80, y: 60, w: 640, h: 400, props: { bg: 'transparent' } },
+    widget: { type: 'widget', x: 80, y: 60, w: 480, h: 480, props: {} },
     swiper: { type: 'swiper', x: 80, y: 60, w: 640, h: 360, props: { slides: [], seconds: 0 } },
     heading: { type: 'heading', x: 80, y: 60, w: 560, h: 72, props: { text: 'Tiêu đề của bạn', level: 2, size: 48, weight: 700, color: '#111827', align: 'left' } },
     text: { type: 'text', x: 80, y: 60, w: 480, h: 96, props: { text: 'Nhấp đúp để sửa đoạn văn này. Kéo để di chuyển, kéo tay nắm để đổi kích thước.', size: 18, weight: 400, color: '#374151', align: 'left' } },
@@ -88,7 +90,8 @@ export function makeElement(type: FreeType, over: Partial<FreeElement> & { props
 /** Nội dung của một phần tử, lấp đầy khung chứa. `unit` là bề rộng thiết kế ứng với bề rộng khung (mặc định FREE_W; thẻ xem trước dùng bề rộng phần tử). */
 /** Menu thả xuống: mục có `children` mở danh sách con khi rê chuột hoặc focus bàn phím. */
 const FM_CSS = '.fm-has{position:relative}.fm-sub{display:none;position:absolute;left:0;top:100%;z-index:60;margin:0;list-style:none;background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15)}.fm-has:hover>.fm-sub,.fm-has:focus-within>.fm-sub{display:block}.fm-sub a:hover{background:#f3f4f6}'
-export function FreeElementView({ el, unit = FREE_W, scale, editing = false, state, scrollEffects = true }: { el: FreeElement; unit?: number; scale?: number; editing?: boolean; state?: ElementState; scrollEffects?: boolean }) {
+export function FreeElementView({ el, unit = FREE_W, scale, editing = false, state, scrollEffects = true, children }: { el: FreeElement; unit?: number; scale?: number; editing?: boolean; state?: ElementState; scrollEffects?: boolean; children?: React.ReactNode }) {
+  if (el.type === 'widget') return <>{children ?? <div>Chọn khối để thêm nội dung</div>}</>
   const p = el.props
   const imp = ['heading', 'text', 'button', 'menu', 'countdown', 'number', 'table', 'tabs', 'breadcrumb'].includes(el.type) ? fontImport(p.font) : ''
   const op = p.opacity != null && p.opacity !== '' ? Math.min(100, Math.max(0, Number(p.opacity))) : 100
@@ -170,7 +173,7 @@ function FreeElementBody({ el, unit, scale, editing, state }: { el: FreeElement;
     if (!p.src) return <div {...stateAttrs} style={{ ...imageStyle, opacity, background: '#f3f4f6', display: 'grid', placeItems: 'center', color: '#9ca3af', fontSize: u(16) }}>Ảnh</div>
     return p.href && !editing ? <a {...stateAttrs} href={safeHref(p.href)} style={{ ...imageStyle, opacity }}><img src={p.src} alt={p.alt ?? ''} style={{ ...imageStyle, border: undefined, boxShadow: undefined }} /></a> : <img {...stateAttrs} src={p.src} alt={p.alt ?? ''} style={{ ...imageStyle, opacity }} />
   }
-  if (el.type === 'container') return <div style={{ width: '100%', height: '100%', boxSizing: 'border-box', background: fillCss(p) || 'transparent', borderRadius: u(p.radius || 0), border: p.borderW ? `${u(p.borderW)} solid ${p.borderColor ?? '#111827'}` : undefined, boxShadow: shadowCss(BOX_SHADOWS[p.bshadow], u) }} />
+  if (el.type === 'container') return <div style={{ width: '100%', height: '100%', boxSizing: 'border-box', background: fillCss(p) || 'transparent', backgroundImage: typeof p.bgImage === 'string' && p.bgImage ? 'url(' + JSON.stringify(p.bgImage) + ')' : undefined, backgroundSize: p.bgFit === 'contain' ? 'contain' : 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', borderRadius: u(p.radius || 0), border: p.borderW ? `${u(p.borderW)} solid ${p.borderColor ?? '#111827'}` : undefined, boxShadow: shadowCss(BOX_SHADOWS[p.bshadow], u) }} />
   if (el.type === 'swiper') return <FreeSwiper slides={Array.isArray(p.slides) ? p.slides : []} seconds={Number(p.seconds) || 0} editing={editing} effect={p.effect === 'fade' ? 'fade' : 'slide'} thumbnails={p.thumbnails === true} />
   if (el.type === 'video') {
     const embed = videoEmbed(String(p.url ?? ''))
@@ -239,17 +242,18 @@ function FreeElementBody({ el, unit, scale, editing, state }: { el: FreeElement;
 }
 
 /** Lớp phần tử phủ lên một block (prop `_els`): rộng tối đa FREE_MAX_PX, canh giữa, tọa độ tính từ góc trên trái của block. */
-export const FreeOverlay = ({ elements, height, responsive, breakpoints, scope = 'page' }: { elements: FreeElement[]; height?: number; responsive?: Record<string, any>; breakpoints?: unknown; scope?: string }) => {
+export const FreeOverlay = ({ elements, height, responsive, breakpoints, scope = 'page', widgets = {} }: { elements: FreeElement[]; height?: number; responsive?: Record<string, any>; breakpoints?: unknown; scope?: string; widgets?: Record<string, React.ReactNode> }) => {
   const devices = elements.some((el) => Object.keys(el.responsive ?? {}).length || el.props._constraints || el.props._layout) ? layoutVariants(breakpoints) : ['desktop'] as const
   return (
   <div className="hs-free-layer" data-scroll-boundary style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, width: `min(100%, ${FREE_MAX_PX}px)`, margin: '0 auto', containerType: 'inline-size', pointerEvents: 'none' }}>
+    {elements.some((el) => el.type === 'widget') && <style>{CANVAS_WIDGET_CSS}</style>}
     <MotionScope enabled={elements.some((el) => !el.props._hidden && resolveMotionConfig(el.props)?.loop?.preset && resolveMotionConfig(el.props)?.loop?.preset !== 'none')}>
     {devices.length > 1 && <style>{variantCss(scope + '-overlay', breakpoints)}</style>}
     <div data-hs-variants={encodeURIComponent(scope + '-overlay')} style={{ position: 'absolute', inset: 0 }}>
     {devices.map((device) => <div key={device} data-hs-variant={devices.length > 1 ? device : undefined} style={{ position: 'absolute', inset: 0, display: device === 'desktop' ? 'block' : 'none' }}>
     {blockForDevice({ type: 'FreeCanvas', props: { _els: elements, height, _responsive: responsive } }, device).props._els.map((el: FreeElement) => { return (
       <div key={el.id} className={inheritedHideClasses(elements, el.id)} style={{ display: inheritedElementFlag(elements, el.id, '_hidden', baseDevice(layoutWidth(device))) ? 'none' : undefined, position: 'absolute', left: `${(el.x / FREE_W) * 100}%`, top: `${(el.y / FREE_W) * 100}cqw`, width: `${(el.w / FREE_W) * 100}%`, height: `${(el.h / FREE_W) * 100}cqw`, pointerEvents: el.type === 'container' ? 'none' : 'auto', zIndex: el.type === 'container' ? 0 : 1 }}>
-        <FreeElementView el={el} />
+        <FreeElementView el={el}>{widgets[el.id]}</FreeElementView>
       </div>
     )})}
     </div>)}

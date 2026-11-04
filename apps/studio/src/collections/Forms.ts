@@ -2,6 +2,7 @@ import { APIError, type CollectionConfig } from 'payload'
 
 import { canPublish, moderators, publishers } from '../lib/access'
 import { normalizeFormDelivery } from '../lib/form-delivery'
+import { normalizeFormRules } from '../../../../packages/blocks/src/form-rules'
 
 const slugify = (v: string) =>
   v
@@ -53,6 +54,7 @@ export const Forms: CollectionConfig = {
     },
     { name: 'submitLabel', type: 'text', localized: true, label: 'Nhãn nút gửi' },
     { name: 'successMessage', type: 'text', localized: true, label: 'Thông báo sau khi gửi' },
+    { name: 'rules', type: 'json', label: 'Bước, điều kiện và giới hạn trường', admin: { description: 'Chỉnh trực quan trong Studio → Nhập liệu → Sửa biểu mẫu.' } },
     { name: 'delivery', type: 'json', label: 'Kết nối biểu mẫu', access: { read: ({ req }) => canPublish(req.user) }, admin: { hidden: true } },
     {
       name: 'exportLink',
@@ -68,7 +70,7 @@ export const Forms: CollectionConfig = {
       },
     ],
     beforeValidate: [
-      ({ data }) => {
+      ({ data, originalDoc }) => {
         for (const f of data?.fields ?? []) if (!f.name && f.label) f.name = slugify(f.label)
         if (data?.fields) {
           const names = data.fields.map((field: { name?: string }) => field.name)
@@ -77,6 +79,10 @@ export const Forms: CollectionConfig = {
         if (data?.delivery) {
           try { data.delivery = normalizeFormDelivery(data.delivery) }
           catch (error) { throw new APIError(error instanceof Error ? error.message : 'Kết nối biểu mẫu không hợp lệ.', 400) }
+        }
+        if (data && ('rules' in data || data.fields)) {
+          try { data.rules = normalizeFormRules(('rules' in data ? data.rules : originalDoc?.rules), data.fields ?? originalDoc?.fields ?? []) }
+          catch (error) { throw new APIError(error instanceof Error ? error.message : 'Cấu hình biểu mẫu không hợp lệ.', 400) }
         }
         return data
       },

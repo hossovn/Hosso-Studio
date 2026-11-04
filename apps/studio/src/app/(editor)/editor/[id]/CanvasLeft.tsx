@@ -9,6 +9,7 @@ import { LayersPanel } from './LayersPanel'
 import { MediaLibraryPanel } from './MediaLibraryPanel'
 import { ReusableLibraryPanel } from './WorkbenchPanels'
 import { FloatingDock } from './FloatingDock'
+import { FrameLibrary, InputPresetPreview } from './FrameLibrary'
 import { Clock3, MonitorSmartphone, CheckCheck, Ruler, AppWindow } from 'lucide-react'
 
 import { ELEMENT_CATALOG, LIBRARY, Preview, Wire, sectionTitle } from './BlockPanels'
@@ -16,7 +17,7 @@ import { type Block, type PageData, type Sel } from './canvas-model'
 import { GlobalPanel, type NavCtx } from './SitePanels'
 import { FOOTER_TEMPLATES, HEADER_TEMPLATES, SECTION_TEMPLATES, type SectionTemplate, type SiteCtx } from './SectionTemplates'
 
-export type Tab = 'sections' | 'text' | 'elements' | 'media' | 'store' | 'input' | 'widgets' | 'library' | 'more' | 'layers' | 'global' | 'brand' | 'history' | 'responsive' | 'publish' | 'drawing' | 'popup'
+export type Tab = 'sections' | 'frames' | 'text' | 'elements' | 'media' | 'store' | 'input' | 'widgets' | 'library' | 'more' | 'layers' | 'global' | 'brand' | 'history' | 'responsive' | 'publish' | 'drawing' | 'popup'
 const SHOP_WIDGETS = ['ShopProductGrid', 'ShopCategories', 'ShopProductDetail', 'WimProductGrid', 'WimProductDetail', 'WimProductSearch', 'WimVehicleSelector', 'CategoryGrid', 'ShopCart', 'ShopCheckout', 'ShopOrderStatus', 'WimCart', 'WimCheckout', 'WimOrderStatus', 'ShippingTrack']
 const INPUT_WIDGETS = ['Form', 'ContactForm', 'SearchBox', 'NavMenu']
 const INPUT_PRESETS = [
@@ -30,6 +31,7 @@ const INPUT_PRESETS = [
 const TABS: { id: Tab; title: string; icon: typeof Type; groups?: string[]; widgets?: string[] }[] = [
   { id: 'global', title: 'Phần chung', icon: PanelsTopLeft },
   { id: 'sections', title: 'Phần', icon: LayoutTemplate },
+  { id: 'frames', title: 'Chia ô', icon: PanelsTopLeft },
   { id: 'text', title: 'Văn bản', icon: Type, groups: ['Tiêu đề', 'Chữ nghệ thuật', 'Tiêu đề kiểu', 'Văn bản', 'Văn bản kiểu'] },
   { id: 'elements', title: 'Phần tử', icon: Shapes, groups: ['Nút bấm', 'Hình khối', 'Hình học', 'Nền chuyển màu', 'Đường kẻ', ...Object.keys(ICON_CATS).map((k) => `Icon · ${k}`)] },
   { id: 'media', title: 'Ảnh/Video', icon: Image, groups: ['Ảnh và video'] },
@@ -88,6 +90,7 @@ export function CanvasLeft({
   formPanel,
   floating = false,
   publishPanel,
+  canvasDoc,
 }: {
   nav?: NavCtx
   tab: Tab
@@ -114,6 +117,7 @@ export function CanvasLeft({
   formPanel?: React.ReactNode
   floating?: boolean
   publishPanel?: React.ReactNode
+  canvasDoc?: Document
 }) {
   const [q, setQ] = useState('')
   const [group, setGroup] = useState('')
@@ -137,10 +141,12 @@ export function CanvasLeft({
   if (tab === 'sections') {
     const source: SectionTemplate[] = areaKind ? (areaKind === 'header' ? HEADER_TEMPLATES : FOOTER_TEMPLATES).map((t) => ({ ...t, build: () => t.build(siteCtx) })) : SECTION_TEMPLATES
     body = <>{search}<SectionLibrary templates={source} query={m} areaKind={areaKind} onInsert={ops.addSection} /></>
+  } else if (tab === 'frames') {
+    body = <FrameLibrary onInsert={ops.addEls} />
   } else if (tab === 'media') {
     body = <MediaLibraryPanel onInsert={ops.addEls} />
   } else if (tab === 'input') {
-    body = <>{formPanel}<h3 className="cv-catalog-heading">Mẫu nhanh</h3><div className="cv-input-presets">{INPUT_PRESETS.filter((preset) => preset.type in config.components).map((preset) => <button type="button" key={preset.id} onClick={() => ops.addWidget(preset.type, preset.props)}>{preset.label}<Plus size={14} /></button>)}</div></>
+    body = <>{formPanel}<section className="cv-catalog-group"><h3 className="cv-catalog-heading">Mẫu nhanh<span>6 mẫu</span></h3><p className="cv-tool-help">Chọn mẫu để chèn vào ô đang chọn hoặc trang.</p><div className="cv-input-presets">{INPUT_PRESETS.filter((preset) => preset.type in config.components).map((preset) => <button className="cv-input-preset" type="button" key={preset.id} draggable onDragStart={(event) => { event.dataTransfer.setData("text/plain", "hosso-block:" + JSON.stringify({ type: preset.type, props: preset.props })); event.dataTransfer.effectAllowed = "copy" }} aria-label={`Chèn ${preset.label}`} onClick={() => ops.addWidget(preset.type, preset.props)}><InputPresetPreview type={preset.type} {...preset.props} /><span className="cv-item-label"><span>{preset.label}</span><Plus size={14} aria-hidden="true" /></span></button>)}</div></section></>
   } else if (cur.groups || cur.widgets) {
     const availableGroups = LIBRARY.filter((g) => (cur.groups ?? []).includes(g.title))
     const groups = availableGroups.filter((g) => !group || g.title === group)
@@ -178,7 +184,7 @@ export function CanvasLeft({
             <h3 className="cv-catalog-heading">{cur.groups ? 'Biểu mẫu và tìm kiếm' : 'Khối cửa hàng'}<span>{widgetList.length}</span></h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               {widgetList.map((t) => (
-                <button key={t} type="button" className="he-card" onClick={() => ops.addWidget(t)} style={{ cursor: 'pointer', font: 'inherit' }}>
+                <button key={t} type="button" className="he-card" draggable onDragStart={(event) => { event.dataTransfer.setData("text/plain", "hosso-block:" + JSON.stringify({ type: t })); event.dataTransfer.effectAllowed = "copy" }} onClick={() => ops.addWidget(t)} style={{ cursor: 'pointer', font: 'inherit' }}>
                   <Wire type={t} />
                   <span className="cv-item-label"><span>{labelOf(t)}</span><Plus size={14} aria-hidden="true" /></span>
                 </button>
@@ -210,7 +216,7 @@ export function CanvasLeft({
         <h3 className="cv-catalog-heading">Tính năng<span>{types.length}</span></h3>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           {types.map((t) => (
-            <button key={t} type="button" className="he-card" onClick={() => ops.addWidget(t)} style={{ cursor: 'pointer', font: 'inherit' }}>
+            <button key={t} type="button" className="he-card" draggable onDragStart={(event) => { event.dataTransfer.setData("text/plain", "hosso-block:" + JSON.stringify({ type: t })); event.dataTransfer.effectAllowed = "copy" }} onClick={() => ops.addWidget(t)} style={{ cursor: 'pointer', font: 'inherit' }}>
               <Wire type={t} />
               <span className="cv-item-label"><span>{labelOf(t)}</span><Plus size={14} aria-hidden="true" /></span>
             </button>
@@ -225,7 +231,7 @@ export function CanvasLeft({
   } else if (tab === 'global') {
     body = !nav ? null : <GlobalPanel ctx={nav} data={data} addReusable={(slug) => ops.addWidget('Reusable', { slug })} />
   } else if (tab === 'layers') {
-    body = <LayersPanel data={data} sel={sel} setSel={setSel} commit={commit} labelOf={labelOf} elLabel={elLabel} />
+    body = <LayersPanel canvasDoc={canvasDoc} data={data} sel={sel} setSel={setSel} commit={commit} labelOf={labelOf} elLabel={elLabel} />
   } else if (tab === 'drawing') {
     body = drawingPanel
   } else if (tab === 'popup') {

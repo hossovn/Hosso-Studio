@@ -2,9 +2,11 @@
 import React, { useEffect, useState } from 'react'
 import { ArrowDown, ArrowUp, GripVertical, Plus, Save, Trash2 } from 'lucide-react'
 import type { NavCtx } from './SitePanels'
+import { FormFieldRules, FormStepsEditor } from './FormRulesEditor'
+import type { FormRules } from '../../../../../../../packages/blocks/src/form-rules'
 
 type Field = { id?: string; label: string; name: string; type: string; required: boolean; placeholder?: string; options?: string }
-type Definition = { id?: string | number; title: string; slug: string; fields: Field[]; submitLabel: string; successMessage: string; delivery?: { successHref?: string; email?: string; webhookUrl?: string } }
+type Definition = { id?: string | number; title: string; slug: string; fields: Field[]; submitLabel: string; successMessage: string; rules?: FormRules; delivery?: { successHref?: string; email?: string; webhookUrl?: string } }
 const slug = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
 const fresh = (): Definition => ({ title: '', slug: '', fields: [{ label: 'Họ tên', name: 'name', type: 'text', required: true }, { label: 'Điện thoại', name: 'phone', type: 'tel', required: true }, { label: 'Email', name: 'email', type: 'email', required: false }], submitLabel: 'Gửi thông tin', successMessage: 'Đã nhận thông tin. Chúng tôi sẽ liên hệ với bạn sớm.', delivery: {} })
 const TYPES = [{ value: 'text', label: 'Một dòng' }, { value: 'email', label: 'Email' }, { value: 'tel', label: 'Điện thoại' }, { value: 'number', label: 'Số' }, { value: 'textarea', label: 'Nhiều dòng' }, { value: 'select', label: 'Danh sách chọn' }, { value: 'checkbox', label: 'Ô đánh dấu' }]
@@ -28,7 +30,19 @@ export function FormBuilderPanel({ nav, onInsert }: { nav?: NavCtx; onInsert: (s
     const fields = [...draft.fields], [field] = fields.splice(from, 1); fields.splice(to, 0, field)
     setDraft({ ...draft, fields })
   }
-  const updateField = (index: number, patch: Partial<Field>) => setDraft({ ...draft, fields: draft.fields.map((field, at) => at === index ? { ...field, ...patch } : field) })
+  const updateField = (index: number, patch: Partial<Field>) => {
+    const old = draft.fields[index].name, rules = structuredClone(draft.rules ?? {})
+    if (patch.name && patch.name !== old && rules.fields) { if (rules.fields[old]) { rules.fields[patch.name] = rules.fields[old]; delete rules.fields[old] } for (const rule of Object.values(rules.fields)) if (rule.when?.field === old) rule.when.field = patch.name }
+    setDraft({ ...draft, rules, fields: draft.fields.map((field, at) => at === index ? { ...field, ...patch } : field) })
+  }
+  const removeField = (index: number) => {
+    const name = draft.fields[index].name, rules = structuredClone(draft.rules ?? {})
+    if (rules.fields) {
+      delete rules.fields[name]
+      for (const rule of Object.values(rules.fields)) if (rule.when?.field === name) delete rule.when
+    }
+    setDraft({ ...draft, rules, fields: draft.fields.filter((_, at) => at !== index) })
+  }
   const save = async (event: React.FormEvent) => {
     event.preventDefault(); setError(''); setMessage('')
     const fieldNames = draft.fields.map((field) => slug(field.name || field.label))
@@ -51,13 +65,15 @@ export function FormBuilderPanel({ nav, onInsert }: { nav?: NavCtx; onInsert: (s
     {editing && <form onSubmit={save}>
       <label className="cv-tool-field">Tên biểu mẫu<input required value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} /></label>
       <label className="cv-tool-field">Mã biểu mẫu<input value={draft.slug} onChange={(event) => setDraft({ ...draft, slug: slug(event.target.value) })} placeholder={slug(draft.title)} /></label>
+      <FormStepsEditor rules={draft.rules} onChange={(rules) => setDraft({ ...draft, rules })} />
       <div className="cv-form-fields">{draft.fields.map((field, index) => <fieldset key={index} draggable onDragStart={(event) => { event.dataTransfer.setData('text/plain', 'hosso-form-field'); setDragIndex(index) }} onDragEnd={() => setDragIndex(null)} onDragOver={(event) => { if (dragIndex !== null) event.preventDefault() }} onDrop={(event) => { if (dragIndex === null) return; event.preventDefault(); move(dragIndex, index); setDragIndex(null) }}><legend><GripVertical size={13} />Trường {index + 1}</legend>
-        <div className="cv-form-field-actions"><button type="button" title="Lên" disabled={index === 0} onClick={() => move(index, index - 1)}><ArrowUp size={13} /></button><button type="button" title="Xuống" disabled={index === draft.fields.length - 1} onClick={() => move(index, index + 1)}><ArrowDown size={13} /></button><button type="button" title="Xóa trường" disabled={draft.fields.length === 1} onClick={() => setDraft({ ...draft, fields: draft.fields.filter((_, at) => at !== index) })}><Trash2 size={13} /></button></div>
+        <div className="cv-form-field-actions"><button type="button" title="Lên" disabled={index === 0} onClick={() => move(index, index - 1)}><ArrowUp size={13} /></button><button type="button" title="Xuống" disabled={index === draft.fields.length - 1} onClick={() => move(index, index + 1)}><ArrowDown size={13} /></button><button type="button" title="Xóa trường" disabled={draft.fields.length === 1} onClick={() => removeField(index)}><Trash2 size={13} /></button></div>
         <label className="cv-tool-field">Nhãn<input required value={field.label} onChange={(event) => updateField(index, { label: event.target.value })} /></label>
         <div className="cv-tool-grid"><label className="cv-tool-field">Tên dữ liệu<input required value={field.name} onChange={(event) => updateField(index, { name: slug(event.target.value) })} /></label><label className="cv-tool-field">Loại<select value={field.type} onChange={(event) => updateField(index, { type: event.target.value })}>{TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></label></div>
         <label className="cv-tool-field">Gợi ý<input value={field.placeholder ?? ''} onChange={(event) => updateField(index, { placeholder: event.target.value })} /></label>
         {field.type === 'select' && <label className="cv-tool-field">Lựa chọn, cách nhau bằng dấu phẩy<input value={field.options ?? ''} onChange={(event) => updateField(index, { options: event.target.value })} /></label>}
         <label className="cv-tool-check"><input type="checkbox" checked={Boolean(field.required)} onChange={(event) => updateField(index, { required: event.target.checked })} />Bắt buộc</label>
+        <FormFieldRules field={field} before={draft.fields.slice(0, index)} rules={draft.rules} onChange={(rules) => setDraft({ ...draft, rules })} />
       </fieldset>)}</div>
       <button className="cv-tool-button" type="button" onClick={() => setDraft({ ...draft, fields: [...draft.fields, { label: 'Trường mới', name: `field_${draft.fields.length + 1}`, type: 'text', required: false }] })}><Plus size={14} />Thêm trường</button>
       <label className="cv-tool-field">Nút gửi<input value={draft.submitLabel ?? ''} onChange={(event) => setDraft({ ...draft, submitLabel: event.target.value })} /></label>

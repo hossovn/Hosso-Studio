@@ -16,6 +16,8 @@ import { buildSitePackage } from './site-package'
 import { allow, clientIp } from './ratelimit'
 import { deliverForm, normalizeFormDelivery } from './form-delivery'
 
+import { validateFormValues } from '../../../../packages/blocks/src/form-rules'
+
 const json = (body: unknown, status = 200) => Response.json(body, { status })
 const str = (v: unknown, max: number) => String(v ?? '').trim().slice(0, max)
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -43,26 +45,7 @@ export const formSubmit: Endpoint = {
     if (!form) return json({ ok: false, code: 'not_found' }, 404)
 
     const input = (body?.values ?? {}) as Record<string, unknown>
-    const data: Record<string, string | number | boolean> = {}
-    const errors: Record<string, string> = {}
-    for (const f of (form.fields ?? []) as FormField[]) {
-      const raw = input[f.name]
-      if (f.type === 'checkbox') {
-        data[f.name] = raw === true || raw === 'true' || raw === 'on'
-        if (f.required && !data[f.name]) errors[f.name] = 'required'
-        continue
-      }
-      const v = str(raw, f.type === 'textarea' ? 5000 : 500)
-      if (!v) {
-        if (f.required) errors[f.name] = 'required'
-        continue
-      }
-      if (f.type === 'email' && !EMAIL.test(v)) errors[f.name] = 'invalid'
-      else if (f.type === 'tel' && !/^[+\d][\d\s.\-()]{5,20}$/.test(v)) errors[f.name] = 'invalid'
-      else if (f.type === 'number' && !Number.isFinite(Number(v))) errors[f.name] = 'invalid'
-      else if (f.type === 'select' && !(f.options ?? '').split(',').map((o) => o.trim()).includes(v)) errors[f.name] = 'invalid'
-      else data[f.name] = f.type === 'number' ? Number(v) : v
-    }
+    const { data, errors } = validateFormValues((form.fields ?? []) as FormField[], (form as any).rules, input && typeof input === 'object' ? input : {})
     if (Object.keys(errors).length) return json({ ok: false, code: 'invalid', errors }, 400)
 
     const submission = await req.payload.create({

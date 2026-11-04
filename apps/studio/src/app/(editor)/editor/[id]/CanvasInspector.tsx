@@ -1,5 +1,6 @@
 'use client'
 import { ConstraintsPanel } from './ConstraintsPanel'
+import { moveIntoFrame } from '../../../../../../../packages/blocks/src/frame-layout'
 import { ActionPanel } from './ActionPanel'
 import { ReusableOverridesPanel } from './ReusableEditor'
 import { DEVICE_WIDTH, elementFamily, type WidgetPartDevice, type ElementState, type ElementDevice } from '@hosso/studio-blocks'
@@ -12,7 +13,7 @@ import { ScrollEffectControls } from './ScrollEffectControls'
 import { MotionControls } from './MotionControls'
 import { ProductSelection } from './ProductSelection'
 
-import { blockId, dupEl, elsOf, findEl, isSection, orderEl, patchBlock, patchElProps, removeEl, updateEl, type Block, type PageData, type Sel, NO_SEL } from './canvas-model'
+import { blockId, dupEl, elsOf, findEl, isSection, orderEl, patchBlock, patchElProps, removeEl, updateEl, setBlockEls, type Block, type PageData, type Sel, NO_SEL } from './canvas-model'
 
 const LINE = '#e5e7eb'
 const ctl: React.CSSProperties = { width: '100%', boxSizing: 'border-box', padding: '6px 9px', border: '1px solid transparent', background: '#f4f5f7', borderRadius: 8, font: 'inherit', fontSize: 13 }
@@ -165,7 +166,7 @@ function IconPicker({ value, onChange }: { value: string; onChange: (n: string) 
 }
 
 type StateInspectorProps = { state: ElementState; onStateChange: (state: ElementState) => void; device: ElementDevice; onDeviceChange: (device: ElementDevice) => void }
-function ComponentInspector({ el, block, data, commit, setSel, state, onStateChange, device, onDeviceChange }: { el: FreeElement; block: Block; data: PageData; commit: (d: PageData, key?: string) => void; setSel: (s: Sel) => void } & StateInspectorProps) {
+function ComponentInspector({ el, block, data, commit, setSel, state, onStateChange, device, onDeviceChange, config }: { el: FreeElement; block: Block; data: PageData; commit: (d: PageData, key?: string) => void; setSel: (s: Sel) => void; config?: any } & StateInspectorProps) {
   const [unit, setUnit] = React.useState<'px' | '%'>('px')
   const pixelScale = DEVICE_WIDTH[device] / 1200
   const sectionHeight = Number(block.props.height) || 400
@@ -222,11 +223,12 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           {(['x', 'y', 'w', 'h'] as const).map((key) => <Num key={key} label={key.toUpperCase() + ' (' + unit + ')'} value={unit === 'px' ? Number((el[key] * pixelScale).toFixed(2)) : Number((el[key] / denominator(key) * 100).toFixed(2))} onChange={(v) => { const n = unit === 'px' ? v / pixelScale : v / 100 * denominator(key); geo({ [key]: key === 'w' || key === 'h' ? Math.max(8, n) : n }) }} />)}
         </div>
-        <Row label="Container"><select style={ctl} value={el.parentId || ''} onChange={(e) => commit(updateEl(data, el.id, (it) => ({ ...it, parentId: e.target.value || undefined })))}><option value="">Section</option>{elsOf(block).filter((it) => it.type === 'container' && !elementFamily(elsOf(block), el.id).some((child) => child.id === it.id)).map((it) => <option key={it.id} value={it.id}>{it.props.name || it.id}</option>)}</select></Row>
+        <Row label="Thuộc ô / khung"><select aria-label="Thuộc ô / khung" style={ctl} value={el.parentId || ''} onChange={(e) => commit(setBlockEls(data, blockId(block), moveIntoFrame(elsOf(block), el.id, e.target.value || undefined)))}><option value="">Ngoài khung</option>{elsOf(block).filter((it) => it.type === 'container' && !elementFamily(elsOf(block), el.id).some((child) => child.id === it.id)).map((it) => <option key={it.id} value={it.id}>{it.props._name || it.props.name || it.id}</option>)}</select></Row>
         <ConstraintsPanel el={el} put={put} />
         </fieldset>
       </Group>
       <Group title="Nội dung" show={tab === 'content'}>
+        {el.type === 'widget' && <FieldsForm fields={config?.components[p.widget?.type]?.fields ?? {}} values={p.widget?.props ?? {}} onChange={(key, value) => put({ widget: { ...p.widget, props: { ...p.widget?.props, [key]: value } } })} />}
         {el.type === 'container' && <Row label="Tên Container"><input style={ctl} value={p.name || ''} onChange={(e) => put({ name: e.target.value })} /></Row>}
         {el.type === 'swiper' && <>
           {(Array.isArray(p.slides) ? p.slides : []).map((slide: { image: string; alt?: string; text?: string }, i: number) => <div key={i} style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: 12, marginBottom: 12 }}>
@@ -352,8 +354,8 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
           </>
         )}
         {(el.type === 'button' || el.type === 'shape' || el.type === 'container') && <Row label={p.bg2 ? 'Màu nền (đầu)' : 'Màu nền'}><ColorControl value={p.bg} onChange={(v) => put({ bg: v })} /></Row>}
-        {(el.type === 'heading' || el.type === 'text' || el.type === 'button' || el.type === 'shape' || el.type === 'image') && <Row label="Bo góc"><RangeControl value={p.radius ?? 0} onChange={(v) => put({ radius: Number(v) || 0 })} min={0} max={el.type === 'shape' ? 999 : 200} /></Row>}
-        {(el.type === 'heading' || el.type === 'text' || el.type === 'button' || el.type === 'shape' || el.type === 'image') && (
+        {(el.type === 'heading' || el.type === 'text' || el.type === 'button' || el.type === 'shape' || el.type === 'image' || el.type === 'container') && <Row label="Bo góc"><RangeControl value={p.radius ?? 0} onChange={(v) => put({ radius: Number(v) || 0 })} min={0} max={el.type === 'shape' ? 999 : 200} /></Row>}
+        {(el.type === 'heading' || el.type === 'text' || el.type === 'button' || el.type === 'shape' || el.type === 'image' || el.type === 'container') && (
           <>
             <Row label="Độ dày viền"><RangeControl value={p.borderW ?? 0} onChange={(v) => put({ borderW: Number(v) || 0 })} min={0} max={20} /></Row>
             {Boolean(p.borderW) && <Row label="Màu viền"><ColorControl value={p.borderColor} onChange={(v) => put({ borderColor: v })} /></Row>}
@@ -408,13 +410,17 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
             <Row label="Bóng khung chữ"><Choice value={p.bshadow ?? ''} onChange={(v) => put({ bshadow: v })} options={['', ...Object.keys(BOX_SHADOWS)]} /></Row>
           </>
         )}
-        {(el.type === 'button' || el.type === 'shape') && (
+        {(el.type === 'button' || el.type === 'shape' || el.type === 'container') && (
           <>
             <Row label="Nền chuyển màu (màu cuối)"><ColorControl value={p.bg2 ?? ''} onChange={(v) => put({ bg2: v })} /></Row>
             {Boolean(p.bg2) && <Row label="Góc chuyển màu"><RangeControl value={p.angle ?? 135} onChange={(v) => put({ angle: Number(v) || 0 })} min={0} max={360} /></Row>}
             <Row label="Đổ bóng"><Choice value={p.bshadow ?? ''} onChange={(v) => put({ bshadow: v })} options={['', ...Object.keys(BOX_SHADOWS)]} /></Row>
           </>
         )}
+        {el.type === 'container' && <>
+          <Row label="Ảnh nền ô"><MediaField kind="image" value={p.bgImage ?? ''} onChange={(bgImage) => put({ bgImage })} /></Row>
+          {p.bgImage && <><Row label="Cách vừa ảnh nền"><SegControl value={p.bgFit === 'contain' ? 'contain' : 'cover'} onChange={(bgFit) => put({ bgFit })} options={[{ label: 'Phủ kín', value: 'cover' }, { label: 'Vừa ảnh', value: 'contain' }]} /></Row><button type="button" style={btn} onClick={() => put({ bgImage: '' })}>Bỏ ảnh nền</button></>}
+        </>}
         {el.type === 'shape' && (
           <Row label="Hình dạng">
             <select style={ctl} value={p.clip ?? ''} onChange={(e) => put({ clip: e.target.value })}>
@@ -570,7 +576,7 @@ export function CanvasInspector({
   const hit = sel.el ? findEl(data, sel.el) : null
   const block = sel.block ? (data.content ?? []).find((b) => blockId(b) === sel.block) : undefined
   let body: React.ReactNode
-  if (hit) body = <ComponentInspector key={hit.el.id} el={hit.el} block={hit.block} data={data} commit={commit} setSel={setSel} state={state} onStateChange={onStateChange} device={partDevice} onDeviceChange={onDeviceChange} />
+  if (hit) body = <ComponentInspector key={hit.el.id} config={config} el={hit.el} block={hit.block} data={data} commit={commit} setSel={setSel} state={state} onStateChange={onStateChange} device={partDevice} onDeviceChange={onDeviceChange} />
   else if (block) body = <>
     {!isSection(block) && <WidgetPartPicker block={block} sel={sel} setSel={setSel} docs={docs} />}
     {sel.part && !isSection(block)

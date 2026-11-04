@@ -44,6 +44,33 @@ export function constrainedElements(elements: FreeElement[], device: Device, bas
     if (arranged.has(group.id)) return
     arranged.add(group.id)
     const children = resolved.filter((el) => el.parentId === group.id && !el.props._hidden)
+    if (group.type === 'container' && group.props._layout?.direction === 'grid') {
+      const flow = group.props._layout, stacked = layoutWidth(device) <= 600 && flow.mobileStack !== false
+      const weights: number[] = Array.isArray(flow.columns) && flow.columns.length ? flow.columns.slice(0, 12).map((n: unknown) => Math.max(0.1, finite(n, 1))) : [1, 1]
+      const columns = stacked ? [1] : weights, sum = columns.reduce((a, b) => a + b, 0)
+      const gap = Math.max(0, finite(flow.gap, 24)) * factor, padding = Math.max(0, finite(flow.padding, 0)) * factor
+      const rows = Math.max(1, Math.ceil(children.length / columns.length))
+      const available = Math.max(8, group.w - padding * 2 - gap * (columns.length - 1))
+      const cellH = stacked ? Math.max(160 * factor, ...children.map((child) => child.h * factor)) : Math.max(8, (group.h - padding * 2 - gap * (rows - 1)) / rows)
+      let x = group.x + padding
+      children.forEach((child, index) => {
+        const column = index % columns.length, row = Math.floor(index / columns.length)
+        if (!column) x = group.x + padding
+        const before = { ...child }, w = available * columns[column] / sum
+        const family = new Set([child.id]); let changed = true
+        while (changed) { changed = false; for (const item of resolved) if (item.parentId && family.has(item.parentId) && !family.has(item.id)) { family.add(item.id); changed = true } }
+        child.x = x; child.y = group.y + padding + row * (cellH + gap); child.w = w; child.h = cellH
+        for (const item of resolved) if (item.id !== child.id && family.has(item.id)) {
+          const ratio = w / Math.max(1, before.w)
+          item.x = child.x + (item.x - before.x) * ratio; item.y = child.y + (item.y - before.y) * ratio
+          item.w *= ratio; item.h *= ratio
+          if (typeof item.props.size === 'number') item.props = { ...item.props, size: item.props.size * ratio }
+        }
+        arrange(child); x += w + gap
+      })
+      if (stacked || flow.autoSize) group.h = rows * cellH + Math.max(0, rows - 1) * gap + padding * 2
+      return
+    }
     if (group.type !== 'container' || !['row', 'column'].includes(group.props._layout?.direction)) { children.forEach(arrange); return }
     const flow = group.props._layout, column = flow.direction === 'column', axis = column ? 'y' : 'x', size = column ? 'h' : 'w', cross = column ? 'x' : 'y', crossSize = column ? 'w' : 'h'
     const padding = Math.max(0, finite(flow.padding, 16)) * factor, gap = Math.max(0, finite(flow.gap, 16)) * factor

@@ -1,6 +1,8 @@
 export function guardCanvasEvent(event: Event, preview: boolean) {
   const target = event.target as Element | null
   if (!target?.closest || target.closest('[data-editor-control], [data-editor-interactive="true"], [contenteditable]')) return
+  // Known Studio forms simulate submissions through LocaleProvider in preview.
+  if (preview && event.type === 'submit' && target.matches('form.ss-form')) { event.preventDefault(); return }
   const link = target.closest('a[href]') as HTMLAnchorElement | null
   const control = target.closest('button, input, select, textarea, [role="button"]')
   if (event.type !== 'submit' && !link && (preview || !control)) return

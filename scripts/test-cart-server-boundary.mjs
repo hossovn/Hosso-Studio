@@ -28,6 +28,13 @@ if (!process.execArgv.includes('--conditions=react-server')) {
   mod.require = (id) => Object.hasOwn(stubs, id) ? stubs[id] : require(id)
   mod._compile(ts.transpileModule(readFileSync(path, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText, path)
   const Cart = mod.exports.fallbackRenderers.ShopCart
+  const widgetsPath = fileURLToPath(new URL('../packages/blocks/src/canvas-widgets.tsx', import.meta.url))
+  const widgetsModule = new Module(widgetsPath)
+  widgetsModule.filename = widgetsPath
+  widgetsModule.paths = Module._nodeModulePaths(dirname(widgetsPath))
+  widgetsModule.require = require
+  widgetsModule._compile(ts.transpileModule(readFileSync(widgetsPath, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText, widgetsPath)
+  const { renderCanvasWidgets } = widgetsModule.exports
   const puck = { renderDropZone() {}, metadata: {}, dragRef() {}, isEditing: false }
   const options = { heading: 'Giỏ hàng', layout: 'split', showImages: 'yes', stickySummary: 'yes', summaryHeading: 'Đơn hàng', checkoutLabel: 'Thanh toán', emptyHeading: 'Giỏ trống', emptyText: 'Chọn sản phẩm' }
   for (const preview of [false, true]) {
@@ -43,6 +50,17 @@ if (!process.execArgv.includes('--conditions=react-server')) {
     assert.ok(output.includes('/san-pham'))
     assert.ok(output.includes(`"preview":${preview}`))
   }
+  for (const editor of [false, true]) {
+    const widgets = renderCanvasWidgets([{ id: 'nested-cart', type: 'widget', props: { widget: { type: 'ShopCart', props: { ...options, puck, _noFree: true, _els: [{ type: 'widget' }] } } } }], { ShopCart: { render: Cart } }, editor)
+    const errors = []
+    const output = await new Response(await renderToReadableStream(widgets['nested-cart'], { 'shop-client#CartView': { id: 'shop-client', chunks: [], name: 'CartView' } }, { onError: (error) => errors.push(error.message) })).text()
+    assert.deepEqual(errors, [])
+    assert.ok(output.includes('hs-canvas-widget'))
+    assert.ok(output.includes(`"preview":${editor}`), 'Embedded published carts must remain functional; editor carts simulate')
+    assert.doesNotMatch(output, /renderDropZone|dragRef|_els/)
+    assert.ok(output.includes('Thanh toán'))
+  }
+  console.log('PASS: nested ShopCart crosses React Flight with live public actions and isolated editor previews')
   console.log('PASS: actual ShopCart renderer serializes through React Flight, preserves options and excludes editor callbacks')
   const affiliatePath = fileURLToPath(new URL('../packages/plugin-affiliate/src/client.ts', import.meta.url))
   const affiliateModule = new Module(affiliatePath)

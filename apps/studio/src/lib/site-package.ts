@@ -99,6 +99,7 @@ export async function buildSitePackage(payload: Payload) {
     'data/forms.json',
     formsByLocale[D].docs.map((f: any) => ({
       slug: f.slug,
+      rules: f.rules ?? {},
       fields: (f.fields ?? []).map((fl: any, i: number) => ({
         name: fl.name,
         type: fl.type,

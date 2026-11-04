@@ -1,0 +1,17 @@
+'use client'
+import React from 'react'
+import type { FormFieldDef, FormRules, FieldRule } from '../../../../../../../packages/blocks/src/form-rules'
+
+export function FormStepsEditor({ rules: value, onChange }: { rules?: FormRules | null; onChange: (rules: FormRules) => void }) {
+  const rules = value ?? {}
+  return <details className="cv-tool-details"><summary>Chia biểu mẫu thành nhiều bước</summary><p className="cv-tool-help">Mỗi dòng là một bước, tối đa 12 bước. Để trống để hiển thị tất cả trên một màn hình.</p><label className="cv-tool-field">Tên các bước<textarea aria-label="Tên các bước" rows={3} value={(rules.steps ?? []).join('\n')} onChange={(event) => { const steps = event.target.value.split('\n').slice(0, 12); onChange({ ...rules, steps, fields: Object.fromEntries(Object.entries(rules.fields ?? {}).map(([name, rule]) => [name, { ...rule, step: Math.min(rule.step ?? 0, Math.max(0, steps.length - 1)) }])) }) }} /></label></details>
+}
+export function FormFieldRules({ field, before, rules: value, onChange }: { field: FormFieldDef; before: FormFieldDef[]; rules?: FormRules | null; onChange: (rules: FormRules) => void }) {
+  const rules = value ?? {}
+  const rule = rules.fields?.[field.name] ?? {}, put = (patch: Partial<FieldRule>) => onChange({ ...rules, fields: { ...rules.fields, [field.name]: { ...rule, ...patch } } })
+  return <details className="cv-tool-details"><summary>Bước, điều kiện và kiểm tra</summary>
+    {(rules.steps?.length ?? 0) > 1 && <label className="cv-tool-field">Nằm ở bước<select aria-label={`Bước của ${field.name}`} value={rule.step ?? 0} onChange={(event) => put({ step: Number(event.target.value) })}>{rules.steps!.map((name, index) => <option key={index} value={index}>{index + 1}. {name || 'Bước mới'}</option>)}</select></label>}
+    {before.length > 0 && <><label className="cv-tool-field">Chỉ hiện khi<select aria-label={`Điều kiện của ${field.name}`} value={rule.when?.field ?? ''} onChange={(event) => put({ when: event.target.value ? { field: event.target.value, operator: 'filled', value: '' } : undefined })}><option value="">Luôn hiển thị</option>{before.filter((item) => (rules.fields?.[item.name]?.step ?? 0) <= (rule.step ?? 0)).map((item) => <option key={item.name} value={item.name}>{item.label}</option>)}</select></label>{rule.when && <><label className="cv-tool-field">Điều kiện<select value={rule.when.operator} onChange={(event) => put({ when: { ...rule.when!, operator: event.target.value as NonNullable<FieldRule['when']>['operator'] } })}><option value="filled">Đã nhập thông tin</option><option value="checked">Đã đánh dấu</option><option value="equals">Bằng</option><option value="notEquals">Khác</option></select></label>{['equals', 'notEquals'].includes(rule.when.operator) && <label className="cv-tool-field">Giá trị so sánh<input value={rule.when.value ?? ''} onChange={(event) => put({ when: { ...rule.when!, value: event.target.value } })} /></label>}</>}</>}
+    {['text', 'textarea', 'email', 'tel', 'number'].includes(field.type) && <div className="cv-tool-grid">{(field.type === 'number' ? ['min', 'max'] : ['minLength', 'maxLength']).map((key, index) => <label className="cv-tool-field" key={key}>{index === 0 ? 'Tối thiểu' : 'Tối đa'}{field.type === 'number' ? '' : ' ký tự'}<input type="number" aria-label={`${key} ${field.name}`} min={field.type === 'number' ? undefined : 0} value={rule[key as keyof FieldRule] as number ?? ''} onChange={(event) => put({ [key]: event.target.value === '' ? undefined : Number(event.target.value) })} /></label>)}</div>}
+  </details>
+}

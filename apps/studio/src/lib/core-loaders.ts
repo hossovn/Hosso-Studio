@@ -74,6 +74,7 @@ export const coreLoaders: Record<string, BlockLoader> = {
         title: f.title,
         submitLabel: f.submitLabel ?? undefined,
         successMessage: f.successMessage ?? undefined,
+        rules: (f as any).rules ?? undefined,
         fields: (f.fields ?? []).map((x) => ({ label: x.label, name: x.name ?? '', type: x.type, options: x.options, required: x.required, placeholder: x.placeholder })),
       },
     }

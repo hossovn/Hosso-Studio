@@ -130,11 +130,12 @@ export async function attachBlockData<T extends { content: Item[] }>(
   searchParams: Record<string, string | string[] | undefined>,
   locale: string = defaultLocale,
 ): Promise<T> {
-  if (!data.content.some((c) => loaderFor(c.type))) return data
+  const floating = (data as any).root?.props?._float ?? []
+  const embedded = [...data.content.flatMap((item) => item.props._els ?? item.props.elements ?? []), ...floating].some((el) => el.type === 'widget')
+  if (!embedded && !data.content.some((c) => loaderFor(c.type))) return data
   const payload = await getPayload({ config })
   const cookies = Object.fromEntries((await nextCookies()).getAll().map((c) => [c.name, c.value]))
-  const content = await Promise.all(
-    data.content.map(async (item) => {
+  const loadItem = async (item: Item): Promise<Item> => {
       const load = loaderFor(item.type)
       if (!load) return item
       try {
@@ -143,7 +144,15 @@ export async function attachBlockData<T extends { content: Item[] }>(
         console.error(`[hosso] loader ${item.type} lỗi:`, e)
         return { ...item, props: { ...item.props, data: { status: 'error', kind: 'internal' } } }
       }
-    }),
-  )
-  return { ...data, content }
+  }
+  const loadElements = async (elements: any[]) => Promise.all(elements.map(async (el) => {
+    if (el.type !== 'widget' || !el.props?.widget || ['FreeCanvas', 'Reusable'].includes(el.props.widget.type)) return el
+    const { _els, elements: legacy, ...props } = el.props.widget.props ?? {}
+    return { ...el, props: { ...el.props, widget: await loadItem({ type: el.props.widget.type, props }) } }
+  }))
+  const content = await Promise.all(data.content.map(async (item) => {
+    const loaded = await loadItem(item)
+    return { ...loaded, props: { ...loaded.props, ...(item.props._els || item.props.elements ? { _els: await loadElements(item.props._els ?? item.props.elements) } : {}) } }
+  }))
+  return { ...data, content, ...(floating.length ? { root: { ...(data as any).root, props: { ...(data as any).root?.props, _float: await loadElements(floating) } } } : {}) }
 }

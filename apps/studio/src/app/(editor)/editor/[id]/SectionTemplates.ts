@@ -1,4 +1,5 @@
 import { makeElement, type FreeElement } from '@hosso/studio-blocks'
+import { createFrameLayout } from '../../../../../../../packages/blocks/src/frame-layout'
 
 /** Mẫu section (kiểu Webcake "Phần → Mẫu"): một canvas có sẵn chiều cao, nền và các phần tử đã bố trí; chèn xong vẫn kéo thả sửa tự do. */
 export type SectionTemplate = { id: string; label: string; height: number; bg?: string; build: () => FreeElement[] }
@@ -386,26 +387,14 @@ export const SECTION_TEMPLATES_MORE: SectionTemplate[] = [
   },
 ]
 
-// ---- Container: khung chia ô (hàng x cột). Mỗi ô là một thẻ bo góc có sẵn tiêu đề và chữ để thay nội dung. ----
+// Real frame hierarchies: cells accept arbitrary elements and registered widgets.
 const grid = (id: string, label: string, rows: number, cols: number): SectionTemplate => {
-  const cellH = rows === 1 ? 300 : 210
-  const gap = 24
-  const cellW = (1000 - gap * (cols - 1)) / cols
   return {
     id,
     label,
-    height: 100 + rows * cellH + (rows - 1) * gap,
+    height: rows === 2 ? 720 : 440,
     bg: '#f3f4f6',
-    build: () =>
-      Array.from({ length: rows * cols }, (_, i) => {
-        const x = 100 + (i % cols) * (cellW + gap)
-        const y = 50 + Math.floor(i / cols) * (cellH + gap)
-        return [
-          Card(x, y, cellW, cellH, { radius: 20 }),
-          Hd(`Ô ${i + 1}`, x + 28, y + 28, cellW - 56, 44, { level: 3, size: 26 }),
-          B('Kéo thả thêm phần tử vào ô này, hoặc sửa nội dung có sẵn.', x + 28, y + 84, cellW - 56, 70, { size: 16 }),
-        ]
-      }).flat(),
+    build: () => createFrameLayout(rows === 2 && cols === 2 ? 'grid' : rows === 2 ? 'rows' : cols === 3 ? 'thirds' : cols === 2 ? 'halves' : 'single'),
   }
 }
 SECTION_TEMPLATES_MORE.unshift(grid('container-1x1', 'Container 1x1', 1, 1), grid('container-1x2', 'Container 1x2 (2 hàng)', 2, 1), grid('container-2x1', 'Container 2x1 (2 cột)', 1, 2), grid('container-1x3', 'Container 1x3 (3 cột)', 1, 3), grid('container-2x2', 'Container 2x2', 2, 2))

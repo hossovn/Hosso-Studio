@@ -19,6 +19,7 @@ import { Pages } from './collections/Pages'
 import { Posts } from './collections/Posts'
 import { ReusableBlocks } from './collections/ReusableBlocks'
 import { EditLocks } from './collections/EditLocks'
+import { EditorReviews } from './collections/EditorReviews'
 import { SiteReleases } from './collections/SiteReleases'
 import { siteReleasePublish, siteReleaseRestore, siteReleaseReview } from './lib/site-releases'
 import { PostCategories, PostTags } from './collections/Taxonomies'
@@ -82,7 +83,7 @@ const base: Config = {
   i18n: { supportedLanguages: { vi, en }, fallbackLanguage: 'vi' },
   // Hàng đợi tác vụ: chạy mỗi phút để xuất bản/hủy xuất bản theo lịch đặt trong trang và bài viết.
   jobs: { autoRun: [{ cron: '* * * * *', limit: 10, queue: 'default' }] },
-  collections: [Pages, Posts, PostCategories, PostTags, Comments, Forms, FormSubmissions, ReusableBlocks, Media, ContactMessages, Bookings, Redirects, EditLocks, SiteReleases, Users],
+  collections: [Pages, Posts, PostCategories, PostTags, Comments, Forms, FormSubmissions, ReusableBlocks, Media, ContactMessages, Bookings, Redirects, EditLocks, EditorReviews, SiteReleases, Users],
   globals: [SiteSettings, SiteAreas],
   // Ngôn ngữ nội dung: ngôn ngữ đầu tiên trong hosso.config.ts là mặc định; thiếu bản dịch thì dùng ngôn ngữ mặc định.
   localization: { locales: hosso.locales.map((l) => ({ code: l.code, label: l.label })), defaultLocale: hosso.locales[0].code, fallback: true },

@@ -4,7 +4,8 @@ import { Eye, EyeOff, Lock, Unlock, GripVertical, ChevronDown, ChevronRight, Pen
 import React, { useState } from 'react'
 import type { FreeElement } from '@hosso/studio-blocks'
 import { PAGE, blockId, elsOf, floatOf, patchBlock, patchElProps, removeBlock, removeEl, type PageData, type Sel } from './canvas-model'
-import { arrangeElements, groupElements, reorderLayer, ungroupElement, type ArrangeAction } from './editor-tools'
+import { groupElements, reorderLayer, ungroupElement, type ArrangeAction } from './editor-tools'
+import { arrangePageSelection, measureOwnerOrigins, selectionOwners, transferPageSelection } from './canvas-selection'
 
 const ARRANGE: { id: ArrangeAction; label: string }[] = [
   { id: 'left', label: 'Trái' }, { id: 'center', label: 'Giữa ngang' }, { id: 'right', label: 'Phải' },
@@ -12,11 +13,13 @@ const ARRANGE: { id: ArrangeAction; label: string }[] = [
   { id: 'horizontal', label: 'Đều ngang' }, { id: 'vertical', label: 'Đều dọc' },
 ]
 
-export function LayersPanel({ data, sel, setSel, commit, labelOf, elLabel }: {
+export function LayersPanel({ data, sel, setSel, commit, labelOf, elLabel, canvasDoc }: {
   data: PageData; sel: Sel; setSel: (sel: Sel) => void; commit: (data: PageData, key?: string) => void
   labelOf: (type: string) => string; elLabel: (el: FreeElement) => string
+  canvasDoc?: Document
 }) {
   const [query, setQuery] = useState('')
+  const [destination, setDestination] = useState('')
   const [closed, setClosed] = useState<Record<string, boolean>>({})
   const [rename, setRename] = useState<{ id: string; value: string } | null>(null)
   const multi = { owner: sel.block, ids: sel.multi ?? (sel.el ? [sel.el] : []) }
@@ -27,7 +30,7 @@ export function LayersPanel({ data, sel, setSel, commit, labelOf, elLabel }: {
   const q = query.trim().toLocaleLowerCase()
   const toggle = (id: string) => setClosed((value) => ({ ...value, [id]: !value[id] }))
   const select = (owner: string, el: FreeElement, extend = false) => {
-    setMulti((value) => ({ owner, ids: extend && value.owner === owner ? value.ids.includes(el.id) ? value.ids.filter((id) => id !== el.id) : [...value.ids, el.id] : [el.id] }))
+    setMulti((value) => ({ owner, ids: extend ? value.ids.includes(el.id) ? value.ids.filter((id) => id !== el.id) : [...value.ids, el.id] : [el.id] }))
   }
   const editName = (id: string, fallback: string, save: (value: string) => void) => rename?.id === id
     ? <input className="cv-layer-rename" aria-label="Tên lớp" autoFocus value={rename.value} maxLength={80} onChange={(event) => setRename({ id, value: event.target.value })} onBlur={() => { save(rename.value.trim()); setRename(null) }} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') { event.preventDefault(); setRename(null) } }} />
@@ -48,14 +51,14 @@ export function LayersPanel({ data, sel, setSel, commit, labelOf, elLabel }: {
       const kids = list.some((item) => item.parentId === el.id)
       const name = elLabel(el), locked = Boolean(el.props._locked), hidden = Boolean(el.props._hidden)
       return <div key={el.id} role="treeitem" aria-selected={sel.el === el.id} aria-expanded={kids ? !closed[el.id] : undefined}>
-        <div className="cv-layer-row" data-selected={sel.el === el.id || (multi.owner === owner && ids.includes(el.id))} data-hidden={hidden}
+        <div className="cv-layer-row" data-selected={sel.el === el.id || ids.includes(el.id)} data-hidden={hidden}
           draggable={!locked && rename?.id !== el.id}
           onDragStart={(event) => { event.stopPropagation(); event.dataTransfer.setData('text/plain', 'hosso-layer'); setDrag({ owner, id: el.id }) }} onDragEnd={() => setDrag(null)}
           onDragOver={(event) => { if (drag?.owner === owner && !drag.block) { event.preventDefault(); event.stopPropagation() } }}
           onDrop={(event) => { if (drag?.owner !== owner || drag.block) return; event.preventDefault(); event.stopPropagation(); commit(reorderLayer(data, owner, drag.id, el.id)); setDrag(null) }}>
           <GripVertical size={12} className="cv-layer-grip" />
           {kids ? <button type="button" className="cv-layer-icon" aria-label="Thu gọn nhóm" onClick={() => toggle(el.id)}>{closed[el.id] ? <ChevronRight size={13} /> : <ChevronDown size={13} />}</button> : <span className="cv-layer-spacer" />}
-          <input type="checkbox" aria-label={`Chọn ${name} để căn chỉnh`} checked={multi.owner === owner && ids.includes(el.id)} onChange={() => select(owner, el, true)} />
+          <input type="checkbox" aria-label={`Chọn ${name} để căn chỉnh`} checked={ids.includes(el.id)} onChange={() => select(owner, el, true)} />
           <button type="button" className="cv-layer-select" title={name} onClick={(event) => select(owner, el, event.shiftKey)} onDoubleClick={() => setRename({ id: el.id, value: String(el.props._name ?? '') })}>
             {rename?.id !== el.id && <span className="cv-layer-kind">{el.type === 'container' ? '▣' : el.type === 'text' || el.type === 'heading' ? 'T' : '◇'}</span>}
             {rename?.id !== el.id && editName(el.id, name, () => {})}
@@ -72,9 +75,10 @@ export function LayersPanel({ data, sel, setSel, commit, labelOf, elLabel }: {
 
   return <div className="cv-layers-panel">
     <label className="cv-search"><Search size={15} /><input type="search" placeholder="Tìm lớp…" aria-label="Tìm lớp" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
-    <p className="cv-tool-help">Nhấp đúp để đổi tên. Kéo tay nắm để sắp xếp; Shift + bấm hoặc đánh dấu để chọn nhiều lớp cùng section.</p>
-    {ids.length > 1 && <div className="cv-arrange-panel"><strong>{ids.length} lớp đã chọn</strong><div>{ARRANGE.map((action) => <button type="button" key={action.id} disabled={(action.id === 'horizontal' || action.id === 'vertical') && ids.length < 3} onClick={() => commit(arrangeElements(data, multi.owner, ids, action.id))}>{action.label}</button>)}</div><button type="button" onClick={() => { const result = groupElements(data, multi.owner, ids); if (result.id) { commit(result.data); setSel({ block: multi.owner, el: result.id }); setMulti({ owner: multi.owner, ids: [result.id] }) } }}><Group size={14} />Gom nhóm</button></div>}
-    {ids.length > 1 && <BatchStylePanel data={data} owner={multi.owner} list={multi.owner === PAGE ? floatOf(data) : elsOf(data.content.find((block) => blockId(block) === multi.owner) ?? { type: 'FreeCanvas', props: {} })} ids={ids} commit={commit} />}
+    <p className="cv-tool-help">Nhấp đúp để đổi tên. Shift + bấm hoặc đánh dấu để chọn nhiều lớp trên toàn trang.</p>
+    {ids.length > 0 && <div className="cv-tool-grid"><label className="cv-tool-field">Chuyển tập chọn sang<select aria-label="Phần nhận tập chọn" value={destination} onChange={(event) => setDestination(event.target.value)}><option value="">Chọn phần…</option><option value={PAGE}>Lớp nổi toàn trang</option>{data.content.filter((block) => block.type === 'FreeCanvas').map((block, index) => <option key={blockId(block)} value={blockId(block)}>{block.props._name || `Phần ${index + 1}`}</option>)}</select></label><button type="button" className="cv-tool-button" disabled={!destination} onClick={() => { commit(transferPageSelection(data, sel, destination, measureOwnerOrigins(data, canvasDoc))); setSel({ ...sel, block: destination }) }}>Chuyển {ids.length} lớp</button></div>}
+    {ids.length > 1 && <div className="cv-arrange-panel"><strong>{ids.length} lớp đã chọn</strong><div>{ARRANGE.map((action) => <button type="button" key={action.id} disabled={(action.id === 'horizontal' || action.id === 'vertical') && ids.length < 3} onClick={() => commit(arrangePageSelection(data, sel, action.id, measureOwnerOrigins(data, canvasDoc)))}>{action.label}</button>)}</div><button type="button" disabled={selectionOwners(data).filter((owner) => owner.list.some((el) => ids.includes(el.id))).length > 1} onClick={() => { const result = groupElements(data, multi.owner, ids); if (result.id) { commit(result.data); setSel({ block: multi.owner, el: result.id }); setMulti({ owner: multi.owner, ids: [result.id] }) } }}><Group size={14} />Gom nhóm</button></div>}
+    {ids.length > 1 && <BatchStylePanel allOwners data={data} owner={multi.owner} list={multi.owner === PAGE ? floatOf(data) : elsOf(data.content.find((block) => blockId(block) === multi.owner) ?? { type: 'FreeCanvas', props: {} })} ids={ids} commit={commit} />}
     {sel.el && all.find((el) => el.id === sel.el)?.type === 'container' && <button className="cv-tool-button" type="button" onClick={() => { commit(ungroupElement(data, sel.block, sel.el)); setSel({ block: sel.block, el: '' }) }}><Ungroup size={14} />Tách nhóm</button>}
     <div role="tree" aria-label="Cấu trúc trang">
       {floatOf(data).length > 0 && <div role="treeitem" aria-expanded><h3 className="cv-catalog-heading">Lớp nổi toàn trang</h3><div role="group">{rows(PAGE, floatOf(data))}</div></div>}

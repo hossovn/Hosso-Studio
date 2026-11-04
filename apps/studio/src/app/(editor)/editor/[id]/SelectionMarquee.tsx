@@ -17,7 +17,7 @@ export function SelectionMarquee({ owner, list, sel, setSel, disabled }: { owner
       const target = event.target as Element
       if (event.button !== 0 || event.defaultPrevented || !target.closest || (owner === '@page' ? !target.closest('[data-editor-page]') : target.closest('[data-block]')?.getAttribute('data-block') !== owner || current.current.sel.block === '@page') || target.closest('[data-free-ui],button,a,input,textarea,select,[contenteditable]') || doc.body.dataset.panning === 'true' || doc.body.dataset.actionPicking === 'true') return
       const p = position(event), selection = current.current.sel
-      drag = { ...p, ids: event.shiftKey && selection.block === owner ? selection.multi ?? (selection.el ? [selection.el] : []) : [] }
+      drag = { ...p, ids: event.shiftKey ? selection.multi ?? (selection.el ? [selection.el] : []) : [] }
       node.setPointerCapture(event.pointerId)
       event.preventDefault(); event.stopPropagation()
     }

@@ -110,7 +110,7 @@ const manifest = read('manifest.json')
   for (const f of read('data/forms.json') ?? []) {
     const tr = f.translations as Record<string, any>
     const fieldsFor = (l: string, rows?: any[]) => f.fields.map((fl: any, i: number) => ({ ...(rows?.[i]?.id ? { id: rows[i].id } : {}), name: fl.name, type: fl.type, required: fl.required, label: fl.name, ...(fl.translations[l] ?? fl.translations[D] ?? {}) }))
-    const { doc } = await upsert('forms', f.slug, { fields: fieldsFor(D) }, { [D]: tr[D] ?? {} })
+    const { doc } = await upsert('forms', f.slug, { fields: fieldsFor(D), rules: f.rules ?? {} }, { [D]: tr[D] ?? {} })
     // Bản dịch của dòng trường cần đúng id dòng đã tạo ở ngôn ngữ mặc định.
     for (const l of LOCALES.slice(1)) if (tr[l] || f.fields.some((fl: any) => fl.translations[l])) await payload.update({ collection: 'forms', id: doc.id, data: { ...(tr[l] ?? {}), fields: fieldsFor(l, doc.fields) }, locale: l as any })
     stats.forms++

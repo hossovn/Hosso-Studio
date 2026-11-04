@@ -3,15 +3,21 @@ import React, { useContext } from 'react'
 import { FREE_FONTS, type FreeElement } from '@hosso/studio-blocks'
 import { inheritedElementFlag } from '../../../../../../../packages/blocks/src/free-geometry.ts'
 import { elementStyleProps, setBlockEls, type PageData } from './canvas-model'
+import { selectionOwners } from './canvas-selection'
 import { batchStyle } from './batch-style'
 import { StyleClipboardContext } from './FreeCanvasEditor'
 
-export function BatchStylePanel({ data, owner, list, ids, commit }: { data: PageData; owner: string; list: FreeElement[]; ids: string[]; commit: (data: PageData, key?: string) => void }) {
+export function BatchStylePanel({ data, owner, list: ownerList, ids, commit, allOwners = false }: { data: PageData; owner: string; list: FreeElement[]; allOwners?: boolean; ids: string[]; commit: (data: PageData, key?: string) => void }) {
   const clipboard = useContext(StyleClipboardContext)
+  const owners = allOwners ? selectionOwners(data) : [{ id: owner, list: ownerList }], list = owners.flatMap((group) => group.list)
   const selected = list.filter((el) => ids.includes(el.id)), first = selected[0]
   if (!first || ids.length < 2) return null
   const editable = selected.filter((el) => !inheritedElementFlag(list, el.id, '_locked'))
-  const put = (patch: Record<string, unknown>) => commit(setBlockEls(data, owner, batchStyle(list, ids, patch)), 'batch:' + ids.join(','))
+  const put = (patch: Record<string, unknown>) => {
+    let next = data
+    for (const group of owners) if (group.list.some((el) => ids.includes(el.id))) next = setBlockEls(next, group.id, batchStyle(group.list, ids, patch))
+    commit(next, 'batch:' + ids.join(','))
+  }
   const mixed = (key: string) => selected.some((el) => el.props[key] !== first.props[key])
   return <fieldset className="cv-batch-style" disabled={!editable.length}>
     <legend>Kiểu của {editable.length} phần tử</legend>

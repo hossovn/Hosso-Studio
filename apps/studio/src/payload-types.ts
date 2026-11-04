@@ -81,6 +81,7 @@ export interface Config {
     bookings: Booking;
     redirects: Redirect;
     'edit-locks': EditLock;
+    'editor-reviews': EditorReview;
     users: User;
     'shop-categories': ShopCategory;
     'shop-products': ShopProduct;
@@ -128,6 +129,7 @@ export interface Config {
     bookings: BookingsSelect<false> | BookingsSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     'edit-locks': EditLocksSelect<false> | EditLocksSelect<true>;
+    'editor-reviews': EditorReviewsSelect<false> | EditorReviewsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'shop-categories': ShopCategoriesSelect<false> | ShopCategoriesSelect<true>;
     'shop-products': ShopProductsSelect<false> | ShopProductsSelect<true>;
@@ -409,6 +411,18 @@ export interface Form {
   }[];
   submitLabel?: string | null;
   successMessage?: string | null;
+  /**
+   * Edit visually in Studio → Input → Edit form.
+   */
+  rules?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   delivery?: { [k: string]: unknown } | unknown[] | string | number | boolean | null;
   updatedAt: string;
   createdAt: string;
@@ -1637,6 +1651,7 @@ export interface FormsSelect<T extends boolean = true> {
       };
   submitLabel?: T;
   successMessage?: T;
+  rules?: T;
   delivery?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -3142,6 +3157,43 @@ export interface SiteReleasesSelect<T extends boolean = true> {
   before?: T;
   after?: T;
   summary?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+
+export interface EditorReview {
+  id: number;
+  scope: string;
+  targetCollection: string;
+  targetId: string;
+  language: string;
+  owner: string;
+  element?: string | null;
+  x: number;
+  y: number;
+  parentId?: string | null;
+  body: string;
+  authorId: string;
+  authorName: string;
+  resolved?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+
+export interface EditorReviewsSelect<T extends boolean = true> {
+  scope?: T;
+  targetCollection?: T;
+  targetId?: T;
+  language?: T;
+  owner?: T;
+  element?: T;
+  x?: T;
+  y?: T;
+  parentId?: T;
+  body?: T;
+  authorId?: T;
+  authorName?: T;
+  resolved?: T;
   updatedAt?: T;
   createdAt?: T;
 }

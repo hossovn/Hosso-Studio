@@ -10,8 +10,9 @@ import { EditorHelp } from './EditorHelp'
 import { useFloatingInspector } from './FloatingDock'
 import { PopupPanel } from './PopupPanel'
 import { batchStyle } from './batch-style'
-import { selectedElements, selectionBox, transformSelection, duplicateSelection, deleteSelection } from './canvas-selection'
+import { selectedElements, selectionBox, transformSelection, duplicateSelection, deleteSelection, selectionOnPage, measureOwnerOrigins, translatePageSelection } from './canvas-selection'
 import { inheritedElementFlag } from '../../../../../../../packages/blocks/src/free-geometry'
+import { insertIntoFrame } from '../../../../../../../packages/blocks/src/frame-layout'
 import { baseDevice, layoutAtWidth, syncBreakpoints, type LayoutDevice } from '../../../../../../../packages/blocks/src/responsive-breakpoints'
 import { visibleCanvasBlock, visibleCanvasRange } from './canvas-viewport'
 
@@ -23,6 +24,11 @@ import { PagesDropdown } from './PagesDropdown'
 import { CanvasStage } from './CanvasStage'
 import { HistoryPanel, ResponsivePanel } from './WorkbenchPanels'
 import { FormBuilderPanel } from './FormBuilderPanel'
+import { CommandPalette, ReplaceDialog, type EditorCommand } from './QuickTools'
+import { makeElement } from '@hosso/studio-blocks'
+import { useCanvasMediaDrop } from './CanvasMediaDrop'
+import { ReviewPanel } from './ReviewPanel'
+import { Search, MessageSquare } from 'lucide-react'
 import { jumpHistory } from './editor-tools'
 import { PublishPanel, type PageMetadata } from './PublishPanel'
 import { StyleClipboardContext } from './FreeCanvasEditor'
@@ -79,6 +85,9 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
   const { hist, sel, preview } = useStore(store)
   const setSel = useCallback((next: Sel) => store.setState({ sel: next }), [store])
   const [leftOpen, setLeftOpen] = useState(false)
+  const [commandsOpen, setCommandsOpen] = useState(false), [replaceOpen, setReplaceOpen] = useState(false)
+  const [reviewOpen, setReviewOpen] = useState(false)
+  useEffect(() => { if (new URLSearchParams(location.search).get('review') === '1') { setReviewOpen(true); store.setState({ preview: true }) } }, [store])
   // Giữ canvas rộng như các landing-page builder hiện đại; thuộc tính mở theo ngữ cảnh.
   const [rightOpen, setRightOpen] = useState(false)
   const inspectorDock = useFloatingInspector(rightOpen)
@@ -160,6 +169,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
   }, [data, docs])
   const commit = useCallback((next: PageData, key?: string) => store.setState((s) => ({ hist: commitHist(s.hist, syncBreakpoints(mergeDevicePage(s.hist.present, next, layout)), key ? layout + ':' + key : undefined) })), [store, layout])
   const commitLayout = (next: PageData) => store.setState((s) => ({ hist: commitHist(s.hist, syncBreakpoints(next)) }))
+  const mediaMessage = useCanvasMediaDrop({ docs, data, sel, preview, commit, setSel })
   const undo = useCallback(() => store.setState((s) => {
     const hist = undoHist(s.hist), hit = findEl(hist.present, s.sel.el)
     return { hist, sel: hit ? { block: blockId(hit.block), el: hit.el.id } : NO_SEL }
@@ -193,6 +203,8 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
       const mod = e.ctrlKey || e.metaKey
       const { data: d, sel: s } = st.current
       const k = e.key.toLowerCase()
+      if (mod && k === 'k') { e.preventDefault(); setCommandsOpen(true); return }
+      if (mod && k === 'h') { e.preventDefault(); setReplaceOpen(true); return }
       if (k === '?' && !mod) { e.preventDefault(); setShowShortcuts(true); return }
       if (mod && e.altKey && ['c', 'v'].includes(k)) {
         e.preventDefault(); const hit = findEl(d, s.el); if (!hit) return
@@ -222,7 +234,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
       const nudge: Record<string, [number, number]> = { arrowleft: [-step, 0], arrowright: [step, 0], arrowup: [0, -step], arrowdown: [0, step] }
       if (k === 'delete' || k === 'backspace') { e.preventDefault(); commit(deleteSelection(d, s)); setSel({ block: s.block, el: '' }) }
       else if (mod && k === 'd') { e.preventDefault(); const r = duplicateSelection(d, s); commit(r.data); setSel(r.sel) }
-      else if (nudge[k]) { e.preventDefault(); const [dx, dy] = nudge[k], box = selectionBox(selectedElements(d, s)), hit = findEl(d, s.el); if (box && hit) commit(setBlockEls(d, s.block, transformSelection(elsOf(hit.block), s.multi?.length ? s.multi : [s.el], { ...box, x: box.x + dx, y: box.y + dy })), `n:${s.multi?.join(',') || s.el}`) }
+      else if (nudge[k]) { e.preventDefault(); const [dx, dy] = nudge[k]; commit(translatePageSelection(d, s, dx, dy), `n:${s.multi?.join(',') || s.el}`) }
       else if (k === 'escape') setSel({ block: s.block, el: '' })
     }
     // Sao chép, cắt, dán component (dùng sự kiện clipboard nên dán được sang trang khác); dán vào đúng chỗ đang nhìn.
@@ -232,7 +244,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
       const { data: d, sel: s } = st.current
       const hit = s.el ? findEl(d, s.el) : null
       if (!hit || !e.clipboardData) return
-      e.clipboardData?.setData('text/plain', CLIP + JSON.stringify(selectedElements(d, s, e.type === 'cut')))
+      e.clipboardData?.setData('text/plain', CLIP + JSON.stringify(selectionOnPage(d, s, measureOwnerOrigins(d, docs[0]))))
       e.preventDefault()
       if (e.type === 'cut') { commit(deleteSelection(d, s)); setSel({ block: s.block, el: '' }) }
     }
@@ -279,6 +291,16 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
       if (!els.length) return
       const visible = docs[0] && [...blocks].reverse().find((block) => isSection(block) && visibleCanvasBlock(docs[0], [blockId(block)]))
       const owner = placementOwner(data, sel, visible ? blockId(visible) : undefined)
+      const hit = sel.el ? findEl(data, sel.el) : null
+      const parent = hit?.el.type === 'container' ? hit.el.id : hit?.el.parentId
+      if (hit && parent) {
+        const list = elsOf(hit.block), next = insertIntoFrame(list, parent, els)
+        if (next !== list) { commit(setBlockEls(data, owner, next)); setSel({ block: owner, el: els[els.length - 1].id }); return }
+      }
+      if (els[0].props._frame && owner === PAGE) {
+        const nb = section(els, Math.max(...els.map((el) => el.y + el.h)) + 40)
+        revealBlock.current = blockId(nb); commit(insertBlock(data, nb, afterVisible())); setSel({ block: blockId(nb), el: els[1]?.id || els[0].id }); return
+      }
       if (els.length === 1 && (!areaKind || owner !== PAGE)) {
         const selected = sel.el && findEl(data, sel.el)?.el
         const el = selected ? { ...els[0], x: selected.x + selected.w + 16 + els[0].w <= FREE_W ? selected.x + selected.w + 16 : selected.x, y: selected.x + selected.w + 16 + els[0].w <= FREE_W ? selected.y : selected.y + selected.h + 16, parentId: selected.parentId } : els[0]
@@ -317,6 +339,11 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
       setSel({ block: blockId(nb), el: '' })
     },
     addWidget: (type, extra) => {
+      const hit = sel.el ? findEl(data, sel.el) : null
+      if (hit && (hit.el.type === 'container' || hit.el.parentId) && !['FreeCanvas', 'Reusable', 'Popup'].includes(type)) {
+        const el: FreeElement = { id: newBlockId('widget'), type: 'widget', x: 0, y: 0, w: type === 'NavMenu' || type === 'SearchBox' ? 480 : 460, h: type === 'NavMenu' || type === 'SearchBox' ? 72 : 480, props: { _name: labelOf(type), widget: { type, props: { ...(config.components[type]?.defaultProps ?? {}), ...extra } } } }
+        ops.addEls([el]); return
+      }
       const nb: Block = { type, props: { ...(config.components[type]?.defaultProps ?? {}), ...extra, id: newBlockId(type) } }
       revealBlock.current = blockId(nb)
       commit(insertBlock(data, nb, afterVisible()))
@@ -350,6 +377,14 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
   const dev = DEVICES.find((d) => d.id === device)!
   const selectedBlock = data.content.find((b) => blockId(b) === sel.block)
   const selectedEl = sel.el ? findEl(data, sel.el) : null
+  const commands: EditorCommand[] = [
+    { id: 'undo', label: 'Hoàn tác', run: undo }, { id: 'redo', label: 'Làm lại', run: redo },
+    { id: 'replace', label: 'Tìm và thay thế trên trang', run: () => setReplaceOpen(true) },
+    ...([{ type: 'text', label: 'Thêm văn bản' }, { type: 'image', label: 'Thêm ảnh' }, { type: 'button', label: 'Thêm nút bấm' }, { type: 'video', label: 'Thêm video' }] as const).map((item) => ({ id: 'add-' + item.type, label: item.label, run: () => ops.addEls([makeElement(item.type)]) })),
+    ...([{ tab: 'frames', label: 'Chia ô và bố cục' }, { tab: 'input', label: 'Thêm biểu mẫu' }, { tab: 'media', label: 'Thư viện ảnh' }, { tab: 'drawing', label: 'Thước và căn chỉnh' }, { tab: 'responsive', label: 'Thiết bị và breakpoint' }] as const).map((item) => ({ id: item.tab, label: item.label, run: () => { setTab(item.tab); openLeft() } })),
+    { id: 'background', label: 'Chỉnh nền và thuộc tính', run: () => setRightOpen(true) },
+    ...blocks.map((block) => ({ id: 'go-' + blockId(block), label: 'Đến ' + (block.props._name || labelOf(block.type)), keywords: blockId(block), run: () => { setSel({ block: blockId(block), el: '' }); docs[0]?.querySelector<HTMLElement>(`[data-block="${CSS.escape(blockId(block))}"]`)?.scrollIntoView({ block: 'center' }) } })),
+  ]
   return (
     <StyleClipboardContext.Provider value={{ style: copiedStyle, setStyle: setCopiedStyle }}>
     <DrawingContext.Provider value={drawing}>
@@ -357,6 +392,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
       <header className="cv-top">
         <a className="cv-ib" href={backHref} title="Về trang quản trị" aria-label="Về trang quản trị"><ArrowLeft size={18} /></a>
         <span className="cv-brand">HOSSO<span>STUDIO</span></span>
+        {!preview && <button type="button" className="cv-ib" aria-label="Lệnh nhanh" title="Lệnh nhanh (Ctrl+K)" onClick={() => setCommandsOpen(true)}><Search size={17} /></button>}
         {nav && <PagesDropdown ctx={nav} />}
         <div className="cv-document" title={title}>{title}</div>
         {focusMode && <div className="cv-focus-controls"><div className="cv-dev" role="group" aria-label="Thiết bị">{DEVICES.map((item) => { const Icon = item.id === 'desktop' ? Monitor : item.id === 'tablet' ? Tablet : Smartphone; return <button type="button" key={item.id} title={item.label} aria-label={item.label} aria-pressed={device === item.id} onClick={() => setDevice(item.id)}><Icon size={16} /></button> })}</div><button type="button" className="cv-ib" aria-label="Hoàn tác" title="Hoàn tác (Ctrl+Z)" disabled={!hist.past.length} onClick={undo}><Undo2 size={16} /></button><button type="button" className="cv-ib" aria-label="Làm lại" title="Làm lại" disabled={!hist.future.length} onClick={redo}><Redo2 size={16} /></button></div>}
@@ -370,6 +406,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
         <button type="button" className="cv-ib" aria-label={focusMode ? 'Hiện thanh công cụ đầy đủ' : 'Canvas mở rộng'} title={focusMode ? 'Hiện thanh công cụ đầy đủ' : 'Canvas mở rộng'} onClick={() => setFocusMode(!focusMode)}><SlidersHorizontal size={17} /></button>
         <button type="button" className="cv-ib" aria-label="Căn chỉnh canvas" title="Thước, lưới và guide" aria-pressed={leftOpen && tab === 'drawing'} onClick={() => { setTab('drawing'); openLeft() }}><SlidersHorizontal size={17} /></button>
         <button type="button" className="cv-ib" aria-label="Trợ giúp Studio" title="Trợ giúp và phím tắt (?)" onClick={() => setShowShortcuts(true)}><HelpCircle size={17} /></button>
+        {nav && <button type="button" className="cv-ib" aria-label="Góp ý" title="Góp ý thiết kế" aria-pressed={reviewOpen} onClick={() => { setReviewOpen(!reviewOpen); if (!reviewOpen) store.setState({ preview: true }) }}><MessageSquare size={17} /></button>}
         <button type="button" className="cv-ib" aria-label={fullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình'} title={fullscreen ? 'Thoát toàn màn hình (Esc)' : 'Toàn màn hình'} onClick={toggleFullscreen}>{fullscreen ? <Minimize size={17} /> : <Maximize size={17} />}</button>
       </header>
       <div className="cv-workbar" role="toolbar" aria-label="Công cụ canvas">
@@ -407,6 +444,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
         {!preview && (
           <div className="cv-left-slot" style={{ display: 'flex', minHeight: 0 }}>
             <CanvasLeft
+              canvasDoc={docs[0]}
               open={leftOpen}
               floating={focusMode}
               tab={tab}
@@ -495,6 +533,10 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
       </div>
 
       <EditorHelp open={showShortcuts} onClose={() => setShowShortcuts(false)} onNavigate={navigateHelp} />
+      {mediaMessage && <div className="cv-media-status" role="status">{mediaMessage}</div>}
+      <CommandPalette open={commandsOpen} onClose={() => setCommandsOpen(false)} commands={commands} />
+      <ReplaceDialog open={replaceOpen} onClose={() => setReplaceOpen(false)} data={data} commit={commit} setSel={setSel} />
+      {reviewOpen && preview && nav && <ReviewPanel nav={nav} docs={docs} onClose={() => setReviewOpen(false)} />}
     </div>
     </DrawingContext.Provider>
     </StyleClipboardContext.Provider>

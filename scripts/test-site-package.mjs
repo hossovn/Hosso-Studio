@@ -48,6 +48,8 @@ areas.vi.siteHeader.content.push(portableStory)
 const image = 'legacy banner.webp'
 areas.vi.siteFooter.content[0].props.image = '/api/media/file/legacy%20banner.webp?download=1'
 areas.en.siteFooter.content[0].props.image = '/api/media/file/legacy%20banner.webp'
+areas.vi.siteHeader.content[0].props._els.push({ id: 'cell', type: 'container', x: 0, y: 0, w: 500, h: 320, props: { _frame: true, bgImage: '/api/media/file/legacy%20banner.webp', _layout: { direction: 'column', gap: 16 } } }, { id: 'nested-form', type: 'widget', parentId: 'cell', x: 24, y: 24, w: 440, h: 250, props: { widget: { type: 'Form', props: { form: 'lead' } } } })
+const portableRules = { steps: ['Nhu cầu', 'Liên hệ'], fields: { email: { step: 1, minLength: 5 } } }
 let mediaExists = true
 const { buildSitePackage } = compile('../apps/studio/src/lib/site-package.ts', {
   '@hosso-config': config,
@@ -55,7 +57,7 @@ const { buildSitePackage } = compile('../apps/studio/src/lib/site-package.ts', {
   fs: { existsSync: () => mediaExists, readFileSync: () => new Uint8Array([1, 2, 3]) },
 })
 const source = {
-  find: async (args) => { findCalls.push(args); return { docs: [] } },
+  find: async (args) => { findCalls.push(args); return { docs: args.collection === 'forms' ? [{ slug: 'lead', title: args.locale + ' Lead', fields: [{ name: 'email', type: 'email', label: args.locale + ' Email', required: true }], rules: portableRules }] : [] } },
   findGlobal: async ({ slug, locale }) => {
     if (slug === 'site-areas') return { id: 1, ...areas[locale] }
     if (slug === 'site-settings') return { id: 1, siteName: locale + '-Site', theme: 'auto', contact: { phone: '123' } }
@@ -84,15 +86,20 @@ const { importSitePackage } = compile('../apps/studio/src/lib/site-import.ts', {
   './lang': { serverLang: () => 'en' },
 })
 const restored = Object.fromEntries(locales.map((locale) => [locale, {}]))
+const restoredForms = {}
 const target = {
   count: async () => ({ totalDocs: 1 }),
   find: async () => ({ docs: [] }),
+  create: async ({ collection, data, locale }) => { assert.equal(collection, 'forms'); restoredForms[locale] = data; return { id: 7, ...data, fields: data.fields.map((field, index) => ({ ...field, id: 'f' + index })) } },
+  update: async ({ collection, data, locale }) => { assert.equal(collection, 'forms'); restoredForms[locale] = data; return data },
   updateGlobal: async ({ slug, data, locale }) => {
     if (slug === 'site-areas') Object.assign(restored[locale], data)
     return data
   },
 }
 await importSitePackage(target, exported.data, () => {}, 'en')
+assert.deepEqual(restoredForms.vi.rules, portableRules, 'multistep form rules survive the real ZIP pipeline')
+assert.equal(restoredForms.en.fields[0].label, 'en Email')
 assert.deepEqual(restored, areas, 'all editor areas must survive export and import in every locale')
 assert.deepEqual(restored.vi.siteHeader.content[0].props._els[0].props._states, elementStates, 'all state and device overrides must survive the actual ZIP export/import pipeline')
 assert.deepEqual(restored.vi.siteHeader.content[0].props._els[0].props._scroll, portableScroll, 'scroll effects must survive the actual ZIP export/import pipeline')

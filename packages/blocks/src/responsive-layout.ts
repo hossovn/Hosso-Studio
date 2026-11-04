@@ -22,11 +22,13 @@ export function elementForDevice(el: ResponsiveElement, device: LayoutDevice): R
 export function blockForDevice(block: Block, device: LayoutDevice): Block {
   const fallback = device.startsWith('bp-') ? block.props._responsive?.[baseDevice(layoutWidth(device))] : undefined
   const patch = device === 'desktop' ? undefined : { ...fallback, ...block.props._responsive?.[device] }
-  return { ...block, props: { ...block.props, ...patch, _els: constrainedElements(elements(block.props), device, Number(block.props.height) || 400, Number(patch?.height ?? block.props.height) || 400) } }
+  const resolved = constrainedElements(elements(block.props), device, Number(block.props.height) || 400, Number(patch?.height ?? block.props.height) || 400)
+  const grows = resolved.some((el) => el.props._layout?.direction === 'grid' && el.props._layout?.mobileStack !== false) && layoutWidth(device) <= 600
+  return { ...block, props: { ...block.props, ...patch, ...(grows ? { height: Math.max(Number(patch?.height ?? block.props.height) || 400, ...resolved.map((el) => el.y + el.h + 24)) } : {}), _els: resolved } }
 }
 
 export function pageForDevice<T extends Document>(data: T, device: LayoutDevice): T {
-  if (device === 'desktop' && ![...data.content.flatMap((block) => elements(block.props)), ...(data.root?.props?._float ?? [])].some((el) => ['row', 'column'].includes(el.props._layout?.direction))) return data
+  if (device === 'desktop' && ![...data.content.flatMap((block) => elements(block.props)), ...(data.root?.props?._float ?? [])].some((el) => ['row', 'column', 'grid'].includes(el.props._layout?.direction))) return data
   return { ...data, content: data.content.map((block) => blockForDevice(block, device)), root: data.root && { ...data.root, props: { ...data.root.props, _float: constrainedElements(data.root.props?._float ?? [], device) } } }
 }
 

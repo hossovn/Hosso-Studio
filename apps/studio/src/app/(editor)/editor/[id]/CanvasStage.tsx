@@ -1,5 +1,9 @@
 'use client'
-import { FREE_MAX_PX, FREE_W, FreeElementView, cloneElements, elementFamily, transformFamily, convertSectionBox, makeElement, elementStateScope, elementStatesCss, type FreeElement, type FreeType, type ElementState } from '@hosso/studio-blocks'
+import { FREE_MAX_PX, FREE_W, FreeElementView, renderCanvasWidgets, cloneElements, elementFamily, transformFamily, convertSectionBox, makeElement, elementStateScope, elementStatesCss, type FreeElement, type FreeType, type ElementState } from '@hosso/studio-blocks'
+import { createFrameLayout, frameAtPoint, insertIntoFrame, moveIntoFrame } from '../../../../../../../packages/blocks/src/frame-layout'
+import { CANVAS_WIDGET_CSS } from '../../../../../../../packages/blocks/src/canvas-widgets'
+import { ImageEditor } from '@hosso/studio-blocks'
+import { uploadCanvasImage } from './CanvasMediaDrop'
 import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { MotionScope, resolveMotionConfig } from '@hosso/studio-blocks'
@@ -13,15 +17,22 @@ import { CanvasRulers, DrawingContext } from './DrawingTools'
 import { SelectionMarquee } from './SelectionMarquee'
 import { CanvasNavigator } from './CanvasNavigator'
 import { ReusablePreview } from './ReusableEditor'
-import { selectionFamily, selectionBox, transformSelection } from './canvas-selection'
+import { selectionFamily, selectionBox, transformSelection, translatePageSelection } from './canvas-selection'
 import { normalizeGuides, nearestDistances, type CanvasGuide } from './canvas-guides'
 import { inheritedElementFlag, inheritedHideClasses, orderElementFamily } from '../../../../../../../packages/blocks/src/free-geometry'
 import { LIBRARY } from './BlockPanels'
 import { SECTION_TEMPLATES, HEADER_TEMPLATES, FOOTER_TEMPLATES, type SiteCtx } from './SectionTemplates'
 import { patchWidgetPart, widgetPartKey, widgetPartsForDevice, widgetPartPath, widgetPartSelector, type WidgetPartDevice, type WidgetParts } from '@hosso/studio-blocks'
 
-const insertionPayload = (payload: string) => payload.startsWith('hosso-widget:') || payload.startsWith('hosso-section:') || payload.startsWith('hosso-library:')
-function droppedElement(payload: string): FreeElement | undefined {
+const insertionPayload = (payload: string) => ['hosso-widget:', 'hosso-section:', 'hosso-library:', 'hosso-frame:', 'hosso-block:'].some((prefix) => payload.startsWith(prefix))
+function droppedElement(payload: string, config?: any): FreeElement | undefined {
+  if (payload.startsWith('hosso-block:')) {
+    try {
+      const widget = JSON.parse(payload.slice(12))
+      if (!widget || typeof widget.type !== 'string' || !config?.components[widget.type] || ['FreeCanvas', 'Reusable', 'Popup'].includes(widget.type)) return
+      return makeElement('widget', { w: 480, h: ['NavMenu', 'SearchBox'].includes(widget.type) ? 72 : 480, props: { widget: { type: widget.type, props: { ...config.components[widget.type].defaultProps, ...widget.props } }, _name: config.components[widget.type].label || widget.type } })
+    } catch { return }
+  }
   if (payload.startsWith('hosso-library:')) return LIBRARY.flatMap((group) => group.items.map((item) => ({ key: group.title + '/' + item.label, create: item.make }))).find((item) => item.key === payload.slice(14))?.create()
   if (!payload.startsWith('hosso-widget:')) return
   const type = payload.slice(13)
@@ -167,13 +178,14 @@ export function StageFrame({
 }
 
 // ---------- Lớp component trong một section ----------
-function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = false, labelHint, selectedState = 'normal', savedGuides, onGuides }: { savedGuides?: unknown; onGuides?: (guides: CanvasGuide[]) => void; blockId: string; els: FreeElement[]; sel: Sel; setSel: (s: Sel) => void; onEls: (next: FreeElement[], key?: string) => void; onTransfer: (target: string, next: FreeElement[], rootId: string) => void; preview?: boolean; labelHint?: string; selectedState?: ElementState }) {
+function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = false, labelHint, selectedState = 'normal', savedGuides, onGuides, config, onCrossStart, onCrossMove, onCrossEnd, onCrossCancel }: { savedGuides?: unknown; onGuides?: (guides: CanvasGuide[]) => void; blockId: string; els: FreeElement[]; sel: Sel; setSel: (s: Sel) => void; onEls: (next: FreeElement[], key?: string) => void; onTransfer: (target: string, next: FreeElement[], rootId: string) => void; preview?: boolean; labelHint?: string; selectedState?: ElementState; config?: any; onCrossStart?: () => void; onCrossMove?: (dx: number, dy: number) => void; onCrossEnd?: () => void; onCrossCancel?: () => void }) {
   const drawing = React.useContext(DrawingContext)
   const host = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ w: FREE_W, h: 0 })
   const [draft, setDraft] = useState<FreeElement[] | null>(null)
   const draftRef = useRef<FreeElement[] | null>(null)
   const [editing, setEditing] = useState('')
+  const [editingImage, setEditingImage] = useState<FreeElement | null>(null)
   const [hover, setHover] = useState('')
   const [interacting, setInteracting] = useState('')
   const scrollStart = useRef(0)
@@ -181,27 +193,36 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
   const drag = useRef<Drag | null>(null)
   const dragIds = useRef<string[]>([])
   const list = draft ?? els
+  const widgets = renderCanvasWidgets(list, config?.components ?? {}, true)
   // Explicit pixels avoid container-query layout suppression in portaled iframe widgets.
   const scale = size.w / FREE_W
   const cur = !preview && sel.block === bid ? list.find((e) => e.id === sel.el) : undefined
-  const multi = sel.block === bid && (sel.multi?.length ?? 0) > 1 ? sel.multi! : []
-  const multiBox = multi.length ? selectionBox(selectionFamily(list, multi)) : null
+  const multi = (sel.multi?.length ?? 0) > 1 ? sel.multi! : []
+  const crossOwner = multi.some((id) => !list.some((el) => el.id === id))
+  const multiBox = multi.length && !crossOwner ? selectionBox(selectionFamily(list, multi)) : null
   const group = cur?.type === 'container' ? cur : list.find((el) => el.id === cur?.parentId)
   const moving = drag.current?.moved && drag.current.mode === 'move' ? selectionFamily(list, dragIds.current) : []
   const movingIds = new Set(moving.map((el) => el.id))
   const hoverEl = list.find((el) => el.id === hover)
   useEffect(() => { setInteracting('') }, [sel.el, preview])
   const cancel = () => {
+    if (drag.current && dragIds.current.some((id) => !drag.current!.list.some((el) => el.id === id))) onCrossCancel?.()
     drag.current = null
     draftRef.current = null
     setDraft(null)
     setGuides({})
   }
+  const cancelRef = useRef(cancel)
+  cancelRef.current = cancel
   useEffect(() => {
-    const doc = host.current?.ownerDocument
-    const escape = (e: KeyboardEvent) => { if (e.key === 'Escape') { cancel(); setInteracting('') } }
-    doc?.addEventListener('keydown', escape)
-    return () => doc?.removeEventListener('keydown', escape)
+    const docs = new Set([host.current?.ownerDocument, document])
+    const escape = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (drag.current) { e.preventDefault(); e.stopImmediatePropagation(); cancelRef.current() }
+      setInteracting('')
+    }
+    for (const doc of docs) doc?.addEventListener('keydown', escape, true)
+    return () => { for (const doc of docs) doc?.removeEventListener('keydown', escape, true) }
   }, [])
 
   useEffect(() => {
@@ -246,11 +267,12 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
     e.stopPropagation()
     if (editing) return
     if (mode === 'resize') setInteracting('')
-    if (mode === 'move' && e.shiftKey) { const ids = sel.block === bid ? sel.multi ?? (sel.el ? [sel.el] : []) : []; const next = ids.includes(el.id) ? ids.filter((id) => id !== el.id) : [...ids, el.id]; setSel({ block: bid, el: next[next.length - 1] ?? '', multi: next }); return }
+    if (mode === 'move' && e.shiftKey) { const ids = sel.multi ?? (sel.el ? [sel.el] : []); const next = ids.includes(el.id) ? ids.filter((id) => id !== el.id) : [...ids, el.id]; setSel({ block: bid, el: next[next.length - 1] ?? '', multi: next }); return }
     const ids = multi.includes(el.id) ? multi : [el.id]
     setSel({ block: bid, el: el.id, multi: ids })
     if (!selectionFamily(list, ids).length || inheritedElementFlag(list, el.id, '_locked')) return
     dragIds.current = ids
+    if (ids.some((id) => !list.some((item) => item.id === id))) onCrossStart?.()
     e.currentTarget.setPointerCapture(e.pointerId)
     scrollStart.current = host.current?.ownerDocument.defaultView?.scrollY ?? 0
     drag.current = { mode, handle, sx: e.clientX, sy: e.clientY, orig: ids.length > 1 && multiBox ? { ...el, ...multiBox } : el, list, moved: false }
@@ -265,6 +287,7 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
     const dy = (e.clientY - d.sy + view.scrollY - scrollStart.current) / scale
     if (!d.moved && Math.hypot(dx, dy) < 3) return
     d.moved = true
+    if (crossOwner && d.mode === 'move') { onCrossMove?.(dx, dy); return }
     const o = d.orig
     const boxH = size.h / scale
     let { x, y, w, h } = o
@@ -304,6 +327,7 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
   }
   const onUp = (e: React.PointerEvent) => {
     const d = drag.current
+    if (d && dragIds.current.some((id) => !d.list.some((el) => el.id === id))) onCrossEnd?.()
     drag.current = null
     setGuides({})
     if (d?.moved && draftRef.current) {
@@ -323,6 +347,9 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
         onTransfer(target.dataset.canvasLayer!, next.map((it) => ids.has(it.id) ? { ...it, ...convertSectionBox(it, source, rect) } : it), el.id)
         draftRef.current = null
         setDraft(null)
+      } else if (d.mode === 'move') {
+        const frame = frameAtPoint(next, (e.clientX - source.left) / scale, (e.clientY - source.top) / scale, [el.id])
+        commit(moveIntoFrame(next, el.id, frame?.id))
       } else commit(next)
     }
   }
@@ -366,7 +393,7 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
   const rect = host.current?.getBoundingClientRect()
   const measure: React.CSSProperties = { position: 'absolute', color: BRAND, font: '11px/1.5 monospace', fontWeight: 700, whiteSpace: 'nowrap', background: '#fff', padding: '1px 5px', borderRadius: 3, boxShadow: '0 1px 4px rgba(0,0,0,.15)' }
   return <div ref={host} data-canvas-layer={bid} data-scroll-boundary onPointerMove={preview ? undefined : onMove} onPointerUp={onUp} onPointerCancel={cancel} onLostPointerCapture={() => { if (drag.current) cancel() }} style={{ position: 'absolute', inset: 0, width: 'min(100%, ' + FREE_MAX_PX + 'px)', margin: '0 auto', pointerEvents: 'none', zIndex: cur ? 35 : 1 }}>
-    <style>{HF_CSS}</style>
+    <style>{HF_CSS + CANVAS_WIDGET_CSS}</style>
     {!preview && onGuides && <CanvasRulers width={FREE_W} height={scale ? size.h / scale : 400} scale={scale} value={savedGuides} onChange={onGuides} />}
     {!preview && labelHint && !list.length && <div style={{ position: 'absolute', inset: 0, border: '1px dashed #cbd5e1' }} />}
     <MotionScope enabled={Boolean(preview && list.some((el) => !el.props._hidden && resolveMotionConfig(el.props)?.loop?.preset && resolveMotionConfig(el.props)?.loop?.preset !== 'none'))}>
@@ -374,7 +401,9 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
       const hidden = inheritedElementFlag(list, el.id, '_hidden')
       const locked = inheritedElementFlag(list, el.id, '_locked')
       const active = !preview && interacting === el.id && sel.el === el.id
-      return <div key={el.id} className={'hf-el ' + (preview ? inheritedHideClasses(list, el.id) : '')} draggable={false} onDragStart={(e) => { if (!preview) e.preventDefault() }} data-free-ui="1" data-editor-interactive={active ? "true" : undefined} data-element={el.id}
+      const frame = el.type === 'container' && el.props._frame
+      const emptyFrame = frame && !list.some((child) => child.parentId === el.id)
+      return <div key={el.id} className={'hf-el ' + (preview ? inheritedHideClasses(list, el.id) : '')} draggable={false} onDragStart={(e) => { if (!preview) e.preventDefault() }} data-free-ui="1" data-frame={frame ? el.id : undefined} data-editor-interactive={active ? "true" : undefined} data-element={el.id}
         onPointerDown={(e) => start(e, el, 'move')}
         onContextMenu={(e) => {
           if (preview) return
@@ -384,10 +413,11 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
           setCtxMenu({ x: e.clientX, y: e.clientY, el })
         }}
         onPointerEnter={() => !preview && setHover(el.id)} onPointerLeave={() => setHover('')}
-        onDoubleClick={() => { if (preview || locked) return; if (TEXTY.has(el.type)) setEditing(el.id); else if (el.type === 'video' || el.type === 'swiper') setInteracting(el.id) }}
-        style={{ display: preview && hidden ? 'none' : undefined, position: 'absolute', outline: !preview && sel.block === bid && sel.multi?.includes(el.id) ? `1px solid ${BRAND}` : undefined, left: px(el.x), top: px(el.y), width: px(el.w), height: px(el.h), opacity: movingIds.has(el.id) ? 0 : hidden ? 0.3 : 1, zIndex: el.type === 'container' ? 0 : 1, cursor: preview || active || locked ? 'auto' : editing === el.id ? 'text' : 'move', touchAction: preview || active ? 'auto' : 'none', userSelect: preview ? 'auto' : 'none', pointerEvents: preview && el.type === 'container' ? 'none' : 'auto' }}>
+        onDoubleClick={() => { if (preview || locked) return; if (TEXTY.has(el.type)) setEditing(el.id); else if (el.type === 'image' && /^\/api\/media\/file\/[^?]+\.(png|jpe?g|webp|avif)$/i.test(el.props.src ?? '')) setEditingImage(el); else if (el.type === 'video' || el.type === 'swiper' || el.type === 'widget') setInteracting(el.id) }}
+        style={{ display: preview && hidden ? 'none' : undefined, position: 'absolute', outline: !preview && sel.multi?.includes(el.id) ? `1px solid ${BRAND}` : !preview && frame ? '1px dashed #a3b8ab' : undefined, outlineOffset: -1, left: px(el.x), top: px(el.y), width: px(el.w), height: px(el.h), opacity: movingIds.has(el.id) ? 0 : hidden ? 0.3 : 1, zIndex: el.type === 'container' ? 0 : 1, cursor: preview || active || locked ? 'auto' : editing === el.id ? 'text' : 'move', touchAction: preview || active ? 'auto' : 'none', userSelect: preview ? 'auto' : 'none', pointerEvents: preview && el.type === 'container' ? 'none' : 'auto' }}>
         {editing === el.id && !preview ? <InlineText el={el} scale={scale} onDone={(value) => { setEditing(''); if (value) commit(mapOne(el.id, (it) => ({ ...it, props: { ...it.props, text: value.text, richText: value.richText } }))) }} /> :
-          <div onPointerDown={active ? (e) => e.stopPropagation() : undefined} style={{ width: '100%', height: '100%', pointerEvents: preview || active ? 'auto' : 'none' }}><FreeElementView el={el} scale={scale} editing={!preview && !active} scrollEffects={preview} state={!preview && cur?.id === el.id ? selectedState : undefined} /></div>}
+          <div onPointerDown={active ? (e) => e.stopPropagation() : undefined} style={{ width: '100%', height: '100%', pointerEvents: preview || active ? 'auto' : 'none' }}><FreeElementView el={el} scale={scale} editing={!preview && !active} scrollEffects={preview} state={!preview && cur?.id === el.id ? selectedState : undefined}>{widgets[el.id]}</FreeElementView></div>}
+        {!preview && emptyFrame && !hidden && <div style={{ position: 'absolute', inset: 0, display: 'grid', placeContent: 'center', gap: 8, textAlign: 'center', color: '#6c8675', pointerEvents: 'none', font: '12px/1.5 system-ui,sans-serif' }}><span>{el.props._name || 'Ô trống'}</span><span style={{ fontSize: 20 }}>＋</span><span>Kéo nội dung vào đây</span></div>}
       </div>
     })}
     </MotionScope>
@@ -427,6 +457,7 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
         {HANDLES.map((hd) => <span key={hd} data-free-ui="1" role="button" tabIndex={0} aria-label={'Resize tập chọn ' + hd} onKeyDown={(event) => resizeMultiKey(event, hd)} onPointerDown={(event) => start(event, cur, 'resize', hd)} style={{ position: 'absolute', left: (hd.includes('w') ? 0 : hd.includes('e') ? 100 : 50) + '%', top: (hd.includes('n') ? 0 : hd.includes('s') ? 100 : 50) + '%', width: 10, height: 10, margin: -5, border: `1px solid ${BRAND}`, background: '#fff', pointerEvents: 'auto', cursor: CURSOR[hd], touchAction: 'none' }} />)}
       </div>}
     </div>}
+    {editingImage && createPortal(<ImageEditor src={editingImage.props.src} filename={decodeURIComponent(editingImage.props.src.split('/').pop() ?? 'anh.jpg')} mime={/\.png$/i.test(editingImage.props.src) ? 'image/png' : /\.webp$/i.test(editingImage.props.src) ? 'image/webp' : 'image/jpeg'} onClose={() => setEditingImage(null)} onSaveNew={async (blob, filename) => { const src = await uploadCanvasImage(new File([blob], filename, { type: blob.type })); commit(list.map((el) => el.id === editingImage.id ? { ...el, props: { ...el.props, src } } : el)) }} />, document.body)}
     {ctxMenu && createPortal(
       <div
         data-free-ui="1"
@@ -485,7 +516,7 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
 // ---------- Một section / widget trên canvas ----------
 const chipBtn: React.CSSProperties = { minWidth: 26, height: 26, border: 0, borderRadius: 6, background: 'transparent', color: 'inherit', cursor: 'pointer', font: 'inherit', fontSize: 13, fontWeight: 700 }
 
-function SectionBox({ block, config, sel, setSel, data, commit, label, first, last, preview, partDevice, selectedState, siteCtx, locale }: { block: Block; config: any; sel: Sel; setSel: (s: Sel) => void; data: PageData; commit: (d: PageData, key?: string) => void; label: string; first: boolean; last: boolean; preview?: boolean; partDevice: WidgetPartDevice; selectedState: ElementState; siteCtx: SiteCtx; locale?: string }) {
+function SectionBox({ block, config, sel, setSel, data, commit, label, first, last, preview, partDevice, selectedState, siteCtx, locale, startCrossDrag, moveCrossDrag, endCrossDrag, cancelCrossDrag }: { block: Block; config: any; sel: Sel; setSel: (s: Sel) => void; data: PageData; commit: (d: PageData, key?: string) => void; label: string; first: boolean; last: boolean; preview?: boolean; partDevice: WidgetPartDevice; selectedState: ElementState; siteCtx: SiteCtx; locale?: string; startCrossDrag?: () => void; moveCrossDrag?: (dx: number, dy: number) => void; endCrossDrag?: () => void; cancelCrossDrag?: () => void }) {
   const id = blockId(block)
   const Render = config.components[block.type]?.render
   const wrap = useRef<HTMLDivElement>(null)
@@ -530,13 +561,14 @@ function SectionBox({ block, config, sel, setSel, data, commit, label, first, la
         e.stopPropagation()
         const section = droppedSection(payload, siteCtx)
         if (section) { commit(insertBlock(data, section, id)); setSel({ block: blockId(section), el: '' }); return }
-        const el = droppedElement(payload)
-        if (!el) return
+        const el = droppedElement(payload, config)
+        const added = payload.startsWith('hosso-frame:') ? createFrameLayout(payload.slice(12)) : el ? [el] : []
+        if (!added.length) return
         const rect = wrap.current!.querySelector('[data-canvas-layer]')!.getBoundingClientRect()
-        el.x = (e.clientX - rect.left) / (rect.width / FREE_W) - el.w / 2
-        el.y = (e.clientY - rect.top) / (rect.width / FREE_W) - el.h / 2
-        commit(placeElement(data, id, el, { x: el.x, y: el.y }))
-        setSel({ block: id, el: el.id })
+        const point = { x: (e.clientX - rect.left) / (rect.width / FREE_W), y: (e.clientY - rect.top) / (rect.width / FREE_W) }
+        const frame = frameAtPoint(elsOf(block), point.x, point.y)
+        commit(frame ? setBlockEls(data, id, insertIntoFrame(elsOf(block), frame.id, added, point)) : added.length === 1 ? placeElement(data, id, added[0], { x: point.x - added[0].w / 2, y: point.y - added[0].h / 2 }) : addEls(data, id, added, { cx: point.x, cy: point.y }))
+        setSel({ block: id, el: added[0].id })
       }}
       style={{ position: 'relative', zIndex: !preview && sel.block === id ? 40 : 0 }}
       onPointerDown={(e) => {
@@ -574,7 +606,7 @@ function SectionBox({ block, config, sel, setSel, data, commit, label, first, la
       {block.type === 'Reusable' ? <ReusablePreview block={block} config={config} locale={locale} editing={!preview} /> : Render ? React.createElement(Render, { ...block.props, ...(partDraft ? { [partKey]: partDraft } : {}), _hide: undefined, _states: section ? undefined : block.props._states, _editorState: undefined, _noFree: true, _motionEditing: !preview, _editParts: !section }) : <div style={{ padding: 24, background: '#fef3c7', font: '14px sans-serif' }}>Block “{block.type}” không còn trong site (plugin đã gỡ).</div>}
       {section && <style>{elementStatesCss(id, block.props)}</style>}
       {activePart && <style>{activePart + '{outline:2px solid var(--cv-accent,#2d7b57)!important;outline-offset:3px;cursor:move;touch-action:none}'}</style>}
-      <Layer savedGuides={block.props._guides} onGuides={(guides) => commit(patchBlock(data, id, { _guides: guides }))} selectedState={selectedState} blockId={id} els={elsOf(block)} sel={sel} setSel={setSel} preview={preview} onTransfer={(target, next, rootId) => { commit(reparentElements(data, id, target, next, rootId)); setSel({ block: target, el: rootId }) }} onEls={(next, key) => commit(setBlockEls(data, id, next), key)} labelHint={section ? 'Phần trống: chọn tab “Văn bản” hoặc “Phần tử” bên trái rồi bấm để thêm.' : undefined} />
+      <Layer onCrossStart={startCrossDrag} onCrossMove={moveCrossDrag} onCrossEnd={endCrossDrag} onCrossCancel={cancelCrossDrag} config={config} savedGuides={block.props._guides} onGuides={(guides) => commit(patchBlock(data, id, { _guides: guides }))} selectedState={selectedState} blockId={id} els={elsOf(block)} sel={sel} setSel={setSel} preview={preview} onTransfer={(target, next, rootId) => { commit(reparentElements(data, id, target, next, rootId)); setSel({ block: target, el: rootId }) }} onEls={(next, key) => commit(setBlockEls(data, id, next), key)} labelHint={section ? 'Phần trống: chọn tab “Văn bản” hoặc “Phần tử” bên trái rồi bấm để thêm.' : undefined} />
       <SelectionMarquee owner={id} list={elsOf(block)} sel={sel} setSel={setSel} disabled={preview || !section} />
       {selected && (
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', outline: `2px solid ${BRAND}`, outlineOffset: -2, zIndex: 30 }}>
@@ -727,11 +759,20 @@ export function CanvasStage({
   rootRender?: React.ComponentType<{ children: React.ReactNode }>
 }) {
   const blocks = data.content ?? []
+  const crossDrag = useRef<{ data: PageData; sel: Sel; key: string } | null>(null)
+  const startCrossDrag = () => { crossDrag.current = { data, sel, key: 'gesture:drag:cross:' + Date.now() } }
+  const moveCrossDrag = (dx: number, dy: number) => { const origin = crossDrag.current; if (origin) commit(translatePageSelection(origin.data, origin.sel, dx, dy), origin.key) }
+  const endCrossDrag = () => { crossDrag.current = null }
+  const cancelCrossDrag = () => { const origin = crossDrag.current; if (origin) commit(origin.data, origin.key); crossDrag.current = null }
   const Root = rootRender ?? (config.root?.render as React.ComponentType<{ children: React.ReactNode }> | undefined)
   const body = blocks.length ? (
     blocks.map((b, i) => (
       <React.Fragment key={blockId(b)}>
         <SectionBox
+          startCrossDrag={startCrossDrag}
+          moveCrossDrag={moveCrossDrag}
+          endCrossDrag={endCrossDrag}
+          cancelCrossDrag={cancelCrossDrag}
           siteCtx={siteCtx}
           locale={locale}
           selectedState={selectedState}
@@ -773,7 +814,8 @@ export function CanvasStage({
         e.preventDefault()
         const section = droppedSection(payload, siteCtx)
         if (section) { commit(insertBlock(data, section)); setSel({ block: blockId(section), el: '' }); return }
-        const el = droppedElement(payload)
+        if (payload.startsWith('hosso-frame:')) { const els = createFrameLayout(payload.slice(12)), section = { type: 'FreeCanvas', props: { id: newBlockId('FreeCanvas'), height: 720, _els: els } }; commit(insertBlock(data, section)); setSel({ block: blockId(section), el: els[1].id }); return }
+        const el = droppedElement(payload, config)
         if (!el) return
         if (areaKind) {
           const section: Block = { type: 'FreeCanvas', props: { id: newBlockId('FreeCanvas'), height: 400, _els: [el] } }
@@ -786,7 +828,7 @@ export function CanvasStage({
       }}>
       {body}
       {!areaKind && <SelectionMarquee owner={PAGE} list={floatOf(data)} sel={sel} setSel={setSel} disabled={preview || sel.block !== PAGE} />}
-      {!areaKind && <div style={{ position: 'absolute', inset: 0, zIndex: 25, pointerEvents: 'none' }}><Layer selectedState={selectedState} preview={preview} onTransfer={(target, next, rootId) => { commit(reparentElements(data, PAGE, target, next, rootId)); setSel({ block: target, el: rootId }) }} blockId={PAGE} els={floatOf(data)} sel={sel} setSel={setSel} onEls={(next, key) => commit(setBlockEls(data, PAGE, next), key)} /></div>}
+      {!areaKind && <div style={{ position: 'absolute', inset: 0, zIndex: 25, pointerEvents: 'none' }}><Layer onCrossStart={startCrossDrag} onCrossMove={moveCrossDrag} onCrossEnd={endCrossDrag} onCrossCancel={cancelCrossDrag} config={config} selectedState={selectedState} preview={preview} onTransfer={(target, next, rootId) => { commit(reparentElements(data, PAGE, target, next, rootId)); setSel({ block: target, el: rootId }) }} blockId={PAGE} els={floatOf(data)} sel={sel} setSel={setSel} onEls={(next, key) => commit(setBlockEls(data, PAGE, next), key)} /></div>}
     </div>
   )
   return <StageFrame expanded={expanded} width={width} zoom={zoom} onZoom={onZoom} onWidth={onWidth} sel={sel} preview={preview} css={css} htmlClass={htmlClass} onDoc={onDoc}>{Root ? <Root>{page}</Root> : page}</StageFrame>
