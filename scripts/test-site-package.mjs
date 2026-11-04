@@ -19,7 +19,7 @@ function compile(relative, stubs) {
   return mod.exports
 }
 
-const areasModule = compile('../apps/studio/src/globals/SiteAreas.ts', { '../lib/access': { publishers: () => true }, '../lib/site-publication-lock': { lockSiteMutation: () => {} }, '../lib/editor-conflict': { assertEditorRevision: async () => {} } })
+const areasModule = compile('../apps/studio/src/globals/SiteAreas.ts', { '../lib/content-design-lock': { assertContentDesignLock: () => {} }, '../lib/access': { publishers: () => true }, '../lib/site-publication-lock': { lockSiteMutation: () => {} }, '../lib/editor-conflict': { assertEditorRevision: async () => {} } })
 const { AREAS } = areasModule
 const locales = ['vi', 'en']
 const config = {
@@ -52,6 +52,11 @@ areas.vi.siteHeader.content[0].props._els.push({ id: 'cell', type: 'container', 
 const portableRules = { steps: ['Nhu cầu', 'Liên hệ'], fields: { email: { step: 1, minLength: 5 } }, quote: { label: 'Tổng', currency: 'VND', base: 100, lines: [] } }
 const portableRepeater = { type: 'DataRepeater', props: { id: 'zip-repeater', source: 'manual', columns: 3, _template: [{ id: 'image', type: 'image', x: 0, y: 0, w: 300, h: 200, props: { src: '/api/media/file/legacy%20banner.webp', focalX: 70, imageZoom: 1.4, _bind: { src: 'cover' } }, responsive: { mobile: { props: { focalX: 30 } } } }], items: [{ title: 'Thủ công', cover: '/api/media/file/legacy%20banner.webp' }] } }
 areas.vi.siteHeader.content.push(portableRepeater)
+areas.vi.siteHeader.root.props._styles = [{ id: 'brand', name: 'Tiêu đề', props: { color: '#126c40', size: 24 } }]
+areas.vi.siteHeader.root.props._contentOnly = true
+areas.vi.siteHeader.content[0].props._els[0].props._styleLink = 'brand'
+areas.vi.siteHeader.content[0].props._els[1].props._variants = [{ id: 'light', name: 'Sáng', elements: [{ id: 'variant-picture', type: 'image', x: 0, y: 0, w: 100, h: 100, props: { src: '/api/media/file/legacy%20banner.webp' } }] }]
+portableRepeater.props.search = 'yes'; portableRepeater.props.filter = 'yes'; portableRepeater.props.paginate = 'yes'
 let mediaExists = true
 const { buildSitePackage } = compile('../apps/studio/src/lib/site-package.ts', {
   '@hosso-config': config,

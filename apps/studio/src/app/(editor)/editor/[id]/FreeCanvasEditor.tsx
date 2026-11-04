@@ -114,7 +114,7 @@ const NumberField = ({ value, onChange, label, min, max, width = 58 }: { value: 
   <input className="hf-tool-field hf-tool-number-input" type="number" value={value} min={min} max={max} aria-label={label} title={label} onChange={(e) => onChange(Math.min(max, Math.max(min, Number(e.target.value) || min)))} style={{ width }} />
 )
 
-export function Toolbar({ el, scale, hostW, patch, set, dup, del, order, onEdit, extra }: { extra?: React.ReactNode; el: FreeElement; scale: number; hostW: number; patch: (p: Record<string, any>) => void; set: (f: (e: FreeElement) => FreeElement) => void; dup: () => void; del: () => void; order: (d: 1 | -1 | 'front' | 'back') => void; onEdit: () => void }) {
+export function Toolbar({ el, scale, hostW, patch, set, dup, del, order, onEdit, extra, anchor = el }: { anchor?: FreeElement; extra?: React.ReactNode; el: FreeElement; scale: number; hostW: number; patch: (p: Record<string, any>) => void; set: (f: (e: FreeElement) => FreeElement) => void; dup: () => void; del: () => void; order: (d: 1 | -1 | 'front' | 'back') => void; onEdit: () => void }) {
   const [media, setMedia] = useState(false)
   const [localStyle, setLocalStyle] = useState<Record<string, unknown> | null>(null)
   const sharedClipboard = React.useContext(StyleClipboardContext)
@@ -132,8 +132,8 @@ export function Toolbar({ el, scale, hostW, patch, set, dup, del, order, onEdit,
   const inspect = (mode: 'inspect' | 'states') => toolbar.current?.ownerDocument.dispatchEvent(new CustomEvent('hosso-inspect', { detail: mode }))
   const p = el.props
   // Neo theo mép dưới khi đặt phía trên: thanh có thể xuống dòng nhưng chỉ mọc lên, không đè lên phần tử.
-  const above = el.y * scale > 120
-  const top = above ? el.y * scale - 8 : (el.y + el.h) * scale + 8
+  const above = anchor.y * scale > 120
+  const top = above ? anchor.y * scale - 8 : (anchor.y + anchor.h) * scale + 8
   const toolbarWidth = Math.min(1120, Math.max(120, hostW - 16))
   const left = Math.max(8, Math.min(el.x * scale, hostW - toolbarWidth - 8))
   const cycle = (key: string, vals: number[]) => patch({ [key]: vals[(vals.indexOf(Number(p[key])) + 1) % vals.length] })

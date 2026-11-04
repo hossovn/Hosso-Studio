@@ -1,0 +1,14 @@
+'use client'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { pageForDevice } from '@hosso/studio-blocks'
+import { CanvasStage } from './CanvasStage'
+import { pageChanges, restorePagePart } from './design-review'
+import { NO_SEL, type PageData } from './canvas-model'
+
+export function VersionCompare({ before, current, label, config, css, htmlClass, close, restore, contentOnly }: { before: PageData; current: PageData; label: string; config: any; css: string; htmlClass: string; close: () => void; restore: (data: PageData) => void; contentOnly: boolean }) {
+  const ref = useRef<HTMLDialogElement>(null), [device, setDevice] = useState<'desktop' | 'mobile'>('desktop')
+  const changes = useMemo(() => pageChanges(before, current), [before, current])
+  useEffect(() => { ref.current?.showModal(); return () => ref.current?.close() }, [])
+  const highlight = changes.map((change) => `${change.el ? '[data-element="' + CSS.escape(change.el) + '"]' : '[data-block="' + CSS.escape(change.block) + '"]'}{outline:2px solid #d5942f!important;outline-offset:-2px}`).join('')
+  return <dialog className="cv-compare-dialog" ref={ref} onCancel={(e) => { e.preventDefault(); close() }} aria-label="So sánh phiên bản"><header><div><strong>So sánh phiên bản</strong><small>{label} ↔ Hiện tại · Viền vàng đánh dấu thay đổi</small></div><select aria-label="Thiết bị so sánh" value={device} onChange={(e) => setDevice(e.target.value as typeof device)}><option value="desktop">Desktop</option><option value="mobile">Mobile</option></select><button type="button" onClick={close}>Đóng so sánh</button></header><div className="cv-compare-body"><div className="cv-compare-canvases">{[{ title: label, page: before }, { title: 'Hiện tại', page: current }].map(({ title, page }, index) => <section key={index} className="cv-compare-pane"><h3>{title}</h3><CanvasStage data={pageForDevice(page, device)} config={config} sel={NO_SEL} setSel={() => {}} commit={() => {}} labelOf={(type) => type} width={device === 'mobile' ? 390 : 1200} css={css + highlight} htmlClass={htmlClass} preview /></section>)}</div><aside><h3>{changes.length} mục thay đổi</h3><p className="cv-tool-help">Khôi phục một khung sẽ khôi phục cả các lớp con của khung đó. Mỗi lần khôi phục có thể hoàn tác.</p>{changes.map((change) => <article className="cv-compare-change" key={change.block + '::' + change.el}><strong>{change.name}</strong><small>{({ added: 'Đã thêm', removed: 'Đã xóa', changed: 'Đã sửa' })[change.kind]} · {change.el ? 'Phần tử / khung' : 'Section'}</small><button type="button" disabled={contentOnly} onClick={() => restore(restorePagePart(current, before, change))}>Khôi phục mục này</button></article>)}{!changes.length && <p>Hai phiên bản có nội dung giống nhau.</p>}{contentOnly && <p>Thoát chế độ chỉ sửa nội dung để khôi phục bố cục.</p>}</aside></div></dialog>
+}

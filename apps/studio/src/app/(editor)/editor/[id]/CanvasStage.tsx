@@ -3,6 +3,8 @@ import { FREE_MAX_PX, FREE_W, FreeElementView, renderCanvasWidgets, cloneElement
 import { createFrameLayout, frameAtPoint, insertIntoFrame, moveIntoFrame, reorderFrameChild } from '../../../../../../../packages/blocks/src/frame-layout'
 import { arrangeResolvedElements } from '../../../../../../../packages/blocks/src/layout-constraints'
 import { FrameTools } from './FrameTools'
+import { ContentModeContext } from './ContentMode'
+import { SpacingHandles } from './SpacingHandles'
 import { ImageFraming } from './ImageFraming'
 import { CANVAS_WIDGET_CSS } from '../../../../../../../packages/blocks/src/canvas-widgets'
 import { ImageEditor } from '@hosso/studio-blocks'
@@ -182,6 +184,7 @@ export function StageFrame({
 
 // ---------- Lớp component trong một section ----------
 function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = false, labelHint, selectedState = 'normal', savedGuides, onGuides, config, onCrossStart, onCrossMove, onCrossEnd, onCrossCancel }: { savedGuides?: unknown; onGuides?: (guides: CanvasGuide[]) => void; blockId: string; els: FreeElement[]; sel: Sel; setSel: (s: Sel) => void; onEls: (next: FreeElement[], key?: string) => void; onTransfer: (target: string, next: FreeElement[], rootId: string) => void; preview?: boolean; labelHint?: string; selectedState?: ElementState; config?: any; onCrossStart?: () => void; onCrossMove?: (dx: number, dy: number) => void; onCrossEnd?: () => void; onCrossCancel?: () => void }) {
+  const contentOnly = React.useContext(ContentModeContext)
   const drawing = React.useContext(DrawingContext)
   const host = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ w: FREE_W, h: 0 })
@@ -274,6 +277,7 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
     if (preview || e.currentTarget.ownerDocument.body.dataset.panning === 'true' || e.currentTarget.ownerDocument.body.dataset.actionPicking === 'true' || e.button !== 0 || (mode === 'move' && interacting === el.id && sel.el === el.id)) return
     e.preventDefault()
     e.stopPropagation()
+    if (contentOnly) { setSel({ block: bid, el: el.id }); return }
     if (editing) return
     if (mode === 'resize') setInteracting('')
     if (mode === 'move' && e.shiftKey) { const ids = sel.multi ?? (sel.el ? [sel.el] : []); const next = ids.includes(el.id) ? ids.filter((id) => id !== el.id) : [...ids, el.id]; setSel({ block: bid, el: next[next.length - 1] ?? '', multi: next }); return }
@@ -420,7 +424,7 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
   const measure: React.CSSProperties = { position: 'absolute', color: BRAND, font: '11px/1.5 monospace', fontWeight: 700, whiteSpace: 'nowrap', background: '#fff', padding: '1px 5px', borderRadius: 3, boxShadow: '0 1px 4px rgba(0,0,0,.15)' }
   return <div ref={host} data-canvas-layer={bid} data-scroll-boundary onPointerMove={preview ? undefined : onMove} onPointerUp={onUp} onPointerCancel={cancel} onLostPointerCapture={(event) => { if (drag.current && event.target === host.current) cancel() }} style={{ position: 'absolute', inset: 0, width: 'min(100%, ' + FREE_MAX_PX + 'px)', margin: '0 auto', pointerEvents: 'none', zIndex: cur ? 35 : 1 }}>
     <style>{HF_CSS + CANVAS_WIDGET_CSS}</style>
-    {!preview && onGuides && <CanvasRulers width={FREE_W} height={scale ? size.h / scale : 400} scale={scale} value={savedGuides} onChange={onGuides} />}
+    {!preview && !contentOnly && onGuides && <CanvasRulers width={FREE_W} height={scale ? size.h / scale : 400} scale={scale} value={savedGuides} onChange={onGuides} />}
     {!preview && labelHint && !list.length && <div style={{ position: 'absolute', inset: 0, border: '1px dashed #cbd5e1' }} />}
     <MotionScope enabled={Boolean(preview && list.some((el) => !el.props._hidden && resolveMotionConfig(el.props)?.loop?.preset && resolveMotionConfig(el.props)?.loop?.preset !== 'none'))}>
     {list.map((el) => {
@@ -429,7 +433,7 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
       const active = !preview && interacting === el.id && sel.el === el.id
       const frame = el.type === 'container' && el.props._frame
       const emptyFrame = frame && !list.some((child) => child.parentId === el.id)
-      return <div key={el.id} className={'hf-el ' + (preview ? inheritedHideClasses(list, el.id) : '')} draggable={false} onDragStart={(e) => { if (!preview) e.preventDefault() }} data-free-ui="1" data-frame={frame ? el.id : undefined} data-editor-interactive={active ? "true" : undefined} data-element={el.id}
+      return <div key={el.id} className={'hf-el ' + (preview ? inheritedHideClasses(list, el.id) : '')} draggable={false} onDragStart={(e) => { if (!preview) e.preventDefault() }} data-free-ui="1" data-frame={frame ? el.id : undefined} data-editor-interactive={active ? "true" : undefined} data-element={el.id} data-element-type={el.type} data-element-action={Boolean(el.props.href)}
         onPointerDown={(e) => start(e, el, 'move')}
         onContextMenu={(e) => {
           if (preview) return
@@ -439,8 +443,8 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
           setCtxMenu({ x: e.clientX, y: e.clientY, el })
         }}
         onPointerEnter={() => !preview && setHover(el.id)} onPointerLeave={() => setHover('')}
-        onDoubleClick={(event) => { if (preview || locked) return; if (TEXTY.has(el.type)) setEditing(el.id); else if (el.type === 'image') { if (event.altKey && /^\/api\/media\/file\//.test(el.props.src ?? '')) setEditingImage(el); else setFraming(el.id) } else if (el.type === 'video' || el.type === 'swiper' || el.type === 'widget') setInteracting(el.id) }}
-        style={{ display: preview && hidden ? 'none' : undefined, position: 'absolute', outline: !preview && sel.multi?.includes(el.id) ? `1px solid ${BRAND}` : !preview && frame ? '1px dashed #a3b8ab' : undefined, outlineOffset: -1, left: px(el.x), top: px(el.y), width: px(el.w), height: px(el.h), opacity: movingIds.has(el.id) ? 0 : hidden ? 0.3 : 1, zIndex: el.type === 'container' ? 0 : 1, cursor: preview || active || locked ? 'auto' : editing === el.id ? 'text' : 'move', touchAction: preview || active ? 'auto' : 'none', userSelect: preview ? 'auto' : 'none', pointerEvents: preview && el.type === 'container' ? 'none' : 'auto' }}>
+        onDoubleClick={(event) => { if (preview || locked || contentOnly) return; if (TEXTY.has(el.type)) setEditing(el.id); else if (el.type === 'image') { if (event.altKey && /^\/api\/media\/file\//.test(el.props.src ?? '')) setEditingImage(el); else setFraming(el.id) } else if (el.type === 'video' || el.type === 'swiper' || el.type === 'widget') setInteracting(el.id) }}
+        style={{ display: preview && hidden ? 'none' : undefined, position: 'absolute', outline: !preview && (sel.el === el.id || sel.multi?.includes(el.id)) ? `1px solid ${BRAND}` : !preview && frame ? '1px dashed #a3b8ab' : undefined, outlineOffset: -1, left: px(el.x), top: px(el.y), width: px(el.w), height: px(el.h), opacity: movingIds.has(el.id) ? 0 : hidden ? 0.3 : 1, zIndex: el.type === 'container' ? 0 : 1, cursor: preview || active || locked ? 'auto' : editing === el.id ? 'text' : 'move', touchAction: preview || active ? 'auto' : 'none', userSelect: preview ? 'auto' : 'none', pointerEvents: preview && el.type === 'container' ? 'none' : 'auto' }}>
         {editing === el.id && !preview ? <InlineText el={el} scale={scale} onDone={(value) => { setEditing(''); if (value) commit(mapOne(el.id, (it) => ({ ...it, props: { ...it.props, text: value.text, richText: value.richText } }))) }} /> :
           <div onPointerDown={active ? (e) => e.stopPropagation() : undefined} style={{ width: '100%', height: '100%', pointerEvents: preview || active ? 'auto' : 'none' }}><FreeElementView el={el} scale={scale} editing={!preview && !active} scrollEffects={preview} state={!preview && cur?.id === el.id ? selectedState : undefined}>{widgets[el.id]}</FreeElementView></div>}
         {!preview && emptyFrame && !hidden && <div style={{ position: 'absolute', inset: 0, display: 'grid', placeContent: 'center', gap: 8, textAlign: 'center', color: '#6c8675', pointerEvents: 'none', font: '12px/1.5 system-ui,sans-serif' }}><span>{el.props._name || 'Ô trống'}</span><span style={{ fontSize: 20 }}>＋</span><span>Kéo nội dung vào đây</span></div>}
@@ -452,9 +456,10 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
       {moving.map((el) => <div key={el.id} style={{ position: 'absolute', left: rect.left + px(el.x), top: rect.top + px(el.y), width: px(el.w), height: px(el.h), containerType: 'inline-size' }}><FreeElementView el={el} scale={scale} editing /></div>)}
     </div>, host.current!.ownerDocument.body)}
     {!preview && drawing.distances && cur && nearestDistances(cur, list.filter((el) => !el.props._hidden && el.type !== 'container' && el.parentId === cur.parentId)).map((gap, index) => <div key={index} data-measure="gap" style={{ position: 'absolute', left: px(gap.axis === 'x' ? gap.from : gap.cross), top: px(gap.axis === 'y' ? gap.from : gap.cross), width: gap.axis === 'x' ? px(gap.to - gap.from) : 1, height: gap.axis === 'y' ? px(gap.to - gap.from) : 1, background: BRAND, pointerEvents: 'none', zIndex: 6 }}><span style={{ ...measure, left: '50%', top: '50%', transform: 'translate(-50%,-50%)' }}>{Math.round(gap.to - gap.from)}px</span></div>)}
-    {!preview && <div data-hud="1" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 5 }}>
+    {!preview && !contentOnly && <div data-hud="1" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 5 }}>
       {insertion && <div data-frame-insertion style={{ position: 'absolute', left: px(insertion.x), top: px(insertion.y), width: Math.max(3, px(insertion.w)), height: Math.max(3, px(insertion.h)), background: BRAND }} />}
       {cur?.type === 'container' && !inheritedElementFlag(list, cur.id, '_locked') && !drag.current && <FrameTools frame={cur} list={list} scale={scale} onChange={commit} onDraft={(next) => { draftRef.current = next; setDraft(next) }} onCancel={cancel} />}
+      {cur?.type === 'container' && !inheritedElementFlag(list, cur.id, '_locked') && !drag.current && <SpacingHandles frame={cur} list={list} scale={scale} onChange={commit} onDraft={(next) => { draftRef.current = next; setDraft(next) }} onCancel={cancel} />}
       {hoverEl && hoverEl.id !== cur?.id && (
         <div style={{ position: 'absolute', left: px(hoverEl.x), top: px(hoverEl.y), width: px(hoverEl.w), height: px(hoverEl.h), outline: '1.5px solid var(--cv-accent,#2d7b57)', pointerEvents: 'none', zIndex: 10 }}>
           <span style={{ position: 'absolute', left: 0, top: -20, background: BRAND, color: '#fff', padding: '1px 6px', borderRadius: '4px 4px 0 0', fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap' }}>
@@ -479,7 +484,7 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
             return <span key={hd} data-free-ui="1" data-handle={hd} data-editor-control="true" role="button" tabIndex={0} aria-label={'Resize ' + hd} onKeyDown={(e) => { if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return; e.preventDefault(); e.stopPropagation(); const step = e.shiftKey ? 10 : 1; const dx = e.key === 'ArrowRight' ? step : e.key === 'ArrowLeft' ? -step : 0; const dy = e.key === 'ArrowDown' ? step : e.key === 'ArrowUp' ? -step : 0; set((el) => { const w = Math.max(MIN, el.w + (hd.includes('w') ? -dx : hd.includes('e') ? dx : 0)); const h = Math.max(MIN, el.h + (hd.includes('n') ? -dy : hd.includes('s') ? dy : 0)); return { ...el, x: hd.includes('w') ? el.x + el.w - w : el.x, y: hd.includes('n') ? el.y + el.h - h : el.y, w, h } }) }} onPointerDown={(e) => start(e, cur, 'resize', hd)} style={{ position: 'absolute', left: hx + '%', top: hy + '%', width: 8, height: 8, boxSizing: 'border-box', marginLeft: -4, marginTop: -4, background: '#fff', border: '1px solid var(--cv-accent,#2d7b57)', borderRadius: hd === 'w' || hd === 'e' ? '50%' : 1, boxShadow: '0 1px 3px rgba(0,0,0,.25)', pointerEvents: 'auto', cursor: CURSOR[hd], touchAction: 'none' }} />
           })}
         </div>
-        {!interacting && !framing && !drag.current?.moved && <div data-free-ui="1" style={{ display: 'contents' }}><Toolbar extra={cur.type === 'container' && !inheritedElementFlag(list, cur.id, '_locked') ? <FrameTools mode="actions" frame={cur} list={list} scale={scale} onChange={commit} onDraft={(next) => { draftRef.current = next; setDraft(next) }} onCancel={cancel} /> : undefined} el={cur} scale={scale} hostW={size.w} patch={patch} set={set} dup={dup} del={del} order={order} onEdit={() => setEditing(cur.id)} /></div>}
+        {!interacting && !framing && !drag.current?.moved && <div data-free-ui="1" style={{ display: 'contents' }}><Toolbar anchor={group && group.id !== cur.id ? group : undefined} extra={cur.type === 'container' && !inheritedElementFlag(list, cur.id, '_locked') ? <FrameTools mode="actions" frame={cur} list={list} scale={scale} onChange={commit} onDraft={(next) => { draftRef.current = next; setDraft(next) }} onCancel={cancel} /> : undefined} el={cur} scale={scale} hostW={size.w} patch={patch} set={set} dup={dup} del={del} order={order} onEdit={() => setEditing(cur.id)} /></div>}
       </>}
       {cur && multiBox && <div data-multi-bounds="true" style={{ position: 'absolute', left: px(multiBox.x), top: px(multiBox.y), width: px(multiBox.w), height: px(multiBox.h), outline: `2px solid ${BRAND}`, pointerEvents: 'none' }}>
         <span style={{ ...measure, top: -22 }}>{multi.length} phần tử · {Math.round(multiBox.w)} × {Math.round(multiBox.h)}</span>
@@ -546,6 +551,7 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
 const chipBtn: React.CSSProperties = { minWidth: 26, height: 26, border: 0, borderRadius: 6, background: 'transparent', color: 'inherit', cursor: 'pointer', font: 'inherit', fontSize: 13, fontWeight: 700 }
 
 function SectionBox({ block, config, sel, setSel, data, commit, label, first, last, preview, partDevice, selectedState, siteCtx, locale, startCrossDrag, moveCrossDrag, endCrossDrag, cancelCrossDrag }: { block: Block; config: any; sel: Sel; setSel: (s: Sel) => void; data: PageData; commit: (d: PageData, key?: string) => void; label: string; first: boolean; last: boolean; preview?: boolean; partDevice: WidgetPartDevice; selectedState: ElementState; siteCtx: SiteCtx; locale?: string; startCrossDrag?: () => void; moveCrossDrag?: (dx: number, dy: number) => void; endCrossDrag?: () => void; cancelCrossDrag?: () => void }) {
+  const contentOnly = React.useContext(ContentModeContext)
   const id = blockId(block)
   const Render = config.components[block.type]?.render
   const wrap = useRef<HTMLDivElement>(null)
@@ -554,7 +560,7 @@ function SectionBox({ block, config, sel, setSel, data, commit, label, first, la
   const partDrag = useRef<{ path: string; sx: number; sy: number; x: number; y: number; parts: WidgetParts; moved: boolean } | null>(null)
   const activePart = !preview && sel.block === id && sel.part ? widgetPartSelector(id, sel.part) : ''
   const partKey = widgetPartKey(partDevice)
-  const selected = !preview && sel.block === id && !sel.el
+  const selected = !preview && !contentOnly && sel.block === id && !sel.el
   const [hDraft, setHDraft] = useState<number | null>(null)
   const hDrag = useRef<{ sy: number; h0: number } | null>(null)
   const hRef = useRef(0)
@@ -607,7 +613,7 @@ function SectionBox({ block, config, sel, setSel, data, commit, label, first, la
         const part = target.closest('button, a, input, select, textarea') ?? target.closest('svg') ?? target
         const path = !section && root ? widgetPartPath(root, part) : ''
         setSel({ block: id, el: '', ...(path ? { part: path } : {}) })
-        if (!path) return
+        if (!path || contentOnly) return
         e.preventDefault()
         e.currentTarget.focus({ preventScroll: true })
         const style = widgetPartsForDevice(block.props, partDevice)[path] ?? {}

@@ -30,6 +30,11 @@ import { useCanvasMediaDrop } from './CanvasMediaDrop'
 import { ReviewPanel } from './ReviewPanel'
 import { FrameIsolation } from './FrameIsolation'
 import { RepeaterPanel } from './RepeaterPanel'
+import { DesignPanel, type DesignTab } from './DesignPanel'
+import { ContentModeContext } from './ContentMode'
+import { contentOnlyPage } from '../../../../../../../packages/blocks/src/content-editing'
+import { VersionCompare } from './VersionCompare'
+import { Columns2, Palette } from 'lucide-react'
 import { AnimationTimeline } from './AnimationTimeline'
 import { Search, MessageSquare } from 'lucide-react'
 import { jumpHistory } from './editor-tools'
@@ -78,15 +83,25 @@ type Props = {
   initialDevice?: 'desktop' | 'tablet' | 'mobile'
   brandTheme?: BrandTheme
   canEditBrand?: boolean
+  canManageDesign?: boolean
   metadata?: PageMetadata
   onMetadataChange?: (value: PageMetadata) => void
 }
 
-export function CanvasApp({ config, data: initial, onChange, css, htmlClass, title, backHref, menu, actions, labelOf, lang, rootRender, scopes, areaKind = '', siteCtx = {}, nav, initialSelection, initialDevice = 'desktop', brandTheme, canEditBrand = false, metadata, onMetadataChange }: Props) {
+export function CanvasApp({ config, data: initial, onChange, css, htmlClass, title, backHref, menu, actions, labelOf, lang, rootRender, scopes, areaKind = '', siteCtx = {}, nav, initialSelection, initialDevice = 'desktop', brandTheme, canEditBrand = false, canManageDesign = true, metadata, onMetadataChange }: Props) {
   const brandDraft = useBrandDraft(brandTheme, canEditBrand, nav?.locale ?? lang, !nav)
   const [store] = useState(() => createStore<{ hist: Hist; sel: Sel; preview: boolean }>(() => ({ hist: initHist(normalize(initial)), sel: initialSelection ?? NO_SEL, preview: false })))
   const { hist, sel, preview } = useStore(store)
   const setSel = useCallback((next: Sel) => store.setState({ sel: next }), [store])
+  const designLocked = Boolean(hist.present.root?.props?._contentOnly) && !canManageDesign
+  const [localContentOnly, setLocalContentOnly] = useState(false)
+  const contentOnly = designLocked || localContentOnly
+  const contentModeRef = useRef(contentOnly); contentModeRef.current = contentOnly
+  const [splitView, setSplitView] = useState(false)
+  const [designTab, setDesignTab] = useState<DesignTab>('styles'), [designOpen, setDesignOpen] = useState(designLocked)
+  const [compare, setCompare] = useState<{ data: PageData; label: string } | null>(null)
+  const openDesign = (tab: DesignTab) => { setDesignTab(tab); setDesignOpen(true) }
+  useEffect(() => { if (contentOnly) { setDesignTab('content'); setDesignOpen(true); setRightOpen(false); setLeftOpen(false) } }, [contentOnly])
   const [leftOpen, setLeftOpen] = useState(false)
   const [commandsOpen, setCommandsOpen] = useState(false), [replaceOpen, setReplaceOpen] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
@@ -171,15 +186,15 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
     })
     return () => cancelAnimationFrame(frame)
   }, [data, docs])
-  const commit = useCallback((next: PageData, key?: string) => store.setState((s) => ({ hist: commitHist(s.hist, syncBreakpoints(mergeDevicePage(s.hist.present, next, layout)), key ? layout + ':' + key : undefined) })), [store, layout])
-  const commitLayout = (next: PageData) => store.setState((s) => ({ hist: commitHist(s.hist, syncBreakpoints(next)) }))
-  const mediaMessage = useCanvasMediaDrop({ docs, data, sel, preview, commit, setSel })
+  const commit = useCallback((next: PageData, key?: string) => store.setState((s) => ({ hist: commitHist(s.hist, contentModeRef.current ? contentOnlyPage(s.hist.present, syncBreakpoints(mergeDevicePage(s.hist.present, next, layout))) : syncBreakpoints(mergeDevicePage(s.hist.present, next, layout)), key ? layout + ':' + key : undefined) })), [store, layout])
+  const commitLayout = (next: PageData) => store.setState((s) => ({ hist: commitHist(s.hist, contentModeRef.current ? contentOnlyPage(s.hist.present, syncBreakpoints(next)) : syncBreakpoints(next)) }))
+  const mediaMessage = useCanvasMediaDrop({ docs, data, sel, preview: preview || contentOnly, commit, setSel })
   const undo = useCallback(() => store.setState((s) => {
-    const hist = undoHist(s.hist), hit = findEl(hist.present, s.sel.el)
+    const result = undoHist(s.hist), hist = contentModeRef.current ? { ...result, present: contentOnlyPage(s.hist.present, result.present) } : result, hit = findEl(hist.present, s.sel.el)
     return { hist, sel: hit ? { block: blockId(hit.block), el: hit.el.id } : NO_SEL }
   }), [store])
   const redo = useCallback(() => store.setState((s) => {
-    const hist = redoHist(s.hist), hit = findEl(hist.present, s.sel.el)
+    const result = redoHist(s.hist), hist = contentModeRef.current ? { ...result, present: contentOnlyPage(s.hist.present, result.present) } : result, hit = findEl(hist.present, s.sel.el)
     return { hist, sel: hit ? { block: blockId(hit.block), el: hit.el.id } : NO_SEL }
   }), [store])
 
@@ -201,7 +216,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
   // ---- Phím tắt (cả trang quản trị lẫn trong iframe) ----
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (st.current.preview) return
+      if (st.current.preview || contentModeRef.current) return
       const t = e.target as HTMLElement | null
       if (t?.closest?.('input, textarea, select, [contenteditable], dialog[open], .cv-left')) return
       const mod = e.ctrlKey || e.metaKey
@@ -244,7 +259,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
     // Sao chép, cắt, dán component (dùng sự kiện clipboard nên dán được sang trang khác); dán vào đúng chỗ đang nhìn.
     const typing = (e: Event) => Boolean((e.target as HTMLElement | null)?.closest?.('input, textarea, select, [contenteditable]'))
     const onCopy = (e: ClipboardEvent) => {
-      if (st.current.preview || typing(e)) return
+      if (st.current.preview || contentModeRef.current || typing(e)) return
       const { data: d, sel: s } = st.current
       const hit = s.el ? findEl(d, s.el) : null
       if (!hit || !e.clipboardData) return
@@ -254,7 +269,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
     }
     const onPaste = (e: ClipboardEvent) => {
       const text = e.clipboardData?.getData('text/plain') ?? ''
-      if (st.current.preview || typing(e) || !text.startsWith(CLIP)) return
+      if (st.current.preview || contentModeRef.current || typing(e) || !text.startsWith(CLIP)) return
       e.preventDefault()
       try {
         const els = JSON.parse(text.slice(CLIP.length)) as FreeElement[]
@@ -386,22 +401,25 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
     { id: 'replace', label: 'Tìm và thay thế trên trang', run: () => setReplaceOpen(true) },
     ...([{ type: 'text', label: 'Thêm văn bản' }, { type: 'image', label: 'Thêm ảnh' }, { type: 'button', label: 'Thêm nút bấm' }, { type: 'video', label: 'Thêm video' }] as const).map((item) => ({ id: 'add-' + item.type, label: item.label, run: () => ops.addEls([makeElement(item.type)]) })),
     ...([{ tab: 'frames', label: 'Chia ô và bố cục' }, { tab: 'input', label: 'Thêm biểu mẫu' }, { tab: 'media', label: 'Thư viện ảnh' }, { tab: 'drawing', label: 'Thước và căn chỉnh' }, { tab: 'responsive', label: 'Thiết bị và breakpoint' }] as const).map((item) => ({ id: item.tab, label: item.label, run: () => { setTab(item.tab); openLeft() } })),
+    { id: 'split-view', label: 'Xem desktop và mobile cạnh nhau', run: () => setSplitView((value) => !value) },
+    ...([{ id: 'styles', label: 'Kiểu dáng chung có liên kết' }, { id: 'variants', label: 'Biến thể của khung' }, { id: 'audit', label: 'Kiểm tra giao diện' }, { id: 'content', label: 'Chỉ sửa nội dung' }] as const).map((item) => ({ id: item.id, label: item.label, run: () => openDesign(item.id) })),
     { id: 'timeline', label: 'Timeline hiệu ứng', run: () => setShowTimeline(true) },
     { id: 'background', label: 'Chỉnh nền và thuộc tính', run: () => setRightOpen(true) },
     ...blocks.map((block) => ({ id: 'go-' + blockId(block), label: 'Đến ' + (block.props._name || labelOf(block.type)), keywords: blockId(block), run: () => { setSel({ block: blockId(block), el: '' }); docs[0]?.querySelector<HTMLElement>(`[data-block="${CSS.escape(blockId(block))}"]`)?.scrollIntoView({ block: 'center' }) } })),
   ]
   return (
+    <ContentModeContext.Provider value={contentOnly}>
     <StyleClipboardContext.Provider value={{ style: copiedStyle, setStyle: setCopiedStyle }}>
     <DrawingContext.Provider value={drawing}>
     <div ref={editorRoot} className="cv-editor" data-focus={focusMode} data-fullscreen={fullscreen} style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', background: 'var(--cv-workspace)', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif', fontSize: 14, color: '#20242b' }}>
       <header className="cv-top">
         <a className="cv-ib" href={backHref} title="Về trang quản trị" aria-label="Về trang quản trị"><ArrowLeft size={18} /></a>
         <span className="cv-brand">HOSSO<span>STUDIO</span></span>
-        {!preview && <button type="button" className="cv-ib" aria-label="Lệnh nhanh" title="Lệnh nhanh (Ctrl+K)" onClick={() => setCommandsOpen(true)}><Search size={17} /></button>}
+        {!preview && !contentOnly && <button type="button" className="cv-ib" aria-label="Lệnh nhanh" title="Lệnh nhanh (Ctrl+K)" onClick={() => setCommandsOpen(true)}><Search size={17} /></button>}
         {nav && <PagesDropdown ctx={nav} />}
         <div className="cv-document" title={title}>{title}</div>
         {focusMode && <div className="cv-focus-controls"><div className="cv-dev" role="group" aria-label="Thiết bị">{DEVICES.map((item) => { const Icon = item.id === 'desktop' ? Monitor : item.id === 'tablet' ? Tablet : Smartphone; return <button type="button" key={item.id} title={item.label} aria-label={item.label} aria-pressed={device === item.id} onClick={() => setDevice(item.id)}><Icon size={16} /></button> })}</div><button type="button" className="cv-ib" aria-label="Hoàn tác" title="Hoàn tác (Ctrl+Z)" disabled={!hist.past.length} onClick={undo}><Undo2 size={16} /></button><button type="button" className="cv-ib" aria-label="Làm lại" title="Làm lại" disabled={!hist.future.length} onClick={redo}><Redo2 size={16} /></button></div>}
-        {focusMode && !preview && <button type="button" className="cv-ib" title="Bảng thuộc tính" aria-label="Bảng thuộc tính" aria-pressed={rightOpen} onClick={toggleRight}><PanelRightClose size={17} /></button>}
+        {focusMode && !preview && !contentOnly && <button type="button" className="cv-ib" title="Bảng thuộc tính" aria-label="Bảng thuộc tính" aria-pressed={rightOpen} onClick={toggleRight}><PanelRightClose size={17} /></button>}
         <button type="button" className="cv-mobile-actions" aria-label="Tác vụ trang" aria-expanded={mobileActionsOpen} aria-controls="cv-file-actions" onClick={() => setMobileActionsOpen((open) => !open)}>Tác vụ</button>
         <div id="cv-file-actions" className="cv-file-actions" data-open={mobileActionsOpen} onKeyDown={(event) => { if (event.key === 'Escape') setMobileActionsOpen(false) }}>{menu}{actions}</div>
         <div className="cv-dev" role="group" aria-label="Chế độ">
@@ -409,8 +427,10 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
           <button type="button" title="Xem trước trang" aria-label="Xem trước trang" aria-pressed={preview} onClick={() => store.setState({ preview: true })}><Eye size={17} /></button>
         </div>
         <button type="button" className="cv-ib" aria-label={focusMode ? 'Hiện thanh công cụ đầy đủ' : 'Canvas mở rộng'} title={focusMode ? 'Hiện thanh công cụ đầy đủ' : 'Canvas mở rộng'} onClick={() => setFocusMode(!focusMode)}><SlidersHorizontal size={17} /></button>
-        <button type="button" className="cv-ib" aria-label="Căn chỉnh canvas" title="Thước, lưới và guide" aria-pressed={leftOpen && tab === 'drawing'} onClick={() => { setTab('drawing'); openLeft() }}><SlidersHorizontal size={17} /></button>
-        {!preview && <button type="button" className="cv-ib" aria-label="Timeline" title="Timeline hiệu ứng" aria-pressed={showTimeline} onClick={() => setShowTimeline(!showTimeline)}><Film size={17} /></button>}
+        <button type="button" className="cv-ib" disabled={contentOnly} aria-label="Căn chỉnh canvas" title="Thước, lưới và guide" aria-pressed={leftOpen && tab === 'drawing'} onClick={() => { setTab('drawing'); openLeft() }}><SlidersHorizontal size={17} /></button>
+        {!preview && !contentOnly && <button type="button" className="cv-ib" aria-label="Timeline" title="Timeline hiệu ứng" aria-pressed={showTimeline} onClick={() => setShowTimeline(!showTimeline)}><Film size={17} /></button>}
+        <button type="button" className="cv-ib" aria-label="Desktop và mobile cạnh nhau" title="Desktop và mobile cạnh nhau" aria-pressed={splitView} onClick={() => setSplitView(!splitView)}><Columns2 size={17} /></button>
+        {!preview && <button type="button" className="cv-ib" aria-label="Công cụ thiết kế" title="Kiểu chung, biến thể, kiểm tra và nội dung" aria-pressed={designOpen} onClick={() => { if (contentOnly) setDesignTab('content'); setDesignOpen(!designOpen) }}><Palette size={17} /></button>}
         <button type="button" className="cv-ib" aria-label="Trợ giúp Studio" title="Trợ giúp và phím tắt (?)" onClick={() => setShowShortcuts(true)}><HelpCircle size={17} /></button>
         {nav && <button type="button" className="cv-ib" aria-label="Góp ý" title="Góp ý thiết kế" aria-pressed={reviewOpen} onClick={() => { setReviewOpen(!reviewOpen); if (!reviewOpen) store.setState({ preview: true }) }}><MessageSquare size={17} /></button>}
         <button type="button" className="cv-ib" aria-label={fullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình'} title={fullscreen ? 'Thoát toàn màn hình (Esc)' : 'Toàn màn hình'} onClick={toggleFullscreen}>{fullscreen ? <Minimize size={17} /> : <Maximize size={17} />}</button>
@@ -434,10 +454,10 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
           <option value="0.5">50%</option><option value="0.75">75%</option><option value="1">100%</option><option value="1.25">125%</option>
         </select>
         <span className="cv-device-label">{dev.label}{typeof dev.width === 'number' ? ' · ' + dev.width + ' px' : ''}</span>
-        {!preview && device !== 'desktop' && selectedBlock?.type === 'FreeCanvas' && <button type="button" className="cv-act" onClick={() => commitLayout(stackDeviceSection(hist.present, sel.block, device))}>{lang === 'en' ? 'Stack vertically' : 'Tự xếp dọc'}</button>}
-        {!preview && device !== 'desktop' && sel.block && <button type="button" className="cv-act" onClick={() => commitLayout(resetDeviceLayout(hist.present, sel.block, device, sel.el || undefined))}>{lang === 'en' ? 'Use base layout' : 'Dùng bố cục gốc'}</button>}
+        {!preview && !contentOnly && device !== 'desktop' && selectedBlock?.type === 'FreeCanvas' && <button type="button" className="cv-act" onClick={() => commitLayout(stackDeviceSection(hist.present, sel.block, device))}>{lang === 'en' ? 'Stack vertically' : 'Tự xếp dọc'}</button>}
+        {!preview && !contentOnly && device !== 'desktop' && sel.block && <button type="button" className="cv-act" onClick={() => commitLayout(resetDeviceLayout(hist.present, sel.block, device, sel.el || undefined))}>{lang === 'en' ? 'Use base layout' : 'Dùng bố cục gốc'}</button>}
         <div className="cv-panel-tools">
-          {!preview && <>
+          {!preview && !contentOnly && <>
             <button type="button" className="cv-ib" title="Cấu trúc trang" aria-label="Cấu trúc trang" aria-pressed={leftOpen && tab === 'layers'} onClick={() => { if (!leftOpen || tab === 'layers') toggleLeft(); setTab('layers') }}><Layers size={17} /></button>
             <button type="button" className="cv-ib" title="Bảng phần tử" aria-label="Bảng phần tử" aria-pressed={leftOpen} onClick={toggleLeft}><PanelLeftClose size={17} /></button>
             <button type="button" className="cv-ib" title="Bảng thuộc tính" aria-label="Bảng thuộc tính" aria-pressed={rightOpen} onClick={toggleRight}><PanelRightClose size={17} /></button>
@@ -447,7 +467,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
       </div>
       <div className="cv-workspace" style={{ flex: 1, display: 'flex', minHeight: 0 }}>
         {fullscreenMessage && <div className="cv-fullscreen-message" role="status" onClick={() => setFullscreenMessage('')}>{fullscreenMessage}</div>}
-        {!preview && (
+        {!preview && !contentOnly && (
           <div className="cv-left-slot" style={{ display: 'flex', minHeight: 0 }}>
             <CanvasLeft
               canvasDoc={docs[0]}
@@ -472,7 +492,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
               brandPanel={<BrandPanel theme={brandTheme} enabled={canEditBrand} draft={brandDraft} />}
               drawingPanel={<DrawingPanel value={drawing} onChange={changeDrawing} />}
               popupPanel={<PopupPanel data={data} sel={sel} setSel={setSel} commit={commit} onAdd={() => ops.addWidget('Popup')} />}
-              historyPanel={<HistoryPanel hist={hist} nav={nav} storageKey={`hosso-snapshots:${nav?.collection ?? 'demo'}:${nav?.id ?? 'demo'}:${nav?.locale ?? lang}`} onJump={(index) => { store.setState({ hist: jumpHistory(hist, index), sel: NO_SEL }) }} onRestore={(next) => { commitLayout(next); setSel(NO_SEL) }} />}
+              historyPanel={<HistoryPanel onCompare={(snapshot, label) => { setCompare({ data: snapshot, label }); setLeftOpen(false) }} hist={hist} nav={nav} storageKey={`hosso-snapshots:${nav?.collection ?? 'demo'}:${nav?.id ?? 'demo'}:${nav?.locale ?? lang}`} onJump={(index) => { store.setState({ hist: jumpHistory(hist, index), sel: NO_SEL }) }} onRestore={(next) => { commitLayout(next); setSel(NO_SEL) }} />}
               responsivePanel={<ResponsivePanel data={hist.present} device={device} layout={layout} width={previewWidth} onWidth={resizePreview} onLayout={setLayout} setDevice={setDevice} sel={sel} setSel={setSel} commit={commitLayout} />}
               formPanel={<FormBuilderPanel nav={nav} onInsert={(slug, heading) => ops.addWidget('Form', { form: slug, heading })} />}
               repeaterPanel={<RepeaterPanel data={data} sel={sel} commit={commit} setSel={setSel} onAdd={() => ops.addWidget('DataRepeater')} />}
@@ -482,6 +502,9 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
         )}
         <main className="cv-canvas" style={{ flex: 1, minWidth: 0, padding: 0, display: 'flex', flexDirection: 'column' }}>
           <FrameIsolation docs={docs} data={data} preview={preview} setSel={setSel} />
+          <div className="cv-live-panes" data-split={splitView}>
+          <section className="cv-live-pane" aria-label="Canvas đang sửa">
+          {splitView && <div className="cv-live-pane-heading">Đang sửa · {device === 'mobile' ? 'Mobile' : device === 'tablet' ? 'Tablet' : 'Desktop'}</div>}
           <CanvasStage
             locale={nav?.locale ?? lang}
             expanded={focusMode}
@@ -505,20 +528,23 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
             areaKind={areaKind}
             onDoc={(d) => setDocs((x) => [...x, d])}
           />
+          </section>
+          {splitView && <section className="cv-live-pane" aria-label="Canvas thiết bị đối chiếu"><div className="cv-live-pane-heading">Xem · {device === 'mobile' ? 'Desktop' : 'Mobile'}<button type="button" onClick={() => setDevice(device === 'mobile' ? 'desktop' : 'mobile')}>Chỉnh bên này</button></div><CanvasStage data={pageForDevice(hist.present, device === 'mobile' ? 'desktop' : 'mobile')} config={config} sel={sel} setSel={() => {}} commit={() => {}} labelOf={labelOf} locale={nav?.locale ?? lang} width={device === 'mobile' ? 1200 : 390} zoom="fit" css={css + brandDraft.css} htmlClass={htmlClass} rootRender={rootRender} areaKind={areaKind} preview /></section>}
+          </div>
           {!preview && <footer className="cv-selection" aria-label="Phần tử đang chọn">
             <nav aria-label="Vị trí phần tử">
               <button type="button" onClick={() => setSel(NO_SEL)}>Trang</button>
               {selectedBlock && <><ChevronRight size={12} /><button type="button" onClick={() => setSel({ block: sel.block, el: '' })}>{labelOf(selectedBlock.type)}</button></>}
               {selectedEl && <><ChevronRight size={12} /><span title={elLabel(selectedEl.el)}>{(sel.multi?.length ?? 0) > 1 ? `${sel.multi!.length} phần tử` : elLabel(selectedEl.el)}</span></>}
             </nav>
-            {selectedEl && <div className="cv-selection-actions">
+            {selectedEl && !contentOnly && <div className="cv-selection-actions">
               <button type="button" className="cv-ib" title="Nhân đôi phần tử" aria-label="Nhân đôi phần tử" onClick={() => { const r = duplicateSelection(data, sel); commit(r.data); setSel(r.sel) }}><Copy size={15} /></button>
               <button type="button" className="cv-ib" title="Xóa phần tử" aria-label="Xóa phần tử" onClick={() => { commit(deleteSelection(data, sel)); setSel({ block: sel.block, el: '' }) }}><Trash2 size={15} /></button>
             </div>}
           </footer>}
-          {!preview && showTimeline && <AnimationTimeline data={data} sel={sel} docs={docs} commit={commit} setSel={setSel} close={() => setShowTimeline(false)} />}
+          {!preview && !contentOnly && showTimeline && <AnimationTimeline data={data} sel={sel} docs={docs} commit={commit} setSel={setSel} close={() => setShowTimeline(false)} />}
         </main>
-        {!preview && rightOpen && (
+        {!preview && !contentOnly && rightOpen && (
           <div ref={inspectorDock.ref} className="cv-right-slot" data-detached={inspectorDock.detached} style={{ display: 'flex', minHeight: 0, ...inspectorDock.style }}>
             <CanvasInspector
               dragHandle={inspectorDock.grip}
@@ -541,7 +567,9 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
         )}
       </div>
 
-      <EditorHelp open={showShortcuts} onClose={() => setShowShortcuts(false)} onNavigate={navigateHelp} />
+      {!preview && designOpen && <DesignPanel tab={contentOnly && !['content','audit'].includes(designTab) ? 'content' : designTab} onTab={setDesignTab} data={hist.present} sel={sel} setSel={setSel} commit={commitLayout} docs={docs} close={() => setDesignOpen(false)} canManageDesign={canManageDesign} contentOnly={contentOnly} onContentOnly={setLocalContentOnly} />}
+      {compare && <VersionCompare before={compare.data} current={hist.present} label={compare.label} config={config} css={css + brandDraft.css} htmlClass={htmlClass} close={() => setCompare(null)} restore={commitLayout} contentOnly={contentOnly} />}
+      <EditorHelp contentOnly={contentOnly} open={showShortcuts} onClose={() => setShowShortcuts(false)} onNavigate={navigateHelp} />
       {mediaMessage && <div className="cv-media-status" role="status">{mediaMessage}</div>}
       <CommandPalette open={commandsOpen} onClose={() => setCommandsOpen(false)} commands={commands} />
       <ReplaceDialog open={replaceOpen} onClose={() => setReplaceOpen(false)} data={data} commit={commit} setSel={setSel} />
@@ -549,6 +577,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
     </div>
     </DrawingContext.Provider>
     </StyleClipboardContext.Provider>
+    </ContentModeContext.Provider>
   )
 }
 

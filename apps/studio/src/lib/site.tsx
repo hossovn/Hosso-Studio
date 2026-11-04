@@ -149,7 +149,7 @@ export async function attachBlockData<T extends { content: Item[] }>(
   const loadElements = async (elements: any[]) => Promise.all(elements.map(async (el) => {
     if (el.type !== 'widget' || !el.props?.widget || ['FreeCanvas', 'Reusable'].includes(el.props.widget.type)) return el
     const { _els, elements: legacy, ...props } = el.props.widget.props ?? {}
-    return { ...el, props: { ...el.props, widget: await loadItem({ type: el.props.widget.type, props }) } }
+    return { ...el, props: { ...el.props, widget: await loadItem({ type: el.props.widget.type, props: { ...props, id: el.id } }) } }
   }))
   const content = await Promise.all(data.content.map(async (item) => {
     const loaded = await loadItem(item)

@@ -3,6 +3,7 @@ import { msg } from './lang'
 
 import { canPublish } from './access'
 import { assertEditorRevision } from './editor-conflict'
+import { assertContentDesignLock } from './content-design-lock'
 
 /** Nhóm SEO dùng chung cho trang và bài viết. */
 export const seoFields: Field = {
@@ -20,6 +21,7 @@ export const seoFields: Field = {
 /** Chỉ quản trị viên và người xuất bản được xuất bản; vai trò khác chỉ lưu nháp. */
 export const onlyPublishersPublish: CollectionBeforeChangeHook = async ({ data, req, originalDoc }) => {
   await assertEditorRevision({ req, originalDoc })
+  assertContentDesignLock(originalDoc?.content, data.content, req.user)
   if (req.user && data._status === 'published' && !canPublish(req.user as { roles?: string[] })) {
     throw new APIError(msg(req, 'Bạn không có quyền xuất bản.', 'You do not have permission to publish.'), 403)
   }

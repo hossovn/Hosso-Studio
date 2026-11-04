@@ -1,5 +1,5 @@
 import type { FreeElement } from './FreeCanvas'
-export type RepeatItem = { title?: string; excerpt?: string; cover?: string; href?: string; price?: string | number }
+export type RepeatItem = { title?: string; excerpt?: string; cover?: string; href?: string; price?: string | number; category?: string }
 export const REPEAT_FIELDS = ['title', 'excerpt', 'cover', 'href', 'price'] as const
 export const REPEAT_TYPES = new Set(['container', 'heading', 'text', 'image', 'button', 'shape', 'line', 'icon', 'video', 'number'])
 export const DEFAULT_REPEAT_TEMPLATE: FreeElement[] = [

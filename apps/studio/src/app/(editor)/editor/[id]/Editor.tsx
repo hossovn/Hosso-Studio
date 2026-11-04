@@ -631,6 +631,7 @@ export function Editor(props: Props) {
             metadata={metadata}
             onMetadataChange={(value) => { metadataRef.current = value; setMetadata(value); scheduleRecovery(); setDirty(JSON.stringify(dataRef.current) !== savedJson.current || JSON.stringify(value ?? null) !== savedMetadata.current) }}
             brandTheme={props.brandTheme}
+            canManageDesign={props.canPublish}
             canEditBrand={props.canEditBrand}
             initialSelection={props.initialSelection}
             initialDevice={props.initialDevice}

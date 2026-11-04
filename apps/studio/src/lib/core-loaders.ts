@@ -1,4 +1,5 @@
 import type { BlockLoader, HossoPlugin } from '@hosso/studio-blocks'
+import { repeatPrefix, repeatQuery, queryRepeatItems } from '../../../../packages/blocks/src/repeater-query'
 
 import { href, loadSite, mediaUrl } from './site'
 
@@ -23,15 +24,25 @@ export async function publishedPostsWhere(payload: import('payload').Payload, op
 /** Loader của block lõi (plugin có loader riêng trong hosso.config.ts). */
 export const coreLoaders: Record<string, BlockLoader> = {
   DataRepeater: async (props, ctx) => {
-    const count = Math.max(1, Math.min(60, Math.round(Number(props.count) || 6)))
-    if (props.source === 'manual') return { status: 'ok', items: (Array.isArray(props.items) ? props.items : []).slice(0, count) }
-    if (props.source === 'posts') return coreLoaders.PostList({ count, paginate: 'no' }, ctx)
+    const query = repeatQuery(props, ctx.searchParams), prefix = repeatPrefix(props.id)
+    const preserved = Object.fromEntries(Object.entries(ctx.searchParams ?? {}).filter(([key]) => !key.startsWith(prefix)).map(([key, value]) => [key, first(value)]).filter((entry): entry is [string, string] => typeof entry[1] === 'string'))
+    const decorate = (result: any) => ({ ...result, current: query, preserved })
+    if (props.source === 'manual') return decorate(queryRepeatItems(Array.isArray(props.items) ? props.items : [], query))
+    if (props.source === 'posts') {
+      const where = await publishedPostsWhere(ctx.payload, { category: query.category || undefined })
+      if (!where) return decorate({ status: 'ok', items: [], page: 1, pages: 1, categories: [] })
+      if (query.q) where.and.push({ or: [{ title: { contains: query.q } }, { excerpt: { contains: query.q } }] })
+      const result = await ctx.payload.find({ collection: 'posts', where, sort: query.sort === 'title' ? 'title' : query.sort === 'title-desc' ? '-title' : '-publishedAt', limit: query.size, page: query.page, depth: 1, locale: ctx.locale as any, overrideAccess: true })
+      const cats = props.filter === 'yes' ? await ctx.payload.find({ collection: 'post-categories', limit: 200, depth: 0, locale: ctx.locale as any, overrideAccess: true }) : { docs: [] }
+      return decorate({ status: 'ok', items: result.docs.map((p) => ({ title: p.title, excerpt: p.excerpt, cover: mediaUrl(p.cover), href: href(`/bai-viet/${p.slug}`, ctx.locale) })), page: result.page ?? 1, pages: props.paginate === 'yes' ? result.totalPages : 1, total: result.totalDocs, categories: cats.docs.map((c: any) => ({ value: c.slug, label: c.name })) })
+    }
     if (props.source !== 'products') return { status: 'error', items: [] }
     const plugins = (ctx.payload.config.custom?.hossoPlugins ?? []) as HossoPlugin[]
     const loader = plugins.map((plugin) => plugin.loaders?.ShopProductGrid).find(Boolean)
     if (!loader) return { status: 'error', items: [] }
-    const result = await loader({ pageSize: count, pager: 'no' }, ctx) as any
-    return { status: result?.status ?? 'error', items: (result?.items ?? []).map((item: any) => ({ title: item.name, excerpt: item.shortDescription || item.description || '', cover: item.image || '', href: href(`/san-pham/${item.slug}`, ctx.locale), price: item.hidePrice ? item.priceLabel || '' : item.salePrice ?? item.price })) }
+    const interactive = ['search', 'filter', 'sorting', 'paginate'].some((key) => props[key] === 'yes')
+    const result = await loader({ pageSize: query.size, pager: interactive ? 'yes' : 'no' }, { ...ctx, searchParams: { q: query.q, category: query.category, page: String(query.page), sort: ({ title: 'name', price: 'priceAsc', '-price': 'priceDesc' } as Record<string, string>)[query.sort] || 'new' } }) as any
+    return decorate({ status: result?.status ?? 'error', page: result?.page ?? 1, pages: props.paginate === 'yes' ? result?.pages ?? 1 : 1, total: result?.total, categories: (result?.filters?.categories ?? []).map((c: any) => ({ value: c.slug, label: c.name })), items: (result?.items ?? []).map((item: any) => ({ title: item.name, excerpt: item.shortDescription || item.description || '', cover: item.image || '', href: href(`/san-pham/${item.slug}`, ctx.locale), price: item.hidePrice ? item.priceLabel || '' : item.salePrice ?? item.price })) })
   },
   PostList: async (props, ctx) => {
     const limit = Math.min(24, Math.max(1, Number(props.count) || 6))

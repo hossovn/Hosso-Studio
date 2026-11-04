@@ -47,7 +47,8 @@
     "studio:update:check": "node scripts/studio-update.mjs --check",
     "studio:update:auto": "node scripts/studio-update.mjs --auto",
     "migrate": "pnpm --filter @hosso/studio migrate",
-    "studio:import-wordpress": "pnpm --filter @hosso/studio studio:import-wordpress"
+    "studio:import-wordpress": "pnpm --filter @hosso/studio studio:import-wordpress",
+    "test:editor-design-workspace": "node --experimental-strip-types scripts/test-editor-design-workspace.mjs"
   },
   "pnpm": {
     "overrides": {

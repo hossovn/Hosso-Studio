@@ -248,6 +248,10 @@ export const blockLabelsEn: Record<string, string> = {
   'Lời cảm ơn sau khi gửi': 'Thank-you message after submitting',
   'Câu chuyện cuộn': 'Scroll story',
   'Các bước câu chuyện': 'Story steps',
+  'Tìm kiếm trong danh sách': 'Search the list',
+  'Lọc theo danh mục': 'Filter by category',
+  'Cho phép sắp xếp': 'Allow sorting',
+  'Phân trang danh sách': 'List pagination',
 }
 
 /** Dịch nhãn theo ngôn ngữ admin; `extra` là từ điển bổ sung (ví dụ của plugin). */

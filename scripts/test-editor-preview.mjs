@@ -1,3 +1,4 @@
+import * as repeaterQuery from '../packages/blocks/src/repeater-query.ts'
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
 import Module, { createRequire } from 'node:module'
@@ -329,7 +330,7 @@ for (const template of PAGE_TEMPLATES) {
 }
 console.log('PASS: 8 page templates, 4 categories, editable geometry, local assets and independent copies')
 
-const repeaterModule = compile('../packages/blocks/src/DataRepeater.tsx', { './FreeCanvas': { FreeElementView }, './repeater-data': repeaterData, './layout-constraints': layoutConstraints })
+const repeaterModule = compile('../packages/blocks/src/DataRepeater.tsx', { './FreeCanvas': { FreeElementView }, './repeater-query': repeaterQuery, './repeater-data': repeaterData, './layout-constraints': layoutConstraints })
 const repeatedMarkup = renderToStaticMarkup(React.createElement(repeaterModule.DataRepeater, { id: 'repeat', items: [{ title: 'First item', excerpt: 'One', cover: '/one.png', href: '/one' }, { title: '<script>unsafe</script>', excerpt: 'Two', href: 'javascript:alert(1)' }] }))
 assert.equal((repeatedMarkup.match(/data-repeat-item=/g) ?? []).length, 2)
 assert.match(repeatedMarkup, /First item/)
@@ -337,7 +338,7 @@ assert.match(repeatedMarkup, /href="\/one"/)
 assert.match(repeatedMarkup, /&lt;script&gt;unsafe/)
 assert.doesNotMatch(repeatedMarkup, /javascript:|<script>/)
 assert.match(renderToStaticMarkup(React.createElement(repeaterModule.DataRepeater, { id: 'empty', data: { status: 'error' } })), /Không tải được dữ liệu/)
-const { coreLoaders: repeaterLoaders } = compile('../apps/studio/src/lib/core-loaders.ts', { './site': { href: (path) => path, mediaUrl: (url) => url } })
+const { coreLoaders: repeaterLoaders } = compile('../apps/studio/src/lib/core-loaders.ts', { '../../../../packages/blocks/src/repeater-query': repeaterQuery, './site': { href: (path) => path, mediaUrl: (url) => url } })
 const remoteMarkup = renderToStaticMarkup(React.createElement(repeaterModule.DataRepeater, { id: 'remote', items: [], data: { status: 'ok', items: [{ title: 'Loaded post', excerpt: 'Remote' }] } }))
 assert.match(remoteMarkup, /Loaded post/)
 const manualRepeat = await repeaterLoaders.DataRepeater({ source: 'manual', count: 1, items: [{ title: 'A' }, { title: 'B' }] }, {})

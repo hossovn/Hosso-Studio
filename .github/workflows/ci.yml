@@ -27,6 +27,7 @@ jobs:
       - run: pnpm test:editor-productivity
       - run: pnpm test:editor-canvas-upgrades
       - run: pnpm test:editor-design-tools
+      - run: pnpm test:editor-design-workspace
       - run: pnpm test:editor-frames
       - run: pnpm test:form-delivery
       - run: node scripts/test-checkout-identity.mjs

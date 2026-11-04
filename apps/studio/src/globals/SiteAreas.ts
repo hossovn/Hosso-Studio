@@ -4,6 +4,7 @@ import { pageEditors, canPublish } from '../lib/access'
 import { APIError } from 'payload'
 import { lockSiteMutation } from '../lib/site-publication-lock'
 import { assertEditorRevision } from '../lib/editor-conflict'
+import { assertContentDesignLock } from '../lib/content-design-lock'
 
 export const AREAS = [
   { name: 'siteHeader', label: 'Header của site (thay header của theme; dùng chung mọi trang)' },
@@ -26,6 +27,7 @@ export const SiteAreas: GlobalConfig = {
   versions: { drafts: { autosave: true }, max: 20 },
   hooks: { beforeOperation: [lockSiteMutation], beforeChange: [async ({ data, req, originalDoc }) => {
     await assertEditorRevision({ req, originalDoc })
+    for (const area of AREAS) assertContentDesignLock(originalDoc?.[area.name], data[area.name], req.user)
     if (req.user && data._status === 'published' && !canPublish(req.user)) throw new APIError('Bạn không có quyền xuất bản.', 403)
     return data
   }] },

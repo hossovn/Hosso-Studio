@@ -1,5 +1,6 @@
 import { sectionAnchor } from './link-actions.ts'
 import { normalizeBreakpoints } from './responsive-breakpoints.ts'
+import { applyFrameVariant, type FrameVariant } from './design-presets.ts'
 type Block = { type: string; props: Record<string, any> }
 export type ReusableOverrides = Record<string, Record<string, string>>
 const CONTENT = new Set(['text', 'richText', 'src', 'alt', 'color', 'bg', 'borderColor', '_bgHex', '_bg2Hex', '_bdHex', 'bgImage'])
@@ -23,7 +24,14 @@ export function expandReusableInstance(blocks: Block[], instance: Block): Block[
   }
   const override = (props: Record<string, any>, key: string) => ({ ...props, ...cleanReusablePatch(instance.props.overrides?.[key]) })
   return source.map((block, index) => {
-    const id = String(block.props.id), props = override(block.props, id), elements = props._els ?? props.elements ?? []
+    const id = String(block.props.id), props = override(block.props, id)
+    let elements = props._els ?? props.elements ?? []
+    for (const root of [...elements]) {
+      const selected = instance.props.variants?.[`${id}::${root.id}`]
+      const variant = (root.props._variants as FrameVariant[] | undefined)?.find((item) => item.id === selected)
+      let sequence = 0
+      if (variant) elements = applyFrameVariant(elements, root.id, variant, () => `${root.id}--${variant.id}--${sequence++}`)
+    }
     const elementIds = new Map<string, string>(elements.map((el: any) => [el.id, `${ids.get(id)}__${encodeURIComponent(el.id)}`]))
     const _els = elements.map((el: any) => {
       const patch = cleanReusablePatch(instance.props.overrides?.[`${id}::${el.id}`])
