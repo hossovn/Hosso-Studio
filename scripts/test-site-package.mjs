@@ -49,7 +49,9 @@ const image = 'legacy banner.webp'
 areas.vi.siteFooter.content[0].props.image = '/api/media/file/legacy%20banner.webp?download=1'
 areas.en.siteFooter.content[0].props.image = '/api/media/file/legacy%20banner.webp'
 areas.vi.siteHeader.content[0].props._els.push({ id: 'cell', type: 'container', x: 0, y: 0, w: 500, h: 320, props: { _frame: true, bgImage: '/api/media/file/legacy%20banner.webp', _layout: { direction: 'column', gap: 16 } } }, { id: 'nested-form', type: 'widget', parentId: 'cell', x: 24, y: 24, w: 440, h: 250, props: { widget: { type: 'Form', props: { form: 'lead' } } } })
-const portableRules = { steps: ['Nhu cầu', 'Liên hệ'], fields: { email: { step: 1, minLength: 5 } } }
+const portableRules = { steps: ['Nhu cầu', 'Liên hệ'], fields: { email: { step: 1, minLength: 5 } }, quote: { label: 'Tổng', currency: 'VND', base: 100, lines: [] } }
+const portableRepeater = { type: 'DataRepeater', props: { id: 'zip-repeater', source: 'manual', columns: 3, _template: [{ id: 'image', type: 'image', x: 0, y: 0, w: 300, h: 200, props: { src: '/api/media/file/legacy%20banner.webp', focalX: 70, imageZoom: 1.4, _bind: { src: 'cover' } }, responsive: { mobile: { props: { focalX: 30 } } } }], items: [{ title: 'Thủ công', cover: '/api/media/file/legacy%20banner.webp' }] } }
+areas.vi.siteHeader.content.push(portableRepeater)
 let mediaExists = true
 const { buildSitePackage } = compile('../apps/studio/src/lib/site-package.ts', {
   '@hosso-config': config,
@@ -104,6 +106,7 @@ assert.deepEqual(restored, areas, 'all editor areas must survive export and impo
 assert.deepEqual(restored.vi.siteHeader.content[0].props._els[0].props._states, elementStates, 'all state and device overrides must survive the actual ZIP export/import pipeline')
 assert.deepEqual(restored.vi.siteHeader.content[0].props._els[0].props._scroll, portableScroll, 'scroll effects must survive the actual ZIP export/import pipeline')
 assert.deepEqual(restored.vi.siteHeader.content[0].props._els[0].props._motion, portableMotion, 'motion effects must survive the actual ZIP export/import pipeline')
+assert.deepEqual(restored.vi.siteHeader.content[2], portableRepeater, 'repeater templates, bindings, framing and media survive ZIP')
 assert.deepEqual(restored.vi.siteHeader.content[1], portableStory, 'ScrollStory steps must survive the actual ZIP export/import pipeline')
 
 const legacy = structuredClone(read('data/site-areas.json'))

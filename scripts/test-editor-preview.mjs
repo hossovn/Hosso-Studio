@@ -14,6 +14,7 @@ import * as layoutConstraints from '../packages/blocks/src/layout-constraints.ts
 import * as breakpoints from '../packages/blocks/src/responsive-breakpoints.ts'
 import * as linkActions from '../packages/blocks/src/link-actions.ts'
 import * as reusableOverrides from '../packages/blocks/src/reusable-overrides.ts'
+import * as repeaterData from '../packages/blocks/src/repeater-data.ts'
 const { newId } = freeGeometry
 
 const require = createRequire(new URL('../apps/studio/package.json', import.meta.url))
@@ -328,10 +329,29 @@ for (const template of PAGE_TEMPLATES) {
 }
 console.log('PASS: 8 page templates, 4 categories, editable geometry, local assets and independent copies')
 
+const repeaterModule = compile('../packages/blocks/src/DataRepeater.tsx', { './FreeCanvas': { FreeElementView }, './repeater-data': repeaterData, './layout-constraints': layoutConstraints })
+const repeatedMarkup = renderToStaticMarkup(React.createElement(repeaterModule.DataRepeater, { id: 'repeat', items: [{ title: 'First item', excerpt: 'One', cover: '/one.png', href: '/one' }, { title: '<script>unsafe</script>', excerpt: 'Two', href: 'javascript:alert(1)' }] }))
+assert.equal((repeatedMarkup.match(/data-repeat-item=/g) ?? []).length, 2)
+assert.match(repeatedMarkup, /First item/)
+assert.match(repeatedMarkup, /href="\/one"/)
+assert.match(repeatedMarkup, /&lt;script&gt;unsafe/)
+assert.doesNotMatch(repeatedMarkup, /javascript:|<script>/)
+assert.match(renderToStaticMarkup(React.createElement(repeaterModule.DataRepeater, { id: 'empty', data: { status: 'error' } })), /Không tải được dữ liệu/)
+const { coreLoaders: repeaterLoaders } = compile('../apps/studio/src/lib/core-loaders.ts', { './site': { href: (path) => path, mediaUrl: (url) => url } })
+const remoteMarkup = renderToStaticMarkup(React.createElement(repeaterModule.DataRepeater, { id: 'remote', items: [], data: { status: 'ok', items: [{ title: 'Loaded post', excerpt: 'Remote' }] } }))
+assert.match(remoteMarkup, /Loaded post/)
+const manualRepeat = await repeaterLoaders.DataRepeater({ source: 'manual', count: 1, items: [{ title: 'A' }, { title: 'B' }] }, {})
+assert.equal(manualRepeat.items.length, 1)
+const productRepeat = await repeaterLoaders.DataRepeater({ source: 'products' }, { locale: 'vi', payload: { config: { custom: { hossoPlugins: [{ loaders: { ShopProductGrid: async () => ({ status: 'ok', items: [{ name: 'Private price', slug: 'product', price: 100000, hidePrice: true, priceLabel: 'Liên hệ' }] }) } }] } } } })
+assert.equal(productRepeat.items[0].price, 'Liên hệ')
+assert.doesNotMatch(JSON.stringify(productRepeat), /100000/)
+assert.equal((await repeaterLoaders.DataRepeater({ source: 'products' }, { payload: { config: {} } })).status, 'error')
+console.log('PASS data repeater SSR, escaped content, safe links, empty/error states and product price visibility')
+
 const { withStyle } = compile('../packages/blocks/src/puck-config.ts', {
   './link-actions': linkActions,
   './canvas-widgets': canvasWidgets, './responsive-layout': responsiveLayout,
-  './ScrollStory': { ScrollStory: () => null },
+  './DataRepeater': repeaterModule, './ScrollStory': { ScrollStory: () => null },
   './MediaField': {}, './RefField': {}, './ExtraBlocks': {}, './CoreExtras': {}, './PostList': {}, './FreeCanvas': { FreeOverlay, FreeCanvasView },
   './i18n': {}, './style-fields': {}, './widget-parts': widgetParts, './element-states': elementStates,
 })
@@ -341,13 +361,15 @@ const ClientBoundary = () => null
 assert.equal(withStyle(ClientBoundary, true)({ id: 'popup', puck: runtime, title: 'Offer' }).props.puck, undefined)
 assert.equal(withStyle(ClientBoundary)({ id: 'popup', puck: runtime }).props.puck, runtime, 'Editor renderers retain Puck helpers')
 const StyledSection = withStyle(FreeCanvasView)
-const { expandReusable } = compile('../apps/studio/src/lib/site.tsx', {
+const { expandReusable, attachBlockData } = compile('../apps/studio/src/lib/site.tsx', {
   '../../../../packages/blocks/src/reusable-overrides': reusableOverrides,
   './site-preview': { sitePreview: async () => false },
-  '@payload-config': {}, '@hosso-config': { locales: [{ code: 'vi' }] }, '@hosso/studio-blocks': {}, './core-loaders': {},
+  '@payload-config': {}, '@hosso-config': { locales: [{ code: 'vi' }], plugins: [] }, '@hosso/studio-blocks': {}, './core-loaders': { coreLoaders: {} },
   'next/headers': {}, react: { ...React, cache: (fn) => fn },
   payload: { getPayload: async () => ({ find: async () => ({ docs: [{ content: { content: [{ type: 'Text', props: { id: 'inner', _hide: 'd' } }] } }] }) }) },
 })
+const publicWithoutTemplateDraft = await attachBlockData({ content: [{ type: 'FreeCanvas', props: { id: 'scratch', _repeatTarget: { block: 'repeat' }, _els: [] } }, { type: 'Text', props: { id: 'public', body: 'Published content' } }] }, {}, 'vi')
+assert.deepEqual(publicWithoutTemplateDraft.content.map((block) => block.props.id), ['public'], 'unfinished template sections never leak into public pages even after their root is deleted')
 const reusable = await expandReusable({ content: [{ type: 'Reusable', props: { id: 'mobile-header', slug: 'header', _hide: 't' } }] }, 'vi')
 assert.equal(reusable.content[0].props.id, 'mobile-header__inner')
 const reusableMarkup = renderToStaticMarkup(React.createElement(Button, reusable.content[0].props))

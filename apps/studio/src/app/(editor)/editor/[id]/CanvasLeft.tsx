@@ -88,6 +88,7 @@ export function CanvasLeft({
   historyPanel,
   responsivePanel,
   formPanel,
+  repeaterPanel,
   floating = false,
   publishPanel,
   canvasDoc,
@@ -115,6 +116,7 @@ export function CanvasLeft({
   historyPanel?: React.ReactNode
   responsivePanel?: React.ReactNode
   formPanel?: React.ReactNode
+  repeaterPanel?: React.ReactNode
   floating?: boolean
   publishPanel?: React.ReactNode
   canvasDoc?: Document
@@ -142,7 +144,7 @@ export function CanvasLeft({
     const source: SectionTemplate[] = areaKind ? (areaKind === 'header' ? HEADER_TEMPLATES : FOOTER_TEMPLATES).map((t) => ({ ...t, build: () => t.build(siteCtx) })) : SECTION_TEMPLATES
     body = <>{search}<SectionLibrary templates={source} query={m} areaKind={areaKind} onInsert={ops.addSection} /></>
   } else if (tab === 'frames') {
-    body = <FrameLibrary onInsert={ops.addEls} />
+    body = <><FrameLibrary onInsert={ops.addEls} />{repeaterPanel}</>
   } else if (tab === 'media') {
     body = <MediaLibraryPanel onInsert={ops.addEls} />
   } else if (tab === 'input') {

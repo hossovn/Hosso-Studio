@@ -25,6 +25,7 @@
     "test:editor-workspace": "node scripts/test-editor-workspace.mjs",
     "test:editor-productivity": "node --experimental-strip-types scripts/test-editor-productivity.mjs",
     "test:editor-canvas-upgrades": "node --experimental-strip-types scripts/test-editor-canvas-upgrades.mjs",
+    "test:editor-design-tools": "node --experimental-strip-types scripts/test-editor-design-tools.mjs",
     "test:editor-frames": "node --experimental-strip-types scripts/test-editor-frames.mjs",
     "test:editor-canvas-upgrades-browser": "node scripts/test-editor-canvas-upgrades-browser.mjs",
     "test:editor-productivity-browser": "node scripts/test-editor-productivity-browser.mjs",

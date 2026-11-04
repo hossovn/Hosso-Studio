@@ -256,6 +256,8 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
             <Row label="Ảnh"><MediaField value={p.src ?? ''} onChange={(v) => put({ src: v })} kind="image" /></Row>
             <Row label="Mô tả ảnh (alt)"><input style={ctl} value={p.alt ?? ''} onChange={(e) => put({ alt: e.target.value })} /></Row>
             <Row label="Cách vừa khung"><SegControl value={p.fit === 'contain' ? 'contain' : 'cover'} onChange={(v) => put({ fit: v })} options={[{ label: 'Phủ kín', value: 'cover' }, { label: 'Vừa ảnh', value: 'contain' }]} /></Row>
+            <p className="cv-tool-help">Nhấp đúp ảnh để kéo vị trí và cuộn phóng. Alt + nhấp đúp để cắt ảnh thành tệp mới. Chuyển sang mobile để đặt điểm nhìn riêng.</p>
+            {(['focalX', 'focalY', 'imageZoom'] as const).map((key) => <Row key={key} label={key === 'focalX' ? 'Điểm nhìn ngang (%)' : key === 'focalY' ? 'Điểm nhìn dọc (%)' : 'Độ phóng'}><input style={ctl} aria-label={key} type="number" min={key === 'imageZoom' ? 1 : 0} max={key === 'imageZoom' ? 5 : 100} step={key === 'imageZoom' ? .1 : 1} value={p[key] ?? (key === 'imageZoom' ? 1 : 50)} onChange={(e) => put({ [key]: Math.max(key === 'imageZoom' ? 1 : 0, Math.min(key === 'imageZoom' ? 5 : 100, Number(e.target.value))) })} /></Row>)}
           </>
         )}
         {el.type === 'menu' && (

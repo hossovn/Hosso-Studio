@@ -1,6 +1,8 @@
 export type FormFieldDef = { label: string; name: string; type: string; options?: string | null; required?: boolean | null; placeholder?: string | null }
 export type FieldRule = { step?: number; when?: { field: string; operator: 'equals' | 'notEquals' | 'filled' | 'checked'; value?: string }; minLength?: number; maxLength?: number; min?: number; max?: number }
-export type FormRules = { steps?: string[]; fields?: Record<string, FieldRule> }
+export type QuoteLine = { field: string; price: number; options?: Record<string, number>; quantityField?: string }
+export type QuoteConfig = { label: string; currency: 'VND' | 'USD' | 'EUR'; base: number; lines: QuoteLine[] }
+export type FormRules = { steps?: string[]; fields?: Record<string, FieldRule>; quote?: QuoteConfig }
 const own = (value: unknown): value is Record<string, any> => Boolean(value && typeof value === 'object' && !Array.isArray(value))
 export function normalizeFormRules(value: unknown, fields: FormFieldDef[]): FormRules {
   if (value == null) return {}
@@ -24,7 +26,41 @@ export function normalizeFormRules(value: unknown, fields: FormFieldDef[]): Form
     }
     rules[name] = rule
   }
-  return steps.length || Object.keys(rules).length ? { steps, fields: rules } : {}
+  let quote: QuoteConfig | undefined
+  if (value.quote != null) {
+    const q = value.quote
+    const money = (n: unknown) => typeof n === 'number' && Number.isFinite(n) && n >= 0 && n <= 1e12
+    if (!own(q) || !['VND', 'USD', 'EUR'].includes(q.currency) || !money(q.base) || !Array.isArray(q.lines) || q.lines.length > 50) throw new Error('Cấu hình báo giá không hợp lệ.')
+    const used = new Set<string>()
+    const lines: QuoteLine[] = q.lines.map((line: any) => {
+      const field = fields.find((f) => f.name === line?.field)
+      if (!field || !['select', 'checkbox', 'number'].includes(field.type) || used.has(field.name) || !money(line.price)) throw new Error('Dòng báo giá phải trỏ tới lựa chọn, số lượng hoặc ô đánh dấu.')
+      used.add(field.name)
+      if (line.quantityField && !fields.some((f) => f.name === line.quantityField && f.type === 'number' && f.name !== field.name)) throw new Error('Trường số lượng không hợp lệ.')
+      const options: Record<string, number> = Object.create(null)
+      for (const [key, price] of Object.entries(line.options ?? {})) { if (field.type !== 'select' || !(field.options ?? '').split(',').map((s) => s.trim()).includes(key) || !money(price)) throw new Error('Đơn giá lựa chọn không hợp lệ.'); options[key] = price as number }
+      return { field: field.name, price: line.price, ...(Object.keys(options).length ? { options } : {}), ...(line.quantityField ? { quantityField: line.quantityField } : {}) }
+    })
+    quote = { label: String(q.label || 'Tổng dự kiến').slice(0, 100), currency: q.currency, base: q.base, lines }
+  }
+  return steps.length || Object.keys(rules).length || quote ? { steps, fields: rules, ...(quote ? { quote } : {}) } : {}
+}
+
+/** Uses validated, visible fields only; submitted totals are never an input. */
+export function calculateFormQuote(fields: FormFieldDef[], rules: FormRules | null | undefined, input: Record<string, unknown>) {
+  const q = rules?.quote
+  if (!q) return null
+  const { data } = validateFormValues(fields, rules, input)
+  const items = q.lines.flatMap((line) => {
+    const field = fields.find((f) => f.name === line.field), raw = data[line.field]
+    if (!field || raw == null || raw === false || raw === '') return []
+    const units = field.type === 'number' ? Number(raw) : line.quantityField ? Number(data[line.quantityField] ?? 0) : 1
+    const quantity = Math.max(0, Math.min(1e6, Number.isFinite(units) ? units : 0))
+    const price = field.type === 'select' && line.options && Object.hasOwn(line.options, String(raw)) ? line.options[String(raw)] : line.price
+    const amount = Math.round(quantity * price * 100) / 100
+    return [{ label: field.label + (field.type === 'select' ? ': ' + raw : ''), quantity, price, amount }]
+  })
+  return { label: q.label, currency: q.currency, base: q.base, items, total: Math.min(1e15, Math.round((q.base + items.reduce((sum, item) => sum + item.amount, 0)) * 100) / 100) }
 }
 export function visibleFormFields(fields: FormFieldDef[], rules: FormRules | null | undefined, values: Record<string, unknown>): FormFieldDef[] {
   const visible = new Set<string>()

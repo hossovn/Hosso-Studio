@@ -16,7 +16,7 @@ import { buildSitePackage } from './site-package'
 import { allow, clientIp } from './ratelimit'
 import { deliverForm, normalizeFormDelivery } from './form-delivery'
 
-import { validateFormValues } from '../../../../packages/blocks/src/form-rules'
+import { calculateFormQuote, validateFormValues } from '../../../../packages/blocks/src/form-rules'
 
 const json = (body: unknown, status = 200) => Response.json(body, { status })
 const str = (v: unknown, max: number) => String(v ?? '').trim().slice(0, max)
@@ -47,6 +47,9 @@ export const formSubmit: Endpoint = {
     const input = (body?.values ?? {}) as Record<string, unknown>
     const { data, errors } = validateFormValues((form.fields ?? []) as FormField[], (form as any).rules, input && typeof input === 'object' ? input : {})
     if (Object.keys(errors).length) return json({ ok: false, code: 'invalid', errors }, 400)
+
+    const quote = calculateFormQuote((form.fields ?? []) as FormField[], (form as any).rules, data)
+    if (quote) Object.assign(data, { _quoteTotal: quote.total, _quoteCurrency: quote.currency, _quoteItems: JSON.stringify(quote.items), _quoteBase: quote.base })
 
     const submission = await req.payload.create({
       collection: 'form-submissions',

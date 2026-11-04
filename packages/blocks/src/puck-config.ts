@@ -3,6 +3,7 @@ import type React from 'react'
 import { MediaField } from './MediaField'
 import { RefField } from './RefField'
 import { BookingForm, LanguageSwitch, LuckyWheel, NoticeBar, PopupBlock } from './ExtraBlocks'
+import { DataRepeater } from './DataRepeater'
 import { CategoryGrid, FormBlock, ImageSections, TwoColumns, ReusablePlaceholder, NavMenu, SearchBox, Slider, TermList, TrustBar } from './CoreExtras'
 import { PostList } from './PostList'
 import { FreeCanvasView, FreeOverlay } from './FreeCanvas'
@@ -106,7 +107,7 @@ export const withStyle = (Inner: BlockRenderer, publicRender = false, components
 }
 
 // Renderer dự phòng của lõi khi theme không có renderer riêng.
-const coreFallback: Record<string, BlockRenderer> = { FreeCanvas: FreeCanvasView, Popup: PopupBlock, Booking: BookingForm, NoticeBar, LanguageSwitch, LuckyWheel, ImageSections, TwoColumns, ScrollStory, PostList, Slider, TrustBar, CategoryGrid, SearchBox, TermList, NavMenu, Form: FormBlock, Reusable: ReusablePlaceholder }
+const coreFallback: Record<string, BlockRenderer> = { DataRepeater, FreeCanvas: FreeCanvasView, Popup: PopupBlock, Booking: BookingForm, NoticeBar, LanguageSwitch, LuckyWheel, ImageSections, TwoColumns, ScrollStory, PostList, Slider, TrustBar, CategoryGrid, SearchBox, TermList, NavMenu, Form: FormBlock, Reusable: ReusablePlaceholder }
 
 const Missing = ({ type }: { type?: string }) =>
   createElement('div', { className: 'hs-missing', role: 'note' }, `${t('block.missing')}: ${type ?? ''}`)

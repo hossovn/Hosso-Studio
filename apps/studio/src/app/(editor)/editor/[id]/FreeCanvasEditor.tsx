@@ -114,7 +114,7 @@ const NumberField = ({ value, onChange, label, min, max, width = 58 }: { value: 
   <input className="hf-tool-field hf-tool-number-input" type="number" value={value} min={min} max={max} aria-label={label} title={label} onChange={(e) => onChange(Math.min(max, Math.max(min, Number(e.target.value) || min)))} style={{ width }} />
 )
 
-export function Toolbar({ el, scale, hostW, patch, set, dup, del, order, onEdit }: { el: FreeElement; scale: number; hostW: number; patch: (p: Record<string, any>) => void; set: (f: (e: FreeElement) => FreeElement) => void; dup: () => void; del: () => void; order: (d: 1 | -1 | 'front' | 'back') => void; onEdit: () => void }) {
+export function Toolbar({ el, scale, hostW, patch, set, dup, del, order, onEdit, extra }: { extra?: React.ReactNode; el: FreeElement; scale: number; hostW: number; patch: (p: Record<string, any>) => void; set: (f: (e: FreeElement) => FreeElement) => void; dup: () => void; del: () => void; order: (d: 1 | -1 | 'front' | 'back') => void; onEdit: () => void }) {
   const [media, setMedia] = useState(false)
   const [localStyle, setLocalStyle] = useState<Record<string, unknown> | null>(null)
   const sharedClipboard = React.useContext(StyleClipboardContext)
@@ -272,6 +272,7 @@ export function Toolbar({ el, scale, hostW, patch, set, dup, del, order, onEdit 
         <Btn title="Xóa (Delete)" onClick={del}>
           <Trash2 size={15} />
         </Btn>
+        {extra}
       </div>
       {media && el.type === 'image' && (
         <div style={{ marginTop: 6, width: 300, padding: 10, background: '#fff', color: '#111', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.25)' }}>

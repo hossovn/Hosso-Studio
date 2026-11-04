@@ -232,7 +232,7 @@ export const navMenu: BlockSchema<{ heading: string; source: string; links: { la
 }
 
 /** Block của lõi cần dữ liệu server (xem lib/core-loaders.ts trong app). */
-export const CORE_LOADER_TYPES = ['PostList', 'Form', 'TermList', 'NavMenu']
+export const CORE_LOADER_TYPES = ['PostList', 'Form', 'TermList', 'NavMenu', 'DataRepeater']
 
 export const twoColumns: BlockSchema<{ image: string; imageSide: string; heading: string; body: string; ctaLabel: string; ctaHref: string; imageFit: string }> = {
   type: 'TwoColumns',
@@ -343,4 +343,15 @@ export const booking: BlockSchema<any> = {
   defaultProps: { heading: 'Đặt lịch hẹn', services: '', askGuests: 'no', submitLabel: 'Đặt lịch', successText: 'Đã gửi yêu cầu đặt lịch. Chúng tôi sẽ liên hệ xác nhận sớm.' },
 }
 
-export const coreBlocks: BlockSchema<any>[] = [freeCanvas, popup, noticeBar, languageSwitch, luckyWheel, booking, hero, slider, scrollStory, text, twoColumns, imageSections, image, video, features, categoryGrid, trustBar, postList, searchBox, termList, navMenu, contactForm, formBlock, reusable, footer]
+export const dataRepeater: BlockSchema<any> = {
+  type: 'DataRepeater', label: 'Danh sách dữ liệu',
+  fields: {
+    heading: { type: 'text', label: 'Tiêu đề' },
+    source: { type: 'select', label: 'Nguồn dữ liệu', options: [{ label: 'Nhập thủ công', value: 'manual' }, { label: 'Bài viết', value: 'posts' }, { label: 'Sản phẩm', value: 'products' }] },
+    count: { type: 'number', label: 'Số mục' }, columns: { type: 'number', label: 'Số cột' }, gap: { type: 'number', label: 'Khoảng cách' },
+    items: { type: 'array', label: 'Dữ liệu thủ công', arrayFields: { title: { type: 'text', label: 'Tiêu đề' }, excerpt: { type: 'textarea', label: 'Mô tả' }, cover: { type: 'media', label: 'Ảnh' }, href: { type: 'text', label: 'Liên kết' }, price: { type: 'text', label: 'Giá' } }, defaultItemProps: { title: 'Nội dung mới', excerpt: '', cover: '', href: '', price: '' } },
+  },
+  defaultProps: { heading: '', source: 'manual', count: 6, columns: 3, gap: 24, items: [{ title: 'Thiết kế một lần', excerpt: 'Mỗi mục dùng chung thiết kế của ô mẫu.', cover: '/editor-demo/mountain.jpg', href: '' }, { title: 'Kết nối dữ liệu', excerpt: 'Tự cập nhật từ bài viết hoặc sản phẩm.', cover: '/editor-demo/mountain.jpg', href: '' }, { title: 'Tùy chỉnh tự do', excerpt: 'Sửa ô mẫu trực tiếp trên canvas.', cover: '/editor-demo/mountain.jpg', href: '' }] },
+}
+
+export const coreBlocks: BlockSchema<any>[] = [dataRepeater, freeCanvas, popup, noticeBar, languageSwitch, luckyWheel, booking, hero, slider, scrollStory, text, twoColumns, imageSections, image, video, features, categoryGrid, trustBar, postList, searchBox, termList, navMenu, contactForm, formBlock, reusable, footer]

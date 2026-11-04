@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { ArrowDown, ArrowUp, GripVertical, Plus, Save, Trash2 } from 'lucide-react'
 import type { NavCtx } from './SitePanels'
 import { FormFieldRules, FormStepsEditor } from './FormRulesEditor'
+import { QuoteBuilder } from './QuoteBuilder'
 import type { FormRules } from '../../../../../../../packages/blocks/src/form-rules'
 
 type Field = { id?: string; label: string; name: string; type: string; required: boolean; placeholder?: string; options?: string }
@@ -33,6 +34,10 @@ export function FormBuilderPanel({ nav, onInsert }: { nav?: NavCtx; onInsert: (s
   const updateField = (index: number, patch: Partial<Field>) => {
     const old = draft.fields[index].name, rules = structuredClone(draft.rules ?? {})
     if (patch.name && patch.name !== old && rules.fields) { if (rules.fields[old]) { rules.fields[patch.name] = rules.fields[old]; delete rules.fields[old] } for (const rule of Object.values(rules.fields)) if (rule.when?.field === old) rule.when.field = patch.name }
+    if (rules.quote && patch.name && patch.name !== old) rules.quote.lines = rules.quote.lines.map((line) => ({ ...line, field: line.field === old ? patch.name! : line.field, quantityField: line.quantityField === old ? patch.name : line.quantityField }))
+    if (rules.quote && patch.type && !['number', 'select', 'checkbox'].includes(patch.type)) rules.quote.lines = rules.quote.lines.filter((line) => line.field !== old).map((line) => ({ ...line, quantityField: line.quantityField === old ? undefined : line.quantityField }))
+    if (rules.quote && patch.options != null) rules.quote.lines = rules.quote.lines.map((line) => line.field === old ? { ...line, options: Object.fromEntries(Object.entries(line.options ?? {}).filter(([key]) => patch.options!.split(',').map((s) => s.trim()).includes(key))) } : line)
+    if (rules.quote && patch.type) rules.quote.lines = rules.quote.lines.map((line) => ({ ...line, ...(line.field === old && patch.type !== 'select' ? { options: undefined } : {}), ...(line.quantityField === old && patch.type !== 'number' ? { quantityField: undefined } : {}) }))
     setDraft({ ...draft, rules, fields: draft.fields.map((field, at) => at === index ? { ...field, ...patch } : field) })
   }
   const removeField = (index: number) => {
@@ -41,6 +46,7 @@ export function FormBuilderPanel({ nav, onInsert }: { nav?: NavCtx; onInsert: (s
       delete rules.fields[name]
       for (const rule of Object.values(rules.fields)) if (rule.when?.field === name) delete rule.when
     }
+    if (rules.quote) rules.quote.lines = rules.quote.lines.filter((line) => line.field !== name).map((line) => ({ ...line, quantityField: line.quantityField === name ? undefined : line.quantityField }))
     setDraft({ ...draft, rules, fields: draft.fields.filter((_, at) => at !== index) })
   }
   const save = async (event: React.FormEvent) => {
@@ -66,6 +72,7 @@ export function FormBuilderPanel({ nav, onInsert }: { nav?: NavCtx; onInsert: (s
       <label className="cv-tool-field">Tên biểu mẫu<input required value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} /></label>
       <label className="cv-tool-field">Mã biểu mẫu<input value={draft.slug} onChange={(event) => setDraft({ ...draft, slug: slug(event.target.value) })} placeholder={slug(draft.title)} /></label>
       <FormStepsEditor rules={draft.rules} onChange={(rules) => setDraft({ ...draft, rules })} />
+      <QuoteBuilder fields={draft.fields} rules={draft.rules} onChange={(rules) => setDraft({ ...draft, rules })} />
       <div className="cv-form-fields">{draft.fields.map((field, index) => <fieldset key={index} draggable onDragStart={(event) => { event.dataTransfer.setData('text/plain', 'hosso-form-field'); setDragIndex(index) }} onDragEnd={() => setDragIndex(null)} onDragOver={(event) => { if (dragIndex !== null) event.preventDefault() }} onDrop={(event) => { if (dragIndex === null) return; event.preventDefault(); move(dragIndex, index); setDragIndex(null) }}><legend><GripVertical size={13} />Trường {index + 1}</legend>
         <div className="cv-form-field-actions"><button type="button" title="Lên" disabled={index === 0} onClick={() => move(index, index - 1)}><ArrowUp size={13} /></button><button type="button" title="Xuống" disabled={index === draft.fields.length - 1} onClick={() => move(index, index + 1)}><ArrowDown size={13} /></button><button type="button" title="Xóa trường" disabled={draft.fields.length === 1} onClick={() => removeField(index)}><Trash2 size={13} /></button></div>
         <label className="cv-tool-field">Nhãn<input required value={field.label} onChange={(event) => updateField(index, { label: event.target.value })} /></label>

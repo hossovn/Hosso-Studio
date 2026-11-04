@@ -19,6 +19,7 @@ const COPY = {
   heading: ['Trang chưa có tiêu đề H1 hoặc có nhiều H1.', 'Page has no H1 heading or has multiple H1 headings.'],
   seoDescription: ['Trang chưa có mô tả SEO.', 'Page has no SEO description.'],
   seoTitle: ['Tiêu đề SEO dài hơn 60 ký tự.', 'SEO title exceeds 60 characters.'],
+  templateDraft: ['Ô mẫu đang sửa chưa được áp dụng cho danh sách dữ liệu.', 'A repeater template edit has not been applied.'],
 } as const
 
 export function inspectPage(doc: Record<string, any>, options: CheckOptions): PublishIssue[] {
@@ -56,6 +57,7 @@ export function inspectPage(doc: Record<string, any>, options: CheckOptions): Pu
   for (const block of data.content) {
     if (!block || typeof block.type !== 'string' || !block.props || typeof block.props !== 'object') { add('structure', {}, 'error'); continue }
     const where = { block: block.props.id }
+    if (block.props._repeatTarget) add('templateDraft', where, 'error')
     claim(block.props.id, where)
     if (!options.blockTypes.has(block.type)) add('missingBlock', where, 'error')
     checkLinks(block.props, where)
@@ -65,6 +67,7 @@ export function inspectPage(doc: Record<string, any>, options: CheckOptions): Pu
     for (const el of list) {
       if (!el?.props) { add('structure', where, 'error'); continue }
       const at = { ...where, element: el.id }
+      if (el.props._repeatTarget) add('templateDraft', at, 'error')
       claim(el.id, at)
       if (el.type === 'heading' && Number(el.props.level) === 1) h1++
       if (el.type === 'image') { if (!el.props.src) add('imageSource', at); if (!String(el.props.alt ?? '').trim()) add('imageAlt', at) }

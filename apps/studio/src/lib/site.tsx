@@ -130,6 +130,7 @@ export async function attachBlockData<T extends { content: Item[] }>(
   searchParams: Record<string, string | string[] | undefined>,
   locale: string = defaultLocale,
 ): Promise<T> {
+  data = { ...data, content: data.content.filter((item) => !item.props._repeatTarget && !(item.props._els ?? item.props.elements ?? []).some((el: any) => el.props?._repeatTarget)) }
   const floating = (data as any).root?.props?._float ?? []
   const embedded = [...data.content.flatMap((item) => item.props._els ?? item.props.elements ?? []), ...floating].some((el) => el.type === 'widget')
   if (!embedded && !data.content.some((c) => loaderFor(c.type))) return data

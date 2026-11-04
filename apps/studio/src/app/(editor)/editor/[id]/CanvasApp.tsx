@@ -2,7 +2,7 @@
 import { FREE_MAX_PX, FREE_W, cloneElements, patchWidgetPart, widgetPartKey, widgetPartsForDevice, type FreeElement, type ElementState } from '@hosso/studio-blocks'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createStore, useStore } from 'zustand'
-import { ArrowLeft, ChevronRight, Copy, Eye, HelpCircle, Layers, Monitor, Pencil, PanelLeftClose, PanelRightClose, Redo2, Smartphone, Tablet, Trash2, Undo2, Maximize, Minimize, SlidersHorizontal } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Copy, Eye, HelpCircle, Layers, Monitor, Pencil, PanelLeftClose, PanelRightClose, Redo2, Smartphone, Tablet, Trash2, Undo2, Maximize, Minimize, SlidersHorizontal, Film } from 'lucide-react'
 import { elsOf, elementStyleProps, setBlockEls } from './canvas-model'
 import { DrawingContext, DrawingPanel } from './DrawingTools'
 import { DEFAULT_DRAWING, type DrawingOptions } from './canvas-guides'
@@ -28,6 +28,9 @@ import { CommandPalette, ReplaceDialog, type EditorCommand } from './QuickTools'
 import { makeElement } from '@hosso/studio-blocks'
 import { useCanvasMediaDrop } from './CanvasMediaDrop'
 import { ReviewPanel } from './ReviewPanel'
+import { FrameIsolation } from './FrameIsolation'
+import { RepeaterPanel } from './RepeaterPanel'
+import { AnimationTimeline } from './AnimationTimeline'
 import { Search, MessageSquare } from 'lucide-react'
 import { jumpHistory } from './editor-tools'
 import { PublishPanel, type PageMetadata } from './PublishPanel'
@@ -142,6 +145,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
   const [elementState, setElementState] = useState<ElementState>('normal')
   useEffect(() => setElementState('normal'), [sel.el, sel.block, preview])
   const [docs, setDocs] = useState<Document[]>([])
+  const [showTimeline, setShowTimeline] = useState(false)
   useEffect(() => {
     if (!sel.block || !docs[0]) return
     const node = sel.el ? docs[0].querySelector(`[data-element="${CSS.escape(sel.el)}"]`) : docs[0].querySelector(`[data-block="${CSS.escape(sel.block)}"]`)
@@ -382,6 +386,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
     { id: 'replace', label: 'Tìm và thay thế trên trang', run: () => setReplaceOpen(true) },
     ...([{ type: 'text', label: 'Thêm văn bản' }, { type: 'image', label: 'Thêm ảnh' }, { type: 'button', label: 'Thêm nút bấm' }, { type: 'video', label: 'Thêm video' }] as const).map((item) => ({ id: 'add-' + item.type, label: item.label, run: () => ops.addEls([makeElement(item.type)]) })),
     ...([{ tab: 'frames', label: 'Chia ô và bố cục' }, { tab: 'input', label: 'Thêm biểu mẫu' }, { tab: 'media', label: 'Thư viện ảnh' }, { tab: 'drawing', label: 'Thước và căn chỉnh' }, { tab: 'responsive', label: 'Thiết bị và breakpoint' }] as const).map((item) => ({ id: item.tab, label: item.label, run: () => { setTab(item.tab); openLeft() } })),
+    { id: 'timeline', label: 'Timeline hiệu ứng', run: () => setShowTimeline(true) },
     { id: 'background', label: 'Chỉnh nền và thuộc tính', run: () => setRightOpen(true) },
     ...blocks.map((block) => ({ id: 'go-' + blockId(block), label: 'Đến ' + (block.props._name || labelOf(block.type)), keywords: blockId(block), run: () => { setSel({ block: blockId(block), el: '' }); docs[0]?.querySelector<HTMLElement>(`[data-block="${CSS.escape(blockId(block))}"]`)?.scrollIntoView({ block: 'center' }) } })),
   ]
@@ -405,6 +410,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
         </div>
         <button type="button" className="cv-ib" aria-label={focusMode ? 'Hiện thanh công cụ đầy đủ' : 'Canvas mở rộng'} title={focusMode ? 'Hiện thanh công cụ đầy đủ' : 'Canvas mở rộng'} onClick={() => setFocusMode(!focusMode)}><SlidersHorizontal size={17} /></button>
         <button type="button" className="cv-ib" aria-label="Căn chỉnh canvas" title="Thước, lưới và guide" aria-pressed={leftOpen && tab === 'drawing'} onClick={() => { setTab('drawing'); openLeft() }}><SlidersHorizontal size={17} /></button>
+        {!preview && <button type="button" className="cv-ib" aria-label="Timeline" title="Timeline hiệu ứng" aria-pressed={showTimeline} onClick={() => setShowTimeline(!showTimeline)}><Film size={17} /></button>}
         <button type="button" className="cv-ib" aria-label="Trợ giúp Studio" title="Trợ giúp và phím tắt (?)" onClick={() => setShowShortcuts(true)}><HelpCircle size={17} /></button>
         {nav && <button type="button" className="cv-ib" aria-label="Góp ý" title="Góp ý thiết kế" aria-pressed={reviewOpen} onClick={() => { setReviewOpen(!reviewOpen); if (!reviewOpen) store.setState({ preview: true }) }}><MessageSquare size={17} /></button>}
         <button type="button" className="cv-ib" aria-label={fullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình'} title={fullscreen ? 'Thoát toàn màn hình (Esc)' : 'Toàn màn hình'} onClick={toggleFullscreen}>{fullscreen ? <Minimize size={17} /> : <Maximize size={17} />}</button>
@@ -469,11 +475,13 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
               historyPanel={<HistoryPanel hist={hist} nav={nav} storageKey={`hosso-snapshots:${nav?.collection ?? 'demo'}:${nav?.id ?? 'demo'}:${nav?.locale ?? lang}`} onJump={(index) => { store.setState({ hist: jumpHistory(hist, index), sel: NO_SEL }) }} onRestore={(next) => { commitLayout(next); setSel(NO_SEL) }} />}
               responsivePanel={<ResponsivePanel data={hist.present} device={device} layout={layout} width={previewWidth} onWidth={resizePreview} onLayout={setLayout} setDevice={setDevice} sel={sel} setSel={setSel} commit={commitLayout} />}
               formPanel={<FormBuilderPanel nav={nav} onInsert={(slug, heading) => ops.addWidget('Form', { form: slug, heading })} />}
+              repeaterPanel={<RepeaterPanel data={data} sel={sel} commit={commit} setSel={setSel} onAdd={() => ops.addWidget('DataRepeater')} />}
               publishPanel={<PublishPanel nav={nav} metadata={metadata} onMetadataChange={onMetadataChange} data={hist.present} config={config} setSel={(selection) => { setSel(selection); setRightOpen(true); if (window.innerWidth <= 1100) setLeftOpen(false) }} onDevice={setDevice} />}
             />
           </div>
         )}
         <main className="cv-canvas" style={{ flex: 1, minWidth: 0, padding: 0, display: 'flex', flexDirection: 'column' }}>
+          <FrameIsolation docs={docs} data={data} preview={preview} setSel={setSel} />
           <CanvasStage
             locale={nav?.locale ?? lang}
             expanded={focusMode}
@@ -508,6 +516,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
               <button type="button" className="cv-ib" title="Xóa phần tử" aria-label="Xóa phần tử" onClick={() => { commit(deleteSelection(data, sel)); setSel({ block: sel.block, el: '' }) }}><Trash2 size={15} /></button>
             </div>}
           </footer>}
+          {!preview && showTimeline && <AnimationTimeline data={data} sel={sel} docs={docs} commit={commit} setSel={setSel} close={() => setShowTimeline(false)} />}
         </main>
         {!preview && rightOpen && (
           <div ref={inspectorDock.ref} className="cv-right-slot" data-detached={inspectorDock.detached} style={{ display: 'flex', minHeight: 0, ...inspectorDock.style }}>

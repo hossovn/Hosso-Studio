@@ -1,6 +1,14 @@
 import type { FreeElement } from './FreeCanvas'
 import { baseDevice, layoutWidth, type LayoutDevice as Device } from './responsive-breakpoints.ts'
 const finite = (value: unknown, fallback: number) => typeof value === 'number' && Number.isFinite(value) ? value : fallback
+export function textContentSize(el: FreeElement, width = el.w) {
+  const p = el.props, size = Math.max(8, finite(p.size, 18)), line = size * finite(Number(p.lh), 1.25)
+  const text = p.upper ? String(p.text ?? '').toUpperCase() : String(p.text ?? '')
+  const measure = (value: string) => [...value].reduce((sum, char) => sum + size * (/\s/.test(char) ? .3 : /[ilI.,'!]/.test(char) ? .28 : /[MW@]/.test(char) ? .9 : .57), 0)
+  let lines = 0
+  for (const paragraph of text.split('\n')) { let used = 0; lines++; for (const word of paragraph.split(/(\s+)/)) { const w = measure(word); if (used && used + w > width) { lines++; used = 0 } lines += Math.max(0, Math.ceil(w / Math.max(8, width)) - 1); used += w % Math.max(8, width) } }
+  return { w: Math.max(8, ...text.split('\n').map(measure)), h: Math.max(line, lines * line) }
+}
 export function axisConstraint(position: number, size: number, before: number, after: number, mode: string) {
   if (mode === 'start') return { position, size }
   if (mode === 'end') return { position: after - (before - position - size) - size, size }
@@ -38,6 +46,10 @@ export function constrainedElements(elements: FreeElement[], device: Device, bas
     return next
   }
   const resolved = elements.map(resolve)
+  for (const el of resolved) if (['heading', 'text', 'button'].includes(el.type)) {
+    if (el.props._sizing?.width === 'hug') el.w = Math.min(1200, textContentSize(el).w + (el.type === 'button' ? 32 : 0))
+    if (el.props._sizing?.height === 'hug') el.h = textContentSize(el).h + (el.type === 'button' ? 20 : 0)
+  }
   // Flow groups arrange direct children and carry their descendants with them.
   const arranged = new Set<string>()
   const arrange = (group: FreeElement) => {
@@ -68,16 +80,47 @@ export function constrainedElements(elements: FreeElement[], device: Device, bas
         }
         arrange(child); x += w + gap
       })
-      if (stacked || flow.autoSize) group.h = rows * cellH + Math.max(0, rows - 1) * gap + padding * 2
+      if (stacked || flow.autoSize || group.props._sizing?.height === 'hug') {
+        let cursor = group.y + padding
+        for (let row = 0; row < rows; row++) {
+          const cells = children.slice(row * columns.length, (row + 1) * columns.length)
+          const height = Math.max(8, ...cells.map((child) => child.h))
+          for (const child of cells) {
+            const dy = cursor - child.y, family = new Set([child.id])
+            for (let pass = 0; pass < resolved.length; pass++) for (const item of resolved) if (item.parentId && family.has(item.parentId)) family.add(item.id)
+            for (const item of resolved) if (family.has(item.id)) item.y += dy
+          }
+          cursor += height + gap
+        }
+        group.h = cursor - group.y - (children.length ? gap : 0) + padding
+      }
       return
     }
-    if (group.type !== 'container' || !['row', 'column'].includes(group.props._layout?.direction)) { children.forEach(arrange); return }
+    if (group.type !== 'container' || !['row', 'column'].includes(group.props._layout?.direction)) {
+      const pad = finite(group.props._layout?.padding, 0) * factor
+      for (const child of children) {
+        if (child.props._sizing?.width === 'fill' && group.props._sizing?.width !== 'hug') { child.x = group.x + pad; child.w = Math.max(8, group.w - pad * 2) }
+        if (child.props._sizing?.height === 'fill' && group.props._sizing?.height !== 'hug') { child.y = group.y + pad; child.h = Math.max(8, group.h - pad * 2) }
+        if (child.props._sizing?.height === 'hug' && ['text', 'heading'].includes(child.type)) child.h = textContentSize(child).h
+      }
+      children.forEach(arrange)
+      if (group.type === 'container') {
+        if (group.props._sizing?.width === 'hug') group.w = Math.max(8, ...children.map((el) => el.x + el.w - group.x + pad))
+        if (group.props._sizing?.height === 'hug') group.h = Math.max(8, ...children.map((el) => el.y + el.h - group.y + pad))
+      }
+      return
+    }
     const flow = group.props._layout, column = flow.direction === 'column', axis = column ? 'y' : 'x', size = column ? 'h' : 'w', cross = column ? 'x' : 'y', crossSize = column ? 'w' : 'h'
     const padding = Math.max(0, finite(flow.padding, 16)) * factor, gap = Math.max(0, finite(flow.gap, 16)) * factor
+    const mainMode = column ? 'height' : 'width', crossMode = column ? 'width' : 'height'
+    const fills = children.filter((child) => child.props._sizing?.[mainMode] === 'fill')
+    const remaining = Math.max(8 * fills.length, group[size] - padding * 2 - gap * Math.max(0, children.length - 1) - children.filter((child) => !fills.includes(child)).reduce((sum, child) => sum + child[size], 0))
     let cursor = group[axis] + padding
     for (const child of children) {
       const old = { x: child.x, y: child.y }
-      if (flow.align === 'stretch') child[crossSize] = Math.max(8, group[crossSize] - padding * 2)
+      if (flow.align === 'stretch' || child.props._sizing?.[crossMode] === 'fill') child[crossSize] = Math.max(8, group[crossSize] - padding * 2)
+      if (fills.includes(child) && group.props._sizing?.[mainMode] !== 'hug' && !flow.autoSize) child[size] = remaining / fills.length
+      if (column && child.props._sizing?.height === 'hug' && ['text', 'heading'].includes(child.type)) child.h = textContentSize(child).h
       arrange(child)
       child[axis] = cursor
       child[cross] = group[cross] + (flow.align === 'center' ? (group[crossSize] - child[crossSize]) / 2 : flow.align === 'end' ? group[crossSize] - padding - child[crossSize] : padding)
@@ -86,9 +129,22 @@ export function constrainedElements(elements: FreeElement[], device: Device, bas
       for (let pass = 0; pass < resolved.length; pass++) for (const item of resolved) if (item.parentId && family.has(item.parentId)) family.add(item.id)
       for (const item of resolved) if (item.id !== child.id && family.has(item.id)) { item.x += child.x - old.x; item.y += child.y - old.y }
     }
-    if (flow.autoSize) group[size] = Math.max(8, cursor - group[axis] - (children.length ? gap : 0) + padding)
+    if (flow.autoSize || group.props._sizing?.[mainMode] === 'hug') group[size] = Math.max(8, cursor - group[axis] - (children.length ? gap : 0) + padding)
+    if (group.props._sizing?.[crossMode] === 'hug') group[crossSize] = Math.max(8, ...children.map((child) => child[crossSize] + padding * 2))
   }
   resolved.filter((el) => !resolved.some((parent) => parent.id === el.parentId)).forEach(arrange)
   resolved.forEach(arrange)
   return resolved
+}
+
+/** Arrange an already projected editor list without applying breakpoint geometry twice. */
+export function arrangeResolvedElements(elements: FreeElement[], width: number): FreeElement[] {
+  const factor = 1200 / Math.max(320, Math.min(1200, width))
+  const layouts = new Map(elements.map((el) => [el.id, el.props._layout]))
+  const temporary = elements.map((el) => {
+    const layout = el.props._layout
+    if (!layout) return el
+    return { ...el, props: { ...el.props, _layout: { ...layout, gap: finite(layout.gap, layout.direction === 'grid' ? 24 : 16) * factor, padding: finite(layout.padding, layout.direction === 'grid' ? 0 : 16) * factor, ...(width <= 600 && layout.direction === 'grid' && layout.mobileStack !== false ? { direction: 'column', align: 'stretch', autoSize: true } : {}) } } }
+  })
+  return constrainedElements(temporary, 'desktop').map((el) => layouts.get(el.id) ? { ...el, props: { ...el.props, _layout: layouts.get(el.id) } } : el)
 }

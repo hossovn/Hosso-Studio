@@ -1,7 +1,7 @@
 'use client'
 import React, { useId, useRef, useState } from 'react'
 import { useLocale, useT } from './locale-client'
-import { validateFormValues, visibleFormFields, type FormRules, type FormFieldDef } from './form-rules'
+import { calculateFormQuote, validateFormValues, visibleFormFields, type FormRules, type FormFieldDef } from './form-rules'
 
 export type FormDef = {
   slug: string
@@ -20,6 +20,8 @@ export function FormView({ form }: { form: FormDef }) {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [values, setValues] = useState<Record<string, any>>({}), [step, setStep] = useState(0)
   const instance = useId(), formRef = useRef<HTMLFormElement>(null)
+  const quote = calculateFormQuote(form.fields, form.rules, values)
+  const money = (amount: number) => new Intl.NumberFormat(locale, { style: 'currency', currency: quote?.currency || 'VND' }).format(amount)
   const visible = visibleFormFields(form.fields, form.rules, values), steps = form.rules?.steps?.length ? form.rules.steps : ['']
   const fail = (errs: Record<string, string>) => { setErrors(errs); setState('error'); const first = form.fields.find((field) => errs[field.name]); if (first) { setStep(form.rules?.fields?.[first.name]?.step ?? 0); requestAnimationFrame(() => formRef.current?.querySelector<HTMLElement>(`[name="${first.name}"]`)?.focus()) } }
 
@@ -109,6 +111,7 @@ export function FormView({ form }: { form: FormDef }) {
         )
       })}
       <input className="ss-hp" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" />
+      {quote && <section className="ss-quote" aria-label={quote.label} style={{ padding: 16, border: '1px solid #cbded2', borderRadius: 8, background: '#f5faf7' }}><strong>{quote.label}</strong>{quote.base > 0 && <p>{locale === 'en' ? 'Base fee' : 'Phí cơ bản'}: {money(quote.base)}</p>}{quote.items.map((item, index) => <p key={index} style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}><span>{item.label} × {item.quantity}</span><span>{money(item.amount)}</span></p>)}<output aria-live="polite" data-quote-total={quote.total} style={{ display: 'block', fontSize: '1.4em', fontWeight: 700 }}>{money(quote.total)}</output></section>}
       {state === 'error' && !Object.values(errors).some(Boolean) && (
         <p className="ss-field-error" role="alert">
           {t('form.error')}

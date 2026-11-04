@@ -1,4 +1,4 @@
-import type { BlockLoader } from '@hosso/studio-blocks'
+import type { BlockLoader, HossoPlugin } from '@hosso/studio-blocks'
 
 import { href, loadSite, mediaUrl } from './site'
 
@@ -22,6 +22,17 @@ export async function publishedPostsWhere(payload: import('payload').Payload, op
 
 /** Loader của block lõi (plugin có loader riêng trong hosso.config.ts). */
 export const coreLoaders: Record<string, BlockLoader> = {
+  DataRepeater: async (props, ctx) => {
+    const count = Math.max(1, Math.min(60, Math.round(Number(props.count) || 6)))
+    if (props.source === 'manual') return { status: 'ok', items: (Array.isArray(props.items) ? props.items : []).slice(0, count) }
+    if (props.source === 'posts') return coreLoaders.PostList({ count, paginate: 'no' }, ctx)
+    if (props.source !== 'products') return { status: 'error', items: [] }
+    const plugins = (ctx.payload.config.custom?.hossoPlugins ?? []) as HossoPlugin[]
+    const loader = plugins.map((plugin) => plugin.loaders?.ShopProductGrid).find(Boolean)
+    if (!loader) return { status: 'error', items: [] }
+    const result = await loader({ pageSize: count, pager: 'no' }, ctx) as any
+    return { status: result?.status ?? 'error', items: (result?.items ?? []).map((item: any) => ({ title: item.name, excerpt: item.shortDescription || item.description || '', cover: item.image || '', href: href(`/san-pham/${item.slug}`, ctx.locale), price: item.hidePrice ? item.priceLabel || '' : item.salePrice ?? item.price })) }
+  },
   PostList: async (props, ctx) => {
     const limit = Math.min(24, Math.max(1, Number(props.count) || 6))
     const page = props.paginate === 'yes' ? Math.max(1, Number(first(ctx.searchParams.page)) || 1) : 1

@@ -5,6 +5,8 @@ import type { FreeElement } from '@hosso/studio-blocks'
 export function ConstraintsPanel({ el, put }: { el: FreeElement; put: (patch: Record<string, any>) => void }) {
   const constraints = el.props._constraints ?? {}, layout = el.props._layout ?? {}
   return <div className="cv-constraints">
+    <strong>Kích thước theo nội dung</strong>
+    <div className="cv-tool-grid">{(['width', 'height'] as const).map((axis) => <label className="cv-tool-field" key={axis}>{axis === 'width' ? 'Chiều rộng' : 'Chiều cao'}<select aria-label={axis === 'width' ? 'Chế độ chiều rộng' : 'Chế độ chiều cao'} value={el.props._sizing?.[axis] || 'fixed'} onChange={(event) => put({ _sizing: { ...el.props._sizing, [axis]: event.target.value } })}><option value="fixed">Cố định</option><option value="hug">Vừa nội dung</option><option value="fill">Lấp đầy ô</option></select></label>)}</div>
     <strong>Ghim và co giãn</strong><p className="cv-tool-help">Áp dụng khi chuyển thiết bị. Tọa độ đã chỉnh riêng trên tablet/mobile được ưu tiên. Kích thước phần tử giữ theo px khi ghim; kiểm tra tràn trước khi xuất bản.</p>
     {(['horizontal', 'vertical'] as const).map((axis) => <label className="cv-tool-field" key={axis}>{axis === 'horizontal' ? 'Ghim ngang' : 'Ghim dọc'}<select value={constraints[axis] || 'scale'} onChange={(event) => put({ _constraints: { ...constraints, [axis]: event.target.value } })}>
       <option value="scale">Co giãn theo khung</option><option value="start">{axis === 'horizontal' ? 'Giữ mép trái' : 'Giữ mép trên'}</option><option value="center">Giữ tâm</option><option value="end">{axis === 'horizontal' ? 'Giữ mép phải' : 'Giữ mép dưới'}</option><option value="stretch">Giữ hai mép, giãn kích thước</option>

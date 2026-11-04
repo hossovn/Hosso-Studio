@@ -171,7 +171,11 @@ function FreeElementBody({ el, unit, scale, editing, state }: { el: FreeElement;
   if (el.type === 'image') {
     const imageStyle: React.CSSProperties = { width: '100%', height: '100%', objectFit: p.fit === 'contain' ? 'contain' : 'cover', borderRadius: u(p.radius ?? 0), display: 'block', boxSizing: 'border-box', border: p.borderW ? u(p.borderW) + ' solid ' + p.borderColor : undefined, boxShadow: shadowCss(BOX_SHADOWS[p.bshadow], u) }
     if (!p.src) return <div {...stateAttrs} style={{ ...imageStyle, opacity, background: '#f3f4f6', display: 'grid', placeItems: 'center', color: '#9ca3af', fontSize: u(16) }}>Ảnh</div>
-    return p.href && !editing ? <a {...stateAttrs} href={safeHref(p.href)} style={{ ...imageStyle, opacity }}><img src={p.src} alt={p.alt ?? ''} style={{ ...imageStyle, border: undefined, boxShadow: undefined }} /></a> : <img {...stateAttrs} src={p.src} alt={p.alt ?? ''} style={{ ...imageStyle, opacity }} />
+    const focal = (value: unknown) => Math.max(0, Math.min(100, Number.isFinite(Number(value)) ? Number(value) : 50))
+    const zoom = Math.max(1, Math.min(5, Number(p.imageZoom) || 1)), fx = focal(p.focalX), fy = focal(p.focalY)
+    const picture = <img src={p.src} alt={p.alt ?? ''} style={{ width: '100%', height: '100%', display: 'block', objectFit: imageStyle.objectFit, objectPosition: `${fx}% ${fy}%`, transform: `scale(${zoom})`, transformOrigin: `${fx}% ${fy}%` }} />
+    const frameStyle = { ...imageStyle, overflow: 'hidden', opacity }
+    return p.href && !editing ? <a {...stateAttrs} href={safeHref(p.href)} style={frameStyle}>{picture}</a> : <div {...stateAttrs} style={frameStyle}>{picture}</div>
   }
   if (el.type === 'container') return <div style={{ width: '100%', height: '100%', boxSizing: 'border-box', background: fillCss(p) || 'transparent', backgroundImage: typeof p.bgImage === 'string' && p.bgImage ? 'url(' + JSON.stringify(p.bgImage) + ')' : undefined, backgroundSize: p.bgFit === 'contain' ? 'contain' : 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', borderRadius: u(p.radius || 0), border: p.borderW ? `${u(p.borderW)} solid ${p.borderColor ?? '#111827'}` : undefined, boxShadow: shadowCss(BOX_SHADOWS[p.bshadow], u) }} />
   if (el.type === 'swiper') return <FreeSwiper slides={Array.isArray(p.slides) ? p.slides : []} seconds={Number(p.seconds) || 0} editing={editing} effect={p.effect === 'fade' ? 'fade' : 'slide'} thumbnails={p.thumbnails === true} />
@@ -284,7 +288,7 @@ export const FreeCanvasView: BlockRenderer = (props: { id?: string; height?: num
         <style>{variantCss((props.id || 'free') + '-height', props._breakpoints)}</style>
         {(_noFree ? ['desktop'] as const : layoutVariants(props._breakpoints)).map((device) => {
           const resolved = blockForDevice({ type: 'FreeCanvas', props }, device).props
-          const deviceHeight = device === 'desktop' ? h : Number(resolved.height) > 0 ? Number(resolved.height) : freeHeight(0, resolved._els)
+          const deviceHeight = Number(resolved.height) > 0 ? Number(resolved.height) : device === 'desktop' ? h : freeHeight(0, resolved._els)
           return <div key={device} data-hs-variant={_noFree ? undefined : device} style={{ width: '100%', display: device === 'desktop' ? 'block' : 'none', height: `${(deviceHeight / FREE_W) * 100}cqw` }} />
         })}
       </div>

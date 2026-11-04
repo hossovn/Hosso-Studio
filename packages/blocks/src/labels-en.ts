@@ -1,5 +1,7 @@
 /** Nhãn block/trường trong trình dựng và màn Widget: khóa là nhãn tiếng Việt gốc. Thiếu bản dịch thì giữ tiếng Việt. */
 export const blockLabelsEn: Record<string, string> = {
+  'Danh sách dữ liệu': 'Data repeater', 'Nguồn dữ liệu': 'Data source', 'Nhập thủ công': 'Manual entries', 'Bài viết': 'Posts', 'Sản phẩm': 'Products', 'Số mục': 'Item count', 'Số cột': 'Column count', 'Khoảng cách': 'Gap', 'Dữ liệu thủ công': 'Manual data', 'Giá': 'Price',
+
   'Banner chính': 'Hero banner',
   'Nội dung (cách đoạn bằng dòng trống; hỗ trợ **đậm**, dòng bắt đầu bằng - là danh sách)': 'Content (separate paragraphs with a blank line; supports **bold**, lines starting with - are a list)',
   'Nội dung (cách đoạn bằng dòng trống; dòng bắt đầu bằng - là danh sách)': 'Content (separate paragraphs with a blank line; lines starting with - are a list)',

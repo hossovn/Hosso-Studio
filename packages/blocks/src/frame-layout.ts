@@ -63,3 +63,44 @@ export function moveIntoFrame(list: FreeElement[], id: string, frameId?: string)
   const moved = transformFamily(family, id, { ...el })
   return insertIntoFrame(list.filter((item) => !ids.has(item.id)), frameId, moved, { x: el.x + el.w / 2, y: el.y + el.h / 2 })
 }
+
+/** Resize just the adjacent tracks, keeping the overall grid width unchanged. */
+export function resizeFrameColumns(list: FreeElement[], id: string, index: number, delta: number): FreeElement[] {
+  const frame = list.find((el) => el.id === id), flow = frame?.props._layout
+  if (!frame || flow?.direction !== 'grid' || elementFamily(list, id).some((el) => inheritedElementFlag(list, el.id, '_locked'))) return list
+  const columns: number[] = (flow.columns ?? [1, 1]).map((n: number) => Math.max(.1, Number(n) || 1))
+  if (index < 0 || index >= columns.length - 1) return list
+  const sum = columns.reduce((a, b) => a + b, 0), available = Math.max(1, frame.w - 2 * (flow.padding || 0) - (columns.length - 1) * (flow.gap || 0))
+  const pair = columns[index] + columns[index + 1], min = Math.min(pair / 3, sum * 48 / available)
+  columns[index] = Math.max(min, Math.min(pair - min, columns[index] + delta / available * sum))
+  columns[index + 1] = pair - columns[index]
+  return list.map((el) => el.id === id ? { ...el, props: { ...el.props, _layout: { ...flow, columns } } } : el)
+}
+
+/** Split into nested cells, retaining all existing content inside the first cell. */
+export function splitFrame(list: FreeElement[], id: string, direction: 'row' | 'column'): FreeElement[] {
+  const frame = list.find((el) => el.id === id && el.type === 'container')
+  if (!frame || elementFamily(list, id).some((el) => inheritedElementFlag(list, el.id, '_locked'))) return list
+  const gap = 16, vertical = direction === 'column', first = newId(), second = newId()
+  const cell = (key: string, index: number): FreeElement => ({ id: key, type: 'container', parentId: id, x: frame.x + (vertical ? 0 : index * (frame.w + gap) / 2), y: frame.y + (vertical ? index * (frame.h + gap) / 2 : 0), w: vertical ? frame.w : (frame.w - gap) / 2, h: vertical ? (frame.h - gap) / 2 : frame.h, props: { _frame: true, _name: `Ô ${index + 1}`, bg: 'transparent', _layout: { direction: 'free', padding: 16 } } })
+  const family = new Set(elementFamily(list, id).map((el) => el.id)), ratio = vertical ? (frame.h - gap) / (2 * frame.h) : (frame.w - gap) / (2 * frame.w)
+  return [...list.map((el) => el.id === id ? { ...el, props: { ...el.props, _layout: { direction, gap, padding: 0, align: 'stretch' } } } : family.has(el.id) ? { ...el, parentId: el.parentId === id ? first : el.parentId, x: frame.x + (el.x - frame.x) * ratio, y: frame.y + (el.y - frame.y) * ratio, w: el.w * ratio, h: el.h * ratio, props: typeof el.props.size === 'number' ? { ...el.props, size: el.props.size * ratio } : el.props } : el), cell(first, 0), cell(second, 1)]
+}
+
+/** Merge child cells without deleting any of their content or changing its coordinates. */
+export function mergeFrameCells(list: FreeElement[], id: string): FreeElement[] {
+  const frame = list.find((el) => el.id === id && el.type === 'container'), cells = list.filter((el) => el.parentId === id)
+  if (!frame || !cells.length || cells.some((el) => el.type !== 'container') || elementFamily(list, id).some((el) => inheritedElementFlag(list, el.id, '_locked'))) return list
+  const ids = new Set(cells.map((el) => el.id))
+  return list.filter((el) => !ids.has(el.id)).map((el) => el.id === id ? { ...el, props: { ...el.props, _layout: { ...el.props._layout, direction: 'free' } } } : el.parentId && ids.has(el.parentId) ? { ...el, parentId: id } : el)
+}
+
+export function reorderFrameChild(list: FreeElement[], id: string, index: number): FreeElement[] {
+  const child = list.find((el) => el.id === id), parent = list.find((el) => el.id === child?.parentId)
+  if (!child || !parent || !['row', 'column', 'grid'].includes(parent.props._layout?.direction) || inheritedElementFlag(list, id, '_locked') || inheritedElementFlag(list, parent.id, '_locked')) return list
+  const siblings = list.filter((el) => el.parentId === parent.id && el.id !== id)
+  if (siblings.some((el) => elementFamily(list, el.id).some((child) => inheritedElementFlag(list, child.id, '_locked')))) return list
+  siblings.splice(Math.max(0, Math.min(siblings.length, index)), 0, child)
+  let cursor = 0
+  return list.map((el) => el.parentId === parent.id ? siblings[cursor++] : el)
+}

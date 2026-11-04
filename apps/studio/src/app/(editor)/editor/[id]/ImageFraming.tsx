@@ -1,0 +1,13 @@
+'use client'
+import React, { useEffect, useRef } from 'react'
+import type { FreeElement } from '@hosso/studio-blocks'
+export function ImageFraming({ el, scale, patch, done }: { el: FreeElement; scale: number; patch: (p: Record<string, any>) => void; done: () => void }) {
+  const drag = useRef<{ x: number; y: number; fx: number; fy: number } | null>(null)
+  const host = useRef<HTMLDivElement>(null)
+  useEffect(() => { host.current?.focus({ preventScroll: true }) }, [])
+  const button: React.CSSProperties = { padding: '4px 8px', background: '#fff', color: '#245e43', border: '1px solid #bad1c3', borderRadius: 4, font: '12px system-ui', cursor: 'pointer' }
+  const x = Number(el.props.focalX ?? 50), y = Number(el.props.focalY ?? 50), zoom = Number(el.props.imageZoom ?? 1)
+  return <div ref={host} onDoubleClick={(e) => e.stopPropagation()} data-image-framing data-editor-control="true" style={{ position: 'absolute', inset: 0, border: '2px solid #2d7b57', boxSizing: 'border-box', cursor: 'grab', pointerEvents: 'auto', touchAction: 'none' }} onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.setPointerCapture(e.pointerId); drag.current = { x: e.clientX, y: e.clientY, fx: x, fy: y } }} onPointerMove={(e) => { const d = drag.current; if (d) patch({ focalX: Math.max(0, Math.min(100, d.fx - (e.clientX - d.x) / Math.max(1, el.w * scale) * 100)), focalY: Math.max(0, Math.min(100, d.fy - (e.clientY - d.y) / Math.max(1, el.h * scale) * 100)) }) }} onPointerUp={() => { drag.current = null }} onPointerCancel={() => { drag.current = null }} onWheel={(e) => { e.preventDefault(); e.stopPropagation(); patch({ imageZoom: Math.max(1, Math.min(5, zoom - e.deltaY * .002)) }) }} onKeyDown={(e) => { if (e.key === 'Escape' || e.key === 'Enter') { e.stopPropagation(); done() } if (e.key.startsWith('Arrow')) { e.preventDefault(); e.stopPropagation(); patch({ focalX: Math.max(0, Math.min(100, x + (e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0))), focalY: Math.max(0, Math.min(100, y + (e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0))) }) } }} tabIndex={0} aria-label="Kéo ảnh trong khung, cuộn để phóng, phím mũi tên để chỉnh">
+    <div style={{ position: 'absolute', left: 0, top: '100%', display: 'flex', gap: 6, padding: 6, background: '#fff', color: '#245e43', font: '12px system-ui', whiteSpace: 'nowrap' }} onPointerDown={(e) => e.stopPropagation()}><span>Kéo ảnh · Cuộn phóng {zoom.toFixed(1)}×</span><button type="button" style={button} onClick={() => patch({ focalX: 50, focalY: 50, imageZoom: 1 })}>Đặt lại</button><button type="button" style={button} onClick={done}>Xong</button></div>
+  </div>
+}
