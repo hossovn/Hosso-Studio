@@ -11,6 +11,9 @@ import * as motionEffects from '../packages/blocks/src/motion-effects.ts'
 import * as freeGeometry from '../packages/blocks/src/free-geometry.ts'
 import * as richText from '../packages/blocks/src/rich-text.ts'
 import * as layoutConstraints from '../packages/blocks/src/layout-constraints.ts'
+import * as breakpoints from '../packages/blocks/src/responsive-breakpoints.ts'
+import * as linkActions from '../packages/blocks/src/link-actions.ts'
+import * as reusableOverrides from '../packages/blocks/src/reusable-overrides.ts'
 const { newId } = freeGeometry
 
 const require = createRequire(new URL('../apps/studio/package.json', import.meta.url))
@@ -140,9 +143,10 @@ const scrollRuntime = compile('../packages/blocks/src/ScrollEffect.tsx', { './sc
 const motionScope = compile('../packages/blocks/src/MotionScope.tsx', {})
 const motionRuntime = compile('../packages/blocks/src/MotionEffects.tsx', { './motion-effects': motionEffects, './MotionScope': motionScope })
 const motionText = compile('../packages/blocks/src/MotionText.tsx', { './motion-effects': motionEffects })
-const responsiveLayout = compile('../packages/blocks/src/responsive-layout.ts', { './layout-constraints.ts': layoutConstraints })
+const responsiveLayout = compile('../packages/blocks/src/responsive-layout.ts', { './layout-constraints.ts': layoutConstraints, './responsive-breakpoints.ts': breakpoints })
 const { FreeElementView, FreeOverlay, FreeCanvasView, makeElement } = compile('../packages/blocks/src/FreeCanvas.tsx', {
   './responsive-layout': responsiveLayout,
+  './responsive-breakpoints': breakpoints,
   './MotionEffects': motionRuntime, './MotionScope': motionScope, './MotionText': motionText, './motion-effects': motionEffects,
   './ScrollEffect': scrollRuntime, './scroll-effects': scrollEffects,
   './free-style': freeStyle, './free-extra': {}, './icons-data': { ICON_BODY: { test: '<path d="M4 4h16v16H4z" />' } }, './FreeSwiper': { FreeSwiper }, './free-geometry': freeGeometry, './element-states': elementStates, './rich-text': richText,
@@ -241,7 +245,7 @@ const { CanvasLeft } = compile('../apps/studio/src/app/(editor)/editor/[id]/Canv
   }, './canvas-model': {}, './SitePanels': {}, './SectionTemplates': {},
   './PageTemplatePicker': pageTemplatePicker, './SectionLibrary': sectionLibrary,
   './LayersPanel': {}, './MediaLibraryPanel': {},
-  './WorkbenchPanels': compile('../apps/studio/src/app/(editor)/editor/[id]/WorkbenchPanels.tsx', { '@hosso/studio-blocks': responsiveLayout, './canvas-model': {}, './editor-tools': {} }),
+  './WorkbenchPanels': compile('../apps/studio/src/app/(editor)/editor/[id]/WorkbenchPanels.tsx', { '@hosso/studio-blocks': responsiveLayout, './canvas-model': {}, './editor-tools': {}, '../../../../../../../packages/blocks/src/responsive-breakpoints': breakpoints, '../../../../../../../packages/blocks/src/free-geometry': freeGeometry }),
   './FloatingDock': compile('../apps/studio/src/app/(editor)/editor/[id]/FloatingDock.tsx', { './DrawingTools': { DrawingContext: React.createContext({ rulers: false }) } }),
 })
 const libraryMarkup = renderToStaticMarkup(React.createElement(CanvasLeft, { tab: 'library', open: true, data: { content: [] }, sel: {}, ops: { addPattern() {} } }))
@@ -322,6 +326,7 @@ for (const template of PAGE_TEMPLATES) {
 console.log('PASS: 8 page templates, 4 categories, editable geometry, local assets and independent copies')
 
 const { withStyle } = compile('../packages/blocks/src/puck-config.ts', {
+  './link-actions': linkActions,
   './responsive-layout': responsiveLayout,
   './ScrollStory': { ScrollStory: () => null },
   './MediaField': {}, './RefField': {}, './ExtraBlocks': {}, './CoreExtras': {}, './PostList': {}, './FreeCanvas': { FreeOverlay, FreeCanvasView },
@@ -334,13 +339,14 @@ assert.equal(withStyle(ClientBoundary, true)({ id: 'popup', puck: runtime, title
 assert.equal(withStyle(ClientBoundary)({ id: 'popup', puck: runtime }).props.puck, runtime, 'Editor renderers retain Puck helpers')
 const StyledSection = withStyle(FreeCanvasView)
 const { expandReusable } = compile('../apps/studio/src/lib/site.tsx', {
+  '../../../../packages/blocks/src/reusable-overrides': reusableOverrides,
   './site-preview': { sitePreview: async () => false },
   '@payload-config': {}, '@hosso-config': { locales: [{ code: 'vi' }] }, '@hosso/studio-blocks': {}, './core-loaders': {},
   'next/headers': {}, react: { ...React, cache: (fn) => fn },
   payload: { getPayload: async () => ({ find: async () => ({ docs: [{ content: { content: [{ type: 'Text', props: { id: 'inner', _hide: 'd' } }] } }] }) }) },
 })
 const reusable = await expandReusable({ content: [{ type: 'Reusable', props: { id: 'mobile-header', slug: 'header', _hide: 't' } }] }, 'vi')
-assert.equal(reusable.content[0].props.id, 'mobile-header__0')
+assert.equal(reusable.content[0].props.id, 'mobile-header__inner')
 const reusableMarkup = renderToStaticMarkup(React.createElement(Button, reusable.content[0].props))
 assert.match(reusableMarkup, /hs-hide-d hs-hide-t/)
 assert.doesNotMatch(renderToStaticMarkup(React.createElement(Button, { _reusableHide: 'invalid' })), /hs-hide/)

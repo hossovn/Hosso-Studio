@@ -14,6 +14,7 @@ import { MotionEffects } from './MotionEffects'
 import { MotionScope } from './MotionScope'
 import { MotionText } from './MotionText'
 import { blockForDevice, elementForDevice, type DevicePatch } from './responsive-layout'
+import { baseDevice, layoutWidth, layoutVariants, variantCss } from './responsive-breakpoints'
 import { sanitizeRichText } from './rich-text'
 export { newId } from './free-geometry'
 
@@ -25,7 +26,7 @@ export const FREE_W = 1200
 export const FREE_MAX_PX = 1440
 
 export type FreeType = 'heading' | 'text' | 'button' | 'shape' | 'line' | 'icon' | 'image' | 'video' | 'menu' | 'countdown' | 'number' | 'table' | 'map' | 'embed' | 'tabs' | 'breadcrumb' | 'container' | 'swiper'
-export type FreeElement = { id: string; parentId?: string; type: FreeType; x: number; y: number; w: number; h: number; props: Record<string, any>; responsive?: Partial<Record<'tablet' | 'mobile', DevicePatch>> }
+export type FreeElement = { id: string; parentId?: string; type: FreeType; x: number; y: number; w: number; h: number; props: Record<string, any>; responsive?: Partial<Record<'tablet' | 'mobile' | `bp-${number}`, DevicePatch>> }
 
 const ICON_PATHS: Record<string, string> = {
   user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-6 8-6s8 2 8 6',
@@ -144,7 +145,7 @@ function FreeElementBody({ el, unit, scale, editing, state }: { el: FreeElement;
     boxShadow: shadowCss(BOX_SHADOWS[p.bshadow], u),
     overflow: p.overflow === 'hidden' ? 'hidden' : 'visible',
   }
-  if (el.type === 'heading') return React.createElement(`h${Math.min(6, Math.max(1, Number(p.level) || 2))}`, { ...stateAttrs, style: textBox }, ink)
+  if (el.type === 'heading') return React.createElement(`h${Math.min(6, Math.max(1, Number(p.level) || 2))}`, { ...stateAttrs, style: textBox }, p.href && !editing ? <a href={safeHref(p.href)} style={{ color: 'inherit', textDecoration: 'inherit' }}>{ink}</a> : ink)
   if (el.type === 'text') return p.href && !editing ? <a {...stateAttrs} href={safeHref(p.href)} style={{ ...textBox, textDecoration: p.underline ? 'underline' : 'none' }}>{ink}</a> : <p {...stateAttrs} style={textBox}>{ink}</p>
   if (el.type === 'button') {
     const st: React.CSSProperties = { ...text, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: u(8), width: '100%', height: '100%', boxSizing: 'border-box', background: fillCss(p), borderRadius: u(p.radius ?? 0), border: p.borderW ? `${u(p.borderW)} solid ${p.borderColor}` : 0, textAlign: 'center', textDecoration: p.underline ? 'underline' : 'none', boxShadow: shadowCss(BOX_SHADOWS[p.bshadow], u), WebkitTextFillColor: undefined, WebkitBackgroundClip: undefined, backgroundClip: undefined }
@@ -238,25 +239,31 @@ function FreeElementBody({ el, unit, scale, editing, state }: { el: FreeElement;
 }
 
 /** Lớp phần tử phủ lên một block (prop `_els`): rộng tối đa FREE_MAX_PX, canh giữa, tọa độ tính từ góc trên trái của block. */
-export const FreeOverlay = ({ elements, height, responsive }: { elements: FreeElement[]; height?: number; responsive?: Record<string, any> }) => (
+export const FreeOverlay = ({ elements, height, responsive, breakpoints, scope = 'page' }: { elements: FreeElement[]; height?: number; responsive?: Record<string, any>; breakpoints?: unknown; scope?: string }) => {
+  const devices = elements.some((el) => Object.keys(el.responsive ?? {}).length || el.props._constraints || el.props._layout) ? layoutVariants(breakpoints) : ['desktop'] as const
+  return (
   <div className="hs-free-layer" data-scroll-boundary style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, width: `min(100%, ${FREE_MAX_PX}px)`, margin: '0 auto', containerType: 'inline-size', pointerEvents: 'none' }}>
     <MotionScope enabled={elements.some((el) => !el.props._hidden && resolveMotionConfig(el.props)?.loop?.preset && resolveMotionConfig(el.props)?.loop?.preset !== 'none')}>
-    {(elements.some((el) => el.responsive?.mobile || el.responsive?.tablet || el.props._constraints || el.props._layout) ? ['desktop', 'tablet', 'mobile'] as const : ['desktop'] as const).map((device, _, devices) => <div key={device} className={devices.length > 1 ? `hs-free-device-${device}` : undefined} style={{ position: 'absolute', inset: 0 }}>
+    {devices.length > 1 && <style>{variantCss(scope + '-overlay', breakpoints)}</style>}
+    <div data-hs-variants={encodeURIComponent(scope + '-overlay')} style={{ position: 'absolute', inset: 0 }}>
+    {devices.map((device) => <div key={device} data-hs-variant={devices.length > 1 ? device : undefined} style={{ position: 'absolute', inset: 0, display: device === 'desktop' ? 'block' : 'none' }}>
     {blockForDevice({ type: 'FreeCanvas', props: { _els: elements, height, _responsive: responsive } }, device).props._els.map((el: FreeElement) => { return (
-      <div key={el.id} className={inheritedHideClasses(elements, el.id)} style={{ display: inheritedElementFlag(elements, el.id, '_hidden', device) ? 'none' : undefined, position: 'absolute', left: `${(el.x / FREE_W) * 100}%`, top: `${(el.y / FREE_W) * 100}cqw`, width: `${(el.w / FREE_W) * 100}%`, height: `${(el.h / FREE_W) * 100}cqw`, pointerEvents: el.type === 'container' ? 'none' : 'auto', zIndex: el.type === 'container' ? 0 : 1 }}>
+      <div key={el.id} className={inheritedHideClasses(elements, el.id)} style={{ display: inheritedElementFlag(elements, el.id, '_hidden', baseDevice(layoutWidth(device))) ? 'none' : undefined, position: 'absolute', left: `${(el.x / FREE_W) * 100}%`, top: `${(el.y / FREE_W) * 100}cqw`, width: `${(el.w / FREE_W) * 100}%`, height: `${(el.h / FREE_W) * 100}cqw`, pointerEvents: el.type === 'container' ? 'none' : 'auto', zIndex: el.type === 'container' ? 0 : 1 }}>
         <FreeElementView el={el} />
       </div>
     )})}
     </div>)}
+    </div>
     </MotionScope>
   </div>
-)
+  )
+}
 
 /**
  * Block "Vùng tự do": chỉ là khoảng trống có chiều cao; các phần tử nằm ở lớp phủ chung (`_els`, cũng dùng cho mọi block khác).
  * `elements` là tên prop cũ, vẫn đọc được. `_noFree` được editor đặt khi nó tự vẽ lớp chỉnh sửa.
  */
-export const FreeCanvasView: BlockRenderer = (props: { id?: string; height?: number; bgImage?: string; bgVideo?: string; bgOverlay?: number; bgOverlayColor?: string; bgSize?: string; bgRepeat?: string; bgPositionX?: number; bgPositionY?: number; bgAttachment?: string; bgImageOpacity?: number; bgBlur?: number; bgVideoFit?: string; _els?: FreeElement[]; elements?: FreeElement[]; _noFree?: boolean; _states?: unknown; _editorState?: ElementState; _responsive?: Record<string, any> }) => {
+export const FreeCanvasView: BlockRenderer = (props: { id?: string; height?: number; bgImage?: string; bgVideo?: string; bgOverlay?: number; bgOverlayColor?: string; bgSize?: string; bgRepeat?: string; bgPositionX?: number; bgPositionY?: number; bgAttachment?: string; bgImageOpacity?: number; bgBlur?: number; bgVideoFit?: string; _els?: FreeElement[]; elements?: FreeElement[]; _noFree?: boolean; _states?: unknown; _editorState?: ElementState; _responsive?: Record<string, any>; _breakpoints?: unknown }) => {
   const { height = 0, bgImage, bgVideo, bgOverlay = 0, bgOverlayColor = '#000000', bgSize = 'cover', bgRepeat = 'no-repeat', bgPositionX = 50, bgPositionY = 50, bgAttachment = 'scroll', bgImageOpacity = 100, bgBlur = 0, bgVideoFit = 'cover', _els, elements, _noFree } = props
   const stateCss = props.id ? elementStatesCss(props.id, props) : ''
   const els = _els ?? elements ?? []
@@ -269,11 +276,12 @@ export const FreeCanvasView: BlockRenderer = (props: { id?: string; height?: num
       {bgImage && <div aria-hidden="true" style={{ position: 'absolute', inset: 0, backgroundImage: `url("${String(bgImage).replace(/"/g, '%22')}")`, backgroundSize: ['cover', 'contain', 'auto'].includes(bgSize) ? bgSize : 'cover', backgroundRepeat: ['no-repeat', 'repeat', 'repeat-x', 'repeat-y'].includes(bgRepeat) ? bgRepeat : 'no-repeat', backgroundPosition: `${Math.min(100, Math.max(0, Number(bgPositionX) || 0))}% ${Math.min(100, Math.max(0, Number(bgPositionY) || 0))}%`, backgroundAttachment: bgAttachment === 'fixed' ? 'fixed' : 'scroll', opacity: Math.min(100, Math.max(0, Number(bgImageOpacity) || 0)) / 100, filter: Number(bgBlur) > 0 ? `blur(${Math.min(40, Math.max(0, Number(bgBlur)))}px)` : undefined, transform: Number(bgBlur) > 0 ? 'scale(1.05)' : undefined, pointerEvents: 'none' }} />}
       {bgVideo && <video src={bgVideo} autoPlay muted loop playsInline aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: bgVideoFit === 'contain' ? 'contain' : 'cover', objectPosition: `${Math.min(100, Math.max(0, Number(bgPositionX) || 0))}% ${Math.min(100, Math.max(0, Number(bgPositionY) || 0))}%` }} />}
       {bgOverlay > 0 && <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: SAFE_COLOR.test(bgOverlayColor) ? bgOverlayColor : '#000000', opacity: Math.min(100, Math.max(0, bgOverlay)) / 100, pointerEvents: 'none' }} />}
-      <div style={{ position: 'relative', maxWidth: FREE_MAX_PX, margin: '0 auto', containerType: 'inline-size' }}>
-        {(props._responsive?.mobile || props._responsive?.tablet ? ['desktop', 'tablet', 'mobile'] as const : ['desktop'] as const).map((device, _, devices) => {
+      <div data-hs-variants={encodeURIComponent((props.id || 'free') + '-height')} style={{ position: 'relative', maxWidth: FREE_MAX_PX, margin: '0 auto', containerType: 'inline-size' }}>
+        <style>{variantCss((props.id || 'free') + '-height', props._breakpoints)}</style>
+        {(_noFree ? ['desktop'] as const : layoutVariants(props._breakpoints)).map((device) => {
           const resolved = blockForDevice({ type: 'FreeCanvas', props }, device).props
           const deviceHeight = device === 'desktop' ? h : Number(resolved.height) > 0 ? Number(resolved.height) : freeHeight(0, resolved._els)
-          return <div key={device} className={devices.length > 1 ? `hs-free-device-${device}` : undefined} style={{ width: '100%', height: `${(deviceHeight / FREE_W) * 100}cqw` }} />
+          return <div key={device} data-hs-variant={_noFree ? undefined : device} style={{ width: '100%', display: device === 'desktop' ? 'block' : 'none', height: `${(deviceHeight / FREE_W) * 100}cqw` }} />
         })}
       </div>
       </div>

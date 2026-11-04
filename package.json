@@ -24,6 +24,8 @@
     "test:studio-workbench": "node scripts/test-studio-workbench.mjs",
     "test:editor-workspace": "node scripts/test-editor-workspace.mjs",
     "test:editor-productivity": "node --experimental-strip-types scripts/test-editor-productivity.mjs",
+    "test:editor-canvas-upgrades": "node --experimental-strip-types scripts/test-editor-canvas-upgrades.mjs",
+    "test:editor-canvas-upgrades-browser": "node scripts/test-editor-canvas-upgrades-browser.mjs",
     "test:editor-productivity-browser": "node scripts/test-editor-productivity-browser.mjs",
     "test:form-delivery": "tsx scripts/test-form-delivery.mts",
     "test:editor-preview": "node --experimental-strip-types scripts/test-editor-preview.mjs",

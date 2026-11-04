@@ -66,7 +66,7 @@ async function Content({ content, locale, sp }: { content: unknown; locale: stri
   // Lớp nổi toàn trang (root.props._float) phủ lên nội dung.
   const float = ((data as any).root?.props?._float ?? []) as FreeElement[]
   const page = <Render config={puckConfig as any} data={data as any} />
-  return float.length ? <div style={{ position: 'relative' }}>{page}<FreeOverlay elements={float} /></div> : page
+  return float.length ? <div style={{ position: 'relative' }}>{page}<FreeOverlay elements={float} breakpoints={data.root?.props?._breakpoints} /></div> : page
 }
 
 const previewUser = async (preview: string | undefined) => {

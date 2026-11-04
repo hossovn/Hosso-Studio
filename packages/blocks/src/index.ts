@@ -11,6 +11,8 @@ export { editorPreviewParams, normalizeEditorPreview, type EditorPreview } from 
 export * from './puck-config'
 export * from './widget-parts'
 export * from './responsive-layout'
+export * from './responsive-breakpoints'
+export * from './link-actions'
 export { readElementState, writeElementState, elementStateCss, elementStateScope, elementStatesCss, type ElementState, type ElementDevice, type ElementStateStyle } from './element-states'
 export { normalizeScrollEffect, type ScrollEffectConfig } from './scroll-effects'
 export { ENTRANCE_PRESETS, LOOP_PRESETS, LOOP_AMOUNT, supportedMotionPresets, normalizeMotionConfig, resolveMotionConfig, motionKeyframes, splitMotionText, type EntrancePreset, type LoopPreset, type MotionConfig } from './motion-effects'

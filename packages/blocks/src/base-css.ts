@@ -1,5 +1,7 @@
 // CSS cho các phần của lõi không thuộc theme: danh sách bài viết, bài viết, tìm kiếm, 404. Chỉ dùng biến --hs-*.
 export const baseCss = `
+[id^="hs-section-"]{scroll-margin-top:80px}
+@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 .hs-free-device-tablet,.hs-free-device-mobile{display:none}
 @media(min-width:601px) and (max-width:1024px){.hs-free-device-desktop{display:none}.hs-free-device-tablet{display:block}}
 @media(max-width:600px){.hs-free-device-desktop{display:none}.hs-free-device-mobile{display:block}}

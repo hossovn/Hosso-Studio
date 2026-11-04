@@ -1,6 +1,5 @@
 import type { FreeElement } from './FreeCanvas'
-type Device = 'desktop' | 'tablet' | 'mobile'
-const WIDTH = { desktop: 1200, tablet: 768, mobile: 390 }
+import { baseDevice, layoutWidth, type LayoutDevice as Device } from './responsive-breakpoints.ts'
 const finite = (value: unknown, fallback: number) => typeof value === 'number' && Number.isFinite(value) ? value : fallback
 export function axisConstraint(position: number, size: number, before: number, after: number, mode: string) {
   if (mode === 'start') return { position, size }
@@ -13,7 +12,7 @@ export function axisConstraint(position: number, size: number, before: number, a
 
 /** Resolve from canonical coordinates; explicit breakpoint geometry always wins. */
 export function constrainedElements(elements: FreeElement[], device: Device, baseHeight = 400, targetHeight = baseHeight): FreeElement[] {
-  const factor = 1200 / WIDTH[device]
+  const factor = 1200 / layoutWidth(device)
   const cache = new Map<string, FreeElement>(), visiting = new Set<string>()
   const resolve = (el: FreeElement): FreeElement => {
     if (cache.has(el.id)) return cache.get(el.id)!
@@ -28,7 +27,10 @@ export function constrainedElements(elements: FreeElement[], device: Device, bas
     const vertical = ['start', 'center', 'end', 'stretch'].includes(settings.vertical)
       ? axisConstraint(el.y - base.y, el.h, base.h, target.h / factor, settings.vertical)
       : { position: (el.y - base.y) * target.w / factor / Math.max(1, base.w), size: el.h * target.w / factor / Math.max(1, base.w) }
-    const patch = device === 'desktop' ? undefined : el.responsive?.[device]
+    const baseKey = baseDevice(layoutWidth(device))
+    const fallback = device.startsWith('bp-') && baseKey !== 'desktop' ? el.responsive?.[baseKey] : undefined
+    const own = device === 'desktop' ? undefined : el.responsive?.[device]
+    const patch = fallback || own ? { ...fallback, ...own, props: { ...fallback?.props, ...own?.props } } : undefined
     const props = { ...el.props, ...patch?.props }
     if (device !== 'desktop' && ['start', 'end', 'center', 'stretch'].includes(settings.horizontal) && props.size != null && patch?.props?.size == null) props.size = Number(props.size) * factor
     const next = { ...el, x: target.x + horizontal.position * factor, y: target.y + vertical.position * factor, w: horizontal.size * factor, h: vertical.size * factor, ...patch, props }

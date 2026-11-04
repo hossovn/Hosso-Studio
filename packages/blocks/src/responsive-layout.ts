@@ -1,9 +1,10 @@
 import type { FreeElement } from './FreeCanvas'
 import { constrainedElements } from './layout-constraints.ts'
+import { baseDevice, layoutWidth, layoutMedia, layoutVariants, type LayoutDevice } from './responsive-breakpoints.ts'
 
 export type CanvasDevice = 'desktop' | 'tablet' | 'mobile'
 export type DevicePatch = Partial<Pick<FreeElement, 'x' | 'y' | 'w' | 'h'>> & { props?: Record<string, any> }
-export type ResponsiveElement = FreeElement & { responsive?: Partial<Record<Exclude<CanvasDevice, 'desktop'>, DevicePatch>> }
+export type ResponsiveElement = FreeElement
 type Block = { type: string; props: Record<string, any> }
 type Document = { content: Block[]; root?: any; [key: string]: any }
 export const DEVICE_WIDTH = { desktop: 1200, tablet: 768, mobile: 390 } as const
@@ -13,22 +14,23 @@ const BLOCK_LAYOUT = new Set(['height', '_padT', '_padB', '_padL', '_padR', '_ma
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 const elements = (props: Record<string, any>): ResponsiveElement[] => props._els ?? props.elements ?? []
 
-export function elementForDevice(el: ResponsiveElement, device: CanvasDevice): ResponsiveElement {
+export function elementForDevice(el: ResponsiveElement, device: LayoutDevice): ResponsiveElement {
   const patch = device === 'desktop' ? undefined : el.responsive?.[device]
   return patch ? { ...el, ...patch, props: { ...el.props, ...patch.props }, responsive: el.responsive } : el
 }
 
-export function blockForDevice(block: Block, device: CanvasDevice): Block {
-  const patch = device === 'desktop' ? undefined : block.props._responsive?.[device]
+export function blockForDevice(block: Block, device: LayoutDevice): Block {
+  const fallback = device.startsWith('bp-') ? block.props._responsive?.[baseDevice(layoutWidth(device))] : undefined
+  const patch = device === 'desktop' ? undefined : { ...fallback, ...block.props._responsive?.[device] }
   return { ...block, props: { ...block.props, ...patch, _els: constrainedElements(elements(block.props), device, Number(block.props.height) || 400, Number(patch?.height ?? block.props.height) || 400) } }
 }
 
-export function pageForDevice<T extends Document>(data: T, device: CanvasDevice): T {
+export function pageForDevice<T extends Document>(data: T, device: LayoutDevice): T {
   if (device === 'desktop' && ![...data.content.flatMap((block) => elements(block.props)), ...(data.root?.props?._float ?? [])].some((el) => ['row', 'column'].includes(el.props._layout?.direction))) return data
   return { ...data, content: data.content.map((block) => blockForDevice(block, device)), root: data.root && { ...data.root, props: { ...data.root.props, _float: constrainedElements(data.root.props?._float ?? [], device) } } }
 }
 
-function mergeElement(base: ResponsiveElement | undefined, before: ResponsiveElement | undefined, next: ResponsiveElement, device: Exclude<CanvasDevice, 'desktop'>): ResponsiveElement {
+function mergeElement(base: ResponsiveElement | undefined, before: ResponsiveElement | undefined, next: ResponsiveElement, device: Exclude<LayoutDevice, 'desktop'>): ResponsiveElement {
   if (!base || !before) return next
   const patch: DevicePatch = { ...base.responsive?.[device], props: { ...base.responsive?.[device]?.props } }
   const props = { ...base.props }
@@ -42,7 +44,7 @@ function mergeElement(base: ResponsiveElement | undefined, before: ResponsiveEle
 }
 
 /** Store layout edits on the selected device; content and structural edits remain shared. */
-export function mergeDevicePage<T extends Document>(base: T, next: T, device: CanvasDevice): T {
+export function mergeDevicePage<T extends Document>(base: T, next: T, device: LayoutDevice): T {
   if (device === 'desktop') return next
   const before = pageForDevice(base, device)
   const allBase = [...base.content.flatMap((block) => elements(block.props)), ...(base.root?.props?._float ?? [])] as ResponsiveElement[]
@@ -67,16 +69,16 @@ export function mergeDevicePage<T extends Document>(base: T, next: T, device: Ca
 
 export function responsiveBlockCss(id: string, props: Record<string, any>): string {
   const cssNames: Record<string, string> = { _padT: 'padding-top', _padB: 'padding-bottom', _padL: 'padding-left', _padR: 'padding-right', _marT: 'margin-top', _marB: 'margin-bottom', _maxW: 'max-width', _minH: 'min-height' }
-  return (['tablet', 'mobile'] as const).map((device) => {
-    const patch = props._responsive?.[device]
+  return layoutVariants(props._breakpoints).filter((key) => key !== 'desktop').map((device) => {
+    const patch = device.startsWith('bp-') ? { ...props._responsive?.[baseDevice(layoutWidth(device))], ...props._responsive?.[device] } : props._responsive?.[device]
     if (!patch) return ''
     const rules = Object.entries(cssNames).flatMap(([key, name]) => typeof patch[key] === 'number' && Number.isFinite(patch[key]) ? [`${name}:${patch[key]}px!important`] : [])
     if (['_offX', '_offY'].some((key) => typeof patch[key] === 'number' && Number.isFinite(patch[key]))) rules.push(`transform:translate(${Number(patch._offX ?? props._offX) || 0}px,${Number(patch._offY ?? props._offY) || 0}px)!important`)
-    return rules.length ? `@media${device === 'mobile' ? '(max-width:600px)' : '(min-width:601px) and (max-width:1024px)'}{[data-hs-layout="${encodeURIComponent(id)}"]{${rules.join(';')}}}` : ''
+    return rules.length ? `@media${layoutMedia(device, props._breakpoints)}{[data-hs-layout="${encodeURIComponent(id)}"]{${rules.join(';')}}}` : ''
   }).join('')
 }
 
-export function resetDeviceLayout<T extends Document>(data: T, blockId: string, device: CanvasDevice, elementId?: string): T {
+export function resetDeviceLayout<T extends Document>(data: T, blockId: string, device: LayoutDevice, elementId?: string): T {
   if (device === 'desktop') return data
   const reset = (el: ResponsiveElement) => {
     if (elementId && el.id !== elementId) return el
@@ -94,12 +96,12 @@ export function resetDeviceLayout<T extends Document>(data: T, blockId: string, 
 }
 
 /** One undoable layout suggestion; subsequent dragging can refine its device overrides. */
-export function stackDeviceSection<T extends Document>(data: T, blockId: string, device: CanvasDevice, gap = 20, padding = 20): T {
+export function stackDeviceSection<T extends Document>(data: T, blockId: string, device: LayoutDevice, gap = 20, padding = 20): T {
   if (device === 'desktop') return data
   const visible = pageForDevice(data, device)
   const block = visible.content.find((item) => item.props.id === blockId)
   if (!block || block.type !== 'FreeCanvas') return data
-  const factor = 1200 / DEVICE_WIDTH[device]
+  const factor = 1200 / layoutWidth(device)
   const list = elements(block.props)
   const roots = list.filter((el) => !el.parentId || !list.some((parent) => parent.id === el.parentId)).sort((a, b) => a.y - b.y || a.x - b.x)
   let y = padding * factor

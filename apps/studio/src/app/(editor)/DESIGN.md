@@ -213,3 +213,12 @@ First-visit guidance is dismissible and can be replayed from Help. The Help dial
 - **Don't** treat an empty manual product selection as the full catalog.
 - **Don't** apply a customer's storefront colors to Studio's editor chrome.
 - **Don't** present a draft brand save as publication of the website.
+## Canvas navigation and linked content
+
+- Drag the grip in the Properties header to float the inspector. The browser remembers its position; arrow keys move it and Home or a double click resets it. The panel stays inside the workspace after resize or fullscreen changes.
+
+- Drag on blank canvas to select intersecting unlocked elements. Shift adds to the selection; Ctrl/⌘ A selects the active layer. Dragging, resizing, clipboard operations and footer actions act on the whole selection. Locked families stay fixed.
+- Hold Space and drag to pan. Ctrl/⌘ wheel zooms around the pointer. The bottom controls fit the selection and open a keyboard accessible minimap. Drag the canvas edge or width slider for continuous responsive preview.
+- Responsive supports up to eight custom breakpoints (320–1920px). A breakpoint covers the interval above the next lower breakpoint through its own maximum width. Layout overrides are saved independently and rendered on the public page. Text and destinations remain shared.
+- The content inspector offers URL, phone, email, popup and section actions. Popup/section targets can be picked on canvas. Section anchors receive stable IDs and scroll margins.
+- Linked templates preview their current draft in the editor. The instance inspector overrides text, images and colors using stable source IDs while inheriting source geometry. Public rendering loads only published templates. Resetting an override restores the source value.

@@ -10,6 +10,10 @@ import { reparentElements } from './canvas-model'
 import { guardCanvasEvent } from './canvas-events'
 import { SectionToolbar } from './FloatingDock'
 import { CanvasRulers, DrawingContext } from './DrawingTools'
+import { SelectionMarquee } from './SelectionMarquee'
+import { CanvasNavigator } from './CanvasNavigator'
+import { ReusablePreview } from './ReusableEditor'
+import { selectionFamily, selectionBox, transformSelection } from './canvas-selection'
 import { normalizeGuides, nearestDistances, type CanvasGuide } from './canvas-guides'
 import { inheritedElementFlag, inheritedHideClasses, orderElementFamily } from '../../../../../../../packages/blocks/src/free-geometry'
 import { LIBRARY } from './BlockPanels'
@@ -41,6 +45,7 @@ export function StageFrame({
   htmlClass,
   children,
   onDoc,
+  onZoom, onWidth, sel, preview,
 }: {
   expanded?: boolean
   width: number | string
@@ -49,12 +54,17 @@ export function StageFrame({
   htmlClass: string
   children: React.ReactNode
   onDoc?: (d: Document) => void
+  onZoom?: (zoom: number | 'fit') => void
+  onWidth?: (width: number) => void
+  sel?: Sel
+  preview?: boolean
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const ref = useRef<HTMLIFrameElement>(null)
   const [doc, setDoc] = useState<Document | null>(null)
   const [containerW, setContainerW] = useState(1200)
   const [containerH, setContainerH] = useState(800)
+  const widthDrag = useRef<{ x: number; width: number } | null>(null)
 
   useEffect(() => {
     const c = containerRef.current
@@ -110,7 +120,7 @@ export function StageFrame({
   const frameHeight = Math.max(240, (containerH - (expanded ? 0 : 40)) / scale)
 
   return (
-    <div
+    <><div
       ref={containerRef}
       data-canvas-viewport
       style={{
@@ -127,7 +137,7 @@ export function StageFrame({
         background: 'var(--cv-workspace, #f1f3f6)',
       }}
     >
-      <div style={{ width: targetW * scale, height: frameHeight * scale, margin: '0 auto', flexShrink: 0 }}>
+      <div style={{ position: 'relative', width: targetW * scale, height: frameHeight * scale, margin: '0 auto', flexShrink: 0 }}>
       <div
         style={{
           width: targetW,
@@ -148,8 +158,11 @@ export function StageFrame({
         />
         {doc ? createPortal(children, doc.body) : null}
       </div>
+      {!preview && onWidth && <button type="button" data-canvas-width-handle aria-label="Kéo cạnh canvas" title="Kéo để đổi chiều rộng canvas" onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); widthDrag.current = { x: e.clientX, width: targetW } }} onPointerMove={(e) => { if (widthDrag.current) onWidth(widthDrag.current.width + (e.clientX - widthDrag.current.x) * 2 / scale) }} onPointerUp={() => { widthDrag.current = null }} onPointerCancel={() => { widthDrag.current = null }} onLostPointerCapture={() => { widthDrag.current = null }} onKeyDown={(e) => { if (['ArrowLeft', 'ArrowRight'].includes(e.key)) { e.preventDefault(); onWidth(targetW + (e.key === 'ArrowRight' ? 1 : -1) * (e.shiftKey ? 10 : 1)) } }} style={{ position: 'absolute', right: -5, top: '45%', width: 10, height: 48, padding: 0, background: '#fff', border: '1px solid #a7bdb0', borderRadius: 4, cursor: 'ew-resize', touchAction: 'none' }} />}
       </div>
     </div>
+    {!preview && <CanvasNavigator doc={doc} viewport={containerRef} frame={ref} scale={scale} zoom={zoom} onZoom={onZoom} width={targetW} onWidth={onWidth} sel={sel} preview={preview} />}
+    </>
   )
 }
 
@@ -166,12 +179,15 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
   const scrollStart = useRef(0)
   const [guides, setGuides] = useState<{ v?: number; h?: number }>({})
   const drag = useRef<Drag | null>(null)
+  const dragIds = useRef<string[]>([])
   const list = draft ?? els
   // Explicit pixels avoid container-query layout suppression in portaled iframe widgets.
   const scale = size.w / FREE_W
   const cur = !preview && sel.block === bid ? list.find((e) => e.id === sel.el) : undefined
+  const multi = sel.block === bid && (sel.multi?.length ?? 0) > 1 ? sel.multi! : []
+  const multiBox = multi.length ? selectionBox(selectionFamily(list, multi)) : null
   const group = cur?.type === 'container' ? cur : list.find((el) => el.id === cur?.parentId)
-  const moving = drag.current?.moved && drag.current.mode === 'move' ? elementFamily(list, drag.current.orig.id) : []
+  const moving = drag.current?.moved && drag.current.mode === 'move' ? selectionFamily(list, dragIds.current) : []
   const movingIds = new Set(moving.map((el) => el.id))
   const hoverEl = list.find((el) => el.id === hover)
   useEffect(() => { setInteracting('') }, [sel.el, preview])
@@ -225,17 +241,19 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
   }
 
   const start = (e: React.PointerEvent, el: FreeElement, mode: Drag['mode'], handle?: Handle) => {
-    if (preview || e.button !== 0 || (mode === 'move' && interacting === el.id && sel.el === el.id)) return
+    if (preview || e.currentTarget.ownerDocument.body.dataset.panning === 'true' || e.currentTarget.ownerDocument.body.dataset.actionPicking === 'true' || e.button !== 0 || (mode === 'move' && interacting === el.id && sel.el === el.id)) return
     e.preventDefault()
     e.stopPropagation()
     if (editing) return
     if (mode === 'resize') setInteracting('')
-    if (mode === 'move' && e.shiftKey) { const ids = sel.block === bid ? sel.multi ?? (sel.el ? [sel.el] : []) : []; setSel({ block: bid, el: el.id, multi: ids.includes(el.id) ? ids.filter((id) => id !== el.id) : [...ids, el.id] }); return }
-    setSel({ block: bid, el: el.id })
-    if (inheritedElementFlag(list, el.id, '_locked')) return
+    if (mode === 'move' && e.shiftKey) { const ids = sel.block === bid ? sel.multi ?? (sel.el ? [sel.el] : []) : []; const next = ids.includes(el.id) ? ids.filter((id) => id !== el.id) : [...ids, el.id]; setSel({ block: bid, el: next[next.length - 1] ?? '', multi: next }); return }
+    const ids = multi.includes(el.id) ? multi : [el.id]
+    setSel({ block: bid, el: el.id, multi: ids })
+    if (!selectionFamily(list, ids).length || inheritedElementFlag(list, el.id, '_locked')) return
+    dragIds.current = ids
     e.currentTarget.setPointerCapture(e.pointerId)
     scrollStart.current = host.current?.ownerDocument.defaultView?.scrollY ?? 0
-    drag.current = { mode, handle, sx: e.clientX, sy: e.clientY, orig: el, list, moved: false }
+    drag.current = { mode, handle, sx: e.clientX, sy: e.clientY, orig: ids.length > 1 && multiBox ? { ...el, ...multiBox } : el, list, moved: false }
   }
   const onMove = (e: React.PointerEvent) => {
     const d = drag.current
@@ -254,7 +272,9 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
     if (d.mode === 'move') {
       x = o.x + dx
       y = o.y + dy
-      const snapData: PageData = { content: [{ type: 'FreeCanvas', props: { id: bid, height: boxH, _els: d.list } }], ...(bid === PAGE ? { root: { props: { _float: d.list } } } : {}) }
+      const chosen = new Set(selectionFamily(d.list, dragIds.current).map((item) => item.id))
+      const peers = d.list.filter((item) => !chosen.has(item.id))
+      const snapData: PageData = { content: [{ type: 'FreeCanvas', props: { id: bid, height: boxH, _els: peers } }], ...(bid === PAGE ? { root: { props: { _float: peers } } } : {}) }
       const snapped = snapPosition(snapData, bid, o, { x, y }, { enabled: drawing.snap && !e.ctrlKey && !e.metaKey, grid: drawing.grid ? drawing.gridSize : undefined, guides: drawing.rulers ? normalizeGuides(savedGuides) : [] })
       x = snapped.x; y = snapped.y
       for (const guide of snapped.guides) { if (guide.axis === 'x') g.v = guide.value; else g.h = guide.value }
@@ -277,7 +297,7 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
         if (hd.includes('n')) { h = Math.max(MIN, o.h - dy); y = o.y + o.h - h }
       }
     }
-    const next = transformFamily(d.list, o.id, { x, y, w, h })
+    const next = dragIds.current.length > 1 ? transformSelection(d.list, dragIds.current, { x, y, w, h }) : transformFamily(d.list, o.id, { x, y, w, h })
     draftRef.current = next
     setDraft(next)
     setGuides(g)
@@ -288,6 +308,7 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
     setGuides({})
     if (d?.moved && draftRef.current) {
       const next = draftRef.current
+      if (dragIds.current.length > 1) { commit(next); return }
       const source = host.current!.getBoundingClientRect()
       const el = next.find((it) => it.id === d.orig.id)!
       const cx = source.left + px(el.x + el.w / 2), cy = source.top + px(el.y + el.h / 2)
@@ -335,6 +356,13 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
   }
 
   const px = (n: number) => n * scale
+  const resizeMultiKey = (e: React.KeyboardEvent, hd: Handle) => {
+    if (!multiBox || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return
+    e.preventDefault(); e.stopPropagation()
+    const step = e.shiftKey ? 10 : 1, dx = e.key === 'ArrowRight' ? step : e.key === 'ArrowLeft' ? -step : 0, dy = e.key === 'ArrowDown' ? step : e.key === 'ArrowUp' ? -step : 0
+    const w = Math.max(MIN, multiBox.w + (hd.includes('w') ? -dx : hd.includes('e') ? dx : 0)), h = Math.max(MIN, multiBox.h + (hd.includes('n') ? -dy : hd.includes('s') ? dy : 0))
+    commit(transformSelection(list, multi, { x: hd.includes('w') ? multiBox.x + multiBox.w - w : multiBox.x, y: hd.includes('n') ? multiBox.y + multiBox.h - h : multiBox.y, w, h }), 'resize-multi:' + multi.join(','))
+  }
   const rect = host.current?.getBoundingClientRect()
   const measure: React.CSSProperties = { position: 'absolute', color: BRAND, font: '11px/1.5 monospace', fontWeight: 700, whiteSpace: 'nowrap', background: '#fff', padding: '1px 5px', borderRadius: 3, boxShadow: '0 1px 4px rgba(0,0,0,.15)' }
   return <div ref={host} data-canvas-layer={bid} data-scroll-boundary onPointerMove={preview ? undefined : onMove} onPointerUp={onUp} onPointerCancel={cancel} onLostPointerCapture={() => { if (drag.current) cancel() }} style={{ position: 'absolute', inset: 0, width: 'min(100%, ' + FREE_MAX_PX + 'px)', margin: '0 auto', pointerEvents: 'none', zIndex: cur ? 35 : 1 }}>
@@ -380,7 +408,7 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
         {list.filter((el) => el.parentId === group.id).flatMap((el) => [el.y, el.y + el.h].map((y, i) => <div key={el.id + i} style={{ position: 'absolute', left: px(group.x), width: px(group.w), top: px(y), borderTop: '1px dashed color-mix(in srgb,var(--cv-accent,#2d7b57) 50%,transparent)' }} />))}
       </>}
       {guides.v != null && <div style={{ position: 'absolute', left: px(guides.v), top: 0, bottom: 0, borderLeft: '1px solid #d946ef' }} />}
-      {cur && editing !== cur.id && <>
+      {cur && !multiBox && editing !== cur.id && <>
         <div data-docking-line="1" style={{ position: 'absolute', top: px(cur.y + cur.h / 2), left: 0, right: 0, borderTop: '1px solid #d946ef' }} />
         {guides.h != null && <div style={{ position: 'absolute', top: px(guides.h), left: 0, right: 0, borderTop: '1px solid #d946ef' }} />}
         <span data-measure="offset" style={{ ...measure, left: Math.min(size.w - 42, px(cur.x + cur.w) + 8), top: px(cur.y + cur.h / 2) - 20 }}>{(Math.max(0, FREE_W - cur.x - cur.w) / FREE_W * 100).toFixed(1)}%</span>
@@ -394,6 +422,10 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
         </div>
         {!interacting && !drag.current?.moved && <div data-free-ui="1" style={{ display: 'contents' }}><Toolbar el={cur} scale={scale} hostW={size.w} patch={patch} set={set} dup={dup} del={del} order={order} onEdit={() => setEditing(cur.id)} /></div>}
       </>}
+      {cur && multiBox && <div data-multi-bounds="true" style={{ position: 'absolute', left: px(multiBox.x), top: px(multiBox.y), width: px(multiBox.w), height: px(multiBox.h), outline: `2px solid ${BRAND}`, pointerEvents: 'none' }}>
+        <span style={{ ...measure, top: -22 }}>{multi.length} phần tử · {Math.round(multiBox.w)} × {Math.round(multiBox.h)}</span>
+        {HANDLES.map((hd) => <span key={hd} data-free-ui="1" role="button" tabIndex={0} aria-label={'Resize tập chọn ' + hd} onKeyDown={(event) => resizeMultiKey(event, hd)} onPointerDown={(event) => start(event, cur, 'resize', hd)} style={{ position: 'absolute', left: (hd.includes('w') ? 0 : hd.includes('e') ? 100 : 50) + '%', top: (hd.includes('n') ? 0 : hd.includes('s') ? 100 : 50) + '%', width: 10, height: 10, margin: -5, border: `1px solid ${BRAND}`, background: '#fff', pointerEvents: 'auto', cursor: CURSOR[hd], touchAction: 'none' }} />)}
+      </div>}
     </div>}
     {ctxMenu && createPortal(
       <div
@@ -453,7 +485,7 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
 // ---------- Một section / widget trên canvas ----------
 const chipBtn: React.CSSProperties = { minWidth: 26, height: 26, border: 0, borderRadius: 6, background: 'transparent', color: 'inherit', cursor: 'pointer', font: 'inherit', fontSize: 13, fontWeight: 700 }
 
-function SectionBox({ block, config, sel, setSel, data, commit, label, first, last, preview, partDevice, selectedState, siteCtx }: { block: Block; config: any; sel: Sel; setSel: (s: Sel) => void; data: PageData; commit: (d: PageData, key?: string) => void; label: string; first: boolean; last: boolean; preview?: boolean; partDevice: WidgetPartDevice; selectedState: ElementState; siteCtx: SiteCtx }) {
+function SectionBox({ block, config, sel, setSel, data, commit, label, first, last, preview, partDevice, selectedState, siteCtx, locale }: { block: Block; config: any; sel: Sel; setSel: (s: Sel) => void; data: PageData; commit: (d: PageData, key?: string) => void; label: string; first: boolean; last: boolean; preview?: boolean; partDevice: WidgetPartDevice; selectedState: ElementState; siteCtx: SiteCtx; locale?: string }) {
   const id = blockId(block)
   const Render = config.components[block.type]?.render
   const wrap = useRef<HTMLDivElement>(null)
@@ -508,7 +540,7 @@ function SectionBox({ block, config, sel, setSel, data, commit, label, first, la
       }}
       style={{ position: 'relative', zIndex: !preview && sel.block === id ? 40 : 0 }}
       onPointerDown={(e) => {
-        if (preview || e.button !== 0 || (e.target as Element).closest('[data-free-ui]')) return
+        if (preview || e.currentTarget.ownerDocument.body.dataset.panning === 'true' || e.currentTarget.ownerDocument.body.dataset.actionPicking === 'true' || e.button !== 0 || (e.target as Element).closest('[data-free-ui]')) return
         const target = e.target as Element
         const root = target.closest('[data-hs-parts]')
         const part = target.closest('button, a, input, select, textarea') ?? target.closest('svg') ?? target
@@ -539,10 +571,11 @@ function SectionBox({ block, config, sel, setSel, data, commit, label, first, la
       onPointerCancel={() => { partDrag.current = null; setPartDraft(null) }}
       onLostPointerCapture={() => { partDrag.current = null; setPartDraft(null) }}
     >
-      {Render ? React.createElement(Render, { ...block.props, ...(partDraft ? { [partKey]: partDraft } : {}), _hide: undefined, _states: section ? undefined : block.props._states, _editorState: undefined, _noFree: true, _motionEditing: !preview, _editParts: !section }) : <div style={{ padding: 24, background: '#fef3c7', font: '14px sans-serif' }}>Block “{block.type}” không còn trong site (plugin đã gỡ).</div>}
+      {block.type === 'Reusable' ? <ReusablePreview block={block} config={config} locale={locale} editing={!preview} /> : Render ? React.createElement(Render, { ...block.props, ...(partDraft ? { [partKey]: partDraft } : {}), _hide: undefined, _states: section ? undefined : block.props._states, _editorState: undefined, _noFree: true, _motionEditing: !preview, _editParts: !section }) : <div style={{ padding: 24, background: '#fef3c7', font: '14px sans-serif' }}>Block “{block.type}” không còn trong site (plugin đã gỡ).</div>}
       {section && <style>{elementStatesCss(id, block.props)}</style>}
       {activePart && <style>{activePart + '{outline:2px solid var(--cv-accent,#2d7b57)!important;outline-offset:3px;cursor:move;touch-action:none}'}</style>}
       <Layer savedGuides={block.props._guides} onGuides={(guides) => commit(patchBlock(data, id, { _guides: guides }))} selectedState={selectedState} blockId={id} els={elsOf(block)} sel={sel} setSel={setSel} preview={preview} onTransfer={(target, next, rootId) => { commit(reparentElements(data, id, target, next, rootId)); setSel({ block: target, el: rootId }) }} onEls={(next, key) => commit(setBlockEls(data, id, next), key)} labelHint={section ? 'Phần trống: chọn tab “Văn bản” hoặc “Phần tử” bên trái rồi bấm để thêm.' : undefined} />
+      <SelectionMarquee owner={id} list={elsOf(block)} sel={sel} setSel={setSel} disabled={preview || !section} />
       {selected && (
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', outline: `2px solid ${BRAND}`, outlineOffset: -2, zIndex: 30 }}>
           <SectionToolbar>
@@ -652,6 +685,7 @@ function InsertDivider({ onAdd, preview }: { onAdd: () => void; preview?: boolea
 export function CanvasStage({
   expanded = false,
   siteCtx = {},
+  locale = 'vi',
   selectedState = 'normal',
   partDevice = 'desktop',
   data,
@@ -662,6 +696,7 @@ export function CanvasStage({
   labelOf,
   width,
   zoom = 'fit',
+  onZoom, onWidth,
   css,
   htmlClass,
   onDoc,
@@ -675,6 +710,7 @@ export function CanvasStage({
   partDevice?: WidgetPartDevice
   selectedState?: ElementState
   siteCtx?: SiteCtx
+  locale?: string
   data: PageData
   config: any
   sel: Sel
@@ -683,6 +719,8 @@ export function CanvasStage({
   labelOf: (type: string) => string
   width: number | string
   zoom?: 'fit' | number
+  onZoom?: (zoom: number | 'fit') => void
+  onWidth?: (width: number) => void
   css: string
   htmlClass: string
   onDoc?: (d: Document) => void
@@ -695,6 +733,7 @@ export function CanvasStage({
       <React.Fragment key={blockId(b)}>
         <SectionBox
           siteCtx={siteCtx}
+          locale={locale}
           selectedState={selectedState}
           partDevice={partDevice}
           preview={preview}
@@ -746,10 +785,11 @@ export function CanvasStage({
         setSel({ block: PAGE, el: el.id })
       }}>
       {body}
+      {!areaKind && <SelectionMarquee owner={PAGE} list={floatOf(data)} sel={sel} setSel={setSel} disabled={preview || sel.block !== PAGE} />}
       {!areaKind && <div style={{ position: 'absolute', inset: 0, zIndex: 25, pointerEvents: 'none' }}><Layer selectedState={selectedState} preview={preview} onTransfer={(target, next, rootId) => { commit(reparentElements(data, PAGE, target, next, rootId)); setSel({ block: target, el: rootId }) }} blockId={PAGE} els={floatOf(data)} sel={sel} setSel={setSel} onEls={(next, key) => commit(setBlockEls(data, PAGE, next), key)} /></div>}
     </div>
   )
-  return <StageFrame expanded={expanded} width={width} zoom={zoom} css={css} htmlClass={htmlClass} onDoc={onDoc}>{Root ? <Root>{page}</Root> : page}</StageFrame>
+  return <StageFrame expanded={expanded} width={width} zoom={zoom} onZoom={onZoom} onWidth={onWidth} sel={sel} preview={preview} css={css} htmlClass={htmlClass} onDoc={onDoc}>{Root ? <Root>{page}</Root> : page}</StageFrame>
 }
 
 export { addEls }

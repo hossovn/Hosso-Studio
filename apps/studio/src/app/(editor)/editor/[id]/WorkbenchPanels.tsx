@@ -5,6 +5,7 @@ import { DEVICE_WIDTH, pageForDevice, resetDeviceLayout, stackDeviceSection, typ
 import { cloneBlock, blockId, elsOf, floatOf, type Hist, type PageData, type Sel } from './canvas-model'
 import { describeChange } from './editor-tools'
 import type { NavCtx } from './SitePanels'
+import { normalizeBreakpoints, layoutWidth, type LayoutDevice } from '../../../../../../../packages/blocks/src/responsive-breakpoints'
 
 type Snapshot = { id: string; name: string; date: string; data: PageData }
 const validPage = (data: unknown): data is PageData => Boolean(data && typeof data === 'object' && Array.isArray((data as PageData).content))
@@ -34,19 +35,27 @@ export function HistoryPanel({ hist, onJump, onRestore, storageKey, nav }: { his
   </div>
 }
 
-export function ResponsivePanel({ data, device, setDevice, sel, setSel, commit }: { data: PageData; device: CanvasDevice; setDevice: (device: CanvasDevice) => void; sel: Sel; setSel: (sel: Sel) => void; commit: (data: PageData) => void }) {
-  const resolved = pageForDevice(data, device)
+export function ResponsivePanel({ data, device, layout = device, width = DEVICE_WIDTH[device], onWidth, onLayout, setDevice, sel, setSel, commit }: { data: PageData; device: CanvasDevice; layout?: LayoutDevice; width?: number; onWidth?: (width: number) => void; onLayout?: (key: LayoutDevice) => void; setDevice: (device: CanvasDevice) => void; sel: Sel; setSel: (sel: Sel) => void; commit: (data: PageData) => void }) {
+  const [customWidth, setCustomWidth] = useState(900)
+  const points = normalizeBreakpoints(data.root?.props?._breakpoints)
+  const resolved = pageForDevice(data, layout)
   const errors = resolved.content.flatMap((block) => elsOf(block).filter((el) => !el.props._hidden && el.props._hide !== ({ desktop: 'd', tablet: 't', mobile: 'm' }[device]) && (el.x < 0 || el.x + el.w > 1201 || el.y < 0 || (block.type === 'FreeCanvas' && Number(block.props.height) > 0 && el.y + el.h > Number(block.props.height) + 1))).map((el) => ({ block: blockId(block), el })))
   const floatErrors = floatOf(resolved).filter((el) => !el.props._hidden && el.props._hide !== ({ desktop: 'd', tablet: 't', mobile: 'm' }[device]) && (el.x < 0 || el.x + el.w > 1201 || el.y < 0)).map((el) => ({ block: '@page', el }))
   const issues = [...errors, ...floatErrors]
-  const overrides = data.content.flatMap(elsOf).filter((el) => device !== 'desktop' && el.responsive?.[device]).length
+  const overrides = data.content.flatMap(elsOf).filter((el) => layout !== 'desktop' && el.responsive?.[layout as Exclude<LayoutDevice, 'desktop'>]).length
   return <div className="cv-workbench-panel">
     <div className="cv-tool-segments">{(['desktop', 'tablet', 'mobile'] as const).map((value) => <button type="button" key={value} aria-pressed={device === value} onClick={() => setDevice(value)}>{value === 'desktop' ? 'Desktop' : value === 'tablet' ? 'Tablet' : 'Mobile'}<small>{DEVICE_WIDTH[value]} px</small></button>)}</div>
+    <label className="cv-tool-field">Chiều rộng xem trước · {width} px<input type="range" aria-label="Chiều rộng xem trước" min={320} max={1920} step={1} value={width} onChange={(e) => onWidth?.(Number(e.target.value))} /><input type="number" aria-label="Chiều rộng canvas" min={320} max={1920} value={width} onChange={(e) => onWidth?.(Number(e.target.value))} /></label>
+    <h3 className="cv-catalog-heading">Breakpoint tùy chỉnh <span>{points.length}/8</span></h3>
+    <p className="cv-tool-help">Mỗi breakpoint áp dụng từ mốc nhỏ hơn kế tiếp đến chiều rộng đã chọn. Bố cục riêng được dùng khi xuất bản.</p>
+    <form className="cv-tool-inline" onSubmit={(e) => { e.preventDefault(); const next = normalizeBreakpoints([...points, { width: customWidth }]); if (next.length > 8 || next.length === points.length) return; commit({ ...data, root: { ...data.root, props: { ...data.root?.props, _breakpoints: next } } }); onWidth?.(customWidth); onLayout?.(`bp-${customWidth}`) }}><input type="number" aria-label="Chiều rộng breakpoint mới" min={320} max={1920} required value={customWidth} onChange={(e) => setCustomWidth(Number(e.target.value))} /><button type="submit" disabled={points.length >= 8 || [600, 1024].includes(customWidth)}>Thêm</button></form>
+    {points.map((point) => <div className="cv-saved-row" key={point.id}><button type="button" aria-pressed={layout === point.id} onClick={() => { onWidth?.(point.width); onLayout?.(point.id) }}>{point.width} px</button><button type="button" aria-label={`Xóa breakpoint ${point.width}`} onClick={() => { const remove = (patch: any) => { const next = { ...patch }; delete next[point.id]; return next }; const clean = (els: any[]) => els.map((el) => ({ ...el, responsive: remove(el.responsive) })); commit({ ...data, root: { ...data.root, props: { ...data.root?.props, _breakpoints: points.filter((p) => p.id !== point.id), _float: clean(floatOf(data)) } }, content: data.content.map((block) => ({ ...block, props: { ...block.props, _responsive: remove(block.props._responsive), _els: clean(elsOf(block)) } })) }); if (layout === point.id) setDevice(device) }}><Trash2 size={14} /></button></div>)}
+    <p className="cv-tool-help">Đang sửa bố cục: {layout.startsWith('bp-') ? `${layoutWidth(layout)} px` : layout}.</p>
     <p className="cv-tool-help">Vị trí, kích thước, font và khoảng cách được lưu riêng theo thiết bị. Nội dung chữ và liên kết dùng chung.</p>
-    {device !== 'desktop' && <>
+    {layout !== 'desktop' && <>
       <p className="cv-tool-help">{overrides} phần tử có điều chỉnh riêng trên thiết bị này.</p>
-      <button type="button" className="cv-tool-button is-primary" onClick={() => commit(data.content.reduce((next, block) => stackDeviceSection(next, blockId(block), device), data))}>Tự xếp dọc toàn trang</button>
-      {sel.block && <button type="button" className="cv-tool-button" onClick={() => commit(resetDeviceLayout(data, sel.block, device, sel.el || undefined))}><RotateCcw size={14} />Bỏ điều chỉnh của mục đang chọn</button>}
+      <button type="button" className="cv-tool-button is-primary" onClick={() => commit(data.content.reduce((next, block) => stackDeviceSection(next, blockId(block), layout), data))}>Tự xếp dọc toàn trang</button>
+      {sel.block && <button type="button" className="cv-tool-button" onClick={() => commit(resetDeviceLayout(data, sel.block, layout, sel.el || undefined))}><RotateCcw size={14} />Bỏ điều chỉnh của mục đang chọn</button>}
     </>}
     <h3 className="cv-catalog-heading">Nội dung ngoài khung <span>{issues.length}</span></h3>
     {!issues.length && <p className="cv-tool-success" role="status">Không phát hiện phần tử tràn khung trên thiết bị này.</p>}

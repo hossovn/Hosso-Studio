@@ -9,7 +9,7 @@ const STEPS = [
 ] as const
 const SHORTCUTS = [
   ['Hoàn tác / làm lại', 'Ctrl/⌘ Z · Shift Ctrl/⌘ Z'], ['Lưu nháp', 'Ctrl/⌘ S'], ['Sao chép / cắt / dán', 'Ctrl/⌘ C · X · V'], ['Nhân đôi', 'Ctrl/⌘ D'],
-  ['Sao chép / dán kiểu', 'Ctrl/⌘ Alt C · V'], ['Chọn nhiều cùng section', 'Shift + bấm'], ['Dịch chuyển', 'Mũi tên · Shift để đi 10px'], ['Xóa', 'Delete / Backspace'],
+  ['Sao chép / dán kiểu', 'Ctrl/⌘ Alt C · V'], ['Chọn nhiều cùng section', 'Kéo trên vùng trống · Shift + bấm'], ['Chọn tất cả trong lớp', 'Ctrl/⌘ A'], ['Kéo khung nhìn', 'Giữ Space + kéo'], ['Zoom tại con trỏ', 'Ctrl/⌘ + cuộn chuột'], ['Dịch chuyển', 'Mũi tên · Shift để đi 10px'], ['Xóa', 'Delete / Backspace'],
   ['Giữ tỉ lệ khi resize', 'Shift + kéo góc'], ['Tạm bỏ hít', 'Ctrl/⌘ + kéo'], ['Sửa chữ tại chỗ', 'Nhấp đúp vào chữ'], ['Khôi phục thanh công cụ', 'Nhấp đúp tay nắm / Home'], ['Trợ giúp', '?'],
 ]
 export function EditorHelp({ open, onClose, onNavigate }: { open: boolean; onClose: () => void; onNavigate: (target: string) => void }) {

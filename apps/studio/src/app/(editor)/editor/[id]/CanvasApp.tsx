@@ -1,5 +1,5 @@
 'use client'
-import { FREE_MAX_PX, FREE_W, cloneElements, elementFamily, patchWidgetPart, widgetPartKey, widgetPartsForDevice, type FreeElement, type ElementState } from '@hosso/studio-blocks'
+import { FREE_MAX_PX, FREE_W, cloneElements, patchWidgetPart, widgetPartKey, widgetPartsForDevice, type FreeElement, type ElementState } from '@hosso/studio-blocks'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createStore, useStore } from 'zustand'
 import { ArrowLeft, ChevronRight, Copy, Eye, HelpCircle, Layers, Monitor, Pencil, PanelLeftClose, PanelRightClose, Redo2, Smartphone, Tablet, Trash2, Undo2, Maximize, Minimize, SlidersHorizontal } from 'lucide-react'
@@ -7,8 +7,12 @@ import { elsOf, elementStyleProps, setBlockEls } from './canvas-model'
 import { DrawingContext, DrawingPanel } from './DrawingTools'
 import { DEFAULT_DRAWING, type DrawingOptions } from './canvas-guides'
 import { EditorHelp } from './EditorHelp'
+import { useFloatingInspector } from './FloatingDock'
 import { PopupPanel } from './PopupPanel'
 import { batchStyle } from './batch-style'
+import { selectedElements, selectionBox, transformSelection, duplicateSelection, deleteSelection } from './canvas-selection'
+import { inheritedElementFlag } from '../../../../../../../packages/blocks/src/free-geometry'
+import { baseDevice, layoutAtWidth, syncBreakpoints, type LayoutDevice } from '../../../../../../../packages/blocks/src/responsive-breakpoints'
 import { visibleCanvasBlock, visibleCanvasRange } from './canvas-viewport'
 
 import { CanvasInspector } from './CanvasInspector'
@@ -25,7 +29,7 @@ import { StyleClipboardContext } from './FreeCanvasEditor'
 import type { SiteCtx } from './SectionTemplates'
 import { DEVICE_WIDTH, pageForDevice, mergeDevicePage, resetDeviceLayout, stackDeviceSection } from '@hosso/studio-blocks'
 import {
-  NO_SEL, PAGE, addEls, placeElement, placementOwner, blockId, commitHist, dupEl, findEl, initHist, insertBlock, isSection, newBlockId, patchBlock, redoHist, removeEl, undoHist, updateEl,
+  NO_SEL, PAGE, addEls, placeElement, placementOwner, blockId, commitHist, findEl, initHist, insertBlock, isSection, newBlockId, patchBlock, redoHist, undoHist,
   type Block, type Hist, type PageData, type Sel,
 } from './canvas-model'
 
@@ -77,6 +81,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
   const [leftOpen, setLeftOpen] = useState(false)
   // Giữ canvas rộng như các landing-page builder hiện đại; thuộc tính mở theo ngữ cảnh.
   const [rightOpen, setRightOpen] = useState(false)
+  const inspectorDock = useFloatingInspector(rightOpen)
   const editorRoot = useRef<HTMLDivElement>(null)
   const [focusMode, setFocusMode] = useState(true)
   const [fullscreen, setFullscreen] = useState(false)
@@ -105,7 +110,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
     if (!rightOpen && window.innerWidth <= 1100) setLeftOpen(false)
     setRightOpen(!rightOpen)
   }
-  const [zoom, setZoom] = useState<'fit' | 0.5 | 0.75 | 1 | 1.25>('fit')
+  const [zoom, setZoom] = useState<'fit' | number>('fit')
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [drawing, setDrawing] = useState<DrawingOptions>(DEFAULT_DRAWING)
   useEffect(() => { try { const saved = JSON.parse(localStorage.getItem('hosso-drawing:v1') || 'null'); if (saved) setDrawing({ ...DEFAULT_DRAWING, ...saved, gridSize: Math.max(4, Math.min(100, Number(saved.gridSize) || 20)) }) } catch {} }, [])
@@ -118,7 +123,13 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
     if (window.innerWidth <= 800) setLeftOpen(false)
   }, [])
   const [tab, setTab] = useState<Tab>('sections')
-  const [device, setDevice] = useState<(typeof DEVICES)[number]['id']>(initialDevice)
+  const [device, setBaseDevice] = useState<(typeof DEVICES)[number]['id']>(initialDevice)
+  const [previewWidth, setPreviewWidth] = useState<number>(DEVICE_WIDTH[initialDevice])
+  const [layout, setLayout] = useState<LayoutDevice>(() => layoutAtWidth(DEVICE_WIDTH[initialDevice], hist.present.root?.props?._breakpoints))
+  const setDevice = (value: typeof device) => { setBaseDevice(value); setPreviewWidth(DEVICE_WIDTH[value]); setLayout(layoutAtWidth(DEVICE_WIDTH[value], hist.present.root?.props?._breakpoints)) }
+  const resizePreview = (width: number) => { const next = Math.max(320, Math.min(1920, Math.round(width))); setPreviewWidth(next); setBaseDevice(baseDevice(next)); setLayout(layoutAtWidth(next, hist.present.root?.props?._breakpoints)) }
+  const breakpointKey = JSON.stringify(hist.present.root?.props?._breakpoints ?? [])
+  useEffect(() => { setLayout(layoutAtWidth(previewWidth, hist.present.root?.props?._breakpoints)) }, [breakpointKey])
   const [elementState, setElementState] = useState<ElementState>('normal')
   useEffect(() => setElementState('normal'), [sel.el, sel.block, preview])
   const [docs, setDocs] = useState<Document[]>([])
@@ -136,7 +147,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
     docs.forEach((doc) => doc.addEventListener('hosso-inspect', inspect))
     return () => docs.forEach((doc) => doc.removeEventListener('hosso-inspect', inspect))
   }, [docs])
-  const data = useMemo(() => pageForDevice(hist.present, device), [hist.present, device])
+  const data = useMemo(() => pageForDevice(hist.present, layout), [hist.present, layout])
   const revealBlock = useRef(initialSelection?.block ?? '')
   useEffect(() => {
     const id = revealBlock.current
@@ -147,8 +158,8 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
     })
     return () => cancelAnimationFrame(frame)
   }, [data, docs])
-  const commit = useCallback((next: PageData, key?: string) => store.setState((s) => ({ hist: commitHist(s.hist, mergeDevicePage(s.hist.present, next, device), key ? device + ':' + key : undefined) })), [store, device])
-  const commitLayout = (next: PageData) => store.setState((s) => ({ hist: commitHist(s.hist, next) }))
+  const commit = useCallback((next: PageData, key?: string) => store.setState((s) => ({ hist: commitHist(s.hist, syncBreakpoints(mergeDevicePage(s.hist.present, next, layout)), key ? layout + ':' + key : undefined) })), [store, layout])
+  const commitLayout = (next: PageData) => store.setState((s) => ({ hist: commitHist(s.hist, syncBreakpoints(next)) }))
   const undo = useCallback(() => store.setState((s) => {
     const hist = undoHist(s.hist), hit = findEl(hist.present, s.sel.el)
     return { hist, sel: hit ? { block: blockId(hit.block), el: hit.el.id } : NO_SEL }
@@ -192,6 +203,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
       if (k === 'escape' && !document.fullscreenElement && focusMode) { setFocusMode(false); return }
       if (mod && k === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return }
       if (mod && k === 'y') { e.preventDefault(); redo(); return }
+      if (mod && k === 'a' && s.block) { const list = s.block === PAGE ? d.root?.props?._float ?? [] : elsOf(d.content.find((b) => blockId(b) === s.block) ?? { type: '', props: {} }); const ids = list.filter((el: FreeElement) => !inheritedElementFlag(list, el.id, '_hidden') && !inheritedElementFlag(list, el.id, '_locked')).map((el: FreeElement) => el.id); e.preventDefault(); setSel({ block: s.block, el: ids[ids.length - 1] ?? '', multi: ids }); return }
       if (s.part) {
         if (k === 'escape') { setSel({ block: s.block, el: '' }); return }
         const block = d.content.find((b) => blockId(b) === s.block)
@@ -206,12 +218,11 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
         return
       }
       if (!s.el || !findEl(d, s.el)) return
-      if (findEl(d, s.el)?.el.props._locked && k !== 'escape') return
       const step = (e.shiftKey ? 10 : 1) * 1200 / DEVICE_WIDTH[st.current.device]
       const nudge: Record<string, [number, number]> = { arrowleft: [-step, 0], arrowright: [step, 0], arrowup: [0, -step], arrowdown: [0, step] }
-      if (k === 'delete' || k === 'backspace') { e.preventDefault(); commit(removeEl(d, s.el)); setSel({ block: s.block, el: '' }) }
-      else if (mod && k === 'd') { e.preventDefault(); const r = dupEl(d, s.el); commit(r.data); setSel({ block: s.block, el: r.id }) }
-      else if (nudge[k]) { e.preventDefault(); const [dx, dy] = nudge[k]; commit(updateEl(d, s.el, (el) => ({ ...el, x: el.x + dx, y: el.y + dy })), `n:${s.el}`) }
+      if (k === 'delete' || k === 'backspace') { e.preventDefault(); commit(deleteSelection(d, s)); setSel({ block: s.block, el: '' }) }
+      else if (mod && k === 'd') { e.preventDefault(); const r = duplicateSelection(d, s); commit(r.data); setSel(r.sel) }
+      else if (nudge[k]) { e.preventDefault(); const [dx, dy] = nudge[k], box = selectionBox(selectedElements(d, s)), hit = findEl(d, s.el); if (box && hit) commit(setBlockEls(d, s.block, transformSelection(elsOf(hit.block), s.multi?.length ? s.multi : [s.el], { ...box, x: box.x + dx, y: box.y + dy })), `n:${s.multi?.join(',') || s.el}`) }
       else if (k === 'escape') setSel({ block: s.block, el: '' })
     }
     // Sao chép, cắt, dán component (dùng sự kiện clipboard nên dán được sang trang khác); dán vào đúng chỗ đang nhìn.
@@ -221,9 +232,9 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
       const { data: d, sel: s } = st.current
       const hit = s.el ? findEl(d, s.el) : null
       if (!hit || !e.clipboardData) return
-      e.clipboardData?.setData('text/plain', CLIP + JSON.stringify(elementFamily(elsOf(hit.block), hit.el.id)))
+      e.clipboardData?.setData('text/plain', CLIP + JSON.stringify(selectedElements(d, s, e.type === 'cut')))
       e.preventDefault()
-      if (e.type === 'cut') { commit(removeEl(d, s.el)); setSel({ block: s.block, el: '' }) }
+      if (e.type === 'cut') { commit(deleteSelection(d, s)); setSel({ block: s.block, el: '' }) }
     }
     const onPaste = (e: ClipboardEvent) => {
       const text = e.clipboardData?.getData('text/plain') ?? ''
@@ -279,7 +290,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
       const vt = viewTarget()
       if (vt && blocks.some((b) => blockId(b) === vt.id && isSection(b))) {
         commit(addEls(data, vt.id, els, vt))
-        setSel({ block: vt.id, el: els[0].id })
+        setSel({ block: vt.id, el: els[els.length - 1].id, multi: els.map((el) => el.id) })
         return
       }
       // No visible section: place the element on the visible part of the page layer.
@@ -291,13 +302,13 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
         const rect = page.getBoundingClientRect()
         const scale = Math.min(page.clientWidth, FREE_MAX_PX) / FREE_W
         commit(addEls(data, PAGE, els, { cx: FREE_W / 2, cy: ((range.top + range.bottom) / 2 - rect.top) / scale, maxY: rect.height / scale }))
-        setSel({ block: PAGE, el: els[0].id })
+        setSel({ block: PAGE, el: els[els.length - 1].id, multi: els.map((el) => el.id) })
         return
       }
       const nb = section(els.map((e) => ({ ...e, x: 80, y: 24 })))
       revealBlock.current = blockId(nb)
       commit(insertBlock(data, nb, vt?.id))
-      setSel({ block: blockId(nb), el: els[0].id })
+      setSel({ block: blockId(nb), el: els[els.length - 1].id, multi: els.map((el) => el.id) })
     },
     addSection: (tpl) => {
       const nb = section(tpl.els, tpl.height, tpl.bg)
@@ -418,7 +429,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
               drawingPanel={<DrawingPanel value={drawing} onChange={changeDrawing} />}
               popupPanel={<PopupPanel data={data} sel={sel} setSel={setSel} commit={commit} onAdd={() => ops.addWidget('Popup')} />}
               historyPanel={<HistoryPanel hist={hist} nav={nav} storageKey={`hosso-snapshots:${nav?.collection ?? 'demo'}:${nav?.id ?? 'demo'}:${nav?.locale ?? lang}`} onJump={(index) => { store.setState({ hist: jumpHistory(hist, index), sel: NO_SEL }) }} onRestore={(next) => { commitLayout(next); setSel(NO_SEL) }} />}
-              responsivePanel={<ResponsivePanel data={hist.present} device={device} setDevice={setDevice} sel={sel} setSel={setSel} commit={commitLayout} />}
+              responsivePanel={<ResponsivePanel data={hist.present} device={device} layout={layout} width={previewWidth} onWidth={resizePreview} onLayout={setLayout} setDevice={setDevice} sel={sel} setSel={setSel} commit={commitLayout} />}
               formPanel={<FormBuilderPanel nav={nav} onInsert={(slug, heading) => ops.addWidget('Form', { form: slug, heading })} />}
               publishPanel={<PublishPanel nav={nav} metadata={metadata} onMetadataChange={onMetadataChange} data={hist.present} config={config} setSel={(selection) => { setSel(selection); setRightOpen(true); if (window.innerWidth <= 1100) setLeftOpen(false) }} onDevice={setDevice} />}
             />
@@ -426,6 +437,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
         )}
         <main className="cv-canvas" style={{ flex: 1, minWidth: 0, padding: 0, display: 'flex', flexDirection: 'column' }}>
           <CanvasStage
+            locale={nav?.locale ?? lang}
             expanded={focusMode}
             siteCtx={siteCtx}
             selectedState={elementState}
@@ -437,7 +449,9 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
             setSel={setSel}
             commit={commit}
             labelOf={labelOf}
-            width={dev.width}
+            width={previewWidth}
+            onWidth={resizePreview}
+            onZoom={setZoom}
             zoom={zoom}
             css={css + brandDraft.css}
             htmlClass={htmlClass}
@@ -449,17 +463,19 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
             <nav aria-label="Vị trí phần tử">
               <button type="button" onClick={() => setSel(NO_SEL)}>Trang</button>
               {selectedBlock && <><ChevronRight size={12} /><button type="button" onClick={() => setSel({ block: sel.block, el: '' })}>{labelOf(selectedBlock.type)}</button></>}
-              {selectedEl && <><ChevronRight size={12} /><span title={elLabel(selectedEl.el)}>{elLabel(selectedEl.el)}</span></>}
+              {selectedEl && <><ChevronRight size={12} /><span title={elLabel(selectedEl.el)}>{(sel.multi?.length ?? 0) > 1 ? `${sel.multi!.length} phần tử` : elLabel(selectedEl.el)}</span></>}
             </nav>
             {selectedEl && <div className="cv-selection-actions">
-              <button type="button" className="cv-ib" title="Nhân đôi phần tử" aria-label="Nhân đôi phần tử" onClick={() => { const r = dupEl(data, sel.el); commit(r.data); setSel({ block: sel.block, el: r.id }) }}><Copy size={15} /></button>
-              <button type="button" className="cv-ib" title="Xóa phần tử" aria-label="Xóa phần tử" onClick={() => { commit(removeEl(data, sel.el)); setSel({ block: sel.block, el: '' }) }}><Trash2 size={15} /></button>
+              <button type="button" className="cv-ib" title="Nhân đôi phần tử" aria-label="Nhân đôi phần tử" onClick={() => { const r = duplicateSelection(data, sel); commit(r.data); setSel(r.sel) }}><Copy size={15} /></button>
+              <button type="button" className="cv-ib" title="Xóa phần tử" aria-label="Xóa phần tử" onClick={() => { commit(deleteSelection(data, sel)); setSel({ block: sel.block, el: '' }) }}><Trash2 size={15} /></button>
             </div>}
           </footer>}
         </main>
         {!preview && rightOpen && (
-          <div className="cv-right-slot" style={{ display: 'flex', minHeight: 0 }}>
+          <div ref={inspectorDock.ref} className="cv-right-slot" data-detached={inspectorDock.detached} style={{ display: 'flex', minHeight: 0, ...inspectorDock.style }}>
             <CanvasInspector
+              dragHandle={inspectorDock.grip}
+              locale={nav?.locale ?? lang}
               state={elementState}
               onStateChange={setElementState}
               onDeviceChange={setDevice}

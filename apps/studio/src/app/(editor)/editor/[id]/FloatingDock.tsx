@@ -3,6 +3,33 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Grip, GripVertical } from 'lucide-react'
 import { DrawingContext } from './DrawingTools'
 
+/** Inspector starts docked; moving it creates a bounded floating panel. */
+export function useFloatingInspector(enabled: boolean) {
+  const ref = useRef<HTMLDivElement>(null), drag = useRef<{ x: number; y: number; left: number; top: number } | null>(null)
+  const [position, setPosition] = useState<{ x: number; y: number } | null>(null), latest = useRef(position)
+  const key = 'hosso-inspector-position:v1'
+  const clamp = (x: number, y: number) => {
+    const node = ref.current, parent = node?.offsetParent as HTMLElement | null
+    const width = parent?.clientWidth ?? window.innerWidth, height = parent?.clientHeight ?? window.innerHeight
+    return { x: Math.max(8, Math.min(x, width - (node?.offsetWidth ?? 304) - 8)), y: Math.max(8, Math.min(y, height - Math.min(720, height - 24) - 8)) }
+  }
+  const set = (next: typeof position, persist = false) => { latest.current = next; setPosition(next); if (persist) try { if (next) localStorage.setItem(key, JSON.stringify(next)); else localStorage.removeItem(key) } catch {} }
+  useEffect(() => { try { const saved = JSON.parse(localStorage.getItem(key) || 'null'); if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) set(clamp(saved.x, saved.y)) } catch {} }, [])
+  useEffect(() => {
+    const node = ref.current, parent = node?.offsetParent
+    if (!node || !parent) return
+    const resize = () => { if (latest.current) { const next = clamp(latest.current.x, latest.current.y); if (next.x !== latest.current.x || next.y !== latest.current.y) set(next) } }
+    const observer = new ResizeObserver(resize); observer.observe(parent); observer.observe(node)
+    return () => observer.disconnect()
+  }, [enabled])
+  const grip = <button type="button" className="cv-inspector-grip" aria-label="Kéo bảng thuộc tính" title="Kéo bảng thuộc tính · nhấp đúp hoặc Home để đặt lại" onDoubleClick={() => set(null, true)}
+    onPointerDown={(event) => { if (event.button !== 0) return; event.preventDefault(); const node = ref.current, parent = node?.offsetParent as HTMLElement | null; if (!node || !parent) return; const rect = node.getBoundingClientRect(), bounds = parent.getBoundingClientRect(), start = clamp(rect.left - bounds.left, rect.top - bounds.top); drag.current = { x: event.clientX, y: event.clientY, left: start.x, top: start.y }; set(start); event.currentTarget.setPointerCapture(event.pointerId) }}
+    onPointerMove={(event) => { if (drag.current) set(clamp(drag.current.left + event.clientX - drag.current.x, drag.current.top + event.clientY - drag.current.y)) }}
+    onPointerUp={() => { drag.current = null; set(latest.current, true) }} onPointerCancel={() => { drag.current = null; set(latest.current, true) }} onLostPointerCapture={() => { drag.current = null }}
+    onKeyDown={(event) => { if (event.key === 'Home') { event.preventDefault(); set(null, true); return }; const delta: Record<string, [number, number]> = { ArrowLeft: [-10, 0], ArrowRight: [10, 0], ArrowUp: [0, -10], ArrowDown: [0, 10] }; const node = ref.current, parent = node?.offsetParent as HTMLElement | null; if (!delta[event.key] || !node || !parent) return; event.preventDefault(); event.stopPropagation(); const rect = node.getBoundingClientRect(), bounds = parent.getBoundingClientRect(), [dx, dy] = delta[event.key]; set(clamp(rect.left - bounds.left + dx, rect.top - bounds.top + dy), true) }}><GripVertical size={16} /></button>
+  return { ref, grip, detached: Boolean(position), style: position ? { position: 'absolute' as const, left: position.x, top: position.y, right: 'auto', bottom: 'auto', height: 'min(720px, calc(100% - 24px))', margin: 0, zIndex: 8 } : undefined }
+}
+
 /** Coordinates stay relative to the workspace, so panels survive browser fullscreen changes. */
 export function FloatingDock({ children, enabled, title }: { children: React.ReactNode; enabled: boolean; title: string }) {
   const ref = useRef<HTMLDivElement>(null)

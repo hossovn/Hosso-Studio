@@ -12,6 +12,7 @@ import { toStyleField } from './style-fields'
 import type { BlockField, BlockRenderer, BlockSchema, HossoPlugin, Theme } from './types'
 import { widgetPartResponsiveCss, widgetPartScope } from './widget-parts'
 import { elementStateScope, elementStatesCss } from './element-states'
+import { sectionAnchor } from './link-actions'
 import { responsiveBlockCss } from './responsive-layout'
 
 const toPuckField = (f: BlockField, L: (vi: string) => string = (v) => v): any => {
@@ -95,10 +96,10 @@ export const withStyle = (Inner: BlockRenderer, publicRender = false): BlockRend
       content = createElement('div', { 'data-hs-parts': widgetPartScope(props.id), style: { display: 'contents' } }, content, css ? createElement('style', null, css) : null)
     }
     // Lớp phần tử tự do (prop _els) phủ lên mọi block; editor tự vẽ lớp chỉnh sửa nên đặt _noFree để bỏ lớp này.
-    const layer = !props._noFree && Array.isArray(props._els) && props._els.length ? createElement(FreeOverlay, { elements: props._els, height: props.height, responsive: props._responsive }) : null
-    if (!_bg && !_pt && !_pb && !_align && !_fs && !_bd && !_rd && !_sh && !_an && !_hv && !_hide && !reusableHide && !style && !layer && !stateCss && !layoutCss) return content
+    const layer = !props._noFree && Array.isArray(props._els) && props._els.length ? createElement(FreeOverlay, { elements: props._els, height: props.height, responsive: props._responsive, breakpoints: props._breakpoints, scope: props.id }) : null
+    if (!props._anchor && !props._reusableAnchor && !_bg && !_pt && !_pb && !_align && !_fs && !_bd && !_rd && !_sh && !_an && !_hv && !_hide && !reusableHide && !style && !layer && !stateCss && !layoutCss) return content
     const cls = ['hs-styled', _hide && `hs-hide-${_hide}`, reusableHide && `hs-hide-${reusableHide}`, _bg && `hs-bg-${_bg}`, _pt && `hs-pt-${_pt}`, _pb && `hs-pb-${_pb}`, _align && `hs-ta-${_align}`, _fs && `hs-fs-${_fs}`, _bd && `hs-bd-${_bd}`, _rd && `hs-rd-${_rd}`, _sh && `hs-sh-${_sh}`, _an && `hs-an-${_an}`, _hv && `hs-hv-${_hv}`].filter(Boolean).join(' ')
-    return createElement('div', { className: cls + (stateCss ? ' ' + elementStateScope(props.id) : ''), 'data-hs-layout': layoutCss ? encodeURIComponent(props.id) : undefined, style: layer ? { position: 'relative', ...style } : style }, stateCss ? createElement('style', null, stateCss) : null, layoutCss ? createElement('style', null, layoutCss) : null, content, layer)
+    return createElement('div', { id: props._anchor ? sectionAnchor(props.id) : undefined, className: cls + (stateCss ? ' ' + elementStateScope(props.id) : ''), 'data-hs-layout': layoutCss ? encodeURIComponent(props.id) : undefined, style: layer ? { position: 'relative', ...style } : style }, props._reusableAnchor ? createElement('span', { id: sectionAnchor(props._reusableAnchor), style: { display: 'block', height: 0 } }) : null, stateCss ? createElement('style', null, stateCss) : null, layoutCss ? createElement('style', null, layoutCss) : null, content, layer)
   }
   return Styled
 }

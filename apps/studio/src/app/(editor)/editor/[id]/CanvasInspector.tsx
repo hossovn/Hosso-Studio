@@ -1,5 +1,7 @@
 'use client'
 import { ConstraintsPanel } from './ConstraintsPanel'
+import { ActionPanel } from './ActionPanel'
+import { ReusableOverridesPanel } from './ReusableEditor'
 import { DEVICE_WIDTH, elementFamily, type WidgetPartDevice, type ElementState, type ElementDevice } from '@hosso/studio-blocks'
 import { BOX_SHADOWS, CLIPS, CLIP_LABEL, ColorControl, FREE_FONTS, ICON_BODY, ICON_CATS, MediaField, SHADOW_LABEL, TEXT_SHADOWS, RangeControl, SegControl, type FreeElement } from '@hosso/studio-blocks'
 import React from 'react'
@@ -240,7 +242,7 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
           <label className="cv-scroll-mobile"><input type="checkbox" checked={p.thumbnails === true} onChange={(e) => put({ thumbnails: e.target.checked })} />Hiện ảnh nhỏ để chọn</label>
         </>}
         {textual && <Row label={el.type === 'button' ? 'Chữ trên nút' : 'Nội dung'}><textarea style={{ ...ctl, minHeight: 64 }} value={p.text ?? ''} onChange={(e) => put({ text: e.target.value })} /></Row>}
-        {(el.type === 'button' || el.type === 'text') && <Row label="Liên kết"><input style={ctl} value={p.href ?? ''} placeholder="https://… hoặc /trang" onChange={(e) => put({ href: e.target.value })} /></Row>}
+        {['button', 'text', 'heading', 'image'].includes(el.type) && <ActionPanel key={el.id} href={p.href} data={data} onChange={(href, anchor) => commit(patchElProps(anchor ? patchBlock(data, anchor, { _anchor: true }) : data, el.id, { href }))} />}
         {el.type === 'button' && <details><summary>Biểu tượng</summary><IconPicker value={p.icon ?? ''} onChange={(icon) => put({ icon })} /><button type="button" style={btn} onClick={() => put({ icon: '' })}>Bỏ biểu tượng</button></details>}
         {el.type === 'heading' && (
           <Row label="Cấp tiêu đề (SEO)">
@@ -251,7 +253,6 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
           <>
             <Row label="Ảnh"><MediaField value={p.src ?? ''} onChange={(v) => put({ src: v })} kind="image" /></Row>
             <Row label="Mô tả ảnh (alt)"><input style={ctl} value={p.alt ?? ''} onChange={(e) => put({ alt: e.target.value })} /></Row>
-            <Row label="Liên kết khi bấm (ví dụ / cho logo)"><input style={ctl} value={p.href ?? ''} placeholder="/ hoặc https://…" onChange={(e) => put({ href: e.target.value })} /></Row>
             <Row label="Cách vừa khung"><SegControl value={p.fit === 'contain' ? 'contain' : 'cover'} onChange={(v) => put({ fit: v })} options={[{ label: 'Phủ kín', value: 'cover' }, { label: 'Vừa ảnh', value: 'contain' }]} /></Row>
           </>
         )}
@@ -445,7 +446,7 @@ function DevicePickerRow({ value, onChange }: { value: string; onChange: (value:
   return <select aria-label="Ẩn trên thiết bị" style={ctl} value={value} onChange={(e) => onChange(e.target.value)}><option value="">Hiện mọi nơi</option><option value="m">Ẩn trên điện thoại</option><option value="t">Ẩn trên máy tính bảng</option><option value="d">Ẩn trên máy tính</option></select>
 }
 
-function BlockInspector({ block, config, data, commit, labelOf, state, onStateChange, device, onDeviceChange }: { block: Block; config: any; data: PageData; commit: (d: PageData, key?: string) => void; labelOf: (type: string) => string } & StateInspectorProps) {
+function BlockInspector({ block, config, data, commit, labelOf, state, onStateChange, device, onDeviceChange, locale }: { block: Block; config: any; data: PageData; commit: (d: PageData, key?: string) => void; labelOf: (type: string) => string; locale?: string } & StateInspectorProps) {
   const id = blockId(block)
   const section = isSection(block)
   const [tab, setTab] = React.useState(section ? 'style' : 'content')
@@ -457,6 +458,7 @@ function BlockInspector({ block, config, data, commit, labelOf, state, onStateCh
     {section && <ElementStateControls props={block.props} state={state} onStateChange={onStateChange} device={device} onDeviceChange={onDeviceChange} supported={['normal', 'hover']} onChange={(props, key) => commit(patchBlock(data, id, { _states: props._states }), 'state:' + id + ':' + device + ':' + state + ':' + key)} />}
     <InspectorTabs value={tab} onChange={setTab} />
     <Group title="Nội dung" show={tab === 'content'}>
+      {block.type === 'Reusable' && <ReusableOverridesPanel key={id + ':' + block.props.slug} block={block} locale={locale} onChange={put} />}
       {section ? <p className="cv-help">Nội dung của section nằm trực tiếp trên canvas. Chọn chữ, ảnh hoặc nút để sửa; mở tab <strong>Thiết kế</strong> để chỉnh toàn bộ nền section.</p> : <>{block.type === 'ShopProductGrid' && <ProductSelection value={block.props.productIds} onChange={(ids) => put({ productIds: ids ?? null })} />}<FieldsForm fields={fields} values={block.props} onChange={(k, v) => put({ [k]: v })} /></>}
     </Group>
     <Group title="Thiết kế" show={tab === 'style'}>
@@ -542,6 +544,8 @@ export function CanvasInspector({
   title,
   onClose,
   docs = [],
+  locale = 'vi',
+  dragHandle,
   partDevice = 'desktop',
   state = 'normal',
   onStateChange = () => {},
@@ -556,6 +560,8 @@ export function CanvasInspector({
   title?: string
   onClose?: () => void
   docs?: Document[]
+  locale?: string
+  dragHandle?: React.ReactNode
   partDevice?: WidgetPartDevice
   state?: ElementState
   onStateChange?: (state: ElementState) => void
@@ -569,13 +575,14 @@ export function CanvasInspector({
     {!isSection(block) && <WidgetPartPicker block={block} sel={sel} setSel={setSel} docs={docs} />}
     {sel.part && !isSection(block)
       ? <WidgetPartsInspector block={block} path={sel.part} data={data} commit={commit} setSel={setSel} device={partDevice} />
-      : <BlockInspector block={block} config={config} data={data} commit={commit} labelOf={labelOf} state={state} onStateChange={onStateChange} device={partDevice} onDeviceChange={onDeviceChange} />}
+      : <BlockInspector block={block} config={config} data={data} commit={commit} labelOf={labelOf} state={state} onStateChange={onStateChange} device={partDevice} onDeviceChange={onDeviceChange} locale={locale} />}
   </>
   else body = <PageOverviewInspector data={data} setSel={setSel} commit={commit} title={title} />
   return (
     <aside className="cv-insp" style={{ width: 310, flex: '0 0 310px', borderLeft: `1px solid ${LINE}`, background: '#fff', overflowY: 'auto', fontFamily: 'inherit', display: 'flex', flexDirection: 'column' }}>
       <style>{INSPECTOR_CSS}</style>
       <div className="cv-panel-heading">
+        {dragHandle}
         <span className="cv-panel-title">
           <SlidersHorizontal size={16} />{hit ? 'Thuộc tính phần tử' : block ? 'Thuộc tính phần' : 'Tổng quan trang'}
         </span>
