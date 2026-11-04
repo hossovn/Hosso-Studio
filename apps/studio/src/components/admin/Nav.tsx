@@ -80,7 +80,7 @@ export const Nav = async ({ payload, user, i18n }: Props) => {
     content.push({
       id: 'posts',
       label: 'Bài viết',
-      href: '/admin/collections/posts',
+      href: '/admin/content?kind=posts',
       icon: 'pin',
       badge: draftPosts || undefined,
       badgeTitle: 'bản nháp',
@@ -95,7 +95,7 @@ export const Nav = async ({ payload, user, i18n }: Props) => {
     content.push({
       id: 'media',
       label: 'Thư viện media',
-      href: '/admin/collections/media',
+      href: '/admin/content?kind=media',
       icon: 'image',
       quick: { href: '/admin/collections/media/create', label: 'Tải lên' },
       children: [
@@ -107,7 +107,7 @@ export const Nav = async ({ payload, user, i18n }: Props) => {
     content.push({
       id: 'pages',
       label: 'Trang',
-      href: '/admin/collections/pages',
+      href: '/admin/content?kind=pages',
       icon: 'file',
       badge: draftPages || undefined,
       badgeTitle: 'bản nháp',
@@ -118,6 +118,8 @@ export const Nav = async ({ payload, user, i18n }: Props) => {
         { label: 'Khối dùng lại', href: '/admin/collections/reusable-blocks' },
       ],
     })
+  if (writer) content.push({ id: 'workflow', label: 'Biên tập', href: '/admin/content?kind=workflow', icon: 'file' })
+  if (editor) content.push({ id: 'shared-content', label: 'Dữ liệu dùng chung', href: '/admin/content?kind=content-entries', icon: 'box' })
   if (editor) content.push({ id: 'releases', label: 'Xuất bản website', href: '/admin/releases', icon: 'file' })
   if (canModerate(u))
     content.push({
@@ -191,7 +193,7 @@ export const Nav = async ({ payload, user, i18n }: Props) => {
         <NavClient
           sections={sections}
           brand={{ name: hosso.brand.name, mark: hosso.brand.mark }}
-          user={{ email: u?.email ?? '', role: T(ROLE_LABEL[(u?.roles ?? [])[0] ?? ''] ?? '') }}
+          user={{ id: String(u?.id || ''), email: u?.email ?? '', role: T(ROLE_LABEL[(u?.roles ?? [])[0] ?? ''] ?? '') }}
           logout={<Logout />}
         />
       </nav>

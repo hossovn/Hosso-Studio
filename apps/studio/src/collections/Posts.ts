@@ -1,4 +1,6 @@
 import type { CollectionConfig } from 'payload'
+import { lexicalEditor, FixedToolbarFeature, EXPERIMENTAL_TableFeature, LinkFeature, UploadFeature } from '@payloadcms/richtext-lexical'
+import { cmsField, cmsBeforeChange } from '../lib/cms-hooks'
 
 import { ownOrEditor, postWriters, publishers } from '../lib/access'
 import { builderLinkField, onlyPublishersPublish, seoFields } from '../lib/content'
@@ -7,6 +9,7 @@ import { lockSiteMutation } from '../lib/site-publication-lock'
 /** Bài viết / tin tức / cẩm nang. Nội dung dựng bằng cùng trình dựng kéo thả như trang. Địa chỉ công khai: /bai-viet/<slug>. */
 export const Posts: CollectionConfig = {
   slug: 'posts',
+  trash: true,
   labels: { singular: 'Bài viết', plural: 'Bài viết' },
   admin: { useAsTitle: 'title', defaultColumns: ['title', '_status', 'categories', 'createdBy', 'publishedAt'], group: 'Nội dung', components: { beforeListTable: ['/components/admin/ContentTabs#ContentTabs'] } },
   access: {
@@ -25,6 +28,7 @@ export const Posts: CollectionConfig = {
       },
     ],
     beforeChange: [
+      cmsBeforeChange,
       onlyPublishersPublish,
       ({ data, operation, req }) => {
         if (operation === 'create' && req.user && !data.createdBy) data.createdBy = req.user.id
@@ -34,8 +38,13 @@ export const Posts: CollectionConfig = {
   },
   defaultSort: '-publishedAt',
   fields: [
+    cmsField,
     { name: 'title', type: 'text', label: 'Tiêu đề', required: true, localized: true },
-    builderLinkField,
+    { name: 'writingMode', type: 'select', label: { vi: 'Cách viết', en: 'Writing mode' }, defaultValue: 'canvas', options: [{ label: { vi: 'Soạn bài viết', en: 'Article' }, value: 'article' }, { label: { vi: 'Thiết kế kéo thả', en: 'Canvas' }, value: 'canvas' }] },
+    { ...builderLinkField, admin: { ...builderLinkField.admin, condition: (data) => data.writingMode !== 'article' } },
+    { name: 'articleTemplate', type: 'select', label: { vi: 'Mẫu bài viết', en: 'Article template' }, defaultValue: 'classic', options: [{ label: { vi: 'Có cột bên', en: 'With sidebar' }, value: 'classic' }, { label: { vi: 'Tập trung nội dung', en: 'Focused reading' }, value: 'reading' }], admin: { position: 'sidebar', condition: (data) => data.writingMode === 'article' } },
+    { name: 'articleBody', type: 'richText', localized: true, label: { vi: 'Nội dung bài viết', en: 'Article content' }, editor: lexicalEditor({ features: ({ defaultFeatures }) => [...defaultFeatures.filter((feature) => !['relationship','link','upload'].includes(feature.key)), LinkFeature({ enabledCollections: [] }), UploadFeature({ enabledCollections: ['media'] }), FixedToolbarFeature(), EXPERIMENTAL_TableFeature()] }), admin: { condition: (data) => data.writingMode === 'article' } },
+    { name: 'articleOutline', type: 'ui', admin: { position: 'sidebar', condition: (data) => data.writingMode === 'article', components: { Field: '/components/admin/ArticleOutline#ArticleOutline' } } },
     { name: 'slug', type: 'text', label: 'Đường dẫn', required: true, unique: true, index: true, admin: { position: 'sidebar' } },
     { name: 'excerpt', type: 'textarea', localized: true, label: 'Tóm tắt', admin: { description: 'Hiện ở danh sách bài viết và làm mô tả SEO.' } },
     { name: 'cover', type: 'upload', relationTo: 'media', label: 'Ảnh đại diện', admin: { position: 'sidebar' } },

@@ -25,6 +25,12 @@ const COPY = {
 export function inspectPage(doc: Record<string, any>, options: CheckOptions): PublishIssue[] {
   const issues: PublishIssue[] = []
   const add = (code: keyof typeof COPY, where: Partial<PublishIssue> = {}, severity: PublishIssue['severity'] = 'warning') => issues.push({ severity, code, message: COPY[code][options.lang?.startsWith('en') ? 1 : 0], ...where })
+  if (doc.writingMode === 'article') {
+    if (!Array.isArray(doc.articleBody?.root?.children) || !doc.articleBody.root.children.length) add('structure', {}, 'error')
+    if (!String(doc.excerpt || '').trim()) add('seoDescription')
+    if (String(doc.seo?.title || doc.title || '').length > 60) add('seoTitle')
+    return issues
+  }
   const data: Content = doc.content ?? { content: [] }
   if (!data || typeof data !== 'object' || !Array.isArray(data.content)) { add('structure', {}, 'error'); return issues }
   const ids = new Set<string>()

@@ -72,6 +72,7 @@ export const SiteSettings: GlobalConfig = {
         {
           label: 'Thông tin website',
           fields: [
+            { name: 'homeSlug', type: 'text', label: { vi: 'Trang chủ (đường dẫn trang)', en: 'Home page slug' }, defaultValue: 'home' },
             { name: 'siteName', type: 'text', localized: true, label: 'Tên site' },
             { name: 'logo', type: 'upload', relationTo: 'media', label: 'Logo' },
             { name: 'favicon', type: 'upload', relationTo: 'media', label: 'Favicon (biểu tượng tab trình duyệt)' },

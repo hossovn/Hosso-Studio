@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { cmsField, cmsBeforeChange } from '../lib/cms-hooks'
 
 import { pageEditors, publishers } from '../lib/access'
 import { builderLinkField, onlyPublishersPublish, seoFields } from '../lib/content'
@@ -6,6 +7,7 @@ import { lockSiteMutation } from '../lib/site-publication-lock'
 
 export const Pages: CollectionConfig = {
   slug: 'pages',
+  trash: true,
   labels: { singular: 'Trang', plural: 'Các trang' },
   admin: { useAsTitle: 'title', defaultColumns: ['title', '_status', 'slug', 'updatedAt'], group: 'Nội dung', components: { beforeListTable: ['/components/admin/ContentTabs#ContentTabs'] } },
   // Khách chỉ thấy bản đã xuất bản; người đăng nhập thấy cả bản nháp.
@@ -17,8 +19,9 @@ export const Pages: CollectionConfig = {
     delete: publishers,
   },
   versions: { drafts: { autosave: true, schedulePublish: true }, maxPerDoc: 20 },
-  hooks: { beforeOperation: [lockSiteMutation], beforeChange: [onlyPublishersPublish] },
+  hooks: { beforeOperation: [lockSiteMutation], beforeChange: [cmsBeforeChange, onlyPublishersPublish] },
   fields: [
+    cmsField,
     { name: 'title', type: 'text', label: 'Tiêu đề', required: true, localized: true },
     builderLinkField,
     {

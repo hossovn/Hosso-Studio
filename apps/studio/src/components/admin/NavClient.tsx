@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { CmsSearch } from './CmsSearch'
+import { usePathname, useSearchParams } from 'next/navigation'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 
 import { useAdminT } from '@/lib/use-admin-t'
@@ -59,10 +60,11 @@ export function NavClient({
 }: {
   sections: NavSection[]
   brand: { name: string; mark: string }
-  user: { email: string; role: string }
+  user: { id?: string; email: string; role: string }
   logout: React.ReactNode
 }) {
   const T = useAdminT()
+  const searchParams = useSearchParams()
   const pathname = usePathname() || '/admin'
   const [collapsed, setCollapsed] = useState(false)
   const [open, setOpen] = useState<Record<string, boolean>>({})
@@ -94,7 +96,8 @@ export function NavClient({
   }, [])
 
   const isActive = (href: string, exact?: boolean) => {
-    const path = href.split('?')[0]
+    const [path,query] = href.split('?')
+    if(query && [...new URLSearchParams(query)].some(([key,value]) => searchParams.get(key)!==value)) return false
     return exact ? pathname === path : pathname === path || pathname.startsWith(path + '/')
   }
   const isInternal = (href: string) => href.startsWith('/') && !href.startsWith('//')
@@ -116,6 +119,7 @@ export function NavClient({
         </span>
       </a>
 
+      <CmsSearch userId={user.id || user.email} />
       <label className="hn-search">
         <Icon name="search" size={16} />
         <span className="hn-sr">{T('Tìm lệnh')}</span>

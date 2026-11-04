@@ -1,4 +1,4 @@
-import { APIError, type CollectionBeforeChangeHook, type Field } from 'payload'
+import { APIError, type CollectionBeforeChangeHook, type Field, type UIField } from 'payload'
 import { msg } from './lang'
 
 import { canPublish } from './access'
@@ -22,13 +22,14 @@ export const seoFields: Field = {
 export const onlyPublishersPublish: CollectionBeforeChangeHook = async ({ data, req, originalDoc }) => {
   await assertEditorRevision({ req, originalDoc })
   assertContentDesignLock(originalDoc?.content, data.content, req.user)
+  if (originalDoc && data.writingMode && data.writingMode !== originalDoc.writingMode) assertContentDesignLock(originalDoc.content, { root: { props: {} }, content: [] }, req.user)
   if (req.user && data._status === 'published' && !canPublish(req.user as { roles?: string[] })) {
     throw new APIError(msg(req, 'Bạn không có quyền xuất bản.', 'You do not have permission to publish.'), 403)
   }
   return data
 }
 
-export const builderLinkField: Field = {
+export const builderLinkField: UIField = {
   name: 'builderLink',
   type: 'ui',
   admin: { components: { Field: '/components/admin/EditorLink#EditorLink' } },

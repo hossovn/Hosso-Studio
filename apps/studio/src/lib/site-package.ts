@@ -38,6 +38,16 @@ export async function buildSitePackage(payload: Payload) {
   const find = (collection: any, locale: string, extra: Record<string, unknown> = {}) =>
     payload.find({ collection, limit: 2000, depth: 1, pagination: false, locale: locale as any, fallbackLocale: false, overrideAccess: true, ...extra })
 
+  // Rich-text upload IDs are installation-specific. Export filenames for remapping.
+  const portableArticle = async (value: any): Promise<any> => {
+    if (Array.isArray(value)) return Promise.all(value.map(portableArticle))
+    if (!value || typeof value !== 'object') return value
+    if (value.type === 'upload' && value.relationTo === 'media' && value.value) {
+      const media = typeof value.value === 'object' ? value.value : await payload.findByID({ collection:'media',id:value.value,depth:0,overrideAccess:true })
+      return { ...value, value: fileOf(media) }
+    }
+    return Object.fromEntries(await Promise.all(Object.entries(value).map(async ([key,item]) => [key,await portableArticle(item)])))
+  }
   // ---------- Trang, bài viết ----------
   const pagesByLocale = await forEachLocale((l) => find('pages', l, { draft: false }))
   const pages = pagesByLocale[D].docs
@@ -45,6 +55,7 @@ export async function buildSitePackage(payload: Payload) {
     'data/pages.json',
     pages.map((p: any) => ({
       slug: p.slug,
+      cms: p.cms ? { ...p.cms, parent: pages.find((doc: any) => String(doc.id) === String(p.cms.parent))?.slug || '', assignee: '', log: [] } : undefined,
       status: p._status ?? 'draft',
       seo: { noindex: p.seo?.noindex ?? false, image: fileOf(p.seo?.image) },
       translations: Object.fromEntries(
@@ -57,11 +68,14 @@ export async function buildSitePackage(payload: Payload) {
   )
 
   const postsByLocale = await forEachLocale((l) => find('posts', l, { draft: false }))
+  for (const docs of Object.values(postsByLocale)) for (const post of docs.docs as any[]) if (post.articleBody) post.articleBody = await portableArticle(post.articleBody)
   const posts = postsByLocale[D].docs
   json(
     'data/posts.json',
     posts.map((p: any) => ({
       slug: p.slug,
+      writingMode: p.writingMode,
+      articleTemplate: p.articleTemplate,
       status: p._status ?? 'draft',
       publishedAt: p.publishedAt,
       commentsEnabled: p.commentsEnabled,
@@ -72,7 +86,7 @@ export async function buildSitePackage(payload: Payload) {
       translations: Object.fromEntries(
         LOCALES.flatMap((l) => {
           const d: any = postsByLocale[l].docs.find((x: any) => x.slug === p.slug)
-          return d?.title ? [[l, { ...pick(d, ['title', 'excerpt', 'content']), seoTitle: d.seo?.title ?? undefined }]] : []
+          return d?.title ? [[l, { ...pick(d, ['title', 'excerpt', 'content', 'articleBody']), seoTitle: d.seo?.title ?? undefined }]] : []
         }),
       ),
     })),
@@ -175,6 +189,10 @@ export async function buildSitePackage(payload: Payload) {
     for (const d of plugin.portable?.data ?? []) json(`data/plugins/${d.id}.json`, await d.export(payload))
   }
 
+  if (payload.collections?.['content-entries']) {
+    const entries = await forEachLocale((locale) => find('content-entries', locale))
+    json('data/content-entries.json', entries[D].docs.map((entry: any) => ({ slug: entry.slug, kind: entry.kind, published: entry.published, translations: Object.fromEntries(LOCALES.map((locale) => { const translated: any = entries[locale].docs.find((item: any) => item.slug === entry.slug); return [locale, pick(translated, ['title', 'data'])] })) })))
+  }
   // ---------- Media ----------
   const media = await payload.find({ collection: 'media', limit: 2000, depth: 0, pagination: false, overrideAccess: true })
   const mediaDir = path.resolve(process.env.HOSSO_MEDIA_DIR || path.join(process.cwd(), 'media'))
@@ -183,7 +201,7 @@ export async function buildSitePackage(payload: Payload) {
     const file = path.join(mediaDir, m.filename ?? '')
     if (m.filename && fs.existsSync(file)) {
       files[`media/${m.filename}`] = new Uint8Array(fs.readFileSync(file))
-      mediaMeta.push({ filename: m.filename, alt: m.alt, mimeType: m.mimeType })
+      mediaMeta.push({ filename: m.filename, alt: m.alt, cms: (m as any).cms, mimeType: m.mimeType })
     }
   }
   // Canvas content can still reference files whose media records were removed.

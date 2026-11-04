@@ -14,7 +14,7 @@ export type ReleaseItem = { key: string; scope: Scope; id?: string | number; tit
 type ReviewedIssue = PublishIssue & { key: string; locale: string; href: string }
 const COLLECTIONS = ['pages', 'posts', 'reusable-blocks'] as const
 const GLOBALS = ['site-areas', 'site-settings'] as const
-const META = new Set(['id', 'createdAt', 'updatedAt', 'globalType', 'builderLink', 'editors', '_status'])
+const META = new Set(['id', 'createdAt', 'updatedAt', 'globalType', 'builderLink', 'editors', '_status', 'cms'])
 const clean = (doc: Record<string, any>) => Object.fromEntries(Object.entries(doc).filter(([key]) => !META.has(key)))
 const canonical = (value: any): any => Array.isArray(value) ? value.map(canonical) : value && typeof value === 'object' ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, canonical(value[key])])) : value
 const signature = (value: unknown) => createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex')
@@ -49,6 +49,7 @@ async function capture(req: PayloadRequest, draft: boolean): Promise<ReleaseItem
 
 function editorHref(item: ReleaseItem, locale: string, area?: string, issue?: PublishIssue) {
   if (item.scope === 'site-settings') return '/admin/globals/site-settings'
+  if (item.scope === 'posts' && item.translations[locale]?.writingMode === 'article') return '/admin/collections/posts/' + item.id
   const q = new URLSearchParams({ locale })
   if (item.scope !== 'pages') q.set('c', item.scope === 'site-areas' ? 'area' : item.scope)
   if (issue?.block) q.set('block', issue.block)

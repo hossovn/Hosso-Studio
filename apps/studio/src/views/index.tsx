@@ -7,6 +7,7 @@ import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { getPayload } from 'payload'
 import React from 'react'
+import { RichText } from '@payloadcms/richtext-lexical/react'
 
 import { Area } from '@/components/Area'
 import { AdminBar } from '@/components/AdminBar'
@@ -90,7 +91,7 @@ async function findDoc<C extends 'pages' | 'posts'>(collection: C, slug: string,
 }
 
 // ---------- Trang ----------
-const getPage = (slug: string, locale: string, sp: SP) => findDoc('pages', slug, locale, sp)
+const getPage = async (slug: string, locale: string, sp: SP) => findDoc('pages', slug === 'home' ? (await loadSite(locale)).homeSlug || 'home' : slug, locale, sp)
 
 export async function pageMeta(slug: string, locale: string, sp: SP): Promise<Metadata> {
   const { doc: page, shared } = await getPage(slug, locale, sp)
@@ -206,11 +207,11 @@ export async function PostView({ slug, locale, sp }: { slug: string; locale: str
         )}
         {cover && <img className="ss-cover" src={cover} alt="" />}
       </header>
-      <div className="ss-wrap ss-post-grid">
+      <div className="ss-wrap ss-post-grid" style={(post as any).writingMode === 'article' && (post as any).articleTemplate === 'reading' ? { display: 'block', maxWidth: 820 } : undefined}>
         <div>
-          <Content content={post.content} locale={locale} sp={sp} />
+          {(post as any).writingMode === 'article' && (post as any).articleBody ? <div className="cms-article"><style>{'.cms-article{font-size:18px;line-height:1.85;overflow-wrap:anywhere}.cms-article img{max-width:100%;height:auto}.cms-article table{display:block;overflow:auto;border-collapse:collapse}.cms-article td,.cms-article th{padding:12px;border:1px solid #dce4df}.cms-article blockquote{margin:24px 0;padding-left:24px;border-left:3px solid #2d7b57}.cms-article h2,.cms-article h3{line-height:1.35;margin-top:1.8em}'}</style><RichText data={(post as any).articleBody} /></div> : <Content content={post.content} locale={locale} sp={sp} />}
         </div>
-        <aside aria-label={t('post.sidebar')}>
+        <aside aria-label={t('post.sidebar')} hidden={(post as any).writingMode === 'article' && (post as any).articleTemplate === 'reading'}>
           <Area name="postSidebar" locale={locale} />
         </aside>
       </div>

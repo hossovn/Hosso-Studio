@@ -34,7 +34,7 @@ const manifest = read('manifest.json')
     if (exists.totalDocs) continue
     const tmp = path.join(os.tmpdir(), m.filename)
     fs.writeFileSync(tmp, zip[`media/${m.filename}`])
-    await payload.create({ collection: 'media', data: { alt: m.alt || m.filename }, filePath: tmp })
+    await payload.create({ collection: 'media', data: { alt: m.alt || m.filename, cms: m.cms } as any, filePath: tmp })
     fs.rmSync(tmp, { force: true })
   }
   const mediaId = async (ref: { filename?: string } | null | undefined) => {
@@ -43,6 +43,12 @@ const manifest = read('manifest.json')
     return found.docs[0]?.id ?? null
   }
 
+  const importedArticle = async (value: any): Promise<any> => {
+    if (Array.isArray(value)) return Promise.all(value.map(importedArticle))
+    if (!value || typeof value !== 'object') return value
+    if (value.type === 'upload' && value.relationTo === 'media') return { ...value, value: await mediaId(value.value) }
+    return Object.fromEntries(await Promise.all(Object.entries(value).map(async ([key,item]) => [key,await importedArticle(item)])))
+  }
   /** Tạo/cập nhật theo slug ở ngôn ngữ mặc định, rồi ghi từng bản dịch. `extra` tính sau khi biết bản ghi (ví dụ id dòng mảng). */
   async function upsert(collection: any, slug: string, shared: Record<string, unknown>, translations: Record<string, Record<string, unknown>>, status?: string) {
     const first = translations[D] ?? translations[Object.keys(translations)[0]] ?? {}
@@ -81,18 +87,26 @@ const manifest = read('manifest.json')
   for (const p of read('data/pages.json') ?? []) {
     const tr: Record<string, any> = {}
     for (const [l, v] of Object.entries<any>(p.translations)) tr[l] = { title: v.title, description: v.description, content: v.content, seo: await seoOf(p.seo, v.seoTitle) }
-    const { created } = await upsert('pages', p.slug, { seo: await seoOf(p.seo) }, tr, p.status)
+    const { created } = await upsert('pages', p.slug, { seo: await seoOf(p.seo), ...(p.cms ? { cms: { ...p.cms, parent: '' } } : {}) }, tr, p.status)
     created ? stats.pages++ : stats.pagesUpdated++
   }
 
+  // Resolve parent slugs after every page exists; numeric IDs vary across installations.
+  for (const page of read('data/pages.json') ?? []) if (page.cms?.parent) {
+    const docs = await payload.find({ collection: 'pages', where: { slug: { in: [page.slug, page.cms.parent] } }, draft: true, depth: 0, limit: 2 })
+    const child: any = docs.docs.find((doc) => doc.slug === page.slug), parent: any = docs.docs.find((doc) => doc.slug === page.cms.parent)
+    if (child && parent) await payload.update({ collection: 'pages', id: child.id, data: { cms: { ...page.cms, parent: String(parent.id) } } as any })
+  }
   // ---------- Bài viết ----------
   for (const p of read('data/posts.json') ?? []) {
     const tr: Record<string, any> = {}
-    for (const [l, v] of Object.entries<any>(p.translations)) tr[l] = { title: v.title, excerpt: v.excerpt, content: v.content, seo: await seoOf(p.seo, v.seoTitle) }
+    for (const [l, v] of Object.entries<any>(p.translations)) tr[l] = { title: v.title, excerpt: v.excerpt, content: v.content, articleBody: await importedArticle(v.articleBody), seo: await seoOf(p.seo, v.seoTitle) }
     await upsert(
       'posts',
       p.slug,
       {
+        writingMode: p.writingMode || 'canvas',
+        articleTemplate: p.articleTemplate || 'classic',
         publishedAt: p.publishedAt,
         commentsEnabled: p.commentsEnabled,
         cover: await mediaId(p.cover),
@@ -121,6 +135,8 @@ const manifest = read('manifest.json')
     await upsert('reusable-blocks', b.slug, { title: b.title }, b.translations, b.status)
     stats.blocks++
   }
+
+  for (const entry of read('data/content-entries.json') ?? []) await upsert('content-entries', entry.slug, { kind: entry.kind, published: entry.published }, entry.translations)
 
   // ---------- Chuyển hướng ----------
   for (const r of read('data/redirects.json') ?? []) {

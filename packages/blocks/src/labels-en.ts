@@ -1,5 +1,7 @@
 /** Nhãn block/trường trong trình dựng và màn Widget: khóa là nhãn tiếng Việt gốc. Thiếu bản dịch thì giữ tiếng Việt. */
 export const blockLabelsEn: Record<string, string> = {
+  'Dữ liệu dùng chung': 'Shared content', 'Loại dữ liệu dùng chung': 'Shared content type', 'Đội ngũ': 'Team', 'Dự án': 'Projects', 'Dịch vụ': 'Services',
+
   'Danh sách dữ liệu': 'Data repeater', 'Nguồn dữ liệu': 'Data source', 'Nhập thủ công': 'Manual entries', 'Bài viết': 'Posts', 'Sản phẩm': 'Products', 'Số mục': 'Item count', 'Số cột': 'Column count', 'Khoảng cách': 'Gap', 'Dữ liệu thủ công': 'Manual data', 'Giá': 'Price',
 
   'Banner chính': 'Hero banner',

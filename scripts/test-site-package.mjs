@@ -122,6 +122,30 @@ for (const locale of locales) {
 files['data/site-areas.json'] = strToU8(JSON.stringify(legacy))
 await importSitePackage(target, zipSync(files), () => {}, 'en')
 assert.deepEqual(restored, areas, 'old packages must not erase existing custom headers or footers')
+
+const articleBody = { root: { type:'root', version:1, children:[{type:'heading',tag:'h2',children:[{type:'text',text:'Portable heading',version:1}]},{type:'upload',relationTo:'media',value:71,version:3}] } }
+const cmsSource = { ...source, collections:{'content-entries':{}}, findByID:async()=>({id:71,filename:'article-photo.png'}), find:async(args)=>{
+ if(args.collection==='posts') return {docs:[{slug:'portable-article',title:args.locale+' Article',writingMode:'article',articleTemplate:'reading',articleBody,_status:'published',categories:[],tags:[]}]}
+ if(args.collection==='media') return {docs:[{id:71,filename:'article-photo.png',alt:'Portable photo',cms:{folder:'Editorial',tags:'hero'}}]}
+ if(args.collection==='content-entries') return {docs:[{slug:'portable-faq',title:args.locale+' FAQ',kind:'faq',published:true,data:{description:args.locale+' Answer'}}]}
+ return source.find(args)
+} }
+const cmsFiles=unzipSync((await buildSitePackage(cmsSource)).data)
+assert.deepEqual(JSON.parse(strFromU8(cmsFiles['data/posts.json']))[0].translations.vi.articleBody.root.children[1].value,{filename:'article-photo.png'})
+const importedCms={}
+const cmsTarget={...target,find:async(args)=>args.collection==='media'?{docs:[{id:901,filename:'article-photo.png'}]}:{docs:[]},create:async(args)=>{
+ if(!['posts','content-entries'].includes(args.collection)) return target.create(args)
+ importedCms[args.collection+'-'+args.locale]=args.data;return {id:args.collection==='posts'?812:813,...args.data}
+},update:async(args)=>{
+ if(!['posts','content-entries'].includes(args.collection)) return target.update(args)
+ importedCms[args.collection+'-'+args.locale]=args.data;return args.data
+}}
+await importSitePackage(cmsTarget,zipSync(cmsFiles),()=>{},'en')
+assert.equal(importedCms['posts-vi'].writingMode,'article')
+assert.equal(importedCms['posts-vi'].articleBody.root.children[1].value,901,'Rich text uploads must map to destination IDs')
+assert.equal(importedCms['posts-en'].articleBody.root.children[0].children[0].text,'Portable heading')
+assert.equal(importedCms['content-entries-en'].data.description,'en Answer')
+console.log('PASS article mode/templates, multilingual rich text, media ID remapping and shared structured entries survive ZIP')
 mediaExists = false
 await assert.rejects(buildSitePackage(source), /Referenced media file is missing/)
 mediaExists = true

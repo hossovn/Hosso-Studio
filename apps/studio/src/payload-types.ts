@@ -70,6 +70,7 @@ export interface Config {
     'site-releases': SiteRelease;
     pages: Page;
     posts: Post;
+    'content-entries': ContentEntry;
     'post-categories': PostCategory;
     'post-tags': PostTag;
     comments: Comment;
@@ -118,6 +119,7 @@ export interface Config {
     'site-releases': SiteReleasesSelect<false> | SiteReleasesSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
+    'content-entries': ContentEntriesSelect<false> | ContentEntriesSelect<true>;
     'post-categories': PostCategoriesSelect<false> | PostCategoriesSelect<true>;
     'post-tags': PostTagsSelect<false> | PostTagsSelect<true>;
     comments: CommentsSelect<false> | CommentsSelect<true>;
@@ -231,6 +233,15 @@ export interface UserAuthOperations {
  */
 export interface Page {
   id: number;
+  cms?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   title: string;
   /**
    * "home" is the home page.
@@ -259,6 +270,7 @@ export interface Page {
     | null;
   updatedAt: string;
   createdAt: string;
+  deletedAt?: string | null;
   _status?: ('draft' | 'published') | null;
 }
 /**
@@ -267,6 +279,15 @@ export interface Page {
  */
 export interface Media {
   id: number;
+  cms?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   alt: string;
   updatedAt: string;
   createdAt: string;
@@ -284,7 +305,33 @@ export interface Media {
  */
 export interface Post {
   id: number;
+  cms?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   title: string;
+  writingMode?: ('article' | 'canvas') | null;
+  articleTemplate?: ('classic' | 'reading') | null;
+  articleBody?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   slug: string;
   /**
    * Shown in post lists and used as the SEO description.
@@ -318,6 +365,7 @@ export interface Post {
   };
   updatedAt: string;
   createdAt: string;
+  deletedAt?: string | null;
   _status?: ('draft' | 'published') | null;
 }
 /**
@@ -1355,6 +1403,10 @@ export interface PayloadLockedDocument {
   id: number;
   document?:
     | ({
+        relationTo: 'content-entries';
+        value: number | ContentEntry;
+      }
+    | {
         relationTo: 'pages';
         value: number | Page;
       } | null)
@@ -1554,6 +1606,7 @@ export interface PayloadMigration {
  * via the `definition` "pages_select".
  */
 export interface PagesSelect<T extends boolean = true> {
+  cms?: T;
   title?: T;
   slug?: T;
   description?: T;
@@ -1567,6 +1620,7 @@ export interface PagesSelect<T extends boolean = true> {
   content?: T;
   updatedAt?: T;
   createdAt?: T;
+  deletedAt?: T;
   _status?: T;
 }
 /**
@@ -1574,7 +1628,11 @@ export interface PagesSelect<T extends boolean = true> {
  * via the `definition` "posts_select".
  */
 export interface PostsSelect<T extends boolean = true> {
+  cms?: T;
   title?: T;
+  writingMode?: T;
+  articleTemplate?: T;
+  articleBody?: T;
   slug?: T;
   excerpt?: T;
   cover?: T;
@@ -1593,6 +1651,7 @@ export interface PostsSelect<T extends boolean = true> {
       };
   updatedAt?: T;
   createdAt?: T;
+  deletedAt?: T;
   _status?: T;
 }
 /**
@@ -1685,6 +1744,7 @@ export interface ReusableBlocksSelect<T extends boolean = true> {
  * via the `definition` "media_select".
  */
 export interface MediaSelect<T extends boolean = true> {
+  cms?: T;
   alt?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -2331,6 +2391,7 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
  */
 export interface SiteSetting {
   id: number;
+  homeSlug?: string | null;
   siteName?: string | null;
   logo?: (number | null) | Media;
   favicon?: (number | null) | Media;
@@ -2803,6 +2864,7 @@ export interface PayloadJobsStat {
  * via the `definition` "site-settings_select".
  */
 export interface SiteSettingsSelect<T extends boolean = true> {
+  homeSlug?: T;
   siteName?: T;
   logo?: T;
   favicon?: T;
@@ -3194,6 +3256,35 @@ export interface EditorReviewsSelect<T extends boolean = true> {
   authorId?: T;
   authorName?: T;
   resolved?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+
+export interface ContentEntry {
+  id: number;
+  title: string;
+  slug: string;
+  kind: 'faq' | 'team' | 'project' | 'service';
+  data?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  published?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+
+export interface ContentEntriesSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  kind?: T;
+  data?: T;
+  published?: T;
   updatedAt?: T;
   createdAt?: T;
 }

@@ -1,0 +1,19 @@
+'use client'
+import { useAdminT } from '@/lib/use-admin-t'
+import React,{useEffect,useRef,useState} from 'react'
+import {usePathname} from 'next/navigation'
+type Hit={title:string;href:string;kind?:string;id?:string|number}
+const safe=(value:any):value is Hit=>typeof value?.title==='string'&&/^\/admin\/collections\/[a-z-]+\/[a-zA-Z0-9-]+$/.test(value.href)
+export function CmsSearch({userId}:{userId:string}) {
+ const T=useAdminT()
+ const [open,setOpen]=useState(false),[q,setQ]=useState(''),[hits,setHits]=useState<Hit[]>([]),[recent,setRecent]=useState<Hit[]>([]),[pins,setPins]=useState<Hit[]>([]),[error,setError]=useState(''),[loading,setLoading]=useState(false)
+ const ref=useRef<HTMLDialogElement>(null),path=usePathname(),key='hosso-cms-search:'+userId
+ useEffect(()=>{try{const stored=JSON.parse(localStorage.getItem(key)||'{}');setRecent((stored.recent||[]).filter(safe));setPins((stored.pins||[]).filter(safe))}catch{}},[key])
+ const persist=(r:Hit[],p:Hit[])=>{setRecent(r);setPins(p);try{localStorage.setItem(key,JSON.stringify({recent:r,pins:p}))}catch{}}
+ useEffect(()=>{if(!/^\/admin\/collections\/[a-z-]+\/[a-zA-Z0-9-]+$/.test(path||'')||path?.endsWith('/create'))return;const timer=setTimeout(()=>{const item={href:path!,title:document.title.replace(/\s*\|.*$/,'')};try{const stored=JSON.parse(localStorage.getItem(key)||'{}');persist([item,...(stored.recent||[]).filter(safe).filter((x:Hit)=>x.href!==path)].slice(0,12),(stored.pins||[]).filter(safe))}catch{}},1500);return()=>clearTimeout(timer)},[path,key])
+ useEffect(()=>{const handler=(e:KeyboardEvent)=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();setOpen((v)=>!v)}};window.addEventListener('keydown',handler);return()=>window.removeEventListener('keydown',handler)},[])
+ useEffect(()=>{if(open)ref.current?.showModal();else ref.current?.close()},[open])
+ useEffect(()=>{setHits([]);setLoading(false);setError('');if(!q.trim())return;const controller=new AbortController();const timer=setTimeout(async()=>{setLoading(true);setError('');try{const res=await fetch('/api/site/cms/search?q='+encodeURIComponent(q),{signal:controller.signal});const body=await res.json();if(!res.ok)throw new Error();setHits(body.results)}catch(e:any){if(e.name!=='AbortError')setError(T('Không tìm được nội dung. Thử lại.'))}finally{if(!controller.signal.aborted)setLoading(false)}},220);return()=>{controller.abort();clearTimeout(timer)}},[q])
+ const rows=(items:Hit[])=>items.map((hit)=><li key={hit.href}><a href={hit.href} onClick={()=>persist([hit,...recent.filter((x)=>x.href!==hit.href)].slice(0,12),pins)}><strong>{hit.title}</strong><small>{hit.kind||hit.href.split('/')[3]}</small></a><button type="button" aria-label={(pins.some((p)=>p.href===hit.href)?T('Bỏ ghim '):'Ghim ')+hit.title} onClick={()=>persist(recent,pins.some((p)=>p.href===hit.href)?pins.filter((p)=>p.href!==hit.href):[hit,...pins].slice(0,20))}>{pins.some((p)=>p.href===hit.href)?'★':'☆'}</button></li>)
+ return <><button type="button" className="cms-search-trigger" onClick={()=>setOpen(true)}><span>{T('Tìm toàn CMS')}</span><kbd>Ctrl K</kbd></button><dialog ref={ref} className="cms-search-dialog" onCancel={(e)=>{e.preventDefault();setOpen(false)}}><header><input aria-label={T('Tìm toàn CMS')} autoFocus type="search" value={q} onChange={(e)=>setQ(e.target.value)} placeholder={T('Tìm trang, bài viết, tệp, sản phẩm…')}/><button type="button" aria-label={T('Đóng tìm kiếm')} onClick={()=>setOpen(false)}>{'×'}</button></header><div role="status">{loading?T('Đang tìm…'):error}</div>{q?<><h3>{T('Kết quả')}</h3><ul>{rows(hits)}</ul>{!loading&&!hits.length&&<p>{T('Không có kết quả phù hợp.')}</p>}</>:<><h3>{T('Đã ghim')}</h3><ul>{rows(pins)}</ul>{!pins.length&&<p>{T('Bấm ☆ cạnh kết quả để ghim.')}</p>}<h3>{T('Vừa mở')}</h3><ul>{rows(recent)}</ul></>}<footer>{T('Chỉ hiển thị nội dung tài khoản của bạn có quyền truy cập.')}</footer></dialog></>
+}

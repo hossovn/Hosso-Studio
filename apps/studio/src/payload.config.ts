@@ -15,6 +15,8 @@ import { ContactMessages } from './collections/ContactMessages'
 import { Media } from './collections/Media'
 import { Comments } from './collections/Comments'
 import { Forms, FormSubmissions } from './collections/Forms'
+import { ContentEntries } from './collections/ContentEntries'
+import { cmsList, cmsMutate, cmsSearch, cmsUsage, cmsCreateArticle } from './lib/cms-api'
 import { Pages } from './collections/Pages'
 import { Posts } from './collections/Posts'
 import { ReusableBlocks } from './collections/ReusableBlocks'
@@ -69,6 +71,7 @@ const base: Config = {
       Nav: '/components/admin/Nav#Nav',
       views: {
         dashboard: { Component: '/components/admin/DashboardHome#DashboardView' },
+        content: { Component: '/components/admin/ContentWorkspaceView#ContentWorkspaceView', path: '/content' },
         templates: { Component: '/components/admin/TemplatesView#TemplatesView', path: '/templates' },
         tools: { Component: '/components/admin/ToolsView#ToolsView', path: '/tools' },
         customize: { Component: '/components/admin/CustomizeView#CustomizeView', path: '/customize' },
@@ -82,8 +85,8 @@ const base: Config = {
   },
   i18n: { supportedLanguages: { vi, en }, fallbackLanguage: 'vi' },
   // Hàng đợi tác vụ: chạy mỗi phút để xuất bản/hủy xuất bản theo lịch đặt trong trang và bài viết.
-  jobs: { autoRun: [{ cron: '* * * * *', limit: 10, queue: 'default' }] },
-  collections: [Pages, Posts, PostCategories, PostTags, Comments, Forms, FormSubmissions, ReusableBlocks, Media, ContactMessages, Bookings, Redirects, EditLocks, EditorReviews, SiteReleases, Users],
+  jobs: { autoRun: [{ cron: '* * * * *', limit: isPostgres ? 10 : 1, queue: 'default' }] },
+  collections: [Pages, Posts, ContentEntries, PostCategories, PostTags, Comments, Forms, FormSubmissions, ReusableBlocks, Media, ContactMessages, Bookings, Redirects, EditLocks, EditorReviews, SiteReleases, Users],
   globals: [SiteSettings, SiteAreas],
   // Ngôn ngữ nội dung: ngôn ngữ đầu tiên trong hosso.config.ts là mặc định; thiếu bản dịch thì dùng ngôn ngữ mặc định.
   localization: { locales: hosso.locales.map((l) => ({ code: l.code, label: l.label })), defaultLocale: hosso.locales[0].code, fallback: true },
@@ -98,6 +101,7 @@ const base: Config = {
       }),
   // Health check cho Docker/dịch vụ deploy: GET /api/health
   endpoints: [
+    cmsList, cmsMutate, cmsSearch, cmsUsage, cmsCreateArticle,
     formSubmit,
     formExport,
     commentSubmit,

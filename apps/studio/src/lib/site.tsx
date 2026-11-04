@@ -42,7 +42,7 @@ const menu = (items: any[] | undefined, locale: string): MenuItem[] =>
   }))
 
 /** Theme đang chọn, token đã gộp (token của theme, ghi đè bởi quản trị viên) thành CSS, và dữ liệu khung site theo ngôn ngữ. */
-export const loadSite = cache(async (locale: string = defaultLocale, editorDraft = false): Promise<{ theme: Theme; css: string; siteName?: string; chrome: SiteChrome; favicon: string; maintenance?: { message: string } }> => {
+export const loadSite = cache(async (locale: string = defaultLocale, editorDraft = false): Promise<{ theme: Theme; css: string; siteName?: string; homeSlug?: string; chrome: SiteChrome; favicon: string; maintenance?: { message: string } }> => {
   const payload = await getPayload({ config })
   const settings = (await payload.findGlobal({ slug: 'site-settings', draft: editorDraft || await sitePreview(), depth: 1, locale: locale as any })) as Record<string, any>
   const theme = hosso.themes.find((t) => t.manifest.name === settings.theme) ?? hosso.themes[0]
@@ -80,6 +80,7 @@ export const loadSite = cache(async (locale: string = defaultLocale, editorDraft
   }
   return {
     theme,
+    homeSlug: settings.homeSlug || 'home',
     css: `:root{${vars.join(';')}}${theme.css}${baseCss}${hosso.plugins.map((p) => p.css ?? '').join('')}`,
     siteName: settings.siteName ?? undefined,
     chrome,
