@@ -33,7 +33,7 @@ export function FreeCountdown({ p, unit }: { p: Record<string, any>; unit: numbe
   )
 }
 
-export function FreeTabs({ p, unit }: { p: Record<string, any>; unit: number }) {
+export function FreeTabs({ p, unit, editing = false }: { p: Record<string, any>; unit: number; editing?: boolean }) {
   const u = mkU(unit)
   const tabs: { label: string; text: string }[] = Array.isArray(p.tabs) && p.tabs.length ? p.tabs : [{ label: 'Tab 1', text: '' }]
   const [i, setI] = useState(0)
@@ -42,9 +42,12 @@ export function FreeTabs({ p, unit }: { p: Record<string, any>; unit: number }) 
   return (
     <div style={{ width: '100%', height: '100%', background: p.bg ?? '#f9fafb', borderRadius: u(p.radius ?? 12), overflow: 'hidden', display: 'flex', flexDirection: 'column', ...font(p) }}>
       <div style={{ display: 'flex', borderBottom: `${u(1)} solid #e5e7eb` }}>
-        {tabs.map((t, k) => (
-          <button key={k} type="button" onClick={() => setI(k)} style={{ flex: 1, padding: `${u(14)} ${u(8)}`, border: 0, borderBottom: `${u(3)} solid ${k === i ? accent : 'transparent'}`, marginBottom: u(-1), background: 'transparent', color: k === i ? accent : '#6b7280', fontWeight: k === i ? 700 : 500, fontSize: u(p.size ?? 18), fontFamily: 'inherit', cursor: 'pointer' }}>{t.label}</button>
-        ))}
+        {tabs.map((t, k) => {
+          const style: React.CSSProperties = { flex: 1, padding: `${u(14)} ${u(8)}`, border: 0, borderBottom: `${u(3)} solid ${k === i ? accent : 'transparent'}`, marginBottom: u(-1), background: 'transparent', color: k === i ? accent : '#6b7280', fontWeight: k === i ? 700 : 500, fontSize: u(p.size ?? 18), fontFamily: 'inherit', cursor: editing ? 'default' : 'pointer', textAlign: 'center' }
+          return editing
+            ? <span key={k} style={style}>{t.label}</span>
+            : <button key={k} type="button" onClick={() => setI(k)} style={style}>{t.label}</button>
+        })}
       </div>
       <div style={{ padding: u(20), fontSize: u((p.size ?? 18) * 0.9), color: p.color ?? '#374151', lineHeight: 1.5, whiteSpace: 'pre-wrap', overflow: 'hidden' }}>{cur.text}</div>
     </div>
@@ -67,18 +70,21 @@ export function FreeFoldMenu({ p, unit, hamburger, editing }: { p: Record<string
   if (hamburger)
     return (
       <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-        <button type="button" aria-label="Menu" aria-expanded={open} onClick={() => setOpen(!open)} style={{ width: '100%', height: '100%', border: 0, borderRadius: u(10), background: p.bg ?? '#f3f4f6', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
+        {editing ? <span aria-label="Menu" style={{ width: '100%', height: '100%', border: 0, borderRadius: u(10), background: p.bg ?? '#f3f4f6', display: 'grid', placeItems: 'center' }}>
+          <svg viewBox="0 0 24 24" width="55%" height="55%" fill="none" stroke={p.color ?? '#111827'} strokeWidth="2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+        </span> : <button type="button" aria-label="Menu" aria-expanded={open} onClick={() => setOpen(!open)} style={{ width: '100%', height: '100%', border: 0, borderRadius: u(10), background: p.bg ?? '#f3f4f6', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
           <svg viewBox="0 0 24 24" width="55%" height="55%" fill="none" stroke={p.color ?? '#111827'} strokeWidth="2" strokeLinecap="round">{open ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}</svg>
-        </button>
+        </button>}
         {open && <div style={{ position: 'absolute', top: '105%', left: 0, minWidth: u(220), zIndex: 5 }}>{list}</div>}
       </div>
     )
+  const triggerStyle: React.CSSProperties = { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: `0 ${u(14)}`, border: 0, borderBottom: `${u(2)} solid ${accent}`, background: p.bg ?? '#ffffff', color: accent, fontWeight: 700, fontSize: u(p.size ?? 16), fontFamily: 'inherit', cursor: editing ? 'default' : 'pointer', boxSizing: 'border-box' }
+  const triggerContent = <>{items[0]?.label ?? 'Menu'}<svg viewBox="0 0 24 24" width={u(20)} height={u(20)} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(180deg)' : undefined }}><path d="M6 9l6 6 6-6" /></svg></>
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-      <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: `0 ${u(14)}`, border: 0, borderBottom: `${u(2)} solid ${accent}`, background: p.bg ?? '#ffffff', color: accent, fontWeight: 700, fontSize: u(p.size ?? 16), fontFamily: 'inherit', cursor: 'pointer' }}>
-        {items[0]?.label ?? 'Menu'}
-        <svg viewBox="0 0 24 24" width={u(20)} height={u(20)} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(180deg)' : undefined }}><path d="M6 9l6 6 6-6" /></svg>
-      </button>
+      {editing
+        ? <span style={triggerStyle}>{triggerContent}</span>
+        : <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} style={triggerStyle}>{triggerContent}</button>}
       {open && <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 5 }}>{list}</div>}
     </div>
   )

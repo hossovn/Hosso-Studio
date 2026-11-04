@@ -155,7 +155,7 @@ function FreeElementBody({ el, unit, scale, editing, state }: { el: FreeElement;
     return <div style={{ position: 'relative', width: '100%', height: '100%', background: '#111827', color: '#fff', display: 'grid', placeItems: 'center', fontSize: u(18) }}>{p.poster && <img src={p.poster} alt={p.title || 'Video'} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}<span style={{ position: 'relative', padding: '6px 10px', borderRadius: 4, background: '#111827bb' }}>▶ Video</span></div>
   }
   if (el.type === 'countdown') return <FreeCountdown p={p} unit={unit} />
-  if (el.type === 'tabs') return <FreeTabs p={p} unit={unit} />
+  if (el.type === 'tabs') return <FreeTabs p={p} unit={unit} editing={editing} />
   if (el.type === 'table') return <FreeTable p={p} unit={unit} />
   if (el.type === 'map') return <FreeMap p={p} />
   if (el.type === 'embed') return <FreeEmbed p={p} />

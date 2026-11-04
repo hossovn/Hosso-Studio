@@ -35,6 +35,11 @@ const g = '#dce7e4'
 const d = '#26785a'
 const photo = (x: number, y: number, w: number, h: number, src = '/editor-demo/mountain.jpg') => <image x={x} y={y} width={w} height={h} href={src} preserveAspectRatio="xMidYMid slice" />
 const sampleImage = { src: '/editor-demo/mountain.jpg', alt: 'Dãy núi dưới ánh nắng' }
+const sampleSlides = [
+  { image: '/editor-demo/mountain.jpg', alt: 'Dãy núi dưới ánh nắng', text: 'Khám phá những trải nghiệm mới' },
+  { image: '/editor-demo/trail.jpg', alt: 'Đường mòn trên núi', text: 'Mỗi hành trình bắt đầu từ một bước nhỏ' },
+  { image: '/editor-templates/cafe.jpg', alt: 'Không gian café', text: 'Không gian dành cho những cuộc gặp gỡ' },
+]
 const L = (x: number, y: number, w: number, c = g) => <rect key={`${x}-${y}`} x={x} y={y} width={w} height={4} rx={2} fill={c} />
 const B = (x: number, y: number, w: number, h: number, c = g, r = 3) => <rect key={`${x}-${y}-${w}`} x={x} y={y} width={w} height={h} rx={r} fill={c} />
 const WIRES: Record<string, React.ReactNode> = {
@@ -230,9 +235,12 @@ export const LIBRARY: { title: string; cols: number; items: { label: string; mak
   ...Object.entries(ICON_CATS).map(([cat, names]) => ({ title: `Icon · ${cat}`, cols: 6, items: names.map((name) => ({ label: name, make: S('icon', { props: { name } }) })) })),
   { title: 'Ảnh và video', cols: 2, items: [
     { label: 'Ảnh', make: S('image', { props: sampleImage }) },
+    { label: 'Ảnh bo góc', make: S('image', { props: { ...sampleImage, radius: 24, bshadow: 'md' } }) },
     { label: 'Không gian', make: S('image', { props: { src: '/editor-templates/workspace.jpg', alt: 'Không gian làm việc' } }) },
     { label: 'Sản phẩm', make: S('image', { props: { src: '/editor-templates/watch.jpg', alt: 'Đồng hồ thiết kế tối giản', fit: 'contain' } }) },
     { label: 'Chân dung', make: S('image', { w: 240, h: 300, props: { src: '/editor-templates/portrait-1.jpg', alt: 'Chân dung minh họa' } }) },
+    { label: 'Trình chiếu ảnh', make: S('swiper', { props: { slides: sampleSlides.map(({ text: _text, ...slide }) => slide), seconds: 4 } }) },
+    { label: 'Carousel nội dung', make: S('swiper', { props: { slides: sampleSlides, seconds: 5 } }) },
     { label: 'Video', make: S('video', { props: { url: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4', poster: '/editor-demo/trail.jpg', title: 'Video minh họa' } }) },
   ] },
 ]
@@ -353,8 +361,19 @@ function Panel({ tab, types, labelOf, T, lang }: { tab: TabDef; types: string[];
 }
 
 /** Dựng các tab của thanh icon. Tab đầu mang tên "blocks" để ghi đè tab Blocks mặc định của Puck; Layers và Fields của Puck giữ nguyên. */
-export const ELEMENT_CATALOG: readonly ElementCatalogItem[] = ([['text', 'Văn bản', 'Văn bản'], ['button', 'Nút bấm', 'Phần tử'], ['image', 'Hình ảnh', 'Ảnh và video']] as const).map(([type, label, category]) => {
-  const create = () => makeElement(type, type === 'image' ? { props: sampleImage } : {})
+export const ELEMENT_CATALOG: readonly ElementCatalogItem[] = ([
+  ['text', 'Văn bản', 'Văn bản'],
+  ['button', 'Nút bấm', 'Phần tử'],
+  ['container', 'Nhóm', 'Phần tử'],
+  ['image', 'Hình ảnh', 'Ảnh và video'],
+  ['swiper', 'Trình chiếu', 'Ảnh và video'],
+  ['video', 'Video', 'Ảnh và video'],
+] as const).map(([type, label, category]) => {
+  const create = () => makeElement(type,
+    type === 'image' ? { props: sampleImage }
+      : type === 'swiper' ? { props: { slides: sampleSlides, seconds: 4 } }
+        : type === 'video' ? { props: { url: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4', poster: '/editor-demo/trail.jpg', title: 'Video minh họa' } }
+          : {})
   return { type, label, category, preview: <Preview el={create()} />, create }
 })
 

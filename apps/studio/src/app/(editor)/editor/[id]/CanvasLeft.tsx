@@ -14,6 +14,14 @@ import { FOOTER_TEMPLATES, HEADER_TEMPLATES, SECTION_TEMPLATES, type SectionTemp
 export type Tab = 'sections' | 'text' | 'elements' | 'media' | 'store' | 'input' | 'widgets' | 'library' | 'more' | 'layers' | 'global' | 'brand'
 const SHOP_WIDGETS = ['ShopProductGrid', 'ShopCategories', 'ShopProductDetail', 'WimProductGrid', 'WimProductDetail', 'WimProductSearch', 'WimVehicleSelector', 'CategoryGrid', 'ShopCart', 'ShopCheckout', 'ShopOrderStatus', 'WimCart', 'WimCheckout', 'WimOrderStatus', 'ShippingTrack']
 const INPUT_WIDGETS = ['Form', 'ContactForm', 'SearchBox', 'NavMenu']
+const INPUT_PRESETS = [
+  { id: 'contact', type: 'ContactForm', label: 'Form liên hệ', props: { heading: 'Liên hệ với chúng tôi', description: 'Để lại thông tin, chúng tôi sẽ phản hồi sớm nhất.', submitLabel: 'Gửi liên hệ' } },
+  { id: 'consulting', type: 'ContactForm', label: 'Form nhận tư vấn', props: { heading: 'Nhận tư vấn miễn phí', description: 'Điền thông tin để đội ngũ tư vấn liên hệ trong ngày.', submitLabel: 'Nhận tư vấn' } },
+  { id: 'quotation', type: 'ContactForm', label: 'Form yêu cầu báo giá', props: { heading: 'Yêu cầu báo giá', description: 'Cho chúng tôi biết nhu cầu của bạn để nhận báo giá phù hợp.', submitLabel: 'Nhận báo giá' } },
+  { id: 'custom', type: 'Form', label: 'Biểu mẫu tùy chỉnh', props: { heading: 'Đăng ký thông tin' } },
+  { id: 'search', type: 'SearchBox', label: 'Ô tìm kiếm', props: {} },
+  { id: 'nav', type: 'NavMenu', label: 'Menu điều hướng', props: {} },
+] as const
 const TABS: { id: Tab; title: string; icon: typeof Type; groups?: string[]; widgets?: string[] }[] = [
   { id: 'global', title: 'Phần chung', icon: PanelsTopLeft },
   { id: 'sections', title: 'Phần', icon: LayoutTemplate },
@@ -80,11 +88,12 @@ export function CanvasLeft({
   brandPanel?: React.ReactNode
 }) {
   const [q, setQ] = useState('')
+  const [group, setGroup] = useState('')
   const m = q.trim().toLowerCase()
   const cur = TABS.find((t) => t.id === tab)!
   const CurrentIcon = cur.icon
   const showTab = (id: Tab) => {
-    if (tab !== id) setQ('')
+    if (tab !== id) { setQ(''); setGroup('') }
     setTab(id)
     onOpen()
   }
@@ -101,13 +110,26 @@ export function CanvasLeft({
     const source: SectionTemplate[] = areaKind ? (areaKind === 'header' ? HEADER_TEMPLATES : FOOTER_TEMPLATES).map((t) => ({ ...t, build: () => t.build(siteCtx) })) : SECTION_TEMPLATES
     body = <>{search}<SectionLibrary templates={source} query={m} areaKind={areaKind} onInsert={ops.addSection} /></>
   } else if (cur.groups || cur.widgets) {
-    const groups = LIBRARY.filter((g) => (cur.groups ?? []).includes(g.title))
+    const availableGroups = LIBRARY.filter((g) => (cur.groups ?? []).includes(g.title))
+    const groups = availableGroups.filter((g) => !group || g.title === group)
       .map((g) => ({ ...g, items: g.items.filter((it) => `${g.title} ${it.label}`.toLowerCase().includes(m)) }))
       .filter((g) => g.items.length)
-    const widgetList = (cur.widgets ?? []).filter((t) => t in config.components && `${t} ${labelOf(t)}`.toLowerCase().includes(m))
+    const presets = tab === 'input'
+      ? INPUT_PRESETS.filter((it) => it.type in config.components && `${it.label} ${it.type}`.toLowerCase().includes(m))
+      : []
+    const widgetList = tab === 'input' ? [] : (cur.widgets ?? []).filter((t) => t in config.components && `${t} ${labelOf(t)}`.toLowerCase().includes(m))
     body = (
       <>
         {search}
+        {availableGroups.length > 1 && (
+          <label className="cv-catalog-filter">
+            <span>Loại nội dung</span>
+            <select value={group} onChange={(e) => setGroup(e.target.value)} aria-label="Lọc loại nội dung">
+              <option value="">Tất cả</option>
+              {availableGroups.map((g) => <option key={g.title} value={g.title}>{g.title}</option>)}
+            </select>
+          </label>
+        )}
         {groups.map((g) => (
           <section key={g.title} className="cv-catalog-group">
             <h3 className="cv-catalog-heading">{g.title}<span>{g.items.length}</span></h3>
@@ -134,7 +156,20 @@ export function CanvasLeft({
             </div>
           </div>
         )}
-        {!groups.length && !widgetList.length && <div className="cv-empty"><Search size={28} aria-hidden="true" /><p>Không có kết quả.</p></div>}
+        {presets.length > 0 && (
+          <section className="cv-catalog-group">
+            <h3 className="cv-catalog-heading">Mẫu biểu mẫu và điều hướng<span>{presets.length}</span></h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {presets.map((preset) => (
+                <button key={preset.id} type="button" className="he-card" onClick={() => ops.addWidget(preset.type, preset.props)} style={{ cursor: 'pointer', font: 'inherit' }}>
+                  <Wire type={preset.type} />
+                  <span className="cv-item-label"><span>{preset.label}</span><Plus size={14} aria-hidden="true" /></span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+        {!groups.length && !widgetList.length && !presets.length && <div className="cv-empty"><Search size={28} aria-hidden="true" /><p>Không có kết quả.</p></div>}
       </>
     )
   } else if (tab === 'widgets') {
