@@ -1,4 +1,5 @@
 'use client'
+import { ConstraintsPanel } from './ConstraintsPanel'
 import { DEVICE_WIDTH, elementFamily, type WidgetPartDevice, type ElementState, type ElementDevice } from '@hosso/studio-blocks'
 import { BOX_SHADOWS, CLIPS, CLIP_LABEL, ColorControl, FREE_FONTS, ICON_BODY, ICON_CATS, MediaField, SHADOW_LABEL, TEXT_SHADOWS, RangeControl, SegControl, type FreeElement } from '@hosso/studio-blocks'
 import React from 'react'
@@ -220,6 +221,7 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
           {(['x', 'y', 'w', 'h'] as const).map((key) => <Num key={key} label={key.toUpperCase() + ' (' + unit + ')'} value={unit === 'px' ? Number((el[key] * pixelScale).toFixed(2)) : Number((el[key] / denominator(key) * 100).toFixed(2))} onChange={(v) => { const n = unit === 'px' ? v / pixelScale : v / 100 * denominator(key); geo({ [key]: key === 'w' || key === 'h' ? Math.max(8, n) : n }) }} />)}
         </div>
         <Row label="Container"><select style={ctl} value={el.parentId || ''} onChange={(e) => commit(updateEl(data, el.id, (it) => ({ ...it, parentId: e.target.value || undefined })))}><option value="">Section</option>{elsOf(block).filter((it) => it.type === 'container' && !elementFamily(elsOf(block), el.id).some((child) => child.id === it.id)).map((it) => <option key={it.id} value={it.id}>{it.props.name || it.id}</option>)}</select></Row>
+        <ConstraintsPanel el={el} put={put} />
         </fieldset>
       </Group>
       <Group title="Nội dung" show={tab === 'content'}>

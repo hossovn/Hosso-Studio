@@ -1,5 +1,6 @@
 'use client'
 import hosso from '@hosso-config'
+import { newestRecovery, type RecoveryRecord } from './editor-recovery'
 import { AdminLangProvider, CORE_LOADER_TYPES, trLabel, LocaleProvider, buildPuckConfig, coreBlocks, patterns, setLocale, type SiteChrome } from '@hosso/studio-blocks'
 import { ActionBar, usePuck } from '@puckeditor/core'
 import dynamic from 'next/dynamic'
@@ -26,6 +27,8 @@ const Puck = dynamic(() => import('@puckeditor/core').then((m) => m.Puck), { ssr
 
 type Props = {
   collection: Kind
+  userKey?: string
+  revision?: string
   publicHref: string
   id: string
   title: string
@@ -358,27 +361,76 @@ export function Editor(props: Props) {
   const dataRef = useRef<unknown>(props.data)
   const savedJson = useRef(JSON.stringify(props.data ?? null))
   const isArea = props.collection === 'area'
+  const [workingInitial, setWorkingInitial] = useState(props.data)
+  const [restoreKey, setRestoreKey] = useState(0)
+  const [session] = useState(() => crypto.randomUUID())
+  const revision = useRef(props.revision ?? '')
+  const saving = useRef(false)
+  const [online, setOnline] = useState(true)
+  const [conflict, setConflict] = useState(false)
+  const [recovery, setRecovery] = useState<{ key: string; record: RecoveryRecord } | null>(null)
+  const [recoveryError, setRecoveryError] = useState('')
+  const recoveryPrefix = `hosso-recovery:v1:${props.userKey ?? 'user'}:${props.collection}:${props.id}:${props.locale}:`
+  const recoveryKey = recoveryPrefix + session
+  const recoveryTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const discardOnExit = useRef(false)
+  const writeRecovery = () => {
+    const changed = JSON.stringify(dataRef.current) !== savedJson.current || JSON.stringify(metadataRef.current ?? null) !== savedMetadata.current
+    try {
+      if (changed) localStorage.setItem(recoveryKey, JSON.stringify({ version: 1, time: Date.now(), baseRevision: revision.current, data: dataRef.current, metadata: metadataRef.current }))
+      else localStorage.removeItem(recoveryKey)
+      setRecoveryError('')
+    } catch { setRecoveryError('Không đủ bộ nhớ để giữ bản khôi phục. Hãy lưu nháp khi có kết nối.') }
+  }
+  const scheduleRecovery = () => { if (recoveryTimer.current) clearTimeout(recoveryTimer.current); recoveryTimer.current = setTimeout(writeRecovery, 400) }
+  useEffect(() => {
+    try { const candidate = newestRecovery(localStorage, recoveryPrefix); if (candidate && (JSON.stringify(candidate.record.data) !== savedJson.current || JSON.stringify(candidate.record.metadata ?? null) !== savedMetadata.current)) setRecovery(candidate) } catch {}
+    const connectivity = () => setOnline(navigator.onLine)
+    const hide = () => { if (recoveryTimer.current) clearTimeout(recoveryTimer.current); if (!discardOnExit.current) writeRecovery() }
+    connectivity(); window.addEventListener('online', connectivity); window.addEventListener('offline', connectivity); window.addEventListener('pagehide', hide)
+    return () => { if (recoveryTimer.current) clearTimeout(recoveryTimer.current); window.removeEventListener('online', connectivity); window.removeEventListener('offline', connectivity); window.removeEventListener('pagehide', hide) }
+  }, [recoveryKey])
+  const restoreLocal = () => {
+    if (!recovery) return
+    const record = recovery.record
+    dataRef.current = record.data; metadataRef.current = record.metadata ?? props.metadata
+    setWorkingInitial(record.data); setMetadata(metadataRef.current); setRestoreKey((value) => value + 1); setDirty(true)
+    if (record.baseRevision !== revision.current) setConflict(true)
+    try { localStorage.removeItem(recovery.key) } catch {}
+    setRecovery(null); writeRecovery()
+  }
+  const documentUrl = isArea ? `/api/globals/site-areas?draft=true&locale=${props.locale}` : `/api/${props.collection}/${props.id}?draft=true&locale=${props.locale}`
+  const loadServer = () => { discardOnExit.current = true; if (recoveryTimer.current) clearTimeout(recoveryTimer.current); try { localStorage.removeItem(recoveryKey) } catch {}; window.location.reload() }
+  const useMine = async () => {
+    try {
+      const res = await fetch(documentUrl), current = await res.json()
+      if (!res.ok || !current.updatedAt) throw new Error()
+      revision.current = current.updatedAt; setConflict(false); setDirty(true); setStatus('Đã chọn bản của bạn. Lưu nháp để tiếp tục.'); writeRecovery()
+    } catch { setStatus('Không lấy được phiên bản máy chủ. Kiểm tra kết nối và thử lại.') }
+  }
 
   // Khóa sửa mềm: nếu người khác đang sửa cùng trang/ngôn ngữ thì chặn lưu để không ghi đè lẫn nhau (có thể tiếp quản).
   const lockKey = `${props.collection}:${props.id}:${props.locale}`
   const [lockedBy, setLockedBy] = useState('')
   const lock = (extra: Record<string, unknown> = {}) =>
-    fetch('/api/site/lock', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: lockKey, ...extra }) })
+    fetch('/api/site/lock', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: lockKey, session, ...extra }) })
       .then((r) => r.json())
-      .catch(() => ({ ok: true }))
+      .catch(() => ({ ok: false, unavailable: true }))
   useEffect(() => {
     let alive = true
     const beat = async () => {
       const j = await lock()
-      if (alive) setLockedBy(j.ok ? '' : String(j.holder))
+      if (alive) setLockedBy(j.ok ? '' : j.unavailable ? 'Chưa kết nối máy chủ' : String(j.holder))
     }
     beat()
     const timer = setInterval(beat, 25000)
-    const release = () => navigator.sendBeacon('/api/site/lock', new Blob([JSON.stringify({ key: lockKey, release: true })], { type: 'application/json' }))
+    window.addEventListener('online', beat)
+    const release = () => navigator.sendBeacon('/api/site/lock', new Blob([JSON.stringify({ key: lockKey, session, release: true })], { type: 'application/json' }))
     window.addEventListener('pagehide', release)
     return () => {
       alive = false
       clearInterval(timer)
+      window.removeEventListener('online', beat)
       window.removeEventListener('pagehide', release)
       release()
     }
@@ -386,46 +438,63 @@ export function Editor(props: Props) {
   }, [lockKey])
 
   const persist = async (data: unknown, publish: boolean, auto = false) => {
-    if (busy) return
+    if (saving.current || recovery || conflict) return
+    if (!navigator.onLine) { setStatus('Mất mạng. Bản trên máy bạn được giữ để khôi phục.'); writeRecovery(); return }
     const savingMetadata = metadataRef.current
     if (lockedBy) {
       setStatus(T('Đang bị khóa: {who} đang sửa', { who: lockedBy }))
       return
     }
+    saving.current = true
     setBusy(true)
     setStatus(auto ? T('Đang tự lưu…') : T('Đang lưu…'))
     try {
+      const lease = await lock()
+      if (!lease.ok) { setLockedBy(lease.unavailable ? 'Chưa kết nối máy chủ' : String(lease.holder)); writeRecovery(); return }
+      const saveHeaders = { 'Content-Type': 'application/json', ...(revision.current ? { 'x-hosso-editor-base': revision.current, 'x-hosso-editor-session': session, 'x-hosso-editor-key': lockKey } : {}) }
       const res = isArea
-        ? await fetch(`/api/globals/site-areas?draft=true${auto ? '&autosave=true' : ''}&locale=${props.locale}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [props.id]: data, _status: 'draft' }) })
+        ? await fetch(`/api/globals/site-areas?draft=true${auto ? '&autosave=true' : ''}&locale=${props.locale}`, { method: 'POST', headers: saveHeaders, body: JSON.stringify({ [props.id]: data, _status: 'draft' }) })
         : await fetch(`/api/${props.collection}/${props.id}?draft=true${auto ? '&autosave=true' : ''}&locale=${props.locale}`, {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            headers: saveHeaders,
             body: JSON.stringify({ ...(savingMetadata && ['pages', 'posts'].includes(props.collection) ? { description: savingMetadata.description, excerpt: savingMetadata.excerpt, seo: { ...savingMetadata.seo, image: typeof savingMetadata.seo?.image === 'object' ? savingMetadata.seo.image?.id : savingMetadata.seo?.image } } : {}), content: data, _status: 'draft' }),
           })
       const body = await res.json().catch(() => ({}))
       if (res.ok) {
+        const result = body.doc ?? body.result ?? body
+        revision.current = result.updatedAt ?? revision.current
         savedJson.current = JSON.stringify(data)
         savedMetadata.current = JSON.stringify(savingMetadata ?? null)
         setDirty(JSON.stringify(dataRef.current) !== savedJson.current || JSON.stringify(metadataRef.current ?? null) !== savedMetadata.current)
         setStatus(auto ? T('Đã tự lưu nháp') : T('Đã lưu nháp'))
+        writeRecovery()
         if (publish) window.location.assign('/admin/releases?select=' + encodeURIComponent(isArea ? 'site-areas' : `${props.collection}:${props.id}`))
       } else {
+        if (res.status === 409) setConflict(true)
+        writeRecovery()
         setStatus(`${T('Lỗi')}: ${body?.errors?.[0]?.message ?? res.status}`)
       }
     } catch { setStatus(T('Không lưu được. Kiểm tra kết nối và thử lại.')) }
-    finally { setBusy(false) }
+    finally { saving.current = false; setBusy(false) }
   }
+
+  useEffect(() => {
+    const key = (event: KeyboardEvent) => { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); persist(dataRef.current, false) } }
+    document.addEventListener('keydown', key)
+    const timer = setInterval(() => { const doc = document.querySelector<HTMLIFrameElement>('iframe[title="Trang"]')?.contentDocument; if (doc) { doc.removeEventListener('keydown', key); doc.addEventListener('keydown', key) } }, 1000)
+    return () => { clearInterval(timer); document.removeEventListener('keydown', key); document.querySelector<HTMLIFrameElement>('iframe[title="Trang"]')?.contentDocument?.removeEventListener('keydown', key) }
+  }, [busy, lockedBy, recovery, conflict])
 
   // Tự lưu nháp 4 giây sau thay đổi; vùng giao diện cũng được giữ riêng với bản công khai.
   useEffect(() => {
-    if (!dirty || busy || lockedBy) return
+    if (!dirty || busy || lockedBy || !online || conflict || recovery) return
     const t = setTimeout(() => persist(dataRef.current, false, true), 4000)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dirty, busy, status, lockedBy, metadata])
+  }, [dirty, busy, status, lockedBy, metadata, online, conflict, recovery])
   useEffect(() => {
     const warn = (e: BeforeUnloadEvent) => {
-      if (dirty) e.preventDefault()
+      if (dirty && !discardOnExit.current) e.preventDefault()
     }
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
@@ -535,6 +604,9 @@ export function Editor(props: Props) {
       {/* Puck sao chép style của trang chủ vào iframe xem trước (syncHostStyles). */}
       <style>{props.css}</style>
       <style>{BRAND_CSS}</style>
+      {(recovery || conflict || !online || recoveryError) && <div className="cv-recovery" role="status">
+        {recovery ? <><p>Có bản chưa lưu trên trình duyệt từ {new Date(recovery.record.time).toLocaleString('vi-VN')}. Bạn có thể khôi phục để tiếp tục chỉnh sửa.</p><button type="button" onClick={restoreLocal}>Khôi phục</button><button type="button" onClick={() => { try { localStorage.removeItem(recovery.key) } catch {}; setRecovery(null) }}>Bỏ bản khôi phục</button></> : conflict ? <><p>Trang đã thay đổi hoặc phiên sửa đã được tiếp quản. Bản trên máy bạn được giữ; tự lưu đang tạm dừng.</p><button type="button" onClick={loadServer}>Tải bản máy chủ</button><button type="button" onClick={useMine}>Dùng bản của tôi</button></> : <p>{recoveryError || 'Đang mất mạng. Thay đổi được giữ trên trình duyệt; tự lưu sẽ tiếp tục khi kết nối lại.'}</p>}
+      </div>}
       {lockedBy && (
         <div role="alert" style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 99999, background: '#b45309', color: '#fff', padding: '10px 16px', display: 'flex', gap: 12, alignItems: 'center', font: '14px Arial, sans-serif' }}>
           <span>
@@ -555,16 +627,18 @@ export function Editor(props: Props) {
       {canvasMode ? (
         <CanvasBoundary fallbackHref={puckHref}>
           <CanvasApp
+            key={restoreKey}
             metadata={metadata}
-            onMetadataChange={(value) => { metadataRef.current = value; setMetadata(value); setDirty(JSON.stringify(dataRef.current) !== savedJson.current || JSON.stringify(value ?? null) !== savedMetadata.current) }}
+            onMetadataChange={(value) => { metadataRef.current = value; setMetadata(value); scheduleRecovery(); setDirty(JSON.stringify(dataRef.current) !== savedJson.current || JSON.stringify(value ?? null) !== savedMetadata.current) }}
             brandTheme={props.brandTheme}
             canEditBrand={props.canEditBrand}
             initialSelection={props.initialSelection}
             initialDevice={props.initialDevice}
             config={config}
-            data={props.data}
+            data={workingInitial}
             onChange={(d) => {
               dataRef.current = d
+            scheduleRecovery()
               setDirty(JSON.stringify(d) !== savedJson.current || JSON.stringify(metadataRef.current ?? null) !== savedMetadata.current)
             }}
             css={props.css}
@@ -594,11 +668,13 @@ export function Editor(props: Props) {
       ) : (
       <Puck
         config={config as any}
-        data={props.data}
+        key={restoreKey}
+        data={workingInitial}
         headerTitle={headerTitle}
         headerPath={props.publicHref}
         onChange={(d) => {
           dataRef.current = d
+              scheduleRecovery()
           setDirty(JSON.stringify(d) !== savedJson.current || JSON.stringify(metadataRef.current ?? null) !== savedMetadata.current)
         }}
         viewports={[

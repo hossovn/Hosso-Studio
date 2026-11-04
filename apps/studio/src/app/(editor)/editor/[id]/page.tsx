@@ -40,6 +40,7 @@ export default async function EditorPage({ params, searchParams }: { params: Pro
   const site = await loadSite(locale, true)
   const lang = adminLang((await cookies()).get('payload-lng')?.value)
   const common = {
+    userKey: String(user.id),
     lang,
     themeName: site.theme.manifest.name,
     css: site.css,
@@ -62,7 +63,7 @@ export default async function EditorPage({ params, searchParams }: { params: Pro
     const area = AREAS.find((a) => a.name === id)
     if (!area || !canEditPages(user)) notFound()
     const doc = (await payload.findGlobal({ slug: 'site-areas', draft: true, locale: locale as any, depth: 0, user, overrideAccess: false })) as Record<string, any>
-    return <Editor {...common} collection="area" id={id} title={area.label} slug="" status={doc._status ?? 'published'} data={doc[id] ?? { content: [], root: { props: {} } }} publicHref={href('/', locale)} />
+    return <Editor {...common} revision={doc.updatedAt} collection="area" id={id} title={area.label} slug="" status={doc._status ?? 'published'} data={doc[id] ?? { content: [], root: { props: {} } }} publicHref={href('/', locale)} />
   }
 
   const sharedAreas = (await payload.findGlobal({ slug: 'site-areas', draft: true, locale: locale as any, depth: 0 }).catch(() => ({}))) as Record<string, any>
@@ -75,6 +76,7 @@ export default async function EditorPage({ params, searchParams }: { params: Pro
     <Editor
       {...common}
       collection={collection}
+      revision={doc.updatedAt}
       id={String(doc.id)}
       title={doc.title}
       slug={doc.slug}

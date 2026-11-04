@@ -79,20 +79,23 @@ const inlineStyle = (p: Record<string, any>): React.CSSProperties | undefined =>
   if (p._z !== '' && p._z != null && !Number.isNaN(Number(p._z))) Object.assign(st, { position: 'relative', zIndex: Number(p._z) })
   return Object.keys(st).length ? st : undefined
 }
-export const withStyle = (Inner: BlockRenderer): BlockRenderer => {
+export const withStyle = (Inner: BlockRenderer, publicRender = false): BlockRenderer => {
   const Styled: BlockRenderer = (props: any) => {
     const { _bg, _pt, _pb, _align, _fs, _bd, _rd, _sh, _an, _hv, _hide } = props
     const reusableHide = ['m', 't', 'd'].includes(props._reusableHide) ? props._reusableHide : ''
     const style = inlineStyle(props)
     const stateCss = typeof props.id === 'string' ? elementStatesCss(props.id, props) : ''
     const layoutCss = typeof props.id === 'string' ? responsiveBlockCss(props.id, props) : ''
-    let content = createElement(Inner, stateCss ? { ...props, _states: undefined } : props)
+    // Puck's runtime contains functions; it must stay on the editor side of React Flight.
+    const { puck, ...contentProps } = props
+    const rendererProps = publicRender ? contentProps : props
+    let content = createElement(Inner, stateCss ? { ...rendererProps, _states: undefined } : rendererProps)
     if (typeof props.id === 'string' && (props._editParts || props._parts || props._partsTablet || props._partsMobile)) {
       const css = widgetPartResponsiveCss(props.id, props)
       content = createElement('div', { 'data-hs-parts': widgetPartScope(props.id), style: { display: 'contents' } }, content, css ? createElement('style', null, css) : null)
     }
     // Lớp phần tử tự do (prop _els) phủ lên mọi block; editor tự vẽ lớp chỉnh sửa nên đặt _noFree để bỏ lớp này.
-    const layer = !props._noFree && Array.isArray(props._els) && props._els.length ? createElement(FreeOverlay, { elements: props._els }) : null
+    const layer = !props._noFree && Array.isArray(props._els) && props._els.length ? createElement(FreeOverlay, { elements: props._els, height: props.height, responsive: props._responsive }) : null
     if (!_bg && !_pt && !_pb && !_align && !_fs && !_bd && !_rd && !_sh && !_an && !_hv && !_hide && !reusableHide && !style && !layer && !stateCss && !layoutCss) return content
     const cls = ['hs-styled', _hide && `hs-hide-${_hide}`, reusableHide && `hs-hide-${reusableHide}`, _bg && `hs-bg-${_bg}`, _pt && `hs-pt-${_pt}`, _pb && `hs-pb-${_pb}`, _align && `hs-ta-${_align}`, _fs && `hs-fs-${_fs}`, _bd && `hs-bd-${_bd}`, _rd && `hs-rd-${_rd}`, _sh && `hs-sh-${_sh}`, _an && `hs-an-${_an}`, _hv && `hs-hv-${_hv}`].filter(Boolean).join(' ')
     return createElement('div', { className: cls + (stateCss ? ' ' + elementStateScope(props.id) : ''), 'data-hs-layout': layoutCss ? encodeURIComponent(props.id) : undefined, style: layer ? { position: 'relative', ...style } : style }, stateCss ? createElement('style', null, stateCss) : null, layoutCss ? createElement('style', null, layoutCss) : null, content, layer)
@@ -136,7 +139,7 @@ export function buildPuckConfig(opts: {
       label: L(s.label),
       fields: Object.fromEntries([...Object.entries(s.fields).map(([k, v]) => [k, toPuckField(v as BlockField, L)]), ...Object.entries(STYLE_FIELDS).map(([k, v]) => [k, toStyleField(k, v, L) ?? toPuckField(v as BlockField, L)])]),
       defaultProps: s.defaultProps,
-      render: withStyle(render),
+      render: withStyle(render, mode === 'render'),
     }
   }
   if (mode === 'editor') {

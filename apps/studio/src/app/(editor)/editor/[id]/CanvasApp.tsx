@@ -3,7 +3,12 @@ import { FREE_MAX_PX, FREE_W, cloneElements, elementFamily, patchWidgetPart, wid
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createStore, useStore } from 'zustand'
 import { ArrowLeft, ChevronRight, Copy, Eye, HelpCircle, Layers, Monitor, Pencil, PanelLeftClose, PanelRightClose, Redo2, Smartphone, Tablet, Trash2, Undo2, Maximize, Minimize, SlidersHorizontal } from 'lucide-react'
-import { elsOf } from './canvas-model'
+import { elsOf, elementStyleProps, setBlockEls } from './canvas-model'
+import { DrawingContext, DrawingPanel } from './DrawingTools'
+import { DEFAULT_DRAWING, type DrawingOptions } from './canvas-guides'
+import { EditorHelp } from './EditorHelp'
+import { PopupPanel } from './PopupPanel'
+import { batchStyle } from './batch-style'
 import { visibleCanvasBlock, visibleCanvasRange } from './canvas-viewport'
 
 import { CanvasInspector } from './CanvasInspector'
@@ -102,6 +107,10 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
   }
   const [zoom, setZoom] = useState<'fit' | 0.5 | 0.75 | 1 | 1.25>('fit')
   const [showShortcuts, setShowShortcuts] = useState(false)
+  const [drawing, setDrawing] = useState<DrawingOptions>(DEFAULT_DRAWING)
+  useEffect(() => { try { const saved = JSON.parse(localStorage.getItem('hosso-drawing:v1') || 'null'); if (saved) setDrawing({ ...DEFAULT_DRAWING, ...saved, gridSize: Math.max(4, Math.min(100, Number(saved.gridSize) || 20)) }) } catch {} }, [])
+  const changeDrawing = (value: DrawingOptions) => { setDrawing(value); try { localStorage.setItem('hosso-drawing:v1', JSON.stringify(value)) } catch {} }
+  const navigateHelp = (target: string) => { if (target === 'inspect') setRightOpen(true); else { setTab(target as Tab); openLeft() } }
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false)
   const [copiedStyle, setCopiedStyle] = useState<Record<string, unknown> | null>(null)
   useEffect(() => {
@@ -169,10 +178,17 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
     const onKey = (e: KeyboardEvent) => {
       if (st.current.preview) return
       const t = e.target as HTMLElement | null
-      if (t?.closest?.('input, textarea, select, [contenteditable], .cv-left')) return
+      if (t?.closest?.('input, textarea, select, [contenteditable], dialog[open], .cv-left')) return
       const mod = e.ctrlKey || e.metaKey
       const { data: d, sel: s } = st.current
       const k = e.key.toLowerCase()
+      if (k === '?' && !mod) { e.preventDefault(); setShowShortcuts(true); return }
+      if (mod && e.altKey && ['c', 'v'].includes(k)) {
+        e.preventDefault(); const hit = findEl(d, s.el); if (!hit) return
+        if (k === 'c') setCopiedStyle(elementStyleProps(hit.el.props))
+        else if (copiedStyle) { const ids = s.multi?.length ? s.multi : [s.el]; commit(setBlockEls(d, s.block, batchStyle(elsOf(hit.block), ids, copiedStyle))) }
+        return
+      }
       if (k === 'escape' && !document.fullscreenElement && focusMode) { setFocusMode(false); return }
       if (mod && k === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return }
       if (mod && k === 'y') { e.preventDefault(); redo(); return }
@@ -231,7 +247,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
       d.removeEventListener('cut', onCopy)
       d.removeEventListener('paste', onPaste)
     })
-  }, [docs, commit, undo, redo, focusMode])
+  }, [docs, commit, undo, redo, focusMode, copiedStyle])
 
   // ---- Thêm nội dung ----
   const blocks = data.content
@@ -325,6 +341,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
   const selectedEl = sel.el ? findEl(data, sel.el) : null
   return (
     <StyleClipboardContext.Provider value={{ style: copiedStyle, setStyle: setCopiedStyle }}>
+    <DrawingContext.Provider value={drawing}>
     <div ref={editorRoot} className="cv-editor" data-focus={focusMode} data-fullscreen={fullscreen} style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', background: 'var(--cv-workspace)', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif', fontSize: 14, color: '#20242b' }}>
       <header className="cv-top">
         <a className="cv-ib" href={backHref} title="Về trang quản trị" aria-label="Về trang quản trị"><ArrowLeft size={18} /></a>
@@ -340,6 +357,8 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
           <button type="button" title="Xem trước trang" aria-label="Xem trước trang" aria-pressed={preview} onClick={() => store.setState({ preview: true })}><Eye size={17} /></button>
         </div>
         <button type="button" className="cv-ib" aria-label={focusMode ? 'Hiện thanh công cụ đầy đủ' : 'Canvas mở rộng'} title={focusMode ? 'Hiện thanh công cụ đầy đủ' : 'Canvas mở rộng'} onClick={() => setFocusMode(!focusMode)}><SlidersHorizontal size={17} /></button>
+        <button type="button" className="cv-ib" aria-label="Căn chỉnh canvas" title="Thước, lưới và guide" aria-pressed={leftOpen && tab === 'drawing'} onClick={() => { setTab('drawing'); openLeft() }}><SlidersHorizontal size={17} /></button>
+        <button type="button" className="cv-ib" aria-label="Trợ giúp Studio" title="Trợ giúp và phím tắt (?)" onClick={() => setShowShortcuts(true)}><HelpCircle size={17} /></button>
         <button type="button" className="cv-ib" aria-label={fullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình'} title={fullscreen ? 'Thoát toàn màn hình (Esc)' : 'Toàn màn hình'} onClick={toggleFullscreen}>{fullscreen ? <Minimize size={17} /> : <Maximize size={17} />}</button>
       </header>
       <div className="cv-workbar" role="toolbar" aria-label="Công cụ canvas">
@@ -396,6 +415,8 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
               onOpen={openLeft}
               onClose={() => setLeftOpen(false)}
               brandPanel={<BrandPanel theme={brandTheme} enabled={canEditBrand} draft={brandDraft} />}
+              drawingPanel={<DrawingPanel value={drawing} onChange={changeDrawing} />}
+              popupPanel={<PopupPanel data={data} sel={sel} setSel={setSel} commit={commit} onAdd={() => ops.addWidget('Popup')} />}
               historyPanel={<HistoryPanel hist={hist} nav={nav} storageKey={`hosso-snapshots:${nav?.collection ?? 'demo'}:${nav?.id ?? 'demo'}:${nav?.locale ?? lang}`} onJump={(index) => { store.setState({ hist: jumpHistory(hist, index), sel: NO_SEL }) }} onRestore={(next) => { commitLayout(next); setSel(NO_SEL) }} />}
               responsivePanel={<ResponsivePanel data={hist.present} device={device} setDevice={setDevice} sel={sel} setSel={setSel} commit={commitLayout} />}
               formPanel={<FormBuilderPanel nav={nav} onInsert={(slug, heading) => ops.addWidget('Form', { form: slug, heading })} />}
@@ -457,83 +478,9 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
         )}
       </div>
 
-      {showShortcuts && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setShowShortcuts(false)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 99999,
-            background: 'rgba(15, 23, 42, 0.65)',
-            backdropFilter: 'blur(4px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 16,
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: 520,
-              maxWidth: '100%',
-              background: '#fff',
-              borderRadius: 16,
-              boxShadow: '0 24px 48px -12px rgba(0,0,0,0.25)',
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #f1f5f9' }}>
-              <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Phím tắt trình dựng trang</span>
-              <button
-                type="button"
-                onClick={() => setShowShortcuts(false)}
-                style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 18, color: '#64748b' }}
-              >
-                ✕
-              </button>
-            </div>
-            <div style={{ padding: '20px', display: 'grid', gap: 12, fontSize: 13 }}>
-              {[
-                ['Hoàn tác (Undo)', 'Ctrl + Z'],
-                ['Làm lại (Redo)', 'Ctrl + Shift + Z / Ctrl + Y'],
-                ['Sao chép phần tử', 'Ctrl + C'],
-                ['Cắt phần tử', 'Ctrl + X'],
-                ['Dán phần tử (Dán vào giữa vùng xem)', 'Ctrl + V'],
-                ['Nhân đôi phần tử', 'Ctrl + D'],
-                ['Xóa phần tử đang chọn', 'Delete / Backspace'],
-                ['Dịch chuyển 1px', 'Phím mũi tên (↑ ↓ ← →)'],
-                ['Dịch chuyển 10px', 'Shift + Phím mũi tên'],
-                ['Giữ tỉ lệ khi kéo góc', 'Shift + Kéo tay nắm góc'],
-                ['Sửa chữ tại chỗ', 'Nhấp đúp (Double-click) vào chữ'],
-                ['Mở menu thao tác nhanh', 'Chuột phải vào phần tử'],
-                ['Bỏ chọn / Đóng bảng', 'Escape'],
-              ].map(([desc, shortcut]) => (
-                <div key={desc} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
-                  <span style={{ color: '#334155' }}>{desc}</span>
-                  <kbd style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 6, padding: '3px 8px', fontFamily: 'monospace', fontWeight: 600, fontSize: 12, color: '#0f172a' }}>
-                    {shortcut}
-                  </kbd>
-                </div>
-              ))}
-            </div>
-            <div style={{ padding: '12px 20px', background: '#f8fafc', borderTop: '1px solid #f1f5f9', textAlign: 'right' }}>
-              <button
-                type="button"
-                onClick={() => setShowShortcuts(false)}
-                style={{ padding: '8px 16px', borderRadius: 8, background: '#0f172a', color: '#fff', border: 0, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
-              >
-                Đã hiểu
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <EditorHelp open={showShortcuts} onClose={() => setShowShortcuts(false)} onNavigate={navigateHelp} />
     </div>
+    </DrawingContext.Provider>
     </StyleClipboardContext.Provider>
   )
 }

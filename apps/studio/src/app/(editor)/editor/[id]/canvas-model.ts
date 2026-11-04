@@ -9,7 +9,7 @@ import type { FreeElement } from '@hosso/studio-blocks'
  */
 export type Block = { type: string; props: Record<string, any> }
 export type PageData = { root?: any; content: Block[]; [k: string]: any }
-export type Sel = { block: string; el: string; part?: string }
+export type Sel = { block: string; el: string; part?: string; multi?: string[] }
 
 export const SECTION = 'FreeCanvas'
 export const NO_SEL: Sel = { block: '', el: '' }
@@ -113,7 +113,8 @@ export function placeElement(data: PageData, ownerId: string, element: FreeEleme
     ? patchBlock(next, ownerId, { height: Math.ceil(y + element.h + 24) }) : next
 }
 
-export function snapPosition(data: PageData, ownerId: string, element: FreeElement, position: { x: number; y: number }) {
+export function snapPosition(data: PageData, ownerId: string, element: FreeElement, position: { x: number; y: number }, options: { enabled?: boolean; grid?: number; guides?: { axis: 'x' | 'y'; value: number }[] } = {}) {
+  if (options.enabled === false) return { ...position, guides: [] }
   const block = blocksOf(data).find((b) => blockId(b) === ownerId)
   const siblings = ownerId === PAGE ? floatOf(data) : block ? elsOf(block) : []
   const family = new Set(elementFamily(siblings, element.id).map((el) => el.id))
@@ -123,7 +124,7 @@ export function snapPosition(data: PageData, ownerId: string, element: FreeEleme
   for (const axis of ['x', 'y'] as const) {
     const size = axis === 'x' ? 'w' : 'h'
     const limit = axis === 'x' ? 1200 : Number(block?.props.height) || 400
-    const lines = [0, limit / 2, limit, ...others.flatMap((el) => [el[axis], el[axis] + el[size] / 2, el[axis] + el[size]])]
+    const lines = [0, limit / 2, limit, ...(options.guides ?? []).filter((guide) => guide.axis === axis && Number.isFinite(guide.value)).map((guide) => guide.value), ...others.flatMap((el) => [el[axis], el[axis] + el[size] / 2, el[axis] + el[size]])]
     const ordered = [...others].sort((a, b) => a[axis] - b[axis])
     for (let i = 1; i < ordered.length; i++) {
       const a = ordered[i - 1], b = ordered[i], gap = b[axis] - a[axis] - a[size]
@@ -138,6 +139,7 @@ export function snapPosition(data: PageData, ownerId: string, element: FreeEleme
       if (Math.abs(delta) <= 6 && (!best || Math.abs(delta) < Math.abs(best.delta))) best = { delta, value: line }
     }
     if (best) { next[axis] += best.delta; guides.push({ axis, value: best.value }) }
+    else if (options.grid && options.grid >= 4) next[axis] = Math.round(next[axis] / options.grid) * options.grid
   }
   return { ...next, guides }
 }

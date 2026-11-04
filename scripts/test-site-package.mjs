@@ -19,7 +19,7 @@ function compile(relative, stubs) {
   return mod.exports
 }
 
-const areasModule = compile('../apps/studio/src/globals/SiteAreas.ts', { '../lib/access': { publishers: () => true }, '../lib/site-publication-lock': { lockSiteMutation: () => {} } })
+const areasModule = compile('../apps/studio/src/globals/SiteAreas.ts', { '../lib/access': { publishers: () => true }, '../lib/site-publication-lock': { lockSiteMutation: () => {} }, '../lib/editor-conflict': { assertEditorRevision: async () => {} } })
 const { AREAS } = areasModule
 const locales = ['vi', 'en']
 const config = {

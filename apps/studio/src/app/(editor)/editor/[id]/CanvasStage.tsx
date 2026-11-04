@@ -9,6 +9,8 @@ import { BRAND, CURSOR, HANDLES, HF_CSS, InlineText, MIN, TEXTY, Toolbar, type D
 import { reparentElements } from './canvas-model'
 import { guardCanvasEvent } from './canvas-events'
 import { SectionToolbar } from './FloatingDock'
+import { CanvasRulers, DrawingContext } from './DrawingTools'
+import { normalizeGuides, nearestDistances, type CanvasGuide } from './canvas-guides'
 import { inheritedElementFlag, inheritedHideClasses, orderElementFamily } from '../../../../../../../packages/blocks/src/free-geometry'
 import { LIBRARY } from './BlockPanels'
 import { SECTION_TEMPLATES, HEADER_TEMPLATES, FOOTER_TEMPLATES, type SiteCtx } from './SectionTemplates'
@@ -152,7 +154,8 @@ export function StageFrame({
 }
 
 // ---------- Lớp component trong một section ----------
-function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = false, labelHint, selectedState = 'normal' }: { blockId: string; els: FreeElement[]; sel: Sel; setSel: (s: Sel) => void; onEls: (next: FreeElement[], key?: string) => void; onTransfer: (target: string, next: FreeElement[], rootId: string) => void; preview?: boolean; labelHint?: string; selectedState?: ElementState }) {
+function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = false, labelHint, selectedState = 'normal', savedGuides, onGuides }: { savedGuides?: unknown; onGuides?: (guides: CanvasGuide[]) => void; blockId: string; els: FreeElement[]; sel: Sel; setSel: (s: Sel) => void; onEls: (next: FreeElement[], key?: string) => void; onTransfer: (target: string, next: FreeElement[], rootId: string) => void; preview?: boolean; labelHint?: string; selectedState?: ElementState }) {
+  const drawing = React.useContext(DrawingContext)
   const host = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ w: FREE_W, h: 0 })
   const [draft, setDraft] = useState<FreeElement[] | null>(null)
@@ -227,6 +230,7 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
     e.stopPropagation()
     if (editing) return
     if (mode === 'resize') setInteracting('')
+    if (mode === 'move' && e.shiftKey) { const ids = sel.block === bid ? sel.multi ?? (sel.el ? [sel.el] : []) : []; setSel({ block: bid, el: el.id, multi: ids.includes(el.id) ? ids.filter((id) => id !== el.id) : [...ids, el.id] }); return }
     setSel({ block: bid, el: el.id })
     if (inheritedElementFlag(list, el.id, '_locked')) return
     e.currentTarget.setPointerCapture(e.pointerId)
@@ -251,7 +255,7 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
       x = o.x + dx
       y = o.y + dy
       const snapData: PageData = { content: [{ type: 'FreeCanvas', props: { id: bid, height: boxH, _els: d.list } }], ...(bid === PAGE ? { root: { props: { _float: d.list } } } : {}) }
-      const snapped = snapPosition(snapData, bid, o, { x, y })
+      const snapped = snapPosition(snapData, bid, o, { x, y }, { enabled: drawing.snap && !e.ctrlKey && !e.metaKey, grid: drawing.grid ? drawing.gridSize : undefined, guides: drawing.rulers ? normalizeGuides(savedGuides) : [] })
       x = snapped.x; y = snapped.y
       for (const guide of snapped.guides) { if (guide.axis === 'x') g.v = guide.value; else g.h = guide.value }
       if (!e.altKey) { x = Math.max(0, Math.min(FREE_W - w, x)); y = Math.max(0, Math.min(Math.max(0, boxH - h), y)) }
@@ -335,6 +339,7 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
   const measure: React.CSSProperties = { position: 'absolute', color: BRAND, font: '11px/1.5 monospace', fontWeight: 700, whiteSpace: 'nowrap', background: '#fff', padding: '1px 5px', borderRadius: 3, boxShadow: '0 1px 4px rgba(0,0,0,.15)' }
   return <div ref={host} data-canvas-layer={bid} data-scroll-boundary onPointerMove={preview ? undefined : onMove} onPointerUp={onUp} onPointerCancel={cancel} onLostPointerCapture={() => { if (drag.current) cancel() }} style={{ position: 'absolute', inset: 0, width: 'min(100%, ' + FREE_MAX_PX + 'px)', margin: '0 auto', pointerEvents: 'none', zIndex: cur ? 35 : 1 }}>
     <style>{HF_CSS}</style>
+    {!preview && onGuides && <CanvasRulers width={FREE_W} height={scale ? size.h / scale : 400} scale={scale} value={savedGuides} onChange={onGuides} />}
     {!preview && labelHint && !list.length && <div style={{ position: 'absolute', inset: 0, border: '1px dashed #cbd5e1' }} />}
     <MotionScope enabled={Boolean(preview && list.some((el) => !el.props._hidden && resolveMotionConfig(el.props)?.loop?.preset && resolveMotionConfig(el.props)?.loop?.preset !== 'none'))}>
     {list.map((el) => {
@@ -352,7 +357,7 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
         }}
         onPointerEnter={() => !preview && setHover(el.id)} onPointerLeave={() => setHover('')}
         onDoubleClick={() => { if (preview || locked) return; if (TEXTY.has(el.type)) setEditing(el.id); else if (el.type === 'video' || el.type === 'swiper') setInteracting(el.id) }}
-        style={{ display: preview && hidden ? 'none' : undefined, position: 'absolute', left: px(el.x), top: px(el.y), width: px(el.w), height: px(el.h), opacity: movingIds.has(el.id) ? 0 : hidden ? 0.3 : 1, zIndex: el.type === 'container' ? 0 : 1, cursor: preview || active || locked ? 'auto' : editing === el.id ? 'text' : 'move', touchAction: preview || active ? 'auto' : 'none', userSelect: preview ? 'auto' : 'none', pointerEvents: preview && el.type === 'container' ? 'none' : 'auto' }}>
+        style={{ display: preview && hidden ? 'none' : undefined, position: 'absolute', outline: !preview && sel.block === bid && sel.multi?.includes(el.id) ? `1px solid ${BRAND}` : undefined, left: px(el.x), top: px(el.y), width: px(el.w), height: px(el.h), opacity: movingIds.has(el.id) ? 0 : hidden ? 0.3 : 1, zIndex: el.type === 'container' ? 0 : 1, cursor: preview || active || locked ? 'auto' : editing === el.id ? 'text' : 'move', touchAction: preview || active ? 'auto' : 'none', userSelect: preview ? 'auto' : 'none', pointerEvents: preview && el.type === 'container' ? 'none' : 'auto' }}>
         {editing === el.id && !preview ? <InlineText el={el} scale={scale} onDone={(value) => { setEditing(''); if (value) commit(mapOne(el.id, (it) => ({ ...it, props: { ...it.props, text: value.text, richText: value.richText } }))) }} /> :
           <div onPointerDown={active ? (e) => e.stopPropagation() : undefined} style={{ width: '100%', height: '100%', pointerEvents: preview || active ? 'auto' : 'none' }}><FreeElementView el={el} scale={scale} editing={!preview && !active} scrollEffects={preview} state={!preview && cur?.id === el.id ? selectedState : undefined} /></div>}
       </div>
@@ -361,6 +366,7 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
     {moving.length > 0 && rect && createPortal(<div data-free-ui="1" style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 99999 }}>
       {moving.map((el) => <div key={el.id} style={{ position: 'absolute', left: rect.left + px(el.x), top: rect.top + px(el.y), width: px(el.w), height: px(el.h), containerType: 'inline-size' }}><FreeElementView el={el} scale={scale} editing /></div>)}
     </div>, host.current!.ownerDocument.body)}
+    {!preview && drawing.distances && cur && nearestDistances(cur, list.filter((el) => !el.props._hidden && el.type !== 'container' && el.parentId === cur.parentId)).map((gap, index) => <div key={index} data-measure="gap" style={{ position: 'absolute', left: px(gap.axis === 'x' ? gap.from : gap.cross), top: px(gap.axis === 'y' ? gap.from : gap.cross), width: gap.axis === 'x' ? px(gap.to - gap.from) : 1, height: gap.axis === 'y' ? px(gap.to - gap.from) : 1, background: BRAND, pointerEvents: 'none', zIndex: 6 }}><span style={{ ...measure, left: '50%', top: '50%', transform: 'translate(-50%,-50%)' }}>{Math.round(gap.to - gap.from)}px</span></div>)}
     {!preview && <div data-hud="1" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 5 }}>
       {hoverEl && hoverEl.id !== cur?.id && (
         <div style={{ position: 'absolute', left: px(hoverEl.x), top: px(hoverEl.y), width: px(hoverEl.w), height: px(hoverEl.h), outline: '1.5px solid var(--cv-accent,#2d7b57)', pointerEvents: 'none', zIndex: 10 }}>
@@ -536,7 +542,7 @@ function SectionBox({ block, config, sel, setSel, data, commit, label, first, la
       {Render ? React.createElement(Render, { ...block.props, ...(partDraft ? { [partKey]: partDraft } : {}), _hide: undefined, _states: section ? undefined : block.props._states, _editorState: undefined, _noFree: true, _motionEditing: !preview, _editParts: !section }) : <div style={{ padding: 24, background: '#fef3c7', font: '14px sans-serif' }}>Block “{block.type}” không còn trong site (plugin đã gỡ).</div>}
       {section && <style>{elementStatesCss(id, block.props)}</style>}
       {activePart && <style>{activePart + '{outline:2px solid var(--cv-accent,#2d7b57)!important;outline-offset:3px;cursor:move;touch-action:none}'}</style>}
-      <Layer selectedState={selectedState} blockId={id} els={elsOf(block)} sel={sel} setSel={setSel} preview={preview} onTransfer={(target, next, rootId) => { commit(reparentElements(data, id, target, next, rootId)); setSel({ block: target, el: rootId }) }} onEls={(next, key) => commit(setBlockEls(data, id, next), key)} labelHint={section ? 'Phần trống: chọn tab “Văn bản” hoặc “Phần tử” bên trái rồi bấm để thêm.' : undefined} />
+      <Layer savedGuides={block.props._guides} onGuides={(guides) => commit(patchBlock(data, id, { _guides: guides }))} selectedState={selectedState} blockId={id} els={elsOf(block)} sel={sel} setSel={setSel} preview={preview} onTransfer={(target, next, rootId) => { commit(reparentElements(data, id, target, next, rootId)); setSel({ block: target, el: rootId }) }} onEls={(next, key) => commit(setBlockEls(data, id, next), key)} labelHint={section ? 'Phần trống: chọn tab “Văn bản” hoặc “Phần tử” bên trái rồi bấm để thêm.' : undefined} />
       {selected && (
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', outline: `2px solid ${BRAND}`, outlineOffset: -2, zIndex: 30 }}>
           <SectionToolbar>

@@ -12,6 +12,7 @@ await mkdir(output, { recursive: true })
 const browser = await chromium.launch({ headless: true })
 try {
   const context = await browser.newContext({ viewport: { width: 1600, height: 1000 }, extraHTTPHeaders: { Origin: origin } })
+  await context.addInitScript(() => localStorage.setItem('hosso-editor-intro:v2', 'done'))
   await context.route(/https:\/\/(fonts\.googleapis\.com|fonts\.gstatic\.com)/, (route) => route.abort())
   const login = await context.request.post(origin + '/api/users/login', { timeout: 120000, data: { email: 'browser@studio.test', password: 'studio-browser-test-password' } })
   assert.ok(login.ok(), await login.text())

@@ -23,6 +23,8 @@
     "test:studio-browser": "node scripts/test-studio-browser.mjs",
     "test:studio-workbench": "node scripts/test-studio-workbench.mjs",
     "test:editor-workspace": "node scripts/test-editor-workspace.mjs",
+    "test:editor-productivity": "node --experimental-strip-types scripts/test-editor-productivity.mjs",
+    "test:editor-productivity-browser": "node scripts/test-editor-productivity-browser.mjs",
     "test:form-delivery": "tsx scripts/test-form-delivery.mts",
     "test:editor-preview": "node --experimental-strip-types scripts/test-editor-preview.mjs",
     "test:site-package": "node scripts/test-site-package.mjs",

@@ -1,4 +1,5 @@
 'use client'
+import { BatchStylePanel } from './BatchStylePanel'
 import { Eye, EyeOff, Lock, Unlock, GripVertical, ChevronDown, ChevronRight, Pencil, Trash2, Group, Ungroup, Search } from 'lucide-react'
 import React, { useState } from 'react'
 import type { FreeElement } from '@hosso/studio-blocks'
@@ -18,14 +19,14 @@ export function LayersPanel({ data, sel, setSel, commit, labelOf, elLabel }: {
   const [query, setQuery] = useState('')
   const [closed, setClosed] = useState<Record<string, boolean>>({})
   const [rename, setRename] = useState<{ id: string; value: string } | null>(null)
-  const [multi, setMulti] = useState<{ owner: string; ids: string[] }>({ owner: '', ids: [] })
+  const multi = { owner: sel.block, ids: sel.multi ?? (sel.el ? [sel.el] : []) }
+  const setMulti = (value: { owner: string; ids: string[] } | ((current: { owner: string; ids: string[] }) => { owner: string; ids: string[] })) => { const next = typeof value === 'function' ? value(multi) : value; setSel({ block: next.owner, el: next.ids[next.ids.length - 1] || '', multi: next.ids }) }
   const [drag, setDrag] = useState<{ owner: string; id: string; block?: boolean } | null>(null)
   const all = [...data.content.flatMap(elsOf), ...floatOf(data)]
   const ids = multi.ids.filter((id) => all.some((el) => el.id === id))
   const q = query.trim().toLocaleLowerCase()
   const toggle = (id: string) => setClosed((value) => ({ ...value, [id]: !value[id] }))
   const select = (owner: string, el: FreeElement, extend = false) => {
-    setSel({ block: owner, el: el.id })
     setMulti((value) => ({ owner, ids: extend && value.owner === owner ? value.ids.includes(el.id) ? value.ids.filter((id) => id !== el.id) : [...value.ids, el.id] : [el.id] }))
   }
   const editName = (id: string, fallback: string, save: (value: string) => void) => rename?.id === id
@@ -73,6 +74,7 @@ export function LayersPanel({ data, sel, setSel, commit, labelOf, elLabel }: {
     <label className="cv-search"><Search size={15} /><input type="search" placeholder="Tìm lớp…" aria-label="Tìm lớp" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
     <p className="cv-tool-help">Nhấp đúp để đổi tên. Kéo tay nắm để sắp xếp; Shift + bấm hoặc đánh dấu để chọn nhiều lớp cùng section.</p>
     {ids.length > 1 && <div className="cv-arrange-panel"><strong>{ids.length} lớp đã chọn</strong><div>{ARRANGE.map((action) => <button type="button" key={action.id} disabled={(action.id === 'horizontal' || action.id === 'vertical') && ids.length < 3} onClick={() => commit(arrangeElements(data, multi.owner, ids, action.id))}>{action.label}</button>)}</div><button type="button" onClick={() => { const result = groupElements(data, multi.owner, ids); if (result.id) { commit(result.data); setSel({ block: multi.owner, el: result.id }); setMulti({ owner: multi.owner, ids: [result.id] }) } }}><Group size={14} />Gom nhóm</button></div>}
+    {ids.length > 1 && <BatchStylePanel data={data} owner={multi.owner} list={multi.owner === PAGE ? floatOf(data) : elsOf(data.content.find((block) => blockId(block) === multi.owner) ?? { type: 'FreeCanvas', props: {} })} ids={ids} commit={commit} />}
     {sel.el && all.find((el) => el.id === sel.el)?.type === 'container' && <button className="cv-tool-button" type="button" onClick={() => { commit(ungroupElement(data, sel.block, sel.el)); setSel({ block: sel.block, el: '' }) }}><Ungroup size={14} />Tách nhóm</button>}
     <div role="tree" aria-label="Cấu trúc trang">
       {floatOf(data).length > 0 && <div role="treeitem" aria-expanded><h3 className="cv-catalog-heading">Lớp nổi toàn trang</h3><div role="group">{rows(PAGE, floatOf(data))}</div></div>}

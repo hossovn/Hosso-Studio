@@ -3,6 +3,7 @@ import type { Field, GlobalConfig } from 'payload'
 import { pageEditors, canPublish } from '../lib/access'
 import { APIError } from 'payload'
 import { lockSiteMutation } from '../lib/site-publication-lock'
+import { assertEditorRevision } from '../lib/editor-conflict'
 
 export const AREAS = [
   { name: 'siteHeader', label: 'Header của site (thay header của theme; dùng chung mọi trang)' },
@@ -23,7 +24,8 @@ export const SiteAreas: GlobalConfig = {
   admin: { group: 'Hệ thống' },
   access: { read: pageEditors, readVersions: pageEditors, update: pageEditors },
   versions: { drafts: { autosave: true }, max: 20 },
-  hooks: { beforeOperation: [lockSiteMutation], beforeChange: [({ data, req }) => {
+  hooks: { beforeOperation: [lockSiteMutation], beforeChange: [async ({ data, req, originalDoc }) => {
+    await assertEditorRevision({ req, originalDoc })
     if (req.user && data._status === 'published' && !canPublish(req.user)) throw new APIError('Bạn không có quyền xuất bản.', 403)
     return data
   }] },

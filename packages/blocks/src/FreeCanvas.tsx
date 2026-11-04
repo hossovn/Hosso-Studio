@@ -238,11 +238,11 @@ function FreeElementBody({ el, unit, scale, editing, state }: { el: FreeElement;
 }
 
 /** Lớp phần tử phủ lên một block (prop `_els`): rộng tối đa FREE_MAX_PX, canh giữa, tọa độ tính từ góc trên trái của block. */
-export const FreeOverlay = ({ elements }: { elements: FreeElement[] }) => (
+export const FreeOverlay = ({ elements, height, responsive }: { elements: FreeElement[]; height?: number; responsive?: Record<string, any> }) => (
   <div className="hs-free-layer" data-scroll-boundary style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, width: `min(100%, ${FREE_MAX_PX}px)`, margin: '0 auto', containerType: 'inline-size', pointerEvents: 'none' }}>
     <MotionScope enabled={elements.some((el) => !el.props._hidden && resolveMotionConfig(el.props)?.loop?.preset && resolveMotionConfig(el.props)?.loop?.preset !== 'none')}>
-    {(elements.some((el) => el.responsive?.mobile || el.responsive?.tablet) ? ['desktop', 'tablet', 'mobile'] as const : ['desktop'] as const).map((device, _, devices) => <div key={device} className={devices.length > 1 ? `hs-free-device-${device}` : undefined} style={{ position: 'absolute', inset: 0 }}>
-    {elements.map((original) => { const el = elementForDevice(original, device); return (
+    {(elements.some((el) => el.responsive?.mobile || el.responsive?.tablet || el.props._constraints || el.props._layout) ? ['desktop', 'tablet', 'mobile'] as const : ['desktop'] as const).map((device, _, devices) => <div key={device} className={devices.length > 1 ? `hs-free-device-${device}` : undefined} style={{ position: 'absolute', inset: 0 }}>
+    {blockForDevice({ type: 'FreeCanvas', props: { _els: elements, height, _responsive: responsive } }, device).props._els.map((el: FreeElement) => { return (
       <div key={el.id} className={inheritedHideClasses(elements, el.id)} style={{ display: inheritedElementFlag(elements, el.id, '_hidden', device) ? 'none' : undefined, position: 'absolute', left: `${(el.x / FREE_W) * 100}%`, top: `${(el.y / FREE_W) * 100}cqw`, width: `${(el.w / FREE_W) * 100}%`, height: `${(el.h / FREE_W) * 100}cqw`, pointerEvents: el.type === 'container' ? 'none' : 'auto', zIndex: el.type === 'container' ? 0 : 1 }}>
         <FreeElementView el={el} />
       </div>

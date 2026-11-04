@@ -1,6 +1,7 @@
 'use client'
 import React, { useEffect, useRef, useState } from 'react'
 import { Grip, GripVertical } from 'lucide-react'
+import { DrawingContext } from './DrawingTools'
 
 /** Coordinates stay relative to the workspace, so panels survive browser fullscreen changes. */
 export function FloatingDock({ children, enabled, title }: { children: React.ReactNode; enabled: boolean; title: string }) {
@@ -30,6 +31,7 @@ export function FloatingDock({ children, enabled, title }: { children: React.Rea
 }
 
 export function SectionToolbar({ children }: { children: React.ReactNode }) {
+  const drawing = React.useContext(DrawingContext)
   const ref = useRef<HTMLDivElement>(null)
   const drag = useRef<{ x: number; y: number; left: number; top: number } | null>(null)
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null)
@@ -37,7 +39,7 @@ export function SectionToolbar({ children }: { children: React.ReactNode }) {
     const node = ref.current, win = node?.ownerDocument.defaultView
     return { x: Math.max(8, Math.min(x, (win?.innerWidth ?? 1200) - (node?.offsetWidth ?? 300) - 8)), y: Math.max(8, Math.min(y, (win?.innerHeight ?? 800) - (node?.offsetHeight ?? 32) - 8)) }
   }
-  return <div ref={ref} role="toolbar" aria-label="Chỉnh sửa phần" data-free-ui="1" data-editor-control="true" onPointerDown={(event) => event.stopPropagation()} style={{ position: position ? 'fixed' : 'absolute', left: position?.x ?? 72, top: position?.y ?? 8, display: 'flex', alignItems: 'center', gap: 2, padding: '3px 6px', maxWidth: position ? 'calc(100vw - 16px)' : 'calc(100vw - 88px)', flexWrap: 'wrap', background: '#fff', color: '#374151', border: '1px solid #dfe3e8', borderRadius: 8, pointerEvents: 'auto', font: '12px/1 Arial, sans-serif', boxShadow: '0 4px 16px #18233314', zIndex: 60 }}>
+  return <div ref={ref} role="toolbar" aria-label="Chỉnh sửa phần" data-free-ui="1" data-editor-control="true" onPointerDown={(event) => event.stopPropagation()} style={{ position: position ? 'fixed' : 'absolute', left: position?.x ?? 72, top: position?.y ?? (drawing.rulers ? 24 : 8), display: 'flex', alignItems: 'center', gap: 2, padding: '3px 6px', maxWidth: position ? 'calc(100vw - 16px)' : 'calc(100vw - 88px)', flexWrap: 'wrap', background: '#fff', color: '#374151', border: '1px solid #dfe3e8', borderRadius: 8, pointerEvents: 'auto', font: '12px/1 Arial, sans-serif', boxShadow: '0 4px 16px #18233314', zIndex: 60 }}>
     <button type="button" aria-label="Kéo thanh công cụ phần" title="Kéo thanh công cụ phần · nhấp đúp để đặt lại" style={{ border: 0, background: 'transparent', color: 'inherit', display: 'grid', placeItems: 'center', width: 24, height: 26, touchAction: 'none', cursor: 'grab' }} onDoubleClick={() => setPosition(null)}
       onPointerDown={(event) => { if (event.button !== 0) return; event.preventDefault(); event.stopPropagation(); const rect = ref.current!.getBoundingClientRect(); drag.current = { x: event.clientX, y: event.clientY, left: rect.left, top: rect.top }; event.currentTarget.setPointerCapture(event.pointerId); setPosition(clamp(rect.left, rect.top)) }}
       onPointerMove={(event) => { if (drag.current) setPosition(clamp(drag.current.left + event.clientX - drag.current.x, drag.current.top + event.clientY - drag.current.y)) }}

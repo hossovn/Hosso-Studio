@@ -10,6 +10,7 @@ import * as scrollEffects from '../packages/blocks/src/scroll-effects.ts'
 import * as motionEffects from '../packages/blocks/src/motion-effects.ts'
 import * as freeGeometry from '../packages/blocks/src/free-geometry.ts'
 import * as richText from '../packages/blocks/src/rich-text.ts'
+import * as layoutConstraints from '../packages/blocks/src/layout-constraints.ts'
 const { newId } = freeGeometry
 
 const require = createRequire(new URL('../apps/studio/package.json', import.meta.url))
@@ -139,7 +140,7 @@ const scrollRuntime = compile('../packages/blocks/src/ScrollEffect.tsx', { './sc
 const motionScope = compile('../packages/blocks/src/MotionScope.tsx', {})
 const motionRuntime = compile('../packages/blocks/src/MotionEffects.tsx', { './motion-effects': motionEffects, './MotionScope': motionScope })
 const motionText = compile('../packages/blocks/src/MotionText.tsx', { './motion-effects': motionEffects })
-const responsiveLayout = compile('../packages/blocks/src/responsive-layout.ts', {})
+const responsiveLayout = compile('../packages/blocks/src/responsive-layout.ts', { './layout-constraints.ts': layoutConstraints })
 const { FreeElementView, FreeOverlay, FreeCanvasView, makeElement } = compile('../packages/blocks/src/FreeCanvas.tsx', {
   './responsive-layout': responsiveLayout,
   './MotionEffects': motionRuntime, './MotionScope': motionScope, './MotionText': motionText, './motion-effects': motionEffects,
@@ -241,7 +242,7 @@ const { CanvasLeft } = compile('../apps/studio/src/app/(editor)/editor/[id]/Canv
   './PageTemplatePicker': pageTemplatePicker, './SectionLibrary': sectionLibrary,
   './LayersPanel': {}, './MediaLibraryPanel': {},
   './WorkbenchPanels': compile('../apps/studio/src/app/(editor)/editor/[id]/WorkbenchPanels.tsx', { '@hosso/studio-blocks': responsiveLayout, './canvas-model': {}, './editor-tools': {} }),
-  './FloatingDock': compile('../apps/studio/src/app/(editor)/editor/[id]/FloatingDock.tsx', {}),
+  './FloatingDock': compile('../apps/studio/src/app/(editor)/editor/[id]/FloatingDock.tsx', { './DrawingTools': { DrawingContext: React.createContext({ rulers: false }) } }),
 })
 const libraryMarkup = renderToStaticMarkup(React.createElement(CanvasLeft, { tab: 'library', open: true, data: { content: [] }, sel: {}, ops: { addPattern() {} } }))
 assert.match(libraryMarkup, /aria-label="Kho mẫu"/)
@@ -259,9 +260,9 @@ assert.match(catalogMarkup, /class="cv-item-label"/)
 assert.ok((catalogMarkup.match(/class="cv-chip"/g) ?? []).length > 0)
 assert.match(catalogMarkup, /data-module="media"/)
 const railMarkup = catalogMarkup.match(/<nav class="cv-rail"[\s\S]*?<\/nav>/)?.[0] ?? ''
-assert.equal((railMarkup.match(/<button/g) ?? []).length, 15)
-assert.equal((railMarkup.match(/<svg/g) ?? []).length, 15)
-for (const label of ['Thiết bị', 'Lịch sử', 'Kiểm tra']) assert.ok(railMarkup.includes(`aria-label="${label}"`))
+assert.equal((railMarkup.match(/<button/g) ?? []).length, 17)
+assert.equal((railMarkup.match(/<svg/g) ?? []).length, 17)
+for (const label of ['Thiết bị', 'Lịch sử', 'Kiểm tra', 'Căn chỉnh', 'Popup']) assert.ok(railMarkup.includes(`aria-label="${label}"`))
 assert.match(railMarkup, /aria-label="Thương hiệu"/)
 assert.doesNotMatch(railMarkup, /<img/)
 const { StatePicker, DevicePicker } = compile('../apps/studio/src/app/(editor)/editor/[id]/StateStyleEditor.tsx', { '@hosso/studio-blocks': elementStates })
@@ -327,6 +328,10 @@ const { withStyle } = compile('../packages/blocks/src/puck-config.ts', {
   './i18n': {}, './style-fields': {}, './widget-parts': widgetParts, './element-states': elementStates,
 })
 const Button = withStyle(({ submitLabel }) => React.createElement('form', { action: '/submit' }, React.createElement('button', { type: 'submit' }, submitLabel)))
+const runtime = { renderDropZone() {}, dragRef() {} }
+const ClientBoundary = () => null
+assert.equal(withStyle(ClientBoundary, true)({ id: 'popup', puck: runtime, title: 'Offer' }).props.puck, undefined)
+assert.equal(withStyle(ClientBoundary)({ id: 'popup', puck: runtime }).props.puck, runtime, 'Editor renderers retain Puck helpers')
 const StyledSection = withStyle(FreeCanvasView)
 const { expandReusable } = compile('../apps/studio/src/lib/site.tsx', {
   './site-preview': { sitePreview: async () => false },

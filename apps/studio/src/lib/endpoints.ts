@@ -259,10 +259,11 @@ export const editLock: Endpoint = {
   handler: async (req) => {
     const user = req.user as { id: string | number; email?: string; roles?: string[] } | null
     if (!hasRole(user, 'admin', 'publisher', 'editor', 'author')) return json({ error: 'forbidden' }, 403)
-    const body = (await req.json?.().catch(() => ({}))) as { key?: string; takeover?: boolean; release?: boolean }
+    const body = (await req.json?.().catch(() => ({}))) as { key?: string; session?: string; takeover?: boolean; release?: boolean }
     const key = str(body?.key, 120)
     if (!/^(pages|posts|reusable-blocks|area):[\w-]+:[\w-]+$/.test(key)) return json({ error: 'bad_request' }, 400)
-    const me = String(user!.id)
+    if (body.session && !/^[a-zA-Z0-9-]{16,80}$/.test(body.session)) return json({ error: 'bad_session' }, 400)
+    const me = body.session ? `${user!.id}:${body.session}` : String(user!.id)
     const found = await req.payload.find({ collection: 'edit-locks', where: { key: { equals: key } }, limit: 1, depth: 0, overrideAccess: true })
     const cur = found.docs[0]
     const held = cur && cur.userId !== me && new Date(cur.expiresAt).getTime() > Date.now()

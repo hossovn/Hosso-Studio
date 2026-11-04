@@ -184,6 +184,18 @@ The brand panel groups a style sample, palette and typography controls. Changes 
 
 Each row pairs selection, product photo or missing-image placeholder, product name and code. Photos follow the shop catalog's existing local/supplier image policy. Manual selection changes what the block shows without changing catalog-wide sale status.
 
+### Precision and bulk editing
+
+The Căn chỉnh panel controls rulers, a configurable grid, snapping and nearest-distance labels. Dragging from a ruler creates a guide; guides support dragging, arrow keys and Delete. Section guides are saved with the device layout. The section toolbar sits below the horizontal ruler. Shift-click and structure checkboxes select multiple elements for shared styling; mixed values remain visible, and locked families are excluded.
+
+The layout inspector exposes start, end, center and stretch anchors. Explicit tablet/mobile geometry takes precedence. Container groups can arrange children in rows or columns with gap, padding, cross-axis alignment and content sizing, including nested groups. These rules resolve at the editor's device reference widths.
+
+### Popups, help and recovery
+
+The Popup panel configures click, delay and scroll triggers, frequency and device targeting. Canvas previews remain static. Website popups use native modal dialogs with Escape, focus management, backdrop dismissal and scroll restoration; simultaneous triggers wait for the active popup to close.
+
+First-visit guidance is dismissible and can be replayed from Help. The Help dialog lists keyboard shortcuts. Recovery notices offer explicit restore/discard choices. Unsaved content is scoped to the signed-in user, document, locale and tab, retained locally for seven days, and saved automatically after reconnection. Server revision conflicts pause saving until the user chooses a current server version or their local work. Edit leases distinguish tabs belonging to the same account.
+
 ## Do's and Don'ts
 
 ### Do:

@@ -9,14 +9,14 @@ import { LayersPanel } from './LayersPanel'
 import { MediaLibraryPanel } from './MediaLibraryPanel'
 import { ReusableLibraryPanel } from './WorkbenchPanels'
 import { FloatingDock } from './FloatingDock'
-import { Clock3, MonitorSmartphone, CheckCheck } from 'lucide-react'
+import { Clock3, MonitorSmartphone, CheckCheck, Ruler, AppWindow } from 'lucide-react'
 
 import { ELEMENT_CATALOG, LIBRARY, Preview, Wire, sectionTitle } from './BlockPanels'
 import { type Block, type PageData, type Sel } from './canvas-model'
 import { GlobalPanel, type NavCtx } from './SitePanels'
 import { FOOTER_TEMPLATES, HEADER_TEMPLATES, SECTION_TEMPLATES, type SectionTemplate, type SiteCtx } from './SectionTemplates'
 
-export type Tab = 'sections' | 'text' | 'elements' | 'media' | 'store' | 'input' | 'widgets' | 'library' | 'more' | 'layers' | 'global' | 'brand' | 'history' | 'responsive' | 'publish'
+export type Tab = 'sections' | 'text' | 'elements' | 'media' | 'store' | 'input' | 'widgets' | 'library' | 'more' | 'layers' | 'global' | 'brand' | 'history' | 'responsive' | 'publish' | 'drawing' | 'popup'
 const SHOP_WIDGETS = ['ShopProductGrid', 'ShopCategories', 'ShopProductDetail', 'WimProductGrid', 'WimProductDetail', 'WimProductSearch', 'WimVehicleSelector', 'CategoryGrid', 'ShopCart', 'ShopCheckout', 'ShopOrderStatus', 'WimCart', 'WimCheckout', 'WimOrderStatus', 'ShippingTrack']
 const INPUT_WIDGETS = ['Form', 'ContactForm', 'SearchBox', 'NavMenu']
 const INPUT_PRESETS = [
@@ -43,6 +43,8 @@ const TABS: { id: Tab; title: string; icon: typeof Type; groups?: string[]; widg
   { id: 'responsive', title: 'Thiết bị', icon: MonitorSmartphone },
   { id: 'history', title: 'Lịch sử', icon: Clock3 },
   { id: 'publish', title: 'Kiểm tra', icon: CheckCheck },
+  { id: 'drawing', title: 'Căn chỉnh', icon: Ruler },
+  { id: 'popup', title: 'Popup', icon: AppWindow },
 ]
 
 const NAMES: Record<string, string> = { countdown: 'Đếm ngược', number: 'Số liệu', table: 'Bảng', map: 'Bản đồ', embed: 'Nhúng', tabs: 'Tab', breadcrumb: 'Breadcrumb', menu: 'Menu', heading: 'Tiêu đề', text: 'Văn bản', button: 'Nút', shape: 'Hình khối', line: 'Đường kẻ', icon: 'Icon', image: 'Ảnh', video: 'Video' }
@@ -79,6 +81,8 @@ export function CanvasLeft({
   onClose,
   open,
   brandPanel,
+  drawingPanel,
+  popupPanel,
   historyPanel,
   responsivePanel,
   formPanel,
@@ -103,6 +107,8 @@ export function CanvasLeft({
   onClose: () => void
   open: boolean
   brandPanel?: React.ReactNode
+  drawingPanel?: React.ReactNode
+  popupPanel?: React.ReactNode
   historyPanel?: React.ReactNode
   responsivePanel?: React.ReactNode
   formPanel?: React.ReactNode
@@ -220,6 +226,10 @@ export function CanvasLeft({
     body = !nav ? null : <GlobalPanel ctx={nav} data={data} addReusable={(slug) => ops.addWidget('Reusable', { slug })} />
   } else if (tab === 'layers') {
     body = <LayersPanel data={data} sel={sel} setSel={setSel} commit={commit} labelOf={labelOf} elLabel={elLabel} />
+  } else if (tab === 'drawing') {
+    body = drawingPanel
+  } else if (tab === 'popup') {
+    body = popupPanel
   } else if (tab === 'history') {
     body = historyPanel
   } else if (tab === 'responsive') {

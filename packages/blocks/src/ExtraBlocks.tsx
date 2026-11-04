@@ -7,50 +7,8 @@ import type { BlockRenderer } from './types'
 const SAFE = /^(https?:\/\/|\/|#|mailto:|tel:)/i
 const safe = (h: unknown) => (typeof h === 'string' && SAFE.test(h.trim()) ? h.trim() : '#')
 const lines = (v: unknown) => String(v ?? '').split('\n').map((l) => l.trim()).filter(Boolean)
-const store = (kind: 'session' | 'once') => (kind === 'once' ? window.localStorage : window.sessionStorage)
 
-// ---- Popup ----
-export const PopupBlock: BlockRenderer = ({ id, title, body, image, ctaLabel, ctaHref, delay, every, _noFree }: any) => {
-  const [open, setOpen] = useState(false)
-  const key = `hs-popup:${id}`
-  const kind = every === 'once' || every === 'session' ? every : null
-  useEffect(() => {
-    if (_noFree) return
-    try { if (kind && store(kind).getItem(key)) return } catch { /* trình duyệt chặn storage: vẫn hiện */ }
-    const t = setTimeout(() => setOpen(true), Math.max(0, Number(delay) || 0) * 1000)
-    return () => clearTimeout(t)
-  }, [_noFree, key, kind, delay])
-  const close = () => {
-    setOpen(false)
-    try { if (kind) store(kind).setItem(key, '1') } catch { /* bỏ qua */ }
-  }
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close()
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open])
-  const card = (
-    <div role="dialog" aria-modal={!_noFree} aria-label={title || 'Popup'} onClick={(e) => e.stopPropagation()} style={{ position: 'relative', width: 'min(92vw, 460px)', background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 24px 60px rgba(0,0,0,.35)', font: '16px/1.5 system-ui, sans-serif', color: '#111827' }}>
-      {!_noFree && <button type="button" aria-label="Đóng" onClick={close} style={{ position: 'absolute', top: 10, right: 10, width: 34, height: 34, borderRadius: 999, border: 0, background: 'rgba(17,24,39,.7)', color: '#fff', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>×</button>}
-      {image ? <img src={image} alt="" style={{ width: '100%', maxHeight: 240, objectFit: 'cover', display: 'block' }} /> : null}
-      <div style={{ padding: '22px 24px 26px', textAlign: 'center' }}>
-        {title ? <h3 style={{ margin: '0 0 8px', fontSize: 24 }}>{title}</h3> : null}
-        {body ? <p style={{ margin: '0 0 18px', color: '#4b5563', whiteSpace: 'pre-wrap' }}>{body}</p> : null}
-        {ctaLabel ? <a href={safe(ctaHref)} onClick={_noFree ? (e) => e.preventDefault() : close} style={{ display: 'inline-block', padding: '12px 28px', borderRadius: 999, background: '#15803d', color: '#fff', fontWeight: 700, textDecoration: 'none' }}>{ctaLabel}</a> : null}
-      </div>
-    </div>
-  )
-  if (_noFree)
-    return (
-      <div style={{ padding: '28px 12px', background: '#f3f4f6', display: 'grid', justifyItems: 'center', gap: 10 }}>
-        <small style={{ color: '#6b7280', font: '12px system-ui' }}>Popup · hiện sau {Number(delay) || 0} giây khi khách vào trang</small>
-        {card}
-      </div>
-    )
-  return open ? <div onClick={close} style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,.55)', display: 'grid', placeItems: 'center', padding: 16 }}>{card}</div> : null
-}
+export { PopupBlock } from './Popup'
 
 // ---- Thanh thông báo ----
 export const NoticeBar: BlockRenderer = ({ id, text, href, bg, color, dismissible, _noFree }: any) => {

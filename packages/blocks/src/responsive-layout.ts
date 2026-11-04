@@ -1,4 +1,5 @@
 import type { FreeElement } from './FreeCanvas'
+import { constrainedElements } from './layout-constraints.ts'
 
 export type CanvasDevice = 'desktop' | 'tablet' | 'mobile'
 export type DevicePatch = Partial<Pick<FreeElement, 'x' | 'y' | 'w' | 'h'>> & { props?: Record<string, any> }
@@ -7,8 +8,8 @@ type Block = { type: string; props: Record<string, any> }
 type Document = { content: Block[]; root?: any; [key: string]: any }
 export const DEVICE_WIDTH = { desktop: 1200, tablet: 768, mobile: 390 } as const
 const GEOMETRY = ['x', 'y', 'w', 'h'] as const
-const SHARED_PROPS = new Set(['text', 'richText', 'html', 'src', 'alt', 'href', 'url', 'poster', 'title', 'items', 'slides', 'name', '_name', '_hide', '_locked', '_hidden', '_states', '_motion', '_scroll'])
-const BLOCK_LAYOUT = new Set(['height', '_padT', '_padB', '_padL', '_padR', '_marT', '_marB', '_maxW', '_minH', '_offX', '_offY'])
+const SHARED_PROPS = new Set(['text', 'richText', 'html', 'src', 'alt', 'href', 'url', 'poster', 'title', 'items', 'slides', 'name', '_name', '_hide', '_locked', '_hidden', '_states', '_motion', '_scroll', '_constraints', '_layout'])
+const BLOCK_LAYOUT = new Set(['height', '_padT', '_padB', '_padL', '_padR', '_marT', '_marB', '_maxW', '_minH', '_offX', '_offY', '_guides'])
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 const elements = (props: Record<string, any>): ResponsiveElement[] => props._els ?? props.elements ?? []
 
@@ -19,12 +20,12 @@ export function elementForDevice(el: ResponsiveElement, device: CanvasDevice): R
 
 export function blockForDevice(block: Block, device: CanvasDevice): Block {
   const patch = device === 'desktop' ? undefined : block.props._responsive?.[device]
-  return { ...block, props: { ...block.props, ...patch, _els: elements(block.props).map((el) => elementForDevice(el, device)) } }
+  return { ...block, props: { ...block.props, ...patch, _els: constrainedElements(elements(block.props), device, Number(block.props.height) || 400, Number(patch?.height ?? block.props.height) || 400) } }
 }
 
 export function pageForDevice<T extends Document>(data: T, device: CanvasDevice): T {
-  if (device === 'desktop') return data
-  return { ...data, content: data.content.map((block) => blockForDevice(block, device)), root: data.root && { ...data.root, props: { ...data.root.props, _float: (data.root.props?._float ?? []).map((el: ResponsiveElement) => elementForDevice(el, device)) } } }
+  if (device === 'desktop' && ![...data.content.flatMap((block) => elements(block.props)), ...(data.root?.props?._float ?? [])].some((el) => ['row', 'column'].includes(el.props._layout?.direction))) return data
+  return { ...data, content: data.content.map((block) => blockForDevice(block, device)), root: data.root && { ...data.root, props: { ...data.root.props, _float: constrainedElements(data.root.props?._float ?? [], device) } } }
 }
 
 function mergeElement(base: ResponsiveElement | undefined, before: ResponsiveElement | undefined, next: ResponsiveElement, device: Exclude<CanvasDevice, 'desktop'>): ResponsiveElement {
