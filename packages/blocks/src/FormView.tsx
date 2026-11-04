@@ -47,7 +47,11 @@ export function FormView({ form }: { form: FormDef }) {
         body: JSON.stringify({ values, locale, website: f.get('website') }),
       })
       const body = await res.json().catch(() => ({}))
-      if (res.ok && body.ok) return setState('sent')
+      if (res.ok && body.ok) {
+        setState('sent')
+        if (typeof body.redirect === 'string' && /^\/(?!\/)/.test(body.redirect) && !/[\\\u0000-\u0020\u007f]/.test(body.redirect)) window.location.assign(body.redirect)
+        return
+      }
       setErrors(body.errors ?? {})
       setState('error')
     } catch {

@@ -1,6 +1,7 @@
-import type { CollectionConfig } from 'payload'
+import { APIError, type CollectionConfig } from 'payload'
 
-import { moderators, publishers } from '../lib/access'
+import { canPublish, moderators, publishers } from '../lib/access'
+import { normalizeFormDelivery } from '../lib/form-delivery'
 
 const slugify = (v: string) =>
   v
@@ -52,6 +53,7 @@ export const Forms: CollectionConfig = {
     },
     { name: 'submitLabel', type: 'text', localized: true, label: 'Nhãn nút gửi' },
     { name: 'successMessage', type: 'text', localized: true, label: 'Thông báo sau khi gửi' },
+    { name: 'delivery', type: 'json', label: 'Kết nối biểu mẫu', access: { read: ({ req }) => canPublish(req.user) }, admin: { hidden: true } },
     {
       name: 'exportLink',
       type: 'ui',
@@ -68,6 +70,14 @@ export const Forms: CollectionConfig = {
     beforeValidate: [
       ({ data }) => {
         for (const f of data?.fields ?? []) if (!f.name && f.label) f.name = slugify(f.label)
+        if (data?.fields) {
+          const names = data.fields.map((field: { name?: string }) => field.name)
+          if (names.some((name: string) => !/^[a-z][a-z0-9_]*$/.test(name)) || new Set(names).size !== names.length) throw new APIError('Tên trường phải bắt đầu bằng chữ, chỉ gồm chữ thường, số, gạch dưới và không trùng nhau.', 400)
+        }
+        if (data?.delivery) {
+          try { data.delivery = normalizeFormDelivery(data.delivery) }
+          catch (error) { throw new APIError(error instanceof Error ? error.message : 'Kết nối biểu mẫu không hợp lệ.', 400) }
+        }
         return data
       },
     ],

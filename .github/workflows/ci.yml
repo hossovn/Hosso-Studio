@@ -22,6 +22,9 @@ jobs:
       - run: pnpm check:i18n
       - run: pnpm test:kiln
       - run: pnpm test:editor-preview
+      - run: pnpm test:canvas
+      - run: pnpm test:studio-layout
+      - run: pnpm test:form-delivery
       - run: node scripts/test-checkout-identity.mjs
       - run: node scripts/test-checkout-form.mjs
       - run: node scripts/test-order-receipt.mjs --shop-only

@@ -31,6 +31,7 @@ export const configLabels: Record<string, string> = {
   'Điện thoại': 'Phone',
   'Biểu mẫu': 'Forms',
   'Tên biểu mẫu': 'Form name',
+  'Kết nối biểu mẫu': 'Form integrations',
   'Mã (dùng khi chèn vào trang)': 'Code (used when inserting into a page)',
   'Các trường': 'Fields',
   'Nhãn': 'Label',

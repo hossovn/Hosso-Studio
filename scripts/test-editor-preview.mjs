@@ -8,7 +8,9 @@ import * as widgetParts from '../packages/blocks/src/widget-parts.ts'
 import * as elementStates from '../packages/blocks/src/element-states.ts'
 import * as scrollEffects from '../packages/blocks/src/scroll-effects.ts'
 import * as motionEffects from '../packages/blocks/src/motion-effects.ts'
-import { newId } from '../packages/blocks/src/free-geometry.ts'
+import * as freeGeometry from '../packages/blocks/src/free-geometry.ts'
+import * as richText from '../packages/blocks/src/rich-text.ts'
+const { newId } = freeGeometry
 
 const require = createRequire(new URL('../apps/studio/package.json', import.meta.url))
 const ts = require('typescript')
@@ -142,7 +144,7 @@ const { FreeElementView, FreeOverlay, FreeCanvasView, makeElement } = compile('.
   './responsive-layout': responsiveLayout,
   './MotionEffects': motionRuntime, './MotionScope': motionScope, './MotionText': motionText, './motion-effects': motionEffects,
   './ScrollEffect': scrollRuntime, './scroll-effects': scrollEffects,
-  './free-style': freeStyle, './free-extra': {}, './icons-data': { ICON_BODY: { test: '<path d="M4 4h16v16H4z" />' } }, './FreeSwiper': { FreeSwiper }, './free-geometry': { newId }, './element-states': elementStates,
+  './free-style': freeStyle, './free-extra': {}, './icons-data': { ICON_BODY: { test: '<path d="M4 4h16v16H4z" />' } }, './FreeSwiper': { FreeSwiper }, './free-geometry': freeGeometry, './element-states': elementStates, './rich-text': richText,
 })
 const legacyButton = makeElement('button', { id: 'legacy-button', props: { text: 'Legacy', href: '/legacy' } })
 const { SECTION_TEMPLATES, SECTION_TEMPLATES_MORE, HEADER_TEMPLATES } = compile('../apps/studio/src/app/(editor)/editor/[id]/SectionTemplates.ts', { '@hosso/studio-blocks': { makeElement } })
@@ -197,7 +199,9 @@ const revealedLink = makeElement('text', { props: { text: 'Xin chào Việt Nam'
 const revealedMarkup = renderToStaticMarkup(React.createElement(FreeElementView, { el: revealedLink }))
 assert.match(revealedMarkup, /href="\/hello"/)
 assert.match(revealedMarkup, /data-motion-unit/)
-assert.match(renderToStaticMarkup(React.createElement(FreeElementView, { el: revealedLink, editing: true })), />Xin chào Việt Nam<\/p>/)
+const editingTextMarkup = renderToStaticMarkup(React.createElement(FreeElementView, { el: revealedLink, editing: true }))
+assert.match(editingTextMarkup, /<p\b[^>]*><span>Xin chào Việt Nam<\/span><\/p>/)
+assert.doesNotMatch(editingTextMarkup, /data-motion-|href=/)
 console.log('PASS: scroll controls, SSR content, state/rotation composition and stable editing geometry')
 assert.match(legacyMarkup, /href="\/legacy"/)
 assert.doesNotMatch(legacyMarkup, /<style>/)
@@ -230,17 +234,24 @@ const pageTemplatePicker = compile('../apps/studio/src/app/(editor)/editor/[id]/
 const sectionLibrary = compile('../apps/studio/src/app/(editor)/editor/[id]/SectionLibrary.tsx', { './BlockPanels': templatePreviews })
 const { CanvasLeft } = compile('../apps/studio/src/app/(editor)/editor/[id]/CanvasLeft.tsx', {
   '@hosso/studio-blocks': { ICON_CATS: {}, makeElement }, './BlockPanels': {
+    ELEMENT_CATALOG,
     LIBRARY: [{ title: 'Văn bản', cols: 1, items: [{ label: 'Đoạn văn', make: () => makeElement('text') }] }],
     Preview: () => React.createElement('div', { 'data-preview': true }),
   }, './canvas-model': {}, './SitePanels': {}, './SectionTemplates': {},
   './PageTemplatePicker': pageTemplatePicker, './SectionLibrary': sectionLibrary,
+  './LayersPanel': {}, './MediaLibraryPanel': {},
+  './WorkbenchPanels': compile('../apps/studio/src/app/(editor)/editor/[id]/WorkbenchPanels.tsx', { '@hosso/studio-blocks': responsiveLayout, './canvas-model': {}, './editor-tools': {} }),
+  './FloatingDock': compile('../apps/studio/src/app/(editor)/editor/[id]/FloatingDock.tsx', {}),
 })
-const libraryMarkup = renderToStaticMarkup(React.createElement(CanvasLeft, { tab: 'library', open: true, ops: { addPattern() {} } }))
+const libraryMarkup = renderToStaticMarkup(React.createElement(CanvasLeft, { tab: 'library', open: true, data: { content: [] }, sel: {}, ops: { addPattern() {} } }))
 assert.match(libraryMarkup, /aria-label="Kho mẫu"/)
 assert.match(libraryMarkup, /8 mẫu trang/)
 assert.equal((libraryMarkup.match(/data-template=/g) ?? []).length, 8)
 assert.match(libraryMarkup, /aria-label="Danh mục mẫu"/)
-assert.doesNotMatch(libraryMarkup, /Chưa có mẫu|aria-label="Trang"/)
+assert.match(libraryMarkup, /Chưa có mẫu đã lưu/)
+const builtInLibraryMarkup = libraryMarkup.match(/<details class="cv-built-in-templates"[\s\S]*?<\/details>/)?.[0] ?? ''
+assert.match(builtInLibraryMarkup, /Mẫu trang có sẵn/)
+assert.doesNotMatch(builtInLibraryMarkup, /Chưa có mẫu|aria-label="Trang"/)
 const catalogMarkup = renderToStaticMarkup(React.createElement(CanvasLeft, { tab: 'text', open: true, config: { components: {} } }))
 assert.match(catalogMarkup, /class="cv-catalog-heading"/)
 assert.match(catalogMarkup, /aria-label="Đoạn văn"/)
@@ -248,8 +259,9 @@ assert.match(catalogMarkup, /class="cv-item-label"/)
 assert.ok((catalogMarkup.match(/class="cv-chip"/g) ?? []).length > 0)
 assert.match(catalogMarkup, /data-module="media"/)
 const railMarkup = catalogMarkup.match(/<nav class="cv-rail"[\s\S]*?<\/nav>/)?.[0] ?? ''
-assert.equal((railMarkup.match(/<button/g) ?? []).length, 12)
-assert.equal((railMarkup.match(/<svg/g) ?? []).length, 12)
+assert.equal((railMarkup.match(/<button/g) ?? []).length, 15)
+assert.equal((railMarkup.match(/<svg/g) ?? []).length, 15)
+for (const label of ['Thiết bị', 'Lịch sử', 'Kiểm tra']) assert.ok(railMarkup.includes(`aria-label="${label}"`))
 assert.match(railMarkup, /aria-label="Thương hiệu"/)
 assert.doesNotMatch(railMarkup, /<img/)
 const { StatePicker, DevicePicker } = compile('../apps/studio/src/app/(editor)/editor/[id]/StateStyleEditor.tsx', { '@hosso/studio-blocks': elementStates })
@@ -276,9 +288,9 @@ assert.match(pagesMarkup, /popover="auto"/)
 assert.match(pagesMarkup, /role="dialog" aria-label="Trang"/)
 assert.match(pagesMarkup, /aria-label="Tìm trang"/)
 console.log('PASS: populated template library, line-icon rail with brand tool and accessible pages dropdown')
-assert.deepEqual(ELEMENT_CATALOG.map((item) => item.type), ['text', 'button', 'image'])
+assert.deepEqual(ELEMENT_CATALOG.map((item) => item.type), ['text', 'button', 'container', 'image', 'swiper', 'video'])
 for (const item of ELEMENT_CATALOG) { assert.equal(item.create().type, item.type); assert.ok(item.preview); assert.notEqual(item.create().id, item.create().id) }
-console.log('PASS: first-slice catalog, legacy/state rendering, canvas state preview, section scope, reduced motion and serialized round-trip')
+console.log('PASS: element catalog, legacy/state rendering, canvas state preview, section scope, reduced motion and serialized round-trip')
 assert.equal(PAGE_TEMPLATES.length, 8)
 assert.equal(new Set(PAGE_TEMPLATES.map((t) => t.id)).size, 8)
 for (const category of TEMPLATE_CATEGORIES) assert.equal(PAGE_TEMPLATES.filter((t) => t.category === category.id).length, 2)

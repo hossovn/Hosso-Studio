@@ -2,7 +2,7 @@
 import { FREE_MAX_PX, FREE_W, cloneElements, elementFamily, patchWidgetPart, widgetPartKey, widgetPartsForDevice, type FreeElement, type ElementState } from '@hosso/studio-blocks'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createStore, useStore } from 'zustand'
-import { ArrowLeft, ChevronRight, Copy, Eye, HelpCircle, Layers, Monitor, Pencil, PanelLeftClose, PanelRightClose, Redo2, Smartphone, Tablet, Trash2, Undo2 } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Copy, Eye, HelpCircle, Layers, Monitor, Pencil, PanelLeftClose, PanelRightClose, Redo2, Smartphone, Tablet, Trash2, Undo2, Maximize, Minimize, SlidersHorizontal } from 'lucide-react'
 import { elsOf } from './canvas-model'
 import { visibleCanvasBlock, visibleCanvasRange } from './canvas-viewport'
 
@@ -12,6 +12,10 @@ import { CanvasLeft, elLabel, type LeftOps, type Tab } from './CanvasLeft'
 import type { NavCtx } from './SitePanels'
 import { PagesDropdown } from './PagesDropdown'
 import { CanvasStage } from './CanvasStage'
+import { HistoryPanel, ResponsivePanel } from './WorkbenchPanels'
+import { FormBuilderPanel } from './FormBuilderPanel'
+import { jumpHistory } from './editor-tools'
+import { PublishPanel, type PageMetadata } from './PublishPanel'
 import { StyleClipboardContext } from './FreeCanvasEditor'
 import type { SiteCtx } from './SectionTemplates'
 import { DEVICE_WIDTH, pageForDevice, mergeDevicePage, resetDeviceLayout, stackDeviceSection } from '@hosso/studio-blocks'
@@ -56,15 +60,34 @@ type Props = {
   initialDevice?: 'desktop' | 'tablet' | 'mobile'
   brandTheme?: BrandTheme
   canEditBrand?: boolean
+  metadata?: PageMetadata
+  onMetadataChange?: (value: PageMetadata) => void
 }
 
-export function CanvasApp({ config, data: initial, onChange, css, htmlClass, title, backHref, menu, actions, labelOf, lang, rootRender, scopes, areaKind = '', siteCtx = {}, nav, initialSelection, initialDevice = 'desktop', brandTheme, canEditBrand = false }: Props) {
+export function CanvasApp({ config, data: initial, onChange, css, htmlClass, title, backHref, menu, actions, labelOf, lang, rootRender, scopes, areaKind = '', siteCtx = {}, nav, initialSelection, initialDevice = 'desktop', brandTheme, canEditBrand = false, metadata, onMetadataChange }: Props) {
   const brandDraft = useBrandDraft(brandTheme, canEditBrand, nav?.locale ?? lang, !nav)
   const [store] = useState(() => createStore<{ hist: Hist; sel: Sel; preview: boolean }>(() => ({ hist: initHist(normalize(initial)), sel: initialSelection ?? NO_SEL, preview: false })))
   const { hist, sel, preview } = useStore(store)
   const setSel = useCallback((next: Sel) => store.setState({ sel: next }), [store])
   const [leftOpen, setLeftOpen] = useState(false)
-  const [rightOpen, setRightOpen] = useState(true)
+  // Giữ canvas rộng như các landing-page builder hiện đại; thuộc tính mở theo ngữ cảnh.
+  const [rightOpen, setRightOpen] = useState(false)
+  const editorRoot = useRef<HTMLDivElement>(null)
+  const [focusMode, setFocusMode] = useState(true)
+  const [fullscreen, setFullscreen] = useState(false)
+  const [fullscreenMessage, setFullscreenMessage] = useState('')
+  const toggleFullscreen = async () => {
+    setFullscreenMessage('')
+    if (document.fullscreenElement) { await document.exitFullscreen(); return }
+    setFocusMode(true); setLeftOpen(false); setRightOpen(false)
+    try { await editorRoot.current?.requestFullscreen() }
+    catch { setFullscreenMessage('Đã mở canvas rộng. Trình duyệt chặn fullscreen; có thể dùng F11.') }
+  }
+  useEffect(() => {
+    const change = () => setFullscreen(document.fullscreenElement === editorRoot.current)
+    document.addEventListener('fullscreenchange', change)
+    return () => document.removeEventListener('fullscreenchange', change)
+  }, [])
   const openLeft = () => {
     if (window.innerWidth <= 1100) setRightOpen(false)
     setLeftOpen(true)
@@ -90,6 +113,11 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
   const [elementState, setElementState] = useState<ElementState>('normal')
   useEffect(() => setElementState('normal'), [sel.el, sel.block, preview])
   const [docs, setDocs] = useState<Document[]>([])
+  useEffect(() => {
+    if (!sel.block || !docs[0]) return
+    const node = sel.el ? docs[0].querySelector(`[data-element="${CSS.escape(sel.el)}"]`) : docs[0].querySelector(`[data-block="${CSS.escape(sel.block)}"]`)
+    node?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' })
+  }, [sel.block, sel.el, docs])
   useEffect(() => {
     const inspect = (event: Event) => {
       setRightOpen(true)
@@ -145,6 +173,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
       const mod = e.ctrlKey || e.metaKey
       const { data: d, sel: s } = st.current
       const k = e.key.toLowerCase()
+      if (k === 'escape' && !document.fullscreenElement && focusMode) { setFocusMode(false); return }
       if (mod && k === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return }
       if (mod && k === 'y') { e.preventDefault(); redo(); return }
       if (s.part) {
@@ -202,7 +231,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
       d.removeEventListener('cut', onCopy)
       d.removeEventListener('paste', onPaste)
     })
-  }, [docs, commit, undo, redo])
+  }, [docs, commit, undo, redo, focusMode])
 
   // ---- Thêm nội dung ----
   const blocks = data.content
@@ -283,6 +312,11 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
       commit(next)
       setSel({ block: firstId, el: '' })
     },
+    addBlocks: (added) => {
+      let next = data, after = afterVisible()
+      for (const block of added) { next = insertBlock(next, block, after); after = blockId(block) }
+      if (added.length) { commit(next); revealBlock.current = blockId(added[0]); setSel({ block: blockId(added[0]), el: '' }) }
+    },
   }
 
   api.current = ops
@@ -291,18 +325,22 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
   const selectedEl = sel.el ? findEl(data, sel.el) : null
   return (
     <StyleClipboardContext.Provider value={{ style: copiedStyle, setStyle: setCopiedStyle }}>
-    <div className="cv-editor" style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', background: 'var(--cv-workspace)', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif', fontSize: 14, color: '#20242b' }}>
+    <div ref={editorRoot} className="cv-editor" data-focus={focusMode} data-fullscreen={fullscreen} style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', background: 'var(--cv-workspace)', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif', fontSize: 14, color: '#20242b' }}>
       <header className="cv-top">
         <a className="cv-ib" href={backHref} title="Về trang quản trị" aria-label="Về trang quản trị"><ArrowLeft size={18} /></a>
         <span className="cv-brand">HOSSO<span>STUDIO</span></span>
         {nav && <PagesDropdown ctx={nav} />}
         <div className="cv-document" title={title}>{title}</div>
+        {focusMode && <div className="cv-focus-controls"><div className="cv-dev" role="group" aria-label="Thiết bị">{DEVICES.map((item) => { const Icon = item.id === 'desktop' ? Monitor : item.id === 'tablet' ? Tablet : Smartphone; return <button type="button" key={item.id} title={item.label} aria-label={item.label} aria-pressed={device === item.id} onClick={() => setDevice(item.id)}><Icon size={16} /></button> })}</div><button type="button" className="cv-ib" aria-label="Hoàn tác" title="Hoàn tác (Ctrl+Z)" disabled={!hist.past.length} onClick={undo}><Undo2 size={16} /></button><button type="button" className="cv-ib" aria-label="Làm lại" title="Làm lại" disabled={!hist.future.length} onClick={redo}><Redo2 size={16} /></button></div>}
+        {focusMode && !preview && <button type="button" className="cv-ib" title="Bảng thuộc tính" aria-label="Bảng thuộc tính" aria-pressed={rightOpen} onClick={toggleRight}><PanelRightClose size={17} /></button>}
         <button type="button" className="cv-mobile-actions" aria-label="Tác vụ trang" aria-expanded={mobileActionsOpen} aria-controls="cv-file-actions" onClick={() => setMobileActionsOpen((open) => !open)}>Tác vụ</button>
         <div id="cv-file-actions" className="cv-file-actions" data-open={mobileActionsOpen} onKeyDown={(event) => { if (event.key === 'Escape') setMobileActionsOpen(false) }}>{menu}{actions}</div>
         <div className="cv-dev" role="group" aria-label="Chế độ">
           <button type="button" title="Chế độ sửa" aria-label="Chế độ sửa" aria-pressed={!preview} onClick={() => store.setState({ preview: false })}><Pencil size={17} /></button>
           <button type="button" title="Xem trước trang" aria-label="Xem trước trang" aria-pressed={preview} onClick={() => store.setState({ preview: true })}><Eye size={17} /></button>
         </div>
+        <button type="button" className="cv-ib" aria-label={focusMode ? 'Hiện thanh công cụ đầy đủ' : 'Canvas mở rộng'} title={focusMode ? 'Hiện thanh công cụ đầy đủ' : 'Canvas mở rộng'} onClick={() => setFocusMode(!focusMode)}><SlidersHorizontal size={17} /></button>
+        <button type="button" className="cv-ib" aria-label={fullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình'} title={fullscreen ? 'Thoát toàn màn hình (Esc)' : 'Toàn màn hình'} onClick={toggleFullscreen}>{fullscreen ? <Minimize size={17} /> : <Maximize size={17} />}</button>
       </header>
       <div className="cv-workbar" role="toolbar" aria-label="Công cụ canvas">
         <div className="cv-history">
@@ -335,14 +373,17 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
         </div>
       </div>
       <div className="cv-workspace" style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+        {fullscreenMessage && <div className="cv-fullscreen-message" role="status" onClick={() => setFullscreenMessage('')}>{fullscreenMessage}</div>}
         {!preview && (
           <div className="cv-left-slot" style={{ display: 'flex', minHeight: 0 }}>
             <CanvasLeft
               open={leftOpen}
+              floating={focusMode}
               tab={tab}
               setTab={setTab}
               config={config}
               data={data}
+              templateData={hist.present}
               sel={sel}
               setSel={setSel}
               commit={commit}
@@ -355,11 +396,16 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
               onOpen={openLeft}
               onClose={() => setLeftOpen(false)}
               brandPanel={<BrandPanel theme={brandTheme} enabled={canEditBrand} draft={brandDraft} />}
+              historyPanel={<HistoryPanel hist={hist} nav={nav} storageKey={`hosso-snapshots:${nav?.collection ?? 'demo'}:${nav?.id ?? 'demo'}:${nav?.locale ?? lang}`} onJump={(index) => { store.setState({ hist: jumpHistory(hist, index), sel: NO_SEL }) }} onRestore={(next) => { commitLayout(next); setSel(NO_SEL) }} />}
+              responsivePanel={<ResponsivePanel data={hist.present} device={device} setDevice={setDevice} sel={sel} setSel={setSel} commit={commitLayout} />}
+              formPanel={<FormBuilderPanel nav={nav} onInsert={(slug, heading) => ops.addWidget('Form', { form: slug, heading })} />}
+              publishPanel={<PublishPanel nav={nav} metadata={metadata} onMetadataChange={onMetadataChange} data={hist.present} config={config} setSel={(selection) => { setSel(selection); setRightOpen(true); if (window.innerWidth <= 1100) setLeftOpen(false) }} onDevice={setDevice} />}
             />
           </div>
         )}
         <main className="cv-canvas" style={{ flex: 1, minWidth: 0, padding: 0, display: 'flex', flexDirection: 'column' }}>
           <CanvasStage
+            expanded={focusMode}
             siteCtx={siteCtx}
             selectedState={elementState}
             partDevice={device}

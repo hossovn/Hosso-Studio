@@ -53,6 +53,8 @@ const STYLE_FIELDS: Record<string, BlockField> = {
   _maxW: { type: 'number', label: 'Rộng tối đa (px, canh giữa)' },
   _minH: { type: 'number', label: 'Cao tối thiểu (px)' },
   _bgHex: { type: 'text', label: 'Màu nền tự chọn (#rrggbb)' },
+  _bg2Hex: { type: 'text', label: 'Màu nền chuyển sắc (#rrggbb)' },
+  _bgAngle: { type: 'number', label: 'Góc chuyển sắc' },
   _txtHex: { type: 'text', label: 'Màu chữ tự chọn (#rrggbb)' },
   _bdHex: { type: 'text', label: 'Màu viền tự chọn (#rrggbb)' },
   _bdPx: { type: 'number', label: 'Độ dày viền (px)' },
@@ -69,7 +71,8 @@ const inlineStyle = (p: Record<string, any>): React.CSSProperties | undefined =>
   for (const [k, css] of NUM_STYLES) if (px(p[k])) st[css] = px(p[k])
   if (px(p._offX) || px(p._offY)) st.transform = `translate(${px(p._offX) ?? '0px'},${px(p._offY) ?? '0px'})`
   if (px(p._maxW)) Object.assign(st, { maxWidth: px(p._maxW), marginLeft: 'auto', marginRight: 'auto' })
-  if (HEX.test(p._bgHex ?? '')) st.background = p._bgHex
+  if (HEX.test(p._bgHex ?? '') && HEX.test(p._bg2Hex ?? '')) st.background = `linear-gradient(${Math.min(360, Math.max(0, Number(p._bgAngle) || 0))}deg,${p._bgHex},${p._bg2Hex})`
+  else if (HEX.test(p._bgHex ?? '')) st.background = p._bgHex
   if (HEX.test(p._txtHex ?? '')) st.color = p._txtHex
   if (HEX.test(p._bdHex ?? '')) st.borderColor = p._bdHex
   if (px(p._bdPx)) st.borderStyle = 'solid'

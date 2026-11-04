@@ -409,6 +409,7 @@ export interface Form {
   }[];
   submitLabel?: string | null;
   successMessage?: string | null;
+  delivery?: { [k: string]: unknown } | unknown[] | string | number | boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1636,6 +1637,7 @@ export interface FormsSelect<T extends boolean = true> {
       };
   submitLabel?: T;
   successMessage?: T;
+  delivery?: T;
   updatedAt?: T;
   createdAt?: T;
 }

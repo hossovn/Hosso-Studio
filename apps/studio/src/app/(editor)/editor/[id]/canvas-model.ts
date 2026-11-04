@@ -1,4 +1,4 @@
-import { newId, cloneElements, elementFamily, transformFamily } from '../../../../../../../packages/blocks/src/free-geometry.ts'
+import { newId, cloneElements, elementFamily, inheritedElementFlag, orderElementFamily, transformFamily } from '../../../../../../../packages/blocks/src/free-geometry.ts'
 import type { FreeElement } from '@hosso/studio-blocks'
 
 /**
@@ -169,22 +169,17 @@ const mapEl = (d: PageData, elId: string, f: (els: FreeElement[], i: number) => 
 }
 export const updateEl = (d: PageData, elId: string, f: (e: FreeElement) => FreeElement): PageData => mapEl(d, elId, (els, i) => {
   const next = f(els[i])
-  if (els[i].props._locked && (['x', 'y', 'w', 'h'] as const).some((key) => next[key] !== els[i][key])) return els
+  if (inheritedElementFlag(els, elId, '_locked') && (['x', 'y', 'w', 'h'] as const).some((key) => next[key] !== els[i][key])) return els
   return transformFamily(els, elId, next).map((el) => el.id === elId ? next : el)
 })
 export const patchElProps = (d: PageData, elId: string, p: Record<string, any>): PageData => updateEl(d, elId, (e) => ({ ...e, props: { ...e.props, ...p } }))
 export const removeEl = (d: PageData, elId: string): PageData => mapEl(d, elId, (els) => {
+  if (inheritedElementFlag(els, elId, '_locked')) return els
   const ids = new Set(elementFamily(els, elId).map((el) => el.id))
   return els.filter((el) => !ids.has(el.id))
 })
 export const orderEl = (d: PageData, elId: string, to: 1 | -1 | 'front' | 'back'): PageData =>
-  mapEl(d, elId, (els, i) => {
-    const j = to === 'front' ? els.length - 1 : to === 'back' ? 0 : Math.min(els.length - 1, Math.max(0, i + to))
-    const next = [...els]
-    const [it] = next.splice(i, 1)
-    next.splice(j, 0, it)
-    return next
-  })
+  mapEl(d, elId, (els) => orderElementFamily(els, elId, to))
 /** Nhân đôi component; trả dữ liệu mới và id bản sao. */
 export const dupEl = (d: PageData, elId: string): { data: PageData; id: string } => {
   const hit = findEl(d, elId)
@@ -208,7 +203,7 @@ export function reparentElements(d: PageData, sourceId: string, targetId: string
 }
 
 export type SelectionAction = 'duplicate' | 'delete' | 'lock' | 'hide' | 'align' | 'forward' | 'backward' | 'copy-style' | 'paste-style' | 'inspect' | 'states'
-const STYLE_KEYS = ['color', 'bg', 'bg2', 'angle', 'radius', 'borderW', 'borderColor', 'bshadow', 'opacity', 'rotate', 'font', 'size', 'weight', 'align', 'lh', 'italic', 'spacing', 'underline', '_states', '_scroll', '_motion'] as const
+const STYLE_KEYS = ['color', 'bg', 'bg2', 'angle', 'radius', 'borderW', 'borderColor', 'bshadow', 'opacity', 'rotate', 'font', 'size', 'weight', 'align', 'vAlign', 'lh', 'italic', 'upper', 'spacing', 'underline', 'padX', 'padY', 'overflow', 'tshadow', 'strokeW', 'strokeColor', 'grad2', 'clip', '_states', '_scroll', '_motion'] as const
 export const elementStyleProps = (props: Record<string, unknown>) => Object.fromEntries(STYLE_KEYS.filter((key) => props[key] !== undefined).map((key) => [key, structuredClone(props[key])]))
 
 export function runSelectionAction(action: SelectionAction, selection: Sel, data: PageData, style?: Record<string, unknown>): PageData | { data: PageData; mode?: 'inspect' | 'states'; style?: Record<string, unknown> } {

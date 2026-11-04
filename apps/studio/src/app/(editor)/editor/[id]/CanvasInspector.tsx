@@ -39,6 +39,15 @@ const INSPECTOR_CSS = `
 .cv-grp{padding:0 16px;border-bottom:1px solid var(--cv-line,#e5e7eb)}
 .cv-grp>summary{display:flex;align-items:center;gap:8px;list-style:none;cursor:pointer;padding:16px 0;font-weight:650;font-size:12px;color:var(--cv-ink,#20242b)}
 .cv-grp-content{padding:0 0 8px}
+.cv-subheading{margin:14px 0 8px;padding-top:12px;border-top:1px solid #eef1f3;color:#374151;font-size:11px;font-weight:750;letter-spacing:.02em}
+.cv-help{margin:0;padding:12px;border:1px solid #e5e9e7;border-radius:9px;background:#f7f9f8;color:#5f6b64;font-size:12px;line-height:1.5}
+.cv-focal-grid{display:grid;grid-template-columns:repeat(3,32px);gap:4px}
+.cv-focal-grid button{width:32px;height:28px;border:1px solid #e0e5e2;border-radius:5px;background:#fff;color:#647067;cursor:pointer}
+.cv-focal-grid button:hover,.cv-focal-grid button[aria-pressed=true]{border-color:var(--hosso-brand,#15803d);background:#eaf3ed;color:var(--hosso-brand,#15803d)}
+.cv-check{display:flex;align-items:center;gap:8px;margin:6px 0 14px;color:#4b5563;font-size:12px}
+.cv-clear-background{width:100%;margin:4px 0 14px;padding:8px 10px;border:1px solid #e4e8e5;border-radius:8px;background:#fff;color:#8b3f3b;font:600 12px system-ui,sans-serif;cursor:pointer}
+.cv-clear-background:hover{background:#fbefee;border-color:#edcfcc}
+.cv-context-hint{margin:0;padding:8px 14px;border-bottom:1px solid #eef1f3;background:#fbfcfb;color:#66736b;font-size:11px;line-height:1.4}
 .cv-grp>summary::-webkit-details-marker{display:none}
 .cv-grp>summary svg{color:#6b7280;transition:transform .15s}
 .cv-grp:not([open])>summary svg{transform:rotate(-90deg)}
@@ -187,6 +196,7 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
         <button type="button" onClick={() => setSel({ block: blockId(block), el: '' })} style={{ border: 0, background: 'transparent', color: 'inherit', cursor: 'pointer', font: 'inherit', padding: 0 }}>{blockId(block) === '@page' ? 'Lớp nổi' : 'Phần'}</button>›
       </div>
       <div className="cv-object-heading"><span className="cv-module-icon"><ObjectIcon size={20} aria-hidden="true" /></span><div><strong>{NAMES[el.type]}</strong><span>{Math.round(el.w * pixelScale)} × {Math.round(el.h * pixelScale)} px · {device}</span></div></div>
+      {textual && <p className="cv-context-hint">Nhấp đúp để sửa và định dạng từng đoạn. Các chỉnh sửa nhanh luôn nằm cạnh phần tử trên canvas.</p>}
       {['button', 'image', 'text', 'heading'].includes(el.type) && <ElementStateControls props={p} state={state} onStateChange={onStateChange} device={device} onDeviceChange={onDeviceChange} supported={el.type === 'button' || p.href ? ['normal', 'hover', 'focus', 'active'] : ['normal', 'hover']} onChange={(props, key) => commit(updateEl(data, el.id, (current) => ({ ...current, props })), 'state:' + el.id + ':' + device + ':' + state + ':' + key)} />}
       <div className="cv-align" role="group" aria-label="Căn chỉnh nhanh" style={{ borderBottom: '1px solid #f1f5f9', background: '#fafafa', padding: '6px 12px' }}>
         {([
@@ -308,7 +318,7 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
         {(el.type === 'heading' || el.type === 'text' || el.type === 'button') && (
           <>
             <Row label="Cỡ chữ"><RangeControl value={Number(((p.size ?? 18) * pixelScale).toFixed(2))} onChange={(v) => put({ size: (Number(v) || 8) / pixelScale })} min={8} max={200} /></Row>
-            <Row label="Độ đậm"><SegControl value={String(p.weight)} onChange={(v) => put({ weight: Number(v) })} options={[{ label: 'Thường', value: '400' }, { label: 'Vừa', value: '500' }, { label: 'Đậm', value: '700' }]} /></Row>
+            <Row label="Độ đậm"><select style={ctl} value={String(p.weight ?? 400)} onChange={(e) => put({ weight: Number(e.target.value) })}>{[100, 200, 300, 400, 500, 600, 700, 800, 900].map((weight) => <option key={weight} value={weight}>{weight}{weight === 400 ? ' · Thường' : weight === 600 ? ' · Bán đậm' : weight === 700 ? ' · Đậm' : ''}</option>)}</select></Row>
             {el.type !== 'button' && <Row label="Căn lề"><SegControl value={p.align ?? 'left'} onChange={(v) => put({ align: v })} options={[{ label: 'Trái', value: 'left' }, { label: 'Giữa', value: 'center' }, { label: 'Phải', value: 'right' }]} /></Row>}
             <Row label="Màu chữ"><ColorControl value={p.color} onChange={(v) => put({ color: v })} /></Row>
             <Row label="Font chữ">
@@ -326,11 +336,21 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
             </Row>
             <Row label="Giãn chữ (px)"><RangeControl value={p.spacing ?? 0} onChange={(v) => put({ spacing: Number(v) || 0 })} min={-4} max={40} /></Row>
             <Row label="Giãn dòng"><RangeControl value={p.lh ?? 1.25} onChange={(v) => put({ lh: Number(v) || 1.25 })} min={0.9} max={2.4} step={0.05} /></Row>
+            {(el.type === 'heading' || el.type === 'text') && <>
+              <div className="cv-subheading">Khung chữ</div>
+              <Row label="Nền"><ColorControl value={p.bg ?? ''} onChange={(v) => put({ bg: v })} /></Row>
+              <Row label="Màu chuyển sắc"><ColorControl value={p.bg2 ?? ''} onChange={(v) => put({ bg2: v })} /></Row>
+              {Boolean(p.bg && p.bg2) && <Row label="Góc chuyển sắc"><RangeControl value={p.angle ?? 135} onChange={(v) => put({ angle: Number(v) || 0 })} min={0} max={360} /></Row>}
+              <Row label="Đệm ngang"><RangeControl value={p.padX ?? 0} onChange={(v) => put({ padX: Number(v) || 0 })} min={0} max={200} /></Row>
+              <Row label="Đệm dọc"><RangeControl value={p.padY ?? 0} onChange={(v) => put({ padY: Number(v) || 0 })} min={0} max={200} /></Row>
+              <Row label="Căn dọc"><SegControl value={p.vAlign ?? 'top'} onChange={(v) => put({ vAlign: v })} options={[{ label: 'Trên', value: 'top' }, { label: 'Giữa', value: 'center' }, { label: 'Dưới', value: 'bottom' }]} /></Row>
+              <Row label="Tràn nội dung"><SegControl value={p.overflow === 'hidden' ? 'hidden' : 'visible'} onChange={(v) => put({ overflow: v })} options={[{ label: 'Hiện', value: 'visible' }, { label: 'Cắt', value: 'hidden' }]} /></Row>
+            </>}
           </>
         )}
         {(el.type === 'button' || el.type === 'shape' || el.type === 'container') && <Row label={p.bg2 ? 'Màu nền (đầu)' : 'Màu nền'}><ColorControl value={p.bg} onChange={(v) => put({ bg: v })} /></Row>}
-        {(el.type === 'button' || el.type === 'shape' || el.type === 'image') && <Row label="Bo góc"><RangeControl value={p.radius ?? 0} onChange={(v) => put({ radius: Number(v) || 0 })} min={0} max={el.type === 'shape' ? 999 : 80} /></Row>}
-        {(el.type === 'button' || el.type === 'shape' || el.type === 'image') && (
+        {(el.type === 'heading' || el.type === 'text' || el.type === 'button' || el.type === 'shape' || el.type === 'image') && <Row label="Bo góc"><RangeControl value={p.radius ?? 0} onChange={(v) => put({ radius: Number(v) || 0 })} min={0} max={el.type === 'shape' ? 999 : 200} /></Row>}
+        {(el.type === 'heading' || el.type === 'text' || el.type === 'button' || el.type === 'shape' || el.type === 'image') && (
           <>
             <Row label="Độ dày viền"><RangeControl value={p.borderW ?? 0} onChange={(v) => put({ borderW: Number(v) || 0 })} min={0} max={20} /></Row>
             {Boolean(p.borderW) && <Row label="Màu viền"><ColorControl value={p.borderColor} onChange={(v) => put({ borderColor: v })} /></Row>}
@@ -382,6 +402,7 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
             <Row label="Viền chữ (px)"><RangeControl value={p.strokeW ?? 0} onChange={(v) => put({ strokeW: Number(v) || 0 })} min={0} max={12} /></Row>
             {Boolean(p.strokeW) && <Row label="Màu viền chữ"><ColorControl value={p.strokeColor ?? '#111827'} onChange={(v) => put({ strokeColor: v })} /></Row>}
             <Row label="Chữ chuyển màu (màu cuối)"><ColorControl value={p.grad2 ?? ''} onChange={(v) => put({ grad2: v })} /></Row>
+            <Row label="Bóng khung chữ"><Choice value={p.bshadow ?? ''} onChange={(v) => put({ bshadow: v })} options={['', ...Object.keys(BOX_SHADOWS)]} /></Row>
           </>
         )}
         {(el.type === 'button' || el.type === 'shape') && (
@@ -424,23 +445,44 @@ function DevicePickerRow({ value, onChange }: { value: string; onChange: (value:
 
 function BlockInspector({ block, config, data, commit, labelOf, state, onStateChange, device, onDeviceChange }: { block: Block; config: any; data: PageData; commit: (d: PageData, key?: string) => void; labelOf: (type: string) => string } & StateInspectorProps) {
   const id = blockId(block)
-  const [tab, setTab] = React.useState('content')
-  const put = (patch: Record<string, any>) => commit(patchBlock(data, id, patch), 'b:' + id + ':' + Object.keys(patch).join(','))
   const section = isSection(block)
+  const [tab, setTab] = React.useState(section ? 'style' : 'content')
+  React.useEffect(() => setTab(section ? 'style' : 'content'), [id, section])
+  const put = (patch: Record<string, any>) => commit(patchBlock(data, id, patch), 'b:' + id + ':' + Object.keys(patch).join(','))
   const fields = config.components[block.type]?.fields ?? {}
   return <>
     <div className="cv-object-heading"><span className="cv-module-icon"><LayoutTemplate size={20} aria-hidden="true" /></span><div><strong>{section ? 'Phần (section)' : labelOf(block.type)}</strong><span>{id}</span></div></div>
     {section && <ElementStateControls props={block.props} state={state} onStateChange={onStateChange} device={device} onDeviceChange={onDeviceChange} supported={['normal', 'hover']} onChange={(props, key) => commit(patchBlock(data, id, { _states: props._states }), 'state:' + id + ':' + device + ':' + state + ':' + key)} />}
     <InspectorTabs value={tab} onChange={setTab} />
     <Group title="Nội dung" show={tab === 'content'}>
-      {section ? <>
-        <Row label="Ảnh nền"><MediaField value={block.props.bgImage ?? ''} onChange={(v) => put({ bgImage: v })} kind="image" /></Row>
-        <Row label="Video nền MP4"><MediaField value={block.props.bgVideo ?? ''} onChange={(v) => put({ bgVideo: v })} kind="video" /></Row>
-        <Row label="Lớp tối (%)"><RangeControl value={block.props.bgOverlay ?? 0} onChange={(v) => put({ bgOverlay: Math.min(100, Math.max(0, Number(v) || 0)) })} min={0} max={100} /></Row>
-      </> : <>{block.type === 'ShopProductGrid' && <ProductSelection value={block.props.productIds} onChange={(ids) => put({ productIds: ids ?? null })} />}<FieldsForm fields={fields} values={block.props} onChange={(k, v) => put({ [k]: v })} /></>}
+      {section ? <p className="cv-help">Nội dung của section nằm trực tiếp trên canvas. Chọn chữ, ảnh hoặc nút để sửa; mở tab <strong>Thiết kế</strong> để chỉnh toàn bộ nền section.</p> : <>{block.type === 'ShopProductGrid' && <ProductSelection value={block.props.productIds} onChange={(ids) => put({ productIds: ids ?? null })} />}<FieldsForm fields={fields} values={block.props} onChange={(k, v) => put({ [k]: v })} /></>}
     </Group>
     <Group title="Thiết kế" show={tab === 'style'}>
       <Row label="Màu nền"><ColorControl value={block.props._bgHex ?? ''} onChange={(v) => put({ _bgHex: v })} /></Row>
+      {section && <>
+        <Row label="Màu chuyển sắc"><ColorControl value={block.props._bg2Hex ?? ''} onChange={(v) => put({ _bg2Hex: v })} /></Row>
+        {Boolean(block.props._bgHex && block.props._bg2Hex) && <Row label="Góc chuyển sắc"><RangeControl value={block.props._bgAngle ?? 135} onChange={(v) => put({ _bgAngle: Number(v) || 0 })} min={0} max={360} /></Row>}
+        <div className="cv-subheading">Ảnh và video nền</div>
+        <Row label="Ảnh nền"><MediaField value={block.props.bgImage ?? ''} onChange={(v) => put({ bgImage: v })} kind="image" /></Row>
+        {Boolean(block.props.bgImage) && <>
+          <Row label="Cách phủ"><SegControl value={block.props.bgSize ?? 'cover'} onChange={(v) => put({ bgSize: v })} options={[{ label: 'Phủ kín', value: 'cover' }, { label: 'Vừa ảnh', value: 'contain' }, { label: 'Gốc', value: 'auto' }]} /></Row>
+          <Row label="Lặp ảnh"><select style={ctl} value={block.props.bgRepeat ?? 'no-repeat'} onChange={(e) => put({ bgRepeat: e.target.value })}><option value="no-repeat">Không lặp</option><option value="repeat">Lặp cả hai chiều</option><option value="repeat-x">Lặp ngang</option><option value="repeat-y">Lặp dọc</option></select></Row>
+          <Row label="Tiêu điểm">
+            <div className="cv-focal-grid">{([[0, 0, '↖'], [50, 0, '↑'], [100, 0, '↗'], [0, 50, '←'], [50, 50, '●'], [100, 50, '→'], [0, 100, '↙'], [50, 100, '↓'], [100, 100, '↘']] as const).map(([x, y, icon]) => <button key={`${x}-${y}`} type="button" aria-label={`Tiêu điểm ${x}% ${y}%`} aria-pressed={Number(block.props.bgPositionX ?? 50) === x && Number(block.props.bgPositionY ?? 50) === y} onClick={() => put({ bgPositionX: x, bgPositionY: y })}>{icon}</button>)}</div>
+          </Row>
+          <Row label="Vị trí ngang"><RangeControl value={block.props.bgPositionX ?? 50} onChange={(v) => put({ bgPositionX: Number(v) || 0 })} min={0} max={100} /></Row>
+          <Row label="Vị trí dọc"><RangeControl value={block.props.bgPositionY ?? 50} onChange={(v) => put({ bgPositionY: Number(v) || 0 })} min={0} max={100} /></Row>
+          <Row label="Độ hiện ảnh"><RangeControl value={block.props.bgImageOpacity ?? 100} onChange={(v) => put({ bgImageOpacity: Number(v) || 0 })} min={0} max={100} /></Row>
+          <Row label="Làm mờ"><RangeControl value={block.props.bgBlur ?? 0} onChange={(v) => put({ bgBlur: Number(v) || 0 })} min={0} max={40} /></Row>
+          <label className="cv-check"><input type="checkbox" checked={block.props.bgAttachment === 'fixed'} onChange={(e) => put({ bgAttachment: e.target.checked ? 'fixed' : 'scroll' })} />Giữ nền cố định khi cuộn</label>
+        </>}
+        <Row label="Video nền MP4"><MediaField value={block.props.bgVideo ?? ''} onChange={(v) => put({ bgVideo: v })} kind="video" /></Row>
+        {Boolean(block.props.bgVideo) && <Row label="Cách phủ video"><SegControl value={block.props.bgVideoFit ?? 'cover'} onChange={(v) => put({ bgVideoFit: v })} options={[{ label: 'Phủ kín', value: 'cover' }, { label: 'Vừa video', value: 'contain' }]} /></Row>}
+        <div className="cv-subheading">Lớp phủ</div>
+        <Row label="Màu lớp phủ"><ColorControl value={block.props.bgOverlayColor ?? '#000000'} onChange={(v) => put({ bgOverlayColor: v })} /></Row>
+        <Row label="Độ đậm lớp phủ"><RangeControl value={block.props.bgOverlay ?? 0} onChange={(v) => put({ bgOverlay: Math.min(100, Math.max(0, Number(v) || 0)) })} min={0} max={100} /></Row>
+        <button type="button" className="cv-clear-background" onClick={() => put({ _bgHex: '', _bg2Hex: '', bgImage: '', bgVideo: '', bgOverlay: 0, bgBlur: 0, bgImageOpacity: 100, bgAttachment: 'scroll' })}>Xóa toàn bộ nền</button>
+      </>}
       <Row label="Màu viền"><ColorControl value={block.props._bdHex ?? ''} onChange={(v) => put({ _bdHex: v })} /></Row>
       <Row label="Độ dày viền"><RangeControl value={block.props._bdPx ?? 0} onChange={(v) => put({ _bdPx: Number(v) || 0 })} min={0} max={20} /></Row>
       <Row label="Bo góc"><RangeControl value={block.props._radPx ?? 0} onChange={(v) => put({ _radPx: Number(v) || 0 })} min={0} max={80} /></Row>

@@ -4,7 +4,7 @@ import { FreeBreadcrumb, FreeCountdown, FreeEmbed, FreeFoldMenu, FreeMap, FreeTa
 import { ICON_BODY } from './icons-data'
 import type { BlockRenderer } from './types'
 import { FreeSwiper } from './FreeSwiper'
-import { newId } from './free-geometry'
+import { inheritedElementFlag, inheritedHideClasses, newId } from './free-geometry'
 import { elementStateScope, elementStatesCss } from './element-states'
 import type { ElementState } from './element-states'
 import { ScrollEffect } from './ScrollEffect'
@@ -14,6 +14,7 @@ import { MotionEffects } from './MotionEffects'
 import { MotionScope } from './MotionScope'
 import { MotionText } from './MotionText'
 import { blockForDevice, elementForDevice, type DevicePatch } from './responsive-layout'
+import { sanitizeRichText } from './rich-text'
 export { newId } from './free-geometry'
 
 /**
@@ -45,6 +46,7 @@ const ICON_PATHS: Record<string, string> = {
 export const FREE_ICONS = [...new Set([...Object.keys(ICON_BODY), ...Object.keys(ICON_PATHS)])]
 
 const SAFE_HREF = /^(https?:\/\/|\/|#|mailto:|tel:)/i
+const SAFE_COLOR = /^#[0-9a-f]{6}$/i
 const safeHref = (h: unknown) => (typeof h === 'string' && SAFE_HREF.test(h.trim()) ? h.trim() : '#')
 const videoEmbed = (url: string) => {
   const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{6,})/) ?? []
@@ -121,11 +123,32 @@ function FreeElementBody({ el, unit, scale, editing, state }: { el: FreeElement;
   const entrance = motion?.entrance?.preset
   const textMode = entrance === 'text-lines' ? 'lines' : entrance === 'text-words' ? 'words' : motion?.loop?.preset === 'marquee' ? 'marquee' : null
   const textContent = textMode ? <MotionText text={String(p.text ?? '')} mode={textMode} marquee={motion?.loop?.preset === 'marquee'} /> : p.text
-  if (el.type === 'heading') return React.createElement(`h${Math.min(6, Math.max(1, Number(p.level) || 2))}`, { ...stateAttrs, style: text }, textContent)
-  if (el.type === 'text') return p.href && !editing ? <a {...stateAttrs} href={safeHref(p.href)} style={{ ...text, display: 'block' }}>{textContent}</a> : <p {...stateAttrs} style={text}>{textContent}</p>
+  const richText = textMode ? '' : sanitizeRichText(p.richText)
+  const inkStyle: React.CSSProperties | undefined = p.grad2 ? { background: `linear-gradient(${Number(p.angle ?? 90)}deg, ${p.color ?? '#111827'}, ${p.grad2})`, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent' } : undefined
+  const ink = richText ? <span style={inkStyle} dangerouslySetInnerHTML={{ __html: richText }} /> : <span style={inkStyle}>{textContent}</span>
+  const textBox: React.CSSProperties = {
+    ...text,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: p.vAlign === 'bottom' ? 'flex-end' : p.vAlign === 'center' ? 'center' : 'flex-start',
+    width: '100%',
+    height: '100%',
+    boxSizing: 'border-box',
+    padding: `${u(p.padY ?? 0)} ${u(p.padX ?? 0)}`,
+    background: p.bg ? fillCss(p) : undefined,
+    WebkitBackgroundClip: undefined,
+    backgroundClip: undefined,
+    WebkitTextFillColor: undefined,
+    borderRadius: u(p.radius ?? 0),
+    border: p.borderW ? `${u(p.borderW)} solid ${p.borderColor ?? '#111827'}` : undefined,
+    boxShadow: shadowCss(BOX_SHADOWS[p.bshadow], u),
+    overflow: p.overflow === 'hidden' ? 'hidden' : 'visible',
+  }
+  if (el.type === 'heading') return React.createElement(`h${Math.min(6, Math.max(1, Number(p.level) || 2))}`, { ...stateAttrs, style: textBox }, ink)
+  if (el.type === 'text') return p.href && !editing ? <a {...stateAttrs} href={safeHref(p.href)} style={{ ...textBox, textDecoration: p.underline ? 'underline' : 'none' }}>{ink}</a> : <p {...stateAttrs} style={textBox}>{ink}</p>
   if (el.type === 'button') {
     const st: React.CSSProperties = { ...text, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: u(8), width: '100%', height: '100%', boxSizing: 'border-box', background: fillCss(p), borderRadius: u(p.radius ?? 0), border: p.borderW ? `${u(p.borderW)} solid ${p.borderColor}` : 0, textAlign: 'center', textDecoration: p.underline ? 'underline' : 'none', boxShadow: shadowCss(BOX_SHADOWS[p.bshadow], u), WebkitTextFillColor: undefined, WebkitBackgroundClip: undefined, backgroundClip: undefined }
-    const content = <>{typeof p.icon === 'string' && Object.hasOwn(ICON_BODY, p.icon) && <svg viewBox="0 0 24 24" width={u(p.size ?? 18)} height={u(p.size ?? 18)} fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" style={{ flexShrink: 0 }} dangerouslySetInnerHTML={{ __html: ICON_BODY[p.icon] }} />}{p.text}</>
+    const content = <>{typeof p.icon === 'string' && Object.hasOwn(ICON_BODY, p.icon) && <svg viewBox="0 0 24 24" width={u(p.size ?? 18)} height={u(p.size ?? 18)} fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" style={{ flexShrink: 0 }} dangerouslySetInnerHTML={{ __html: ICON_BODY[p.icon] }} />}{richText ? <span dangerouslySetInnerHTML={{ __html: richText }} /> : p.text}</>
     return editing ? <span {...stateAttrs} style={st}>{content}</span> : <a {...stateAttrs} href={safeHref(p.href)} style={st}>{content}</a>
   }
   if (el.type === 'shape') return <div style={{ width: '100%', height: '100%', boxSizing: 'border-box', background: fillCss(p), borderRadius: p.clip === 'blob' ? BLOB_RADIUS : p.radius >= 999 ? '50%' : u(p.radius ?? 0), border: p.borderW ? `${u(p.borderW)} solid ${p.borderColor}` : 0, clipPath: CLIPS[p.clip], boxShadow: CLIPS[p.clip] ? undefined : shadowCss(BOX_SHADOWS[p.bshadow], u) }} />
@@ -146,7 +169,7 @@ function FreeElementBody({ el, unit, scale, editing, state }: { el: FreeElement;
     if (!p.src) return <div {...stateAttrs} style={{ ...imageStyle, opacity, background: '#f3f4f6', display: 'grid', placeItems: 'center', color: '#9ca3af', fontSize: u(16) }}>Ảnh</div>
     return p.href && !editing ? <a {...stateAttrs} href={safeHref(p.href)} style={{ ...imageStyle, opacity }}><img src={p.src} alt={p.alt ?? ''} style={{ ...imageStyle, border: undefined, boxShadow: undefined }} /></a> : <img {...stateAttrs} src={p.src} alt={p.alt ?? ''} style={{ ...imageStyle, opacity }} />
   }
-  if (el.type === 'container') return <div style={{ width: '100%', height: '100%', background: p.bg || 'transparent', borderRadius: u(p.radius || 0) }} />
+  if (el.type === 'container') return <div style={{ width: '100%', height: '100%', boxSizing: 'border-box', background: fillCss(p) || 'transparent', borderRadius: u(p.radius || 0), border: p.borderW ? `${u(p.borderW)} solid ${p.borderColor ?? '#111827'}` : undefined, boxShadow: shadowCss(BOX_SHADOWS[p.bshadow], u) }} />
   if (el.type === 'swiper') return <FreeSwiper slides={Array.isArray(p.slides) ? p.slides : []} seconds={Number(p.seconds) || 0} editing={editing} effect={p.effect === 'fade' ? 'fade' : 'slide'} thumbnails={p.thumbnails === true} />
   if (el.type === 'video') {
     const embed = videoEmbed(String(p.url ?? ''))
@@ -220,7 +243,7 @@ export const FreeOverlay = ({ elements }: { elements: FreeElement[] }) => (
     <MotionScope enabled={elements.some((el) => !el.props._hidden && resolveMotionConfig(el.props)?.loop?.preset && resolveMotionConfig(el.props)?.loop?.preset !== 'none')}>
     {(elements.some((el) => el.responsive?.mobile || el.responsive?.tablet) ? ['desktop', 'tablet', 'mobile'] as const : ['desktop'] as const).map((device, _, devices) => <div key={device} className={devices.length > 1 ? `hs-free-device-${device}` : undefined} style={{ position: 'absolute', inset: 0 }}>
     {elements.map((original) => { const el = elementForDevice(original, device); return (
-      <div key={el.id} className={el.props._hide ? 'hs-hide-' + el.props._hide : undefined} style={{ display: el.props._hidden ? 'none' : undefined, position: 'absolute', left: `${(el.x / FREE_W) * 100}%`, top: `${(el.y / FREE_W) * 100}cqw`, width: `${(el.w / FREE_W) * 100}%`, height: `${(el.h / FREE_W) * 100}cqw`, pointerEvents: el.type === 'container' ? 'none' : 'auto', zIndex: el.type === 'container' ? 0 : 1 }}>
+      <div key={el.id} className={inheritedHideClasses(elements, el.id)} style={{ display: inheritedElementFlag(elements, el.id, '_hidden', device) ? 'none' : undefined, position: 'absolute', left: `${(el.x / FREE_W) * 100}%`, top: `${(el.y / FREE_W) * 100}cqw`, width: `${(el.w / FREE_W) * 100}%`, height: `${(el.h / FREE_W) * 100}cqw`, pointerEvents: el.type === 'container' ? 'none' : 'auto', zIndex: el.type === 'container' ? 0 : 1 }}>
         <FreeElementView el={el} />
       </div>
     )})}
@@ -233,18 +256,19 @@ export const FreeOverlay = ({ elements }: { elements: FreeElement[] }) => (
  * Block "Vùng tự do": chỉ là khoảng trống có chiều cao; các phần tử nằm ở lớp phủ chung (`_els`, cũng dùng cho mọi block khác).
  * `elements` là tên prop cũ, vẫn đọc được. `_noFree` được editor đặt khi nó tự vẽ lớp chỉnh sửa.
  */
-export const FreeCanvasView: BlockRenderer = (props: { id?: string; height?: number; bgImage?: string; bgVideo?: string; bgOverlay?: number; _els?: FreeElement[]; elements?: FreeElement[]; _noFree?: boolean; _states?: unknown; _editorState?: ElementState; _responsive?: Record<string, any> }) => {
-  const { height = 0, bgImage, bgVideo, bgOverlay = 0, _els, elements, _noFree } = props
+export const FreeCanvasView: BlockRenderer = (props: { id?: string; height?: number; bgImage?: string; bgVideo?: string; bgOverlay?: number; bgOverlayColor?: string; bgSize?: string; bgRepeat?: string; bgPositionX?: number; bgPositionY?: number; bgAttachment?: string; bgImageOpacity?: number; bgBlur?: number; bgVideoFit?: string; _els?: FreeElement[]; elements?: FreeElement[]; _noFree?: boolean; _states?: unknown; _editorState?: ElementState; _responsive?: Record<string, any> }) => {
+  const { height = 0, bgImage, bgVideo, bgOverlay = 0, bgOverlayColor = '#000000', bgSize = 'cover', bgRepeat = 'no-repeat', bgPositionX = 50, bgPositionY = 50, bgAttachment = 'scroll', bgImageOpacity = 100, bgBlur = 0, bgVideoFit = 'cover', _els, elements, _noFree } = props
   const stateCss = props.id ? elementStatesCss(props.id, props) : ''
   const els = _els ?? elements ?? []
   // Chiều cao chính xác theo trường "height"; khối cũ chưa có height thì tự vừa phần tử.
   const h = Number(height) > 0 ? Number(height) : Math.max(freeHeight(0, els), _noFree ? 140 : 0)
   return (
-    <section className={"hs-free " + (stateCss && props.id ? elementStateScope(props.id) : "")} data-hs-state={props._editorState} style={bgImage ? { backgroundImage: `url("${String(bgImage).replace(/"/g, '%22')}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
+    <section className={"hs-free " + (stateCss && props.id ? elementStateScope(props.id) : "")} data-hs-state={props._editorState} style={{ overflow: 'hidden' }}>
       {stateCss && <style>{stateCss}</style>}
       <div style={{ position: 'relative' }}>
-      {bgVideo && <video src={bgVideo} autoPlay muted loop playsInline aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
-      {bgOverlay > 0 && <div style={{ position: 'absolute', inset: 0, background: '#000', opacity: Math.min(100, Math.max(0, bgOverlay)) / 100 }} />}
+      {bgImage && <div aria-hidden="true" style={{ position: 'absolute', inset: 0, backgroundImage: `url("${String(bgImage).replace(/"/g, '%22')}")`, backgroundSize: ['cover', 'contain', 'auto'].includes(bgSize) ? bgSize : 'cover', backgroundRepeat: ['no-repeat', 'repeat', 'repeat-x', 'repeat-y'].includes(bgRepeat) ? bgRepeat : 'no-repeat', backgroundPosition: `${Math.min(100, Math.max(0, Number(bgPositionX) || 0))}% ${Math.min(100, Math.max(0, Number(bgPositionY) || 0))}%`, backgroundAttachment: bgAttachment === 'fixed' ? 'fixed' : 'scroll', opacity: Math.min(100, Math.max(0, Number(bgImageOpacity) || 0)) / 100, filter: Number(bgBlur) > 0 ? `blur(${Math.min(40, Math.max(0, Number(bgBlur)))}px)` : undefined, transform: Number(bgBlur) > 0 ? 'scale(1.05)' : undefined, pointerEvents: 'none' }} />}
+      {bgVideo && <video src={bgVideo} autoPlay muted loop playsInline aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: bgVideoFit === 'contain' ? 'contain' : 'cover', objectPosition: `${Math.min(100, Math.max(0, Number(bgPositionX) || 0))}% ${Math.min(100, Math.max(0, Number(bgPositionY) || 0))}%` }} />}
+      {bgOverlay > 0 && <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: SAFE_COLOR.test(bgOverlayColor) ? bgOverlayColor : '#000000', opacity: Math.min(100, Math.max(0, bgOverlay)) / 100, pointerEvents: 'none' }} />}
       <div style={{ position: 'relative', maxWidth: FREE_MAX_PX, margin: '0 auto', containerType: 'inline-size' }}>
         {(props._responsive?.mobile || props._responsive?.tablet ? ['desktop', 'tablet', 'mobile'] as const : ['desktop'] as const).map((device, _, devices) => {
           const resolved = blockForDevice({ type: 'FreeCanvas', props }, device).props

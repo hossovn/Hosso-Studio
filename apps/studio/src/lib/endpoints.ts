@@ -14,6 +14,7 @@ import { makeShareToken } from './share'
 import { importSitePackage } from './site-import'
 import { buildSitePackage } from './site-package'
 import { allow, clientIp } from './ratelimit'
+import { deliverForm, normalizeFormDelivery } from './form-delivery'
 
 const json = (body: unknown, status = 200) => Response.json(body, { status })
 const str = (v: unknown, max: number) => String(v ?? '').trim().slice(0, max)
@@ -64,13 +65,16 @@ export const formSubmit: Endpoint = {
     }
     if (Object.keys(errors).length) return json({ ok: false, code: 'invalid', errors }, 400)
 
-    await req.payload.create({
+    const submission = await req.payload.create({
       collection: 'form-submissions',
       data: { form: form.id, formTitle: form.title, data, locale },
       overrideAccess: true,
     })
     await notify(req.payload, 'form', both(`Biểu mẫu mới: ${form.title}`, `New form submission: ${form.title}`), [...Object.entries(data).map(([k, v]) => `${k}: ${v}`), '', both('Xem trong Admin → Biểu mẫu → Đã gửi.', 'See Admin → Forms → Submissions.')])
-    return json({ ok: true })
+    await deliverForm(req.payload, form, submission.id, data)
+    let delivery: ReturnType<typeof normalizeFormDelivery> = {}
+    try { delivery = normalizeFormDelivery((form as any).delivery) } catch { /* Legacy invalid settings must not fail a saved submission. */ }
+    return json({ ok: true, ...(delivery.successHref ? { redirect: delivery.successHref } : {}) })
   },
 }
 

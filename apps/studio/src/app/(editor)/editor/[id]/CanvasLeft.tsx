@@ -1,17 +1,22 @@
 'use client'
 import { ICON_CATS, makeElement, type FreeElement, type FreeType, type Pattern } from '@hosso/studio-blocks'
-import { Type, MousePointer2, Square, GalleryHorizontal, Video, Image, PanelsTopLeft, LayoutTemplate, Shapes, ShoppingBag, TextCursorInput, Blocks, Library, Ellipsis, Layers as LayersIcon, Search, Plus, X, ChevronUp, ChevronDown, ChevronRight, Trash2 } from 'lucide-react'
+import { Type, MousePointer2, Square, GalleryHorizontal, Video, Image, PanelsTopLeft, LayoutTemplate, Shapes, ShoppingBag, TextCursorInput, Blocks, Library, Ellipsis, Layers as LayersIcon, Search, Plus, X } from 'lucide-react'
 import { Palette } from 'lucide-react'
 import React, { useState } from 'react'
 import { PageTemplatePicker } from './PageTemplatePicker'
 import { SectionLibrary } from './SectionLibrary'
+import { LayersPanel } from './LayersPanel'
+import { MediaLibraryPanel } from './MediaLibraryPanel'
+import { ReusableLibraryPanel } from './WorkbenchPanels'
+import { FloatingDock } from './FloatingDock'
+import { Clock3, MonitorSmartphone, CheckCheck } from 'lucide-react'
 
 import { ELEMENT_CATALOG, LIBRARY, Preview, Wire, sectionTitle } from './BlockPanels'
-import { PAGE, blockId, elsOf, floatOf, isSection, moveBlock, orderEl, removeBlock, removeEl, type Block, type PageData, type Sel } from './canvas-model'
+import { type Block, type PageData, type Sel } from './canvas-model'
 import { GlobalPanel, type NavCtx } from './SitePanels'
 import { FOOTER_TEMPLATES, HEADER_TEMPLATES, SECTION_TEMPLATES, type SectionTemplate, type SiteCtx } from './SectionTemplates'
 
-export type Tab = 'sections' | 'text' | 'elements' | 'media' | 'store' | 'input' | 'widgets' | 'library' | 'more' | 'layers' | 'global' | 'brand'
+export type Tab = 'sections' | 'text' | 'elements' | 'media' | 'store' | 'input' | 'widgets' | 'library' | 'more' | 'layers' | 'global' | 'brand' | 'history' | 'responsive' | 'publish'
 const SHOP_WIDGETS = ['ShopProductGrid', 'ShopCategories', 'ShopProductDetail', 'WimProductGrid', 'WimProductDetail', 'WimProductSearch', 'WimVehicleSelector', 'CategoryGrid', 'ShopCart', 'ShopCheckout', 'ShopOrderStatus', 'WimCart', 'WimCheckout', 'WimOrderStatus', 'ShippingTrack']
 const INPUT_WIDGETS = ['Form', 'ContactForm', 'SearchBox', 'NavMenu']
 const INPUT_PRESETS = [
@@ -35,10 +40,14 @@ const TABS: { id: Tab; title: string; icon: typeof Type; groups?: string[]; widg
   { id: 'brand', title: 'Thương hiệu', icon: Palette },
   { id: 'more', title: 'Khác', icon: Ellipsis, groups: ['Đếm ngược', 'Số liệu', 'Bảng', 'Bản đồ và nhúng', 'Tab và đường dẫn'] },
   { id: 'layers', title: 'Cấu trúc', icon: LayersIcon },
+  { id: 'responsive', title: 'Thiết bị', icon: MonitorSmartphone },
+  { id: 'history', title: 'Lịch sử', icon: Clock3 },
+  { id: 'publish', title: 'Kiểm tra', icon: CheckCheck },
 ]
 
 const NAMES: Record<string, string> = { countdown: 'Đếm ngược', number: 'Số liệu', table: 'Bảng', map: 'Bản đồ', embed: 'Nhúng', tabs: 'Tab', breadcrumb: 'Breadcrumb', menu: 'Menu', heading: 'Tiêu đề', text: 'Văn bản', button: 'Nút', shape: 'Hình khối', line: 'Đường kẻ', icon: 'Icon', image: 'Ảnh', video: 'Video' }
 export const elLabel = (el: FreeElement) => {
+  if (el.props._name) return String(el.props._name)
   const t = String(el.props.text ?? '').replace(/\s+/g, ' ').trim()
   return ['heading', 'text', 'button'].includes(el.type) && t ? `${NAMES[el.type]}: ${t.slice(0, 26)}` : NAMES[el.type] ?? el.type
 }
@@ -48,6 +57,7 @@ export type LeftOps = {
   addSection: (tpl: { height: number; bg?: string; els: FreeElement[] }) => void
   addWidget: (type: string, props?: Record<string, unknown>) => void
   addPattern: (pattern: Pattern) => void
+  addBlocks: (blocks: Block[]) => void
 }
 
 export function CanvasLeft({
@@ -55,6 +65,7 @@ export function CanvasLeft({
   setTab,
   config,
   data,
+  templateData = data,
   sel,
   setSel,
   commit,
@@ -68,12 +79,18 @@ export function CanvasLeft({
   onClose,
   open,
   brandPanel,
+  historyPanel,
+  responsivePanel,
+  formPanel,
+  floating = false,
+  publishPanel,
 }: {
   nav?: NavCtx
   tab: Tab
   setTab: (t: Tab) => void
   config: any
   data: PageData
+  templateData?: PageData
   sel: Sel
   setSel: (s: Sel) => void
   commit: (d: PageData, key?: string) => void
@@ -86,6 +103,11 @@ export function CanvasLeft({
   onClose: () => void
   open: boolean
   brandPanel?: React.ReactNode
+  historyPanel?: React.ReactNode
+  responsivePanel?: React.ReactNode
+  formPanel?: React.ReactNode
+  floating?: boolean
+  publishPanel?: React.ReactNode
 }) {
   const [q, setQ] = useState('')
   const [group, setGroup] = useState('')
@@ -109,15 +131,17 @@ export function CanvasLeft({
   if (tab === 'sections') {
     const source: SectionTemplate[] = areaKind ? (areaKind === 'header' ? HEADER_TEMPLATES : FOOTER_TEMPLATES).map((t) => ({ ...t, build: () => t.build(siteCtx) })) : SECTION_TEMPLATES
     body = <>{search}<SectionLibrary templates={source} query={m} areaKind={areaKind} onInsert={ops.addSection} /></>
+  } else if (tab === 'media') {
+    body = <MediaLibraryPanel onInsert={ops.addEls} />
+  } else if (tab === 'input') {
+    body = <>{formPanel}<h3 className="cv-catalog-heading">Mẫu nhanh</h3><div className="cv-input-presets">{INPUT_PRESETS.filter((preset) => preset.type in config.components).map((preset) => <button type="button" key={preset.id} onClick={() => ops.addWidget(preset.type, preset.props)}>{preset.label}<Plus size={14} /></button>)}</div></>
   } else if (cur.groups || cur.widgets) {
     const availableGroups = LIBRARY.filter((g) => (cur.groups ?? []).includes(g.title))
     const groups = availableGroups.filter((g) => !group || g.title === group)
       .map((g) => ({ ...g, items: g.items.filter((it) => `${g.title} ${it.label}`.toLowerCase().includes(m)) }))
       .filter((g) => g.items.length)
-    const presets = tab === 'input'
-      ? INPUT_PRESETS.filter((it) => it.type in config.components && `${it.label} ${it.type}`.toLowerCase().includes(m))
-      : []
-    const widgetList = tab === 'input' ? [] : (cur.widgets ?? []).filter((t) => t in config.components && `${t} ${labelOf(t)}`.toLowerCase().includes(m))
+    const presets: typeof INPUT_PRESETS[number][] = []
+    const widgetList = (cur.widgets ?? []).filter((t) => t in config.components && `${t} ${labelOf(t)}`.toLowerCase().includes(m))
     body = (
       <>
         {search}
@@ -189,13 +213,19 @@ export function CanvasLeft({
       </>
     )
   } else if (tab === 'library') {
-    body = areaKind ? <p className="cv-panel-note">Mở một trang để thêm mẫu trang hoàn chỉnh. Dùng mục Phần để chọn mẫu đầu trang hoặc chân trang.</p> : <>{search}<p className="cv-panel-note">Chọn một mẫu để xem trước. Các phần được thêm vào trang hiện tại; bạn có thể hoàn tác.</p><PageTemplatePicker query={m} onInsert={ops.addPattern} /></>
+    body = <><ReusableLibraryPanel data={templateData} sel={sel} nav={nav} onInsert={ops.addBlocks} onLink={(slug) => ops.addWidget('Reusable', { slug })} />{areaKind ? <p className="cv-panel-note">Mở một trang để thêm mẫu trang hoàn chỉnh. Dùng mục Phần để chọn mẫu đầu trang hoặc chân trang.</p> : <details className="cv-built-in-templates"><summary>Mẫu trang có sẵn</summary>{search}<PageTemplatePicker query={m} onInsert={ops.addPattern} /></details>}</>
   } else if (tab === 'brand') {
     body = brandPanel
   } else if (tab === 'global') {
     body = !nav ? null : <GlobalPanel ctx={nav} data={data} addReusable={(slug) => ops.addWidget('Reusable', { slug })} />
   } else if (tab === 'layers') {
-    body = <Layers data={data} sel={sel} setSel={setSel} commit={commit} labelOf={labelOf} />
+    body = <LayersPanel data={data} sel={sel} setSel={setSel} commit={commit} labelOf={labelOf} elLabel={elLabel} />
+  } else if (tab === 'history') {
+    body = historyPanel
+  } else if (tab === 'responsive') {
+    body = responsivePanel
+  } else if (tab === 'publish') {
+    body = publishPanel
   }
 
   return (
@@ -204,7 +234,7 @@ export function CanvasLeft({
       onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } }}
       style={{ display: 'flex', flex: '0 0 auto' }}
     >
-      <nav className="cv-rail" aria-label="Công cụ">
+      <FloatingDock enabled={floating} title="Kéo bộ công cụ"><nav className="cv-rail" aria-label="Công cụ">
         {TABS.map((t) => {
           const on = open && t.id === tab
           return (
@@ -225,7 +255,7 @@ export function CanvasLeft({
             </button>
           )
         })}
-      </nav>
+      </nav></FloatingDock>
       {open && <div className="cv-panel" data-module={tab}>
         <div className="cv-panel-heading">
           <span className="cv-panel-title"><span className="cv-module-icon"><CurrentIcon size={18} /></span>{cur.title}</span>
@@ -248,83 +278,6 @@ export function CanvasLeft({
         {body}
         </div>
       </div>}
-    </div>
-  )
-}
-
-// ---------- Cây cấu trúc: Trang → Phần → Component ----------
-const rowBtn: React.CSSProperties = { border: 0, background: 'transparent', cursor: 'pointer', padding: '2px 5px', borderRadius: 6, font: 'inherit', fontSize: 12, color: '#6b7280' }
-
-const LAYER_ICONS: Record<string, typeof Type> = { section: LayoutTemplate, heading: Type, text: Type, button: MousePointer2, image: Image, video: Video, shape: Square, container: Square }
-const LayerIcon = ({ type }: { type: string }) => {
-  const Icon = LAYER_ICONS[type] ?? Blocks
-  return <Icon size={15} aria-hidden="true" style={{ flex: '0 0 auto', color: '#626b76' }} />
-}
-
-function Layers({ data, sel, setSel, commit, labelOf }: { data: PageData; sel: Sel; setSel: (s: Sel) => void; commit: (d: PageData, key?: string) => void; labelOf: (type: string) => string }) {
-  const [q, setQ] = useState('')
-  const [shut, setShut] = useState<Record<string, boolean>>({})
-  const blocks = data.content ?? []
-  const floating = floatOf(data)
-  const m = q.trim().toLowerCase()
-  if (!blocks.length && !floating.length) return <p style={{ opacity: 0.6, fontSize: 13 }}>Trang chưa có phần nào.</p>
-  // Tên dễ đọc: phần trống lấy theo chữ của tiêu đề/văn bản đầu tiên, khối khác lấy theo tên khối.
-  const nameOf = (b: Block, i: number) => {
-    if (!isSection(b)) return labelOf(b.type)
-    const t = elsOf(b).find((e) => ['heading', 'text', 'button'].includes(e.type) && String(e.props.text ?? '').trim())
-    return t ? `Phần ${i + 1}: ${String(t.props.text).replace(/\s+/g, ' ').trim().slice(0, 22)}` : `Phần ${i + 1}`
-  }
-  const elRows = (bid: string, els: FreeElement[]) =>
-    [...els].reverse().filter((el) => !m || elLabel(el).toLowerCase().includes(m)).map((el) => {
-      const eon = sel.el === el.id
-      return (
-        <div key={el.id} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 6px', borderRadius: 6, background: eon ? 'color-mix(in srgb, var(--hosso-brand, #15803d) 10%, #fff)' : 'transparent', fontSize: 13 }}>
-          <LayerIcon type={el.type} />
-          <button type="button" onClick={() => setSel({ block: bid, el: el.id })} style={{ ...rowBtn, flex: 1, minWidth: 0, textAlign: 'left', color: eon ? 'var(--hosso-brand, #15803d)' : '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {elLabel(el)}
-          </button>
-          <button type="button" title="Lên một lớp" aria-label="Lên một lớp" style={rowBtn} onClick={() => commit(orderEl(data, el.id, 1))}><ChevronUp size={14} /></button>
-          <button type="button" title="Xuống một lớp" aria-label="Xuống một lớp" style={rowBtn} onClick={() => commit(orderEl(data, el.id, -1))}><ChevronDown size={14} /></button>
-          <button type="button" title="Xóa" aria-label="Xóa lớp" style={rowBtn} onClick={() => { commit(removeEl(data, el.id)); setSel({ block: bid, el: '' }) }}><Trash2 size={14} /></button>
-        </div>
-      )
-    })
-  return (
-    <div style={{ display: 'grid', gap: 4 }}>
-      <input className="he-search" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tìm lớp…" aria-label="Tìm lớp" />
-      {floating.length > 0 && elRows(PAGE, floating).length > 0 && (
-        <div>
-          <div style={{ padding: '6px 8px', borderRadius: 8, background: '#f3f4f6', fontWeight: 700, fontSize: 13 }}>Lớp nổi (toàn trang)</div>
-          <div style={{ display: 'grid', gap: 2, padding: '2px 0 4px 14px' }}>{elRows(PAGE, floating)}</div>
-        </div>
-      )}
-      {blocks.map((b: Block, i) => {
-        const id = blockId(b)
-        const on = sel.block === id && !sel.el
-        const rows = elRows(id, elsOf(b))
-        const name = nameOf(b, i)
-        if (m && !rows.length && !name.toLowerCase().includes(m)) return null
-        const closed = !m && shut[id]
-        return (
-          <div key={id}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '6px 8px', borderRadius: 8, background: on ? 'color-mix(in srgb, var(--hosso-brand, #15803d) 10%, #fff)' : '#f3f4f6', fontWeight: 700, fontSize: 13 }}>
-              {rows.length > 0 ? (
-                <button type="button" aria-expanded={!closed} aria-label={closed ? 'Mở' : 'Thu gọn'} style={rowBtn} onClick={() => setShut((s) => ({ ...s, [id]: !s[id] }))}>{closed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}</button>
-              ) : (
-                <span style={{ width: 22 }} />
-              )}
-              <LayerIcon type={isSection(b) ? 'section' : b.type} />
-              <button type="button" onClick={() => setSel({ block: id, el: '' })} style={{ ...rowBtn, flex: 1, minWidth: 0, textAlign: 'left', color: '#111827', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {name}
-              </button>
-              <button type="button" title="Lên" aria-label="Di chuyển phần lên" style={rowBtn} disabled={i === 0} onClick={() => commit(moveBlock(data, id, -1))}><ChevronUp size={14} /></button>
-              <button type="button" title="Xuống" aria-label="Di chuyển phần xuống" style={rowBtn} disabled={i === blocks.length - 1} onClick={() => commit(moveBlock(data, id, 1))}><ChevronDown size={14} /></button>
-              <button type="button" title="Xóa" aria-label="Xóa phần" style={rowBtn} onClick={() => { commit(removeBlock(data, id)); setSel({ block: '', el: '' }) }}><Trash2 size={14} /></button>
-            </div>
-            {!closed && <div style={{ display: 'grid', gap: 2, padding: '2px 0 4px 14px' }}>{rows}</div>}
-          </div>
-        )
-      })}
     </div>
   )
 }

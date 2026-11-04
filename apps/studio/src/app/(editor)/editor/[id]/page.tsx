@@ -80,6 +80,7 @@ export default async function EditorPage({ params, searchParams }: { params: Pro
       slug={doc.slug}
       status={doc._status ?? 'draft'}
       data={(doc.content as any) ?? { content: [], root: { props: {} } }}
+      metadata={{ title: doc.title, slug: doc.slug, description: (doc as any).description, excerpt: (doc as any).excerpt, seo: (doc as any).seo }}
       publicHref={publicHref}
       chromeAreas={chromeAreas}
     />

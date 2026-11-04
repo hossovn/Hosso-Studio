@@ -1,14 +1,20 @@
 import assert from 'node:assert/strict'
-import { elementFamily, transformFamily, cloneElements, convertSectionBox } from '../packages/blocks/src/free-geometry.ts'
+import { elementFamily, inheritedElementFlag, inheritedHideClasses, orderElementFamily, transformFamily, cloneElements, convertSectionBox } from '../packages/blocks/src/free-geometry.ts'
+import { arrangeElements, groupElements, ungroupElement, reorderLayer, jumpHistory } from '../apps/studio/src/app/(editor)/editor/[id]/editor-tools.ts'
 import { guardCanvasEvent } from '../apps/studio/src/app/(editor)/editor/[id]/canvas-events.ts'
 import { visibleCanvasRange, visibleCanvasBlock } from '../apps/studio/src/app/(editor)/editor/[id]/canvas-viewport.ts'
 import { patchWidgetPart, validPartPath, widgetPartCss, widgetPartPath, widgetPartSelector, widgetPartKey, widgetPartsForDevice, widgetPartResponsiveCss } from '../packages/blocks/src/widget-parts.ts'
 import { copyPageMeta } from '../apps/studio/src/app/(editor)/editor/[id]/page-copy.ts'
 import { elementStateCss, elementStatesCss, elementStateScope, readElementState, writeElementState } from '../packages/blocks/src/element-states.ts'
 import { entranceKeyframes, normalizeScrollEffect, scrollEffectFrame } from '../packages/blocks/src/scroll-effects.ts'
+import { sanitizeRichText } from '../packages/blocks/src/rich-text.ts'
 import { placeElement, placementOwner, snapPosition, coalesceHistoryKey, initHist, commitHist, undoHist, redoHist, updateEl, runSelectionAction, elsOf, PAGE } from '../apps/studio/src/app/(editor)/editor/[id]/canvas-model.ts'
 
 const placedEl = { id: 'new', type: 'button', x: 0, y: 0, w: 120, h: 40, props: { text: 'New' } }
+assert.equal(sanitizeRichText('<strong>Đậm</strong><script>alert(1)</script><img src=x onerror=alert(1)>'), '<strong>Đậm</strong>')
+assert.equal(sanitizeRichText('<font color="#15803d" face="Roboto">Chữ</font>'), '<span style="color:#15803d;font-family:Roboto">Chữ</span>')
+assert.equal(sanitizeRichText('<span style="font-size:24px;background-color:#fff59d;position:fixed;background:url(evil)">An toàn</span>'), '<span style="font-size:24px;background-color:#fff59d">An toàn</span>')
+assert.equal(sanitizeRichText('<a href="javascript:alert(1)">không link</a><br>xuống dòng'), 'không link<br>xuống dòng')
 for (const value of [undefined, null, [], 'pin', {}, { mode: 'fixed' }, { mode: '</style>' }]) assert.equal(normalizeScrollEffect(value), null)
 const parallax = normalizeScrollEffect({ mode: 'parallax', distance: 200 })
 const scrollBox = { top: 800, height: 200, boundaryBottom: 2000, viewportTop: 0, viewportHeight: 800 }
@@ -214,6 +220,29 @@ const child = { id: 'c', parentId: 'g', type: 'text', x: 60, y: 50, w: 100, h: 4
 const nested = { ...child, id: 'n', parentId: 'c' }
 const other = { ...child, id: 'other', parentId: undefined }
 const els = [group, child, nested, other]
+const workbenchData = { content: [{ type: 'FreeCanvas', props: { id: 'workbench', _els: els } }] }
+const aligned = arrangeElements(workbenchData, 'workbench', ['g', 'c', 'other'], 'right')
+assert.equal(elsOf(aligned.content[0])[3].x + other.w, group.x + group.w)
+assert.equal(elsOf(aligned.content[0])[1].x, child.x, 'A selected descendant is not transformed twice')
+const grouped = groupElements(workbenchData, 'workbench', ['g', 'other'])
+assert.ok(grouped.id)
+assert.equal(elsOf(grouped.data.content[0]).find((el) => el.id === 'g').parentId, grouped.id)
+assert.deepEqual(JSON.parse(JSON.stringify(elsOf(ungroupElement(grouped.data, 'workbench', grouped.id).content[0]))), JSON.parse(JSON.stringify(els)))
+const layerData = { content: [{ type: 'FreeCanvas', props: { id: 'workbench', _els: [group, child, nested, other, { ...other, id: 'last' }] } }] }
+assert.deepEqual(elsOf(reorderLayer(layerData, 'workbench', 'g', 'other').content[0]).map((el) => el.id), ['other', 'g', 'c', 'n', 'last'])
+assert.deepEqual(elsOf(reorderLayer(layerData, 'workbench', 'last', 'g').content[0]).map((el) => el.id), ['last', 'g', 'c', 'n', 'other'])
+const lockedGroup = [{ ...group, props: { _locked: true, _hidden: true } }, child, nested]
+assert.equal(inheritedElementFlag(lockedGroup, 'n', '_locked'), true)
+assert.equal(inheritedElementFlag(lockedGroup, 'n', '_hidden'), true)
+assert.equal(inheritedHideClasses([{ ...group, props: { _hide: 'm' } }, child, nested], 'n'), 'hs-hide-m')
+assert.equal(inheritedElementFlag([{ ...group, props: { _hide: 'd' } }, child], 'c', '_hidden', 'desktop'), false, 'Viewport visibility uses media classes, not permanent display:none')
+assert.deepEqual(orderElementFamily([group, child, nested, other], 'g', 'front').map((el) => el.id), ['other', 'g', 'c', 'n'])
+assert.equal(orderElementFamily(lockedGroup, 'c', 'front'), lockedGroup)
+assert.equal(inheritedElementFlag([{ ...group, parentId: 'c' }, child], 'c', '_hidden'), false)
+const timeline = commitHist(commitHist(initHist(workbenchData), aligned), grouped.data)
+const atStart = jumpHistory(timeline, 0)
+assert.deepEqual(atStart.present, workbenchData)
+assert.deepEqual(redoHist(redoHist(atStart)).present, grouped.data)
 assert.deepEqual(elementFamily(els, 'g').map((el) => el.id), ['g', 'c', 'n'])
 const moved = transformFamily(els, 'g', { x: 100, y: 80, w: 800, h: 100 })
 assert.deepEqual([moved[1].x, moved[1].y, moved[1].w, moved[1].h], [180, 90, 200, 20])

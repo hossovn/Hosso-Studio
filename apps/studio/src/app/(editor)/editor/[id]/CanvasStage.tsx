@@ -8,6 +8,8 @@ import { PAGE, addEls, placeElement, snapPosition, blockId, elsOf, floatOf, inse
 import { BRAND, CURSOR, HANDLES, HF_CSS, InlineText, MIN, TEXTY, Toolbar, type Drag, type Handle } from './FreeCanvasEditor'
 import { reparentElements } from './canvas-model'
 import { guardCanvasEvent } from './canvas-events'
+import { SectionToolbar } from './FloatingDock'
+import { inheritedElementFlag, inheritedHideClasses, orderElementFamily } from '../../../../../../../packages/blocks/src/free-geometry'
 import { LIBRARY } from './BlockPanels'
 import { SECTION_TEMPLATES, HEADER_TEMPLATES, FOOTER_TEMPLATES, type SiteCtx } from './SectionTemplates'
 import { patchWidgetPart, widgetPartKey, widgetPartsForDevice, widgetPartPath, widgetPartSelector, type WidgetPartDevice, type WidgetParts } from '@hosso/studio-blocks'
@@ -30,6 +32,7 @@ function droppedSection(payload: string, siteCtx: SiteCtx): Block | undefined {
 // ---------- Khung xem trước cách ly CSS ----------
 /** Khung iframe cho trang: sao chép style của trình soạn vào iframe (như Puck) để CSS của site không ảnh hưởng giao diện admin và ngược lại. */
 export function StageFrame({
+  expanded = false,
   width,
   zoom = 'fit',
   css,
@@ -37,6 +40,7 @@ export function StageFrame({
   children,
   onDoc,
 }: {
+  expanded?: boolean
   width: number | string
   zoom?: 'fit' | number
   css: string
@@ -97,10 +101,11 @@ export function StageFrame({
     if (style) style.textContent = `${css}\nhtml,body{margin:0}\nhtml,*{scrollbar-width:none}::-webkit-scrollbar{display:none}\n${HF_CSS}`
   }, [doc, css])
 
-  const targetW = typeof width === 'number' ? width : 1200
-  const fitScale = Math.min(1, Math.max(0.1, (containerW - 32) / targetW))
+  const gutter = expanded ? 0 : 32
+  const targetW = typeof width === 'number' ? width : expanded ? containerW : 1200
+  const fitScale = Math.min(1, Math.max(0.1, (containerW - gutter) / targetW))
   const scale = zoom === 'fit' ? fitScale : Number(zoom) || 1
-  const frameHeight = Math.max(720, (containerH - 40) / scale)
+  const frameHeight = Math.max(240, (containerH - (expanded ? 0 : 40)) / scale)
 
   return (
     <div
@@ -115,7 +120,7 @@ export function StageFrame({
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'stretch',
-        padding: '20px 16px',
+        padding: expanded ? 0 : '20px 16px',
         boxSizing: 'border-box',
         background: 'var(--cv-workspace, #f1f3f6)',
       }}
@@ -137,7 +142,7 @@ export function StageFrame({
           ref={ref}
           title="Trang"
           srcDoc="<!doctype html><html><head></head><body></body></html>"
-          style={{ width: '100%', height: '100%', minHeight: 720, border: 0, display: 'block', margin: 0, background: '#fff' }}
+          style={{ width: '100%', height: '100%', border: 0, display: 'block', margin: 0, background: '#fff' }}
         />
         {doc ? createPortal(children, doc.body) : null}
       </div>
@@ -197,9 +202,9 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
   }
   const mapOne = (id: string, f: (e: FreeElement) => FreeElement) => list.map((e) => (e.id === id ? f(e) : e))
   const patch = (p: Record<string, any>) => cur && commit(mapOne(cur.id, (e) => ({ ...e, props: { ...e.props, ...p } })), `p:${cur.id}`)
-  const set = (f: (e: FreeElement) => FreeElement) => { if (!cur) return; const next = f(cur); if (cur.props._locked && (['x', 'y', 'w', 'h'] as const).some((key) => next[key] !== cur[key])) return; commit(transformFamily(list, cur.id, next).map((el) => el.id === cur.id ? next : el)) }
+  const set = (f: (e: FreeElement) => FreeElement) => { if (!cur) return; const next = f(cur); if (inheritedElementFlag(list, cur.id, '_locked') && (['x', 'y', 'w', 'h'] as const).some((key) => next[key] !== cur[key])) return; commit(transformFamily(list, cur.id, next).map((el) => el.id === cur.id ? next : el)) }
   const del = () => {
-    if (!cur) return
+    if (!cur || inheritedElementFlag(list, cur.id, '_locked')) return
     const ids = new Set(elementFamily(list, cur.id).map((el) => el.id))
     commit(list.filter((e) => !ids.has(e.id)))
     setSel({ block: bid, el: '' })
@@ -213,12 +218,7 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
   }
   const order = (d: 1 | -1 | 'front' | 'back') => {
     if (!cur) return
-    const i = list.findIndex((e) => e.id === cur.id)
-    const j = d === 'front' ? list.length - 1 : d === 'back' ? 0 : Math.min(list.length - 1, Math.max(0, i + d))
-    const next = [...list]
-    next.splice(i, 1)
-    next.splice(j, 0, cur)
-    commit(next)
+    commit(orderElementFamily(list, cur.id, d))
   }
 
   const start = (e: React.PointerEvent, el: FreeElement, mode: Drag['mode'], handle?: Handle) => {
@@ -228,7 +228,7 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
     if (editing) return
     if (mode === 'resize') setInteracting('')
     setSel({ block: bid, el: el.id })
-    if (el.props._locked) return
+    if (inheritedElementFlag(list, el.id, '_locked')) return
     e.currentTarget.setPointerCapture(e.pointerId)
     scrollStart.current = host.current?.ownerDocument.defaultView?.scrollY ?? 0
     drag.current = { mode, handle, sx: e.clientX, sy: e.clientY, orig: el, list, moved: false }
@@ -332,14 +332,16 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
 
   const px = (n: number) => n * scale
   const rect = host.current?.getBoundingClientRect()
-  const measure: React.CSSProperties = { position: 'absolute', color: '#10b981', font: '11px/1.5 monospace', fontWeight: 700, whiteSpace: 'nowrap', background: '#fff', padding: '1px 5px', borderRadius: 3, boxShadow: '0 1px 4px rgba(0,0,0,.15)' }
+  const measure: React.CSSProperties = { position: 'absolute', color: BRAND, font: '11px/1.5 monospace', fontWeight: 700, whiteSpace: 'nowrap', background: '#fff', padding: '1px 5px', borderRadius: 3, boxShadow: '0 1px 4px rgba(0,0,0,.15)' }
   return <div ref={host} data-canvas-layer={bid} data-scroll-boundary onPointerMove={preview ? undefined : onMove} onPointerUp={onUp} onPointerCancel={cancel} onLostPointerCapture={() => { if (drag.current) cancel() }} style={{ position: 'absolute', inset: 0, width: 'min(100%, ' + FREE_MAX_PX + 'px)', margin: '0 auto', pointerEvents: 'none', zIndex: cur ? 35 : 1 }}>
     <style>{HF_CSS}</style>
     {!preview && labelHint && !list.length && <div style={{ position: 'absolute', inset: 0, border: '1px dashed #cbd5e1' }} />}
     <MotionScope enabled={Boolean(preview && list.some((el) => !el.props._hidden && resolveMotionConfig(el.props)?.loop?.preset && resolveMotionConfig(el.props)?.loop?.preset !== 'none'))}>
     {list.map((el) => {
+      const hidden = inheritedElementFlag(list, el.id, '_hidden')
+      const locked = inheritedElementFlag(list, el.id, '_locked')
       const active = !preview && interacting === el.id && sel.el === el.id
-      return <div key={el.id} className={'hf-el' + (preview && ['m', 't', 'd'].includes(el.props._hide) ? ' hs-hide-' + el.props._hide : '')} draggable={false} onDragStart={(e) => { if (!preview) e.preventDefault() }} data-free-ui="1" data-editor-interactive={active ? "true" : undefined} data-element={el.id}
+      return <div key={el.id} className={'hf-el ' + (preview ? inheritedHideClasses(list, el.id) : '')} draggable={false} onDragStart={(e) => { if (!preview) e.preventDefault() }} data-free-ui="1" data-editor-interactive={active ? "true" : undefined} data-element={el.id}
         onPointerDown={(e) => start(e, el, 'move')}
         onContextMenu={(e) => {
           if (preview) return
@@ -349,9 +351,9 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
           setCtxMenu({ x: e.clientX, y: e.clientY, el })
         }}
         onPointerEnter={() => !preview && setHover(el.id)} onPointerLeave={() => setHover('')}
-        onDoubleClick={() => { if (preview || el.props._locked) return; if (TEXTY.has(el.type)) setEditing(el.id); else if (el.type === 'video' || el.type === 'swiper') setInteracting(el.id) }}
-        style={{ display: preview && el.props._hidden ? 'none' : undefined, position: 'absolute', left: px(el.x), top: px(el.y), width: px(el.w), height: px(el.h), opacity: movingIds.has(el.id) ? 0 : el.props._hidden ? 0.3 : 1, zIndex: el.type === 'container' ? 0 : 1, cursor: preview || active || el.props._locked ? 'auto' : editing === el.id ? 'text' : 'move', touchAction: preview || active ? 'auto' : 'none', userSelect: preview ? 'auto' : 'none', pointerEvents: preview && el.type === 'container' ? 'none' : 'auto' }}>
-        {editing === el.id && !preview ? <InlineText el={el} scale={scale} onDone={(text) => { setEditing(''); if (text !== null) commit(mapOne(el.id, (it) => ({ ...it, props: { ...it.props, text } }))) }} /> :
+        onDoubleClick={() => { if (preview || locked) return; if (TEXTY.has(el.type)) setEditing(el.id); else if (el.type === 'video' || el.type === 'swiper') setInteracting(el.id) }}
+        style={{ display: preview && hidden ? 'none' : undefined, position: 'absolute', left: px(el.x), top: px(el.y), width: px(el.w), height: px(el.h), opacity: movingIds.has(el.id) ? 0 : hidden ? 0.3 : 1, zIndex: el.type === 'container' ? 0 : 1, cursor: preview || active || locked ? 'auto' : editing === el.id ? 'text' : 'move', touchAction: preview || active ? 'auto' : 'none', userSelect: preview ? 'auto' : 'none', pointerEvents: preview && el.type === 'container' ? 'none' : 'auto' }}>
+        {editing === el.id && !preview ? <InlineText el={el} scale={scale} onDone={(value) => { setEditing(''); if (value) commit(mapOne(el.id, (it) => ({ ...it, props: { ...it.props, text: value.text, richText: value.richText } }))) }} /> :
           <div onPointerDown={active ? (e) => e.stopPropagation() : undefined} style={{ width: '100%', height: '100%', pointerEvents: preview || active ? 'auto' : 'none' }}><FreeElementView el={el} scale={scale} editing={!preview && !active} scrollEffects={preview} state={!preview && cur?.id === el.id ? selectedState : undefined} /></div>}
       </div>
     })}
@@ -361,27 +363,27 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
     </div>, host.current!.ownerDocument.body)}
     {!preview && <div data-hud="1" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 5 }}>
       {hoverEl && hoverEl.id !== cur?.id && (
-        <div style={{ position: 'absolute', left: px(hoverEl.x), top: px(hoverEl.y), width: px(hoverEl.w), height: px(hoverEl.h), outline: '1.5px solid #10b981', pointerEvents: 'none', zIndex: 10 }}>
-          <span style={{ position: 'absolute', left: 0, top: -20, background: '#10b981', color: '#fff', padding: '1px 6px', borderRadius: '4px 4px 0 0', fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap' }}>
+        <div style={{ position: 'absolute', left: px(hoverEl.x), top: px(hoverEl.y), width: px(hoverEl.w), height: px(hoverEl.h), outline: '1.5px solid var(--cv-accent,#2d7b57)', pointerEvents: 'none', zIndex: 10 }}>
+          <span style={{ position: 'absolute', left: 0, top: -20, background: BRAND, color: '#fff', padding: '1px 6px', borderRadius: '4px 4px 0 0', fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap' }}>
             {hoverEl.props?.text ? String(hoverEl.props.text).slice(0, 18) : hoverEl.type}
           </span>
         </div>
       )}
       {group && <>
-        <div style={{ position: 'absolute', left: px(group.x), top: px(group.y), width: px(group.w), height: px(group.h), outline: '1.5px solid #10b981' }} />
-        {list.filter((el) => el.parentId === group.id).flatMap((el) => [el.y, el.y + el.h].map((y, i) => <div key={el.id + i} style={{ position: 'absolute', left: px(group.x), width: px(group.w), top: px(y), borderTop: '1px dashed #34d39980' }} />))}
+        <div style={{ position: 'absolute', left: px(group.x), top: px(group.y), width: px(group.w), height: px(group.h), outline: '1.5px solid var(--cv-accent,#2d7b57)' }} />
+        {list.filter((el) => el.parentId === group.id).flatMap((el) => [el.y, el.y + el.h].map((y, i) => <div key={el.id + i} style={{ position: 'absolute', left: px(group.x), width: px(group.w), top: px(y), borderTop: '1px dashed color-mix(in srgb,var(--cv-accent,#2d7b57) 50%,transparent)' }} />))}
       </>}
       {guides.v != null && <div style={{ position: 'absolute', left: px(guides.v), top: 0, bottom: 0, borderLeft: '1px solid #d946ef' }} />}
       {cur && editing !== cur.id && <>
         <div data-docking-line="1" style={{ position: 'absolute', top: px(cur.y + cur.h / 2), left: 0, right: 0, borderTop: '1px solid #d946ef' }} />
         {guides.h != null && <div style={{ position: 'absolute', top: px(guides.h), left: 0, right: 0, borderTop: '1px solid #d946ef' }} />}
         <span data-measure="offset" style={{ ...measure, left: Math.min(size.w - 42, px(cur.x + cur.w) + 8), top: px(cur.y + cur.h / 2) - 20 }}>{(Math.max(0, FREE_W - cur.x - cur.w) / FREE_W * 100).toFixed(1)}%</span>
-        <div style={{ position: 'absolute', left: px(cur.x), top: px(cur.y), width: px(cur.w), height: px(cur.h), outline: '1.5px solid #10b981', outlineOffset: 0 }}>
+        <div style={{ position: 'absolute', left: px(cur.x), top: px(cur.y), width: px(cur.w), height: px(cur.h), outline: '1.5px solid var(--cv-accent,#2d7b57)', outlineOffset: 0 }}>
           <span data-measure="top" style={{ ...measure, left: '50%', top: -20, transform: 'translateX(-50%)' }}>{Math.round(cur.y - (group && group.id !== cur.id ? Math.max(group.y, ...list.filter((el) => el.parentId === group.id && el.id !== cur.id && el.y + el.h <= cur.y).map((el) => el.y + el.h)) : 0))}px</span>
           {HANDLES.map((hd) => {
             const hx = hd.includes('w') ? 0 : hd.includes('e') ? 100 : 50
             const hy = hd.includes('n') ? 0 : hd.includes('s') ? 100 : 50
-            return <span key={hd} data-free-ui="1" data-handle={hd} data-editor-control="true" role="button" tabIndex={0} aria-label={'Resize ' + hd} onKeyDown={(e) => { if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return; e.preventDefault(); e.stopPropagation(); const step = e.shiftKey ? 10 : 1; const dx = e.key === 'ArrowRight' ? step : e.key === 'ArrowLeft' ? -step : 0; const dy = e.key === 'ArrowDown' ? step : e.key === 'ArrowUp' ? -step : 0; set((el) => { const w = Math.max(MIN, el.w + (hd.includes('w') ? -dx : hd.includes('e') ? dx : 0)); const h = Math.max(MIN, el.h + (hd.includes('n') ? -dy : hd.includes('s') ? dy : 0)); return { ...el, x: hd.includes('w') ? el.x + el.w - w : el.x, y: hd.includes('n') ? el.y + el.h - h : el.y, w, h } }) }} onPointerDown={(e) => start(e, cur, 'resize', hd)} style={{ position: 'absolute', left: hx + '%', top: hy + '%', width: 8, height: 8, boxSizing: 'border-box', marginLeft: -4, marginTop: -4, background: '#fff', border: '1px solid #10b981', borderRadius: hd === 'w' || hd === 'e' ? '50%' : 1, boxShadow: '0 1px 3px rgba(0,0,0,.25)', pointerEvents: 'auto', cursor: CURSOR[hd], touchAction: 'none' }} />
+            return <span key={hd} data-free-ui="1" data-handle={hd} data-editor-control="true" role="button" tabIndex={0} aria-label={'Resize ' + hd} onKeyDown={(e) => { if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return; e.preventDefault(); e.stopPropagation(); const step = e.shiftKey ? 10 : 1; const dx = e.key === 'ArrowRight' ? step : e.key === 'ArrowLeft' ? -step : 0; const dy = e.key === 'ArrowDown' ? step : e.key === 'ArrowUp' ? -step : 0; set((el) => { const w = Math.max(MIN, el.w + (hd.includes('w') ? -dx : hd.includes('e') ? dx : 0)); const h = Math.max(MIN, el.h + (hd.includes('n') ? -dy : hd.includes('s') ? dy : 0)); return { ...el, x: hd.includes('w') ? el.x + el.w - w : el.x, y: hd.includes('n') ? el.y + el.h - h : el.y, w, h } }) }} onPointerDown={(e) => start(e, cur, 'resize', hd)} style={{ position: 'absolute', left: hx + '%', top: hy + '%', width: 8, height: 8, boxSizing: 'border-box', marginLeft: -4, marginTop: -4, background: '#fff', border: '1px solid var(--cv-accent,#2d7b57)', borderRadius: hd === 'w' || hd === 'e' ? '50%' : 1, boxShadow: '0 1px 3px rgba(0,0,0,.25)', pointerEvents: 'auto', cursor: CURSOR[hd], touchAction: 'none' }} />
           })}
         </div>
         {!interacting && !drag.current?.moved && <div data-free-ui="1" style={{ display: 'contents' }}><Toolbar el={cur} scale={scale} hostW={size.w} patch={patch} set={set} dup={dup} del={del} order={order} onEdit={() => setEditing(cur.id)} /></div>}
@@ -443,7 +445,7 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
 }
 
 // ---------- Một section / widget trên canvas ----------
-const chipBtn: React.CSSProperties = { minWidth: 26, height: 26, border: 0, borderRadius: 6, background: 'transparent', color: '#fff', cursor: 'pointer', font: 'inherit', fontSize: 13, fontWeight: 700 }
+const chipBtn: React.CSSProperties = { minWidth: 26, height: 26, border: 0, borderRadius: 6, background: 'transparent', color: 'inherit', cursor: 'pointer', font: 'inherit', fontSize: 13, fontWeight: 700 }
 
 function SectionBox({ block, config, sel, setSel, data, commit, label, first, last, preview, partDevice, selectedState, siteCtx }: { block: Block; config: any; sel: Sel; setSel: (s: Sel) => void; data: PageData; commit: (d: PageData, key?: string) => void; label: string; first: boolean; last: boolean; preview?: boolean; partDevice: WidgetPartDevice; selectedState: ElementState; siteCtx: SiteCtx }) {
   const id = blockId(block)
@@ -533,18 +535,19 @@ function SectionBox({ block, config, sel, setSel, data, commit, label, first, la
     >
       {Render ? React.createElement(Render, { ...block.props, ...(partDraft ? { [partKey]: partDraft } : {}), _hide: undefined, _states: section ? undefined : block.props._states, _editorState: undefined, _noFree: true, _motionEditing: !preview, _editParts: !section }) : <div style={{ padding: 24, background: '#fef3c7', font: '14px sans-serif' }}>Block “{block.type}” không còn trong site (plugin đã gỡ).</div>}
       {section && <style>{elementStatesCss(id, block.props)}</style>}
-      {activePart && <style>{activePart + '{outline:2px solid #10b981!important;outline-offset:3px;cursor:move;touch-action:none}'}</style>}
+      {activePart && <style>{activePart + '{outline:2px solid var(--cv-accent,#2d7b57)!important;outline-offset:3px;cursor:move;touch-action:none}'}</style>}
       <Layer selectedState={selectedState} blockId={id} els={elsOf(block)} sel={sel} setSel={setSel} preview={preview} onTransfer={(target, next, rootId) => { commit(reparentElements(data, id, target, next, rootId)); setSel({ block: target, el: rootId }) }} onEls={(next, key) => commit(setBlockEls(data, id, next), key)} labelHint={section ? 'Phần trống: chọn tab “Văn bản” hoặc “Phần tử” bên trái rồi bấm để thêm.' : undefined} />
       {selected && (
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', outline: `2px solid ${BRAND}`, outlineOffset: -2, zIndex: 30 }}>
-          <div data-free-ui="1" data-editor-control="true" style={{ position: 'absolute', left: 8, top: 8, display: 'flex', alignItems: 'center', gap: 2, padding: '3px 6px', background: BRAND, color: '#fff', borderRadius: 8, pointerEvents: 'auto', font: '12px/1 Arial, sans-serif', boxShadow: '0 4px 12px rgba(0,0,0,.25)' }}>
+          <SectionToolbar>
             <span style={{ padding: '0 6px', fontWeight: 700 }}>{label}</span>
+            <button type="button" title="Mở thuộc tính" style={chipBtn} onClick={() => wrap.current?.ownerDocument.dispatchEvent(new CustomEvent('hosso-inspect', { detail: 'inspect' }))}>⚙</button>
             <button type="button" title="Lên" disabled={first} style={{ ...chipBtn, opacity: first ? 0.4 : 1 }} onClick={() => op('up')}>↑</button>
             <button type="button" title="Xuống" disabled={last} style={{ ...chipBtn, opacity: last ? 0.4 : 1 }} onClick={() => op('down')}>↓</button>
             <button type="button" title="Nhân đôi" style={chipBtn} onClick={() => op('dup')}>⧉</button>
             <button type="button" title="Thêm phần bên dưới" style={chipBtn} onClick={() => op('add')}>＋</button>
             <button type="button" title="Xóa phần" style={chipBtn} onClick={() => op('del')}>🗑</button>
-          </div>
+          </SectionToolbar>
           {section && (
             <>
               <div
@@ -641,6 +644,7 @@ function InsertDivider({ onAdd, preview }: { onAdd: () => void; preview?: boolea
 
 // ---------- Trang ----------
 export function CanvasStage({
+  expanded = false,
   siteCtx = {},
   selectedState = 'normal',
   partDevice = 'desktop',
@@ -659,6 +663,7 @@ export function CanvasStage({
   areaKind,
   preview = false,
 }: {
+  expanded?: boolean
   areaKind?: string
   preview?: boolean
   partDevice?: WidgetPartDevice
@@ -738,7 +743,7 @@ export function CanvasStage({
       {!areaKind && <div style={{ position: 'absolute', inset: 0, zIndex: 25, pointerEvents: 'none' }}><Layer selectedState={selectedState} preview={preview} onTransfer={(target, next, rootId) => { commit(reparentElements(data, PAGE, target, next, rootId)); setSel({ block: target, el: rootId }) }} blockId={PAGE} els={floatOf(data)} sel={sel} setSel={setSel} onEls={(next, key) => commit(setBlockEls(data, PAGE, next), key)} /></div>}
     </div>
   )
-  return <StageFrame width={width} zoom={zoom} css={css} htmlClass={htmlClass} onDoc={onDoc}>{Root ? <Root>{page}</Root> : page}</StageFrame>
+  return <StageFrame expanded={expanded} width={width} zoom={zoom} css={css} htmlClass={htmlClass} onDoc={onDoc}>{Root ? <Root>{page}</Root> : page}</StageFrame>
 }
 
 export { addEls }

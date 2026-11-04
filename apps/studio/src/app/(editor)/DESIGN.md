@@ -2,8 +2,8 @@
 name: Hosso Studio Editor
 description: Compact tools around a website canvas, with deliberate panels and visual templates.
 colors:
-  brand: "#16704a"
-  accent-soft: "#e8f3ed"
+  brand: "#2d7b57"
+  accent-soft: "#edf5ef"
   surface: "#ffffff"
   soft: "#f4f6f8"
   border: "#dfe3e8"
@@ -130,7 +130,11 @@ Panel headers use a slightly stronger title treatment (14px, weight 650). Select
 
 ## Layout
 
-The editor fills the viewport. Its top header is compact (58px). The workbar beneath it starts at 48px and sits within a 12px workspace gutter, wrapping when needed. The desktop tool rail has a 60px white surface within a 72px slot. The canvas fills the remaining space, and the contextual inspector is 304px wide with space around its outer edge.
+The editor starts with an expanded canvas and a single compact top bar. Device switches, undo/redo, properties, save and publication stay available there. The vertical icon palette floats over the canvas; its grip supports pointer dragging, arrow keys, Home and double-click reset. Resizing the workspace keeps the palette within reach. Element and section toolbars can also move independently.
+
+The fullscreen control uses browser fullscreen and supports Escape. The expanded canvas control reveals the full workbar when needed. Tool panels and the inspector overlay the page in expanded mode. History, responsive layouts, saved sections, media, forms and publication checks use the same panel system.
+
+In the full workbar layout, the editor fills the viewport. Its top header is compact (58px). The workbar beneath it starts at 48px and sits within a 12px workspace gutter, wrapping when needed. The desktop tool rail has a 60px white surface within a 72px slot. The canvas fills the remaining space, and the contextual inspector is 304px wide with space around its outer edge.
 
 Ordinary tool panels are overlays anchored beside the rail (360px wide), with a visible gap above and below. Section and page libraries expand to a bounded wide panel. Sections use two columns by default and three on viewports from 1500px. Page templates use three columns, two below 1000px, and one below 700px.
 
@@ -162,7 +166,7 @@ Search uses a soft background, leading search icon and a compact height. Brand f
 
 ### Navigation
 
-The rail stacks line icons over small labels. The active tool uses a pale-green field and green text. Separate hover tints remain for some existing tool categories. Rail buttons expose pressed and expanded states; they do not switch panels on focus or hover.
+The rail stacks line icons over small labels. The active tool uses a pale-green field and green text. Inactive tools use a neutral gray hover. Contextual toolbars stay white with gray controls and green selected states. Rail buttons expose pressed and expanded states; they do not switch panels on focus or hover.
 
 ### Chips
 

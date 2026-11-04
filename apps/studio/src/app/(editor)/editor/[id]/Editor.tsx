@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic'
 import { buildBlockPlugins } from './BlockPanels'
 import { CanvasApp, CanvasBoundary } from './CanvasApp'
 import type { BrandTheme } from './BrandPanel'
+import type { PageMetadata } from './PublishPanel'
 import { useInsertSection, withFreeLayer } from './FreeCanvasEditor'
 import '@puckeditor/core/puck.css'
 import '@fontsource/roboto/400.css'
@@ -50,6 +51,7 @@ type Props = {
   mode?: 'canvas' | 'puck'
   initialSelection?: { block: string; el: string }
   initialDevice?: 'desktop' | 'tablet' | 'mobile'
+  metadata?: PageMetadata
 }
 
 // Dịch chuỗi giao diện trình dựng theo ngôn ngữ admin (props.lang); các thành phần con lấy qua context.
@@ -57,7 +59,7 @@ const pluginEn: Record<string, string> = Object.assign({}, ...hosso.plugins.map(
 const TContext = createContext<AdminT>(makeT('vi'))
 const useET = () => useContext(TContext)
 
-const GB_CSS = `.gb:hover{outline:2px dashed #15803d;outline-offset:-2px}.gb-chip{position:absolute;left:8px;top:8px;z-index:60;padding:6px 10px;border-radius:8px;background:#15803d;color:#fff!important;font:600 12px Arial,sans-serif;text-decoration:none;opacity:0;transition:opacity .15s;pointer-events:none}.gb:hover .gb-chip{opacity:1;pointer-events:auto}`
+const GB_CSS = `.gb:hover{outline:2px dashed var(--cv-accent,#2d7b57);outline-offset:-2px}.gb-chip{position:absolute;left:8px;top:8px;z-index:60;padding:6px 10px;border:1px solid #dfe3e8;border-radius:8px;background:#fff;color:var(--cv-accent,#2d7b57)!important;font:600 12px Arial,sans-serif;text-decoration:none;box-shadow:0 4px 16px #18233314;opacity:0;transition:opacity .15s;pointer-events:none}.gb:hover .gb-chip{opacity:1;pointer-events:auto}`
 /** Dải header/footer dùng chung trong trang đang sửa: rê chuột hiện nhãn, bấm để mở trình sửa của chính nó. */
 function GlobalBand({ label, href, children }: { label: string; href: string; children: React.ReactNode }) {
   return (
@@ -309,7 +311,7 @@ function StyleBar() {
 const BRAND_CSS = `
 .cv-act{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 14px;border:0;border-radius:10px;background:transparent;color:#374151;font:inherit;font-weight:600;white-space:nowrap;cursor:pointer;text-decoration:none;transition:background .15s}
 .cv-act:hover:not(:disabled){background:#f1f3f5}
-.cv-act.is-primary{background:var(--hosso-brand,#15803d);color:#fff;padding:0 20px;box-shadow:0 6px 14px -6px var(--hosso-brand,#15803d)}
+.cv-act.is-primary{background:var(--hosso-brand,#2d7b57);color:#fff;padding:0 20px;box-shadow:none}
 .cv-act.is-primary:hover:not(:disabled){filter:brightness(1.07);background:var(--hosso-brand,#15803d)}
 .cv-act:disabled{opacity:.5;cursor:not-allowed}
 :root{--puck-color-interactive:var(--hosso-brand,#15803d);--puck-color-interactive-subtle:color-mix(in srgb,var(--hosso-brand,#15803d) 12%,#fff);--puck-pluginbar-color-text-selected:var(--hosso-brand,#15803d);--puck-radius-m:10px;--puck-radius-l:12px;--puck-actionbar-color-bg:#111827;--puck-color-border:#e5e7eb}
@@ -349,6 +351,10 @@ export function Editor(props: Props) {
   const [status, setStatus] = useState(props.collection === 'area' ? T('Vùng giao diện') : props.status === 'published' ? T('Đã xuất bản') : T('Bản nháp'))
   const [busy, setBusy] = useState(false)
   const [dirty, setDirty] = useState(false)
+  const [metadata, setMetadata] = useState(props.metadata)
+  const metadataRef = useRef(props.metadata)
+  metadataRef.current = metadata
+  const savedMetadata = useRef(JSON.stringify(props.metadata ?? null))
   const dataRef = useRef<unknown>(props.data)
   const savedJson = useRef(JSON.stringify(props.data ?? null))
   const isArea = props.collection === 'area'
@@ -380,6 +386,8 @@ export function Editor(props: Props) {
   }, [lockKey])
 
   const persist = async (data: unknown, publish: boolean, auto = false) => {
+    if (busy) return
+    const savingMetadata = metadataRef.current
     if (lockedBy) {
       setStatus(T('Đang bị khóa: {who} đang sửa', { who: lockedBy }))
       return
@@ -392,12 +400,13 @@ export function Editor(props: Props) {
         : await fetch(`/api/${props.collection}/${props.id}?draft=true${auto ? '&autosave=true' : ''}&locale=${props.locale}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: data, _status: 'draft' }),
+            body: JSON.stringify({ ...(savingMetadata && ['pages', 'posts'].includes(props.collection) ? { description: savingMetadata.description, excerpt: savingMetadata.excerpt, seo: { ...savingMetadata.seo, image: typeof savingMetadata.seo?.image === 'object' ? savingMetadata.seo.image?.id : savingMetadata.seo?.image } } : {}), content: data, _status: 'draft' }),
           })
       const body = await res.json().catch(() => ({}))
       if (res.ok) {
         savedJson.current = JSON.stringify(data)
-        setDirty(JSON.stringify(dataRef.current) !== savedJson.current)
+        savedMetadata.current = JSON.stringify(savingMetadata ?? null)
+        setDirty(JSON.stringify(dataRef.current) !== savedJson.current || JSON.stringify(metadataRef.current ?? null) !== savedMetadata.current)
         setStatus(auto ? T('Đã tự lưu nháp') : T('Đã lưu nháp'))
         if (publish) window.location.assign('/admin/releases?select=' + encodeURIComponent(isArea ? 'site-areas' : `${props.collection}:${props.id}`))
       } else {
@@ -413,7 +422,7 @@ export function Editor(props: Props) {
     const t = setTimeout(() => persist(dataRef.current, false, true), 4000)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dirty, busy, status, lockedBy])
+  }, [dirty, busy, status, lockedBy, metadata])
   useEffect(() => {
     const warn = (e: BeforeUnloadEvent) => {
       if (dirty) e.preventDefault()
@@ -546,6 +555,8 @@ export function Editor(props: Props) {
       {canvasMode ? (
         <CanvasBoundary fallbackHref={puckHref}>
           <CanvasApp
+            metadata={metadata}
+            onMetadataChange={(value) => { metadataRef.current = value; setMetadata(value); setDirty(JSON.stringify(dataRef.current) !== savedJson.current || JSON.stringify(value ?? null) !== savedMetadata.current) }}
             brandTheme={props.brandTheme}
             canEditBrand={props.canEditBrand}
             initialSelection={props.initialSelection}
@@ -554,7 +565,7 @@ export function Editor(props: Props) {
             data={props.data}
             onChange={(d) => {
               dataRef.current = d
-              setDirty(JSON.stringify(d) !== savedJson.current)
+              setDirty(JSON.stringify(d) !== savedJson.current || JSON.stringify(metadataRef.current ?? null) !== savedMetadata.current)
             }}
             css={props.css}
             htmlClass={props.fontClass}
@@ -588,7 +599,7 @@ export function Editor(props: Props) {
         headerPath={props.publicHref}
         onChange={(d) => {
           dataRef.current = d
-          setDirty(JSON.stringify(d) !== savedJson.current)
+          setDirty(JSON.stringify(d) !== savedJson.current || JSON.stringify(metadataRef.current ?? null) !== savedMetadata.current)
         }}
         viewports={[
           { width: 1280, height: 'auto', label: T('Máy tính'), icon: 'Monitor' },

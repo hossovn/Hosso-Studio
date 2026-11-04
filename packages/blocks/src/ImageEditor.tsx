@@ -68,6 +68,8 @@ export function ImageEditor({
   }, [])
 
   const load = useCallback(() => {
+    work.current = null
+    setSize({ w: 0, h: 0 })
     const img = new Image()
     img.onload = () => {
       const c = document.createElement('canvas')
@@ -326,11 +328,11 @@ export function ImageEditor({
             {L('Hủy')}
           </button>
           {onReplace && (
-            <button type="button" style={btn} disabled={busy} onClick={() => save(true)} title={L('Thay ảnh gốc trong thư viện (mọi nơi đang dùng ảnh này sẽ đổi theo)')}>
+            <button type="button" style={btn} disabled={busy || !size.w} onClick={() => save(true)} title={L('Thay ảnh gốc trong thư viện (mọi nơi đang dùng ảnh này sẽ đổi theo)')}>
               {L('Thay ảnh gốc')}
             </button>
           )}
-          <button type="button" style={primary} disabled={busy} onClick={() => save(false)}>
+          <button type="button" style={primary} disabled={busy || !size.w} onClick={() => save(false)}>
             {busy ? L('Đang lưu…') : L('Lưu thành ảnh mới')}
           </button>
         </div>
