@@ -1,3 +1,4 @@
+import * as content_models from './20261105_120000_content_models';
 import * as cms_workspace from './20261105_090000_cms_workspace';
 import * as migration_20261104_090000_form_delivery from './20261104_090000_form_delivery';
 import * as migration_20261102_061337_studio_releases from './20261102_061337_studio_releases';
@@ -125,5 +126,6 @@ export const migrations = [
   { up: migration_20261104_090000_form_delivery.up, down: migration_20261104_090000_form_delivery.down, name: '20261104_090000_form_delivery' },
   { up: migration_20261104_120000_editor_frames_and_forms.up, down: migration_20261104_120000_editor_frames_and_forms.down, name: '20261104_120000_editor_frames_and_forms' },
   { up: cms_workspace.up, down: cms_workspace.down, name: '20261105_090000_cms_workspace' },
+  { up: content_models.up, down: content_models.down, name: '20261105_120000_content_models' },
 ];
 import * as migration_20261104_120000_editor_frames_and_forms from './20261104_120000_editor_frames_and_forms';

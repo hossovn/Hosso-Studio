@@ -3,6 +3,7 @@ import type { Endpoint, PayloadRequest } from 'payload'
 import hosso from '@hosso-config'
 import { buildPuckConfig, coreBlocks } from '@hosso/studio-blocks'
 import { inTransaction } from '../../../../packages/blocks/src/transactions'
+import { isContentRestricted } from './content-permissions'
 import { canEditPages, canPublish, isAdmin } from './access'
 import { AREAS } from '../globals/SiteAreas'
 import { inspectPage, type PublishIssue } from './publish-checks'
@@ -112,6 +113,7 @@ const allowedItems = (req: PayloadRequest, items: ReleaseItem[]) => items.filter
 export const siteReleaseReview: Endpoint = {
   path: '/site/releases/review', method: 'get',
   handler: async (req) => {
+    if (await isContentRestricted(req)) return response('Tài khoản giới hạn phạm vi: xuất bản từng nội dung trong phạm vi được cấp.', 403)
     if (!canEditPages(req.user)) return response('Forbidden', 403)
     const state = await review(req)
     const items = allowedItems(req, state.changed)
@@ -122,6 +124,7 @@ export const siteReleaseReview: Endpoint = {
 export const siteReleasePublish: Endpoint = {
   path: '/site/releases/publish', method: 'post',
   handler: async (req) => {
+    if (await isContentRestricted(req)) return response('Tài khoản giới hạn phạm vi: xuất bản từng nội dung trong phạm vi được cấp.', 403)
     if (!canPublish(req.user)) return response('Forbidden', 403)
     const body = await req.json?.().catch(() => null)
     if (!body || typeof body.revision !== 'string' || !Array.isArray(body.keys) || !body.keys.length) return response('Invalid release')
@@ -148,6 +151,7 @@ export const siteReleasePublish: Endpoint = {
 export const siteReleaseRestore: Endpoint = {
   path: '/site/releases/restore', method: 'post',
   handler: async (req) => {
+    if (await isContentRestricted(req)) return response('Tài khoản giới hạn phạm vi: xuất bản từng nội dung trong phạm vi được cấp.', 403)
     if (!canPublish(req.user)) return response('Forbidden', 403)
     const body = await req.json?.().catch(() => null)
     if (!body?.id || typeof body.revision !== 'string') return response('Invalid release')

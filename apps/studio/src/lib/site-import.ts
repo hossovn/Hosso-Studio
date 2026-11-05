@@ -3,7 +3,8 @@ import { unzipSync, strFromU8 } from 'fflate'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import type { Payload } from 'payload'
+import {createLocalReq,type Payload} from 'payload'
+import {contentType,validateEntry} from './content-types'
 
 import type { AdminLang } from './admin-i18n'
 import { serverLang } from './lang'
@@ -57,11 +58,12 @@ const manifest = read('manifest.json')
     // Tìm cả bản nháp; nếu bảng phiên bản chưa có thì tìm trong bảng chính để không tạo trùng slug.
     const existing = (await payload.find({ ...q, draft: true })).docs.length ? await payload.find({ ...q, draft: true }) : await payload.find(q)
     const base: any = { ...shared, ...first, slug, ...(status ? { _status: status } : {}) }
+    const context=collection==='content-types'||collection==='content-entries'?{cmsDeferEntryLinks:true}:undefined
     const doc: any = existing.docs[0]
-      ? await payload.update({ collection, id: existing.docs[0].id, data: base, locale: D as any })
-      : await payload.create({ collection, data: base, locale: D as any })
+      ? await payload.update({ collection, id: existing.docs[0].id, data: base, locale: D as any,context })
+      : await payload.create({ collection, data: base, locale: D as any,context })
     for (const l of LOCALES.slice(1)) {
-      if (translations[l]) await payload.update({ collection, id: doc.id, data: { ...translations[l], ...(status ? { _status: status } : {}) } as any, locale: l as any })
+      if (translations[l] && (!['pages','posts','content-entries'].includes(collection) || translations[l].title)) await payload.update({ collection, id: doc.id, data: { ...translations[l], ...(status ? { _status: status } : {}) } as any, locale: l as any,context })
     }
     return { doc, created: !existing.docs[0] }
   } catch (e: any) {
@@ -136,7 +138,10 @@ const manifest = read('manifest.json')
     stats.blocks++
   }
 
+  for (const type of read('data/content-types.json') ?? []) await upsert('content-types',type.slug,{title:type.title,fields:type.fields},{})
   for (const entry of read('data/content-entries.json') ?? []) await upsert('content-entries', entry.slug, { kind: entry.kind, published: entry.published }, entry.translations)
+  const validationReq=await createLocalReq({},payload)
+  for(const entry of read('data/content-entries.json')??[])for(const [locale,translation] of Object.entries(entry.translations) as [string,any][]){if(!translation.title)continue;validationReq.locale=locale as any;await validateEntry(validationReq,await contentType(validationReq,entry.kind),translation.data??{},!!entry.published,entry.slug)}
 
   // ---------- Chuyển hướng ----------
   for (const r of read('data/redirects.json') ?? []) {

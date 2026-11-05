@@ -2,7 +2,8 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import Module, { createRequire } from 'node:module'
 import { dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { resolve } from 'node:path'
 
 const require = createRequire(new URL('../apps/studio/package.json', import.meta.url))
 const ts = require('typescript')
@@ -14,7 +15,7 @@ function compile(relative, stubs) {
   const mod = new Module(path)
   mod.filename = path
   mod.paths = Module._nodeModulePaths(dirname(path))
-  mod.require = (id) => Object.hasOwn(stubs, id) ? stubs[id] : require(id)
+  mod.require = (id) => Object.hasOwn(stubs, id) ? stubs[id] : id.startsWith('.') ? compile(pathToFileURL(resolve(dirname(path),id+'.ts')).href,stubs) : require(id)
   mod._compile(outputText, path)
   return mod.exports
 }
@@ -89,6 +90,7 @@ for (const collection of ['pages', 'posts', 'reusable-blocks']) {
 }
 
 const { importSitePackage } = compile('../apps/studio/src/lib/site-import.ts', {
+  payload: { ...require('payload'), createLocalReq: async (_,payload) => ({payload,context:{}}) },
   '@hosso-config': config,
   './lang': { serverLang: () => 'en' },
 })
@@ -124,7 +126,8 @@ await importSitePackage(target, zipSync(files), () => {}, 'en')
 assert.deepEqual(restored, areas, 'old packages must not erase existing custom headers or footers')
 
 const articleBody = { root: { type:'root', version:1, children:[{type:'heading',tag:'h2',children:[{type:'text',text:'Portable heading',version:1}]},{type:'upload',relationTo:'media',value:71,version:3}] } }
-const cmsSource = { ...source, collections:{'content-entries':{}}, findByID:async()=>({id:71,filename:'article-photo.png'}), find:async(args)=>{
+const cmsSource = { ...source, collections:{'content-entries':{},'content-types':{}}, findByID:async()=>({id:71,filename:'article-photo.png'}), find:async(args)=>{
+ if(args.collection==='content-types')return {docs:[{title:'Courses',slug:'courses',fields:[{key:'price',label:'Price',type:'number',required:true}]}]}
  if(args.collection==='posts') return {docs:[{slug:'portable-article',title:args.locale+' Article',writingMode:'article',articleTemplate:'reading',articleBody,_status:'published',categories:[],tags:[]}]}
  if(args.collection==='media') return {docs:[{id:71,filename:'article-photo.png',alt:'Portable photo',cms:{folder:'Editorial',tags:'hero'}}]}
  if(args.collection==='content-entries') return {docs:[{slug:'portable-faq',title:args.locale+' FAQ',kind:'faq',published:true,data:{description:args.locale+' Answer'}}]}
@@ -134,13 +137,14 @@ const cmsFiles=unzipSync((await buildSitePackage(cmsSource)).data)
 assert.deepEqual(JSON.parse(strFromU8(cmsFiles['data/posts.json']))[0].translations.vi.articleBody.root.children[1].value,{filename:'article-photo.png'})
 const importedCms={}
 const cmsTarget={...target,find:async(args)=>args.collection==='media'?{docs:[{id:901,filename:'article-photo.png'}]}:{docs:[]},create:async(args)=>{
- if(!['posts','content-entries'].includes(args.collection)) return target.create(args)
+ if(!['posts','content-entries','content-types'].includes(args.collection)) return target.create(args)
  importedCms[args.collection+'-'+args.locale]=args.data;return {id:args.collection==='posts'?812:813,...args.data}
 },update:async(args)=>{
- if(!['posts','content-entries'].includes(args.collection)) return target.update(args)
+ if(!['posts','content-entries','content-types'].includes(args.collection)) return target.update(args)
  importedCms[args.collection+'-'+args.locale]=args.data;return args.data
 }}
 await importSitePackage(cmsTarget,zipSync(cmsFiles),()=>{},'en')
+assert.equal(importedCms['content-types-vi'].fields[0].key,'price','Custom schemas survive the real ZIP pipeline')
 assert.equal(importedCms['posts-vi'].writingMode,'article')
 assert.equal(importedCms['posts-vi'].articleBody.root.children[1].value,901,'Rich text uploads must map to destination IDs')
 assert.equal(importedCms['posts-en'].articleBody.root.children[0].children[0].text,'Portable heading')

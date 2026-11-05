@@ -2,7 +2,8 @@ import config from '@payload-config'
 import hosso from '@hosso-config'
 import { cookies, headers } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
-import { getPayload } from 'payload'
+import {canContent} from '@/lib/content-permissions'
+import { createLocalReq, getPayload } from 'payload'
 import React from 'react'
 
 import { AREAS } from '@/globals/SiteAreas'
@@ -70,6 +71,11 @@ export default async function EditorPage({ params, searchParams }: { params: Pro
   const chromeAreas = { header: sharedAreas.siteHeader?.content?.length ? sharedAreas.siteHeader : null, footer: sharedAreas.siteFooter?.content?.length ? sharedAreas.siteFooter : null }
   const doc = await payload.findByID({ collection, id, draft: true, locale: locale as any, user, overrideAccess: false }).catch(() => null)
   if (!doc) notFound()
+  if(collection==='pages'||collection==='posts'){
+    const req=await createLocalReq({user},payload)
+    if(!(await canContent(req,collection,'edit',doc)))redirect(`/admin/collections/${collection}/${doc.id}`)
+    common.canPublish=await canContent(req,collection,'publish',doc)
+  }
   const publicHref =
     collection === 'posts' ? href(`/bai-viet/${doc.slug}`, locale) : collection === 'reusable-blocks' ? href('/', locale) : href(doc.slug === 'home' ? '/' : `/${doc.slug}`, locale)
   return (

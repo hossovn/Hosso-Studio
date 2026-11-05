@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { adminOnly, adminOnlyField, isAdmin } from '../lib/access'
 import { requireTwoFactor, twoFactorEndpoints } from '../lib/two-factor'
+import { permissionErrors } from '../lib/content-permissions'
 
 export const Users: CollectionConfig = {
   slug: 'users',
@@ -30,6 +31,7 @@ export const Users: CollectionConfig = {
     ],
   },
   fields: [
+    {name:'contentPermissions',type:'json',label:{vi:'Phân quyền nội dung',en:'Content permissions'},validate:(value:any)=>permissionErrors(value).join(' ')||true,access:{create:adminOnlyField,update:adminOnlyField},admin:{components:{Field:'/components/admin/ContentPermissionsField#ContentPermissionsField'}}},
     // Xác thực hai lớp (TOTP). Bí mật được mã hóa và không bao giờ trả ra API; bật/tắt qua /api/users/2fa/*.
     { name: 'twoFactorEnabled', type: 'checkbox', defaultValue: false, label: 'Đã bật xác thực hai lớp', admin: { readOnly: true, position: 'sidebar' }, access: { update: () => false } },
     { name: 'twoFactorSecret', type: 'text', hidden: true, access: { read: () => false, create: () => false, update: () => false } },

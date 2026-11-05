@@ -190,6 +190,7 @@ export async function buildSitePackage(payload: Payload) {
   }
 
   if (payload.collections?.['content-entries']) {
+    if(payload.collections?.['content-types']) json('data/content-types.json',(await find('content-types',D)).docs.map((type:any)=>pick(type,['title','slug','fields'])))
     const entries = await forEachLocale((locale) => find('content-entries', locale))
     json('data/content-entries.json', entries[D].docs.map((entry: any) => ({ slug: entry.slug, kind: entry.kind, published: entry.published, translations: Object.fromEntries(LOCALES.map((locale) => { const translated: any = entries[locale].docs.find((item: any) => item.slug === entry.slug); return [locale, pick(translated, ['title', 'data'])] })) })))
   }

@@ -14,7 +14,19 @@ const { getPayload } = await import(pathToFileURL(require.resolve('payload')).hr
 const payload = await getPayload({config,disableDBConnect:true,disableOnInit:true})
 try {
  const { generateDrizzleJson,generateMigration } = require('drizzle-kit/api')
- const current = generateDrizzleJson(payload.db.schema), previous = structuredClone(current)
+ const current = generateDrizzleJson(payload.db.schema)
+ // Keep this historical migration pinned to its original enum schema.
+ delete current.tables['public.content_entries'].columns.cms
+ delete current.tables['public.content_types']
+ delete current.tables['public.users'].columns.content_permissions
+ const rel=current.tables['public.payload_locked_documents_rels']
+ delete rel.columns.content_types_id
+ for(const [key,index] of Object.entries(rel.indexes))if(index.columns.some(c=>c.expression==='content_types_id'))delete rel.indexes[key]
+ for(const [key,fk] of Object.entries(rel.foreignKeys))if(fk.columnsFrom.includes('content_types_id'))delete rel.foreignKeys[key]
+ current.enums['public.enum_content_entries_kind']={name:'enum_content_entries_kind',schema:'public',values:['faq','team','project','service']}
+ current.tables['public.content_entries'].columns.kind.type='enum_content_entries_kind'
+ current.tables['public.content_entries'].columns.kind.typeSchema='public'
+ const previous=structuredClone(current)
  const removeColumns = (name, keys) => {
   const table = previous.tables['public.'+name]
   for (const key of keys) delete table.columns[key]

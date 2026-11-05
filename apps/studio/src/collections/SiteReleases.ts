@@ -1,11 +1,12 @@
 import type { CollectionConfig } from 'payload'
 import { pageEditors } from '../lib/access'
+import {isContentRestricted} from '../lib/content-permissions'
 
 export const SiteReleases: CollectionConfig = {
   slug: 'site-releases',
   labels: { singular: { vi: 'Bản phát hành website', en: 'Site release' }, plural: { vi: 'Lịch sử xuất bản', en: 'Release history' } },
   admin: { hidden: true, useAsTitle: 'title' },
-  access: { read: pageEditors, create: () => false, update: () => false, delete: () => false },
+  access: { read: async args => !(await isContentRestricted(args.req)) && await pageEditors(args), create: () => false, update: () => false, delete: () => false },
   fields: [
     { name: 'title', type: 'text', required: true },
     { name: 'actor', type: 'text', required: true },

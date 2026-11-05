@@ -4,6 +4,8 @@ import { hasRole, canPublish, isAdmin } from './access'
 import { cmsMeta, containsMedia } from './cms-model'
 import { inTransaction } from '../../../../packages/blocks/src/transactions'
 import { lockSitePublication } from './site-publication-lock'
+import { contentTypes } from './content-types'
+import { assertContent, canContent } from './content-permissions'
 import hosso from '@hosso-config'
 const allowed = ['pages','posts','media','content-entries'] as const
 const writer = (req: PayloadRequest) => hasRole(req.user,'admin','publisher','editor','author')
@@ -47,15 +49,16 @@ export const cmsList: Endpoint = { path: '/site/cms', method: 'get', handler: as
  const status = sp.get('status'), category = sp.get('category'), folder = sp.get('folder'), tag = sp.get('tag'), type = sp.get('type'), assignee = sp.get('assignee')
  const folders = [...new Set(docs.map((d) => String(d.cms?.folder || '')).filter(Boolean))].sort()
  docs = docs.filter((doc) => {
-  const matchesStatus = !status || ['all','trash'].includes(status) || (status === 'published' ? doc._status === 'published' || doc.published : status === 'draft' ? doc._status === 'draft' : cmsMeta(doc.cms).review === status)
+  const matchesStatus = !status || ['all','trash'].includes(status) || (status === 'published' ? doc._status === 'published' || doc.published : status === 'draft' ? doc._status === 'draft' || collection==='content-entries'&&!doc.published : cmsMeta(doc.cms).review === status)
   return matchesStatus && (!category || (doc.categories ?? []).some((c: any) => String(c?.id ?? c) === category)) && (!folder || doc.cms?.folder === folder) && (!tag || String(doc.cms?.tags || '').toLowerCase().split(',').map((t) => t.trim()).includes(tag.toLowerCase())) && (!type || (collection === 'content-entries' ? doc.kind === type : String(doc.mimeType || '').startsWith(type + '/'))) && (!assignee || cmsMeta(doc.cms).assignee === assignee)
  })
+ for(const doc of docs) if(collection!=='media') doc.permissions={edit:await canContent(req,collection as any,'edit',doc),review:await canContent(req,collection as any,'review',doc),publish:await canContent(req,collection as any,'publish',doc)}
  const total = docs.length, size = sp.get('layout') === 'tree' && collection === 'pages' ? total || 1 : 12, page = Math.min(Math.max(1, Number(sp.get('page')) || 1), Math.max(1, Math.ceil(total / size)))
  const categories = collection === 'posts' ? await allCmsDocs(req, 'post-categories', { locale }) : []
  const users = canPublish(req.user) ? (await allCmsDocs(req,'users', {overrideAccess:true,select:{email:true,roles:true},where:{roles:{in:['admin','publisher','editor','author']}}})).map((u) => ({ id: String(u.id), email: u.email })) : []
  const parents = collection === 'pages' ? (await allCmsDocs(req, 'pages', { locale })).map((d) => ({id:d.id,title:d.title})) : []
  const settings: any = collection === 'pages' ? await req.payload.findGlobal({ slug: 'site-settings', draft: true, depth: 0, req, overrideAccess: true }) : null
- return json({ docs: docs.slice((page-1)*size,page*size).map(({ id,title,slug,_status,updatedAt,categories,cms,mimeType,filename,url,alt,published,kind,writingMode,deletedAt }: any) => ({ id,title,slug,_status,updatedAt,categories,cms,mimeType,filename,url,alt,published,kind,writingMode,deletedAt })), total, page, pages: Math.max(1,Math.ceil(total/size)), folders, categories, users, parents, canPublish: canPublish(req.user), canHome: isAdmin(req.user), canEditPages: hasRole(req.user,'admin','publisher','editor'), homeSlug: settings?.homeSlug || 'home', defaultLocale:hosso.locales[0].code, locale })
+ return json({ docs: docs.slice((page-1)*size,page*size).map(({ id,title,slug,_status,updatedAt,categories,cms,mimeType,filename,url,alt,published,kind,writingMode,deletedAt,permissions }: any) => ({ id,title,slug,_status,updatedAt,categories,cms,mimeType,filename,url,alt,published,kind,writingMode,deletedAt,permissions })), types:collection==='content-entries'?await contentTypes(req):[],canManageTypes:isAdmin(req.user),total, page, pages: Math.max(1,Math.ceil(total/size)), folders, categories, users, parents, canPublish: canPublish(req.user), canHome: isAdmin(req.user), canEditPages: hasRole(req.user,'admin','publisher','editor'), homeSlug: settings?.homeSlug || 'home', defaultLocale:hosso.locales[0].code, locale })
 } }
 export const cmsSearch: Endpoint = { path: '/site/cms/search', method: 'get', handler: async (req) => {
  if (!writer(req)) return json({ error: 'Forbidden' },403)
@@ -67,7 +70,9 @@ export const cmsSearch: Endpoint = { path: '/site/cms/search', method: 'get', ha
   const fields = collection === 'media' ? ['filename','alt'] : collection === 'shop-products' ? ['name','code'] : ['title','slug']
   const where: any = { and: [{ or: fields.map((key) => ({ [key]: { contains: q } })) }] }
   if (collection === 'posts' && !hasRole(req.user,'admin','publisher','editor')) where.and.push({ createdBy: { equals: req.user!.id } })
-  const docs = await req.payload.find({ collection: collection as any, where, draft: ['pages','posts'].includes(collection), depth: 0, limit: 6, req, overrideAccess: false, locale: (sp.get('locale') || hosso.locales[0].code) as any })
+  let docs
+  try { docs = await req.payload.find({ collection: collection as any, where, draft: ['pages','posts'].includes(collection), depth: 0, limit: 6, req, overrideAccess: false, locale: (sp.get('locale') || hosso.locales[0].code) as any }) }
+  catch(error:any){if(error.status===403)continue;throw error}
   for (const doc of docs.docs as any[]) results.push({ id: doc.id, kind: collection, title: doc.title || doc.name || doc.alt || doc.filename, href: '/admin/collections/' + collection + '/' + doc.id })
  }
  return json({ results })
@@ -96,8 +101,8 @@ export const cmsMutate: Endpoint = { path: '/site/cms', method: 'post', handler:
    }
    if (body.action === 'trash') { if (!canPublish(req.user) || !['pages','posts'].includes(collection)) throw new APIError('Forbidden',403); await cancelSchedule(req,collection,id); await req.payload.update({ collection,id,data:{deletedAt:new Date().toISOString(),_status:'draft',cms:{...doc.cms,review:'draft',scheduledAt:null}} as any,req,overrideAccess:false }); output.push(id); continue }
    if (body.action === 'restore') { if (!canPublish(req.user) || !['pages','posts'].includes(collection)) throw new APIError('Forbidden',403); await req.payload.update({collection,id,trash:true,data:{deletedAt:null,_status:'draft'} as any,req,overrideAccess:false});output.push(id);continue }
-   if (body.action === 'schedule') { if (!canPublish(req.user) || !['pages','posts'].includes(collection)) throw new APIError('Forbidden',403); const at = new Date(body.at); if (!Number.isFinite(at.getTime()) || at.getTime() <= Date.now()) throw new APIError('Chọn thời điểm trong tương lai.',400); await cancelSchedule(req,collection,id); const meta = { ...cmsMeta(doc.cms), review:'scheduled',scheduledAt:at.toISOString() }; await req.payload.update({collection,id,data:{cms:meta,_status:'draft'},draft:true,locale,req,overrideAccess:false}); await req.payload.jobs.queue({task:'schedulePublish',input:{doc:{relationTo:collection,value:Number(id)},type:'publish',locale,user:{relationTo:'users',value:req.user!.id}},waitUntil:at,req});output.push(id);continue }
-   if (body.action === 'cancel-schedule') { if (!canPublish(req.user) || !['pages','posts'].includes(collection)) throw new APIError('Forbidden',403); await cancelSchedule(req,collection,id); await req.payload.update({collection,id,data:{cms:{...doc.cms,review:'draft',scheduledAt:null}},draft:true,locale,req,overrideAccess:false});output.push(id);continue }
+   if (body.action === 'schedule') { await assertContent(req,collection,'publish',doc); if (!canPublish(req.user) || !['pages','posts'].includes(collection)) throw new APIError('Forbidden',403); const at = new Date(body.at); if (!Number.isFinite(at.getTime()) || at.getTime() <= Date.now()) throw new APIError('Chọn thời điểm trong tương lai.',400); await cancelSchedule(req,collection,id); const meta = { ...cmsMeta(doc.cms), review:'scheduled',scheduledAt:at.toISOString() }; await req.payload.update({collection,id,data:{cms:meta,_status:'draft'},draft:true,locale,req,overrideAccess:false}); await req.payload.jobs.queue({task:'schedulePublish',input:{doc:{relationTo:collection,value:Number(id)},type:'publish',locale,user:{relationTo:'users',value:req.user!.id}},waitUntil:at,req});output.push(id);continue }
+   if (body.action === 'cancel-schedule') { await assertContent(req,collection,'publish',doc); if (!canPublish(req.user) || !['pages','posts'].includes(collection)) throw new APIError('Forbidden',403); await cancelSchedule(req,collection,id); await req.payload.update({collection,id,data:{cms:{...doc.cms,review:'draft',scheduledAt:null}},draft:true,locale,req,overrideAccess:false});output.push(id);continue }
    if (body.action !== 'update') throw new APIError('Unknown action',400)
    const patch: any = {}, fields = body.patch || {}
    for (const key of collection === 'media' ? ['alt'] : ['title']) if (typeof fields[key] === 'string') { if (!fields[key].trim()) throw new APIError('Tiêu đề hoặc mô tả không được để trống.',400); patch[key] = fields[key].trim().slice(0,300) }

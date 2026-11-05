@@ -1,11 +1,12 @@
 import { APIError, type CollectionConfig } from 'payload'
 import { pageEditors } from '../lib/access'
+import {contentDiscussionAccess,assertContent,isContentRestricted} from '../lib/content-permissions'
 
 /** Authenticated design discussion lives outside publishable page JSON. Replies are separate records. */
 export const EditorReviews: CollectionConfig = {
   slug: 'editor-reviews', lockDocuments: false,
   admin: { hidden: true },
-  access: { read: pageEditors, create: pageEditors, update: pageEditors, delete: () => false },
+  access: { read: contentDiscussionAccess('read',pageEditors), create: pageEditors, update: contentDiscussionAccess('edit',pageEditors), delete: () => false },
   fields: [
     { name: 'scope', type: 'text', required: true, index: true },
     { name: 'targetCollection', type: 'text', required: true },
@@ -28,6 +29,8 @@ export const EditorReviews: CollectionConfig = {
     let target: unknown
     try { target = collection === 'area' ? await req.payload.findGlobal({ slug: 'site-areas', overrideAccess: false, req }) : await req.payload.findByID({ collection: collection as 'pages', id, depth: 0, overrideAccess: false, req }) } catch { /* missing or inaccessible target */ }
     if (!target) throw new APIError('Không truy cập được trang cần góp ý.', 404)
+    if(collection==='pages'||collection==='posts')await assertContent(req,collection,'edit',target)
+    else if(await isContentRestricted(req))throw new APIError('Không có quyền góp ý phạm vi này.',403)
     const scope = `${collection}:${id}:${language}`
     if (data.parentId) {
       const parent = await req.payload.findByID({ collection: 'editor-reviews', id: data.parentId, overrideAccess: false, req })

@@ -107,3 +107,26 @@ html[data-theme='light'] { --theme-bg:#f6f8f7; --theme-text:#24362c; --theme-inp
 .cms-media-picker img { display:block; width:100%; height:90px; object-fit:contain; }
 .cms-media-picker span { display:block; font-size:12px; overflow-wrap:anywhere; }
 .cms-entry-preview { max-width:240px; max-height:160px; object-fit:contain; }
+
+.cms-schema fieldset,.cms-import fieldset { border:1px solid var(--theme-elevation-150); border-radius:8px; padding:20px; margin:0 0 20px; min-width:0; }
+.cms-schema legend,.cms-import legend { padding:0 8px; font-weight:600; }
+.cms-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
+.cms-check { display:flex !important; flex-direction:row !important; align-items:center; gap:10px; }
+.cms-check input { width:18px !important; min-height:18px !important; flex:0 0 auto; }
+.cms-schema .cms-inline { margin-top:16px; }
+.cms-entry-fields label { display:grid; gap:8px; }
+.cms-entry-fields input,.cms-entry-fields select,.cms-entry-fields textarea,.cms-import input,.cms-import select { max-width:100%; font:inherit; color:inherit; background:var(--theme-input-bg); padding:10px 12px; border:1px solid var(--theme-elevation-200); border-radius:6px; min-height:42px; }
+.cms-entry-fields button,.cms-import button { font:inherit; color:var(--cms-accent,#2d7b57); background:var(--theme-elevation-0); border:1px solid var(--theme-elevation-200); border-radius:6px; padding:10px 14px; cursor:pointer; }
+.cms-entry-fields button:disabled,.cms-import button:disabled { opacity:.5; cursor:default; }
+.cms-import .is-primary { background:var(--cms-accent); color:white; border-color:var(--cms-accent); margin-top:20px; }
+.cms-import fieldset label { display:grid; gap:8px; margin-bottom:16px; }
+.cms-import p,.cms-schema p,.cms-schema small { color:var(--theme-elevation-650); line-height:1.65; }
+.cms-mapping { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 24px; margin-bottom:24px; }
+.cms-table-scroll { max-width:100%; overflow:auto; border:1px solid var(--theme-elevation-150); border-radius:8px; }
+.cms-import table { border-collapse:collapse; width:100%; font-size:13px; }
+.cms-import th,.cms-import td { padding:12px 16px; text-align:left; border-bottom:1px solid var(--theme-elevation-150); vertical-align:top; overflow-wrap:anywhere; }
+.cms-import th { background:var(--theme-elevation-50); white-space:nowrap; }
+.cms-import input[type=file] { margin:0 12px 16px 0; }
+@media(max-width:700px){.cms-form-grid,.cms-mapping{grid-template-columns:1fr}.cms-import fieldset,.cms-schema fieldset{padding:14px}.cms-import input[type=file]{width:100%;margin-right:0}}
+
+.cms-preview-data { display:grid; grid-template-columns:minmax(90px,1fr) 2fr; gap:4px 12px; margin:8px 0 0; }.cms-preview-data dt { color:var(--theme-elevation-650); }.cms-preview-data dd { margin:0; white-space:pre-wrap; max-height:120px; overflow:auto; }

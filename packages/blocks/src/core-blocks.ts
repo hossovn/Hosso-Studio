@@ -348,7 +348,7 @@ export const dataRepeater: BlockSchema<any> = {
   fields: {
     heading: { type: 'text', label: 'Tiêu đề' },
     source: { type: 'select', label: 'Nguồn dữ liệu', options: [{ label: 'Nhập thủ công', value: 'manual' }, { label: 'Bài viết', value: 'posts' }, { label: 'Sản phẩm', value: 'products' }, { label: 'Dữ liệu dùng chung', value: 'entries' }] },
-    entryKind: { type: 'select', label: 'Loại dữ liệu dùng chung', options: [{ label: 'Tất cả', value: '' }, { label: 'FAQ', value: 'faq' }, { label: 'Đội ngũ', value: 'team' }, { label: 'Dự án', value: 'project' }, { label: 'Dịch vụ', value: 'service' }] },
+    entryKind: { type: 'text', label: 'Mã loại dữ liệu dùng chung (để trống = tất cả)' },
     count: { type: 'number', label: 'Số mục' }, columns: { type: 'number', label: 'Số cột' }, gap: { type: 'number', label: 'Khoảng cách' },
     search: { type: 'radio', label: 'Tìm kiếm trong danh sách', options: [{ label: 'Có', value: 'yes' }, { label: 'Không', value: 'no' }] },
     filter: { type: 'radio', label: 'Lọc theo danh mục', options: [{ label: 'Có', value: 'yes' }, { label: 'Không', value: 'no' }] },

@@ -71,6 +71,7 @@ export interface Config {
     pages: Page;
     posts: Post;
     'content-entries': ContentEntry;
+    'content-types': ContentType;
     'post-categories': PostCategory;
     'post-tags': PostTag;
     comments: Comment;
@@ -120,6 +121,7 @@ export interface Config {
     pages: PagesSelect<false> | PagesSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
     'content-entries': ContentEntriesSelect<false> | ContentEntriesSelect<true>;
+    'content-types': ContentTypesSelect<false> | ContentTypesSelect<true>;
     'post-categories': PostCategoriesSelect<false> | PostCategoriesSelect<true>;
     'post-tags': PostTagsSelect<false> | PostTagsSelect<true>;
     comments: CommentsSelect<false> | CommentsSelect<true>;
@@ -398,6 +400,15 @@ export interface PostTag {
  */
 export interface User {
   id: number;
+  contentPermissions?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   twoFactorEnabled?: boolean | null;
   twoFactorSecret?: string | null;
   twoFactorPending?: string | null;
@@ -1812,6 +1823,7 @@ export interface EditLocksSelect<T extends boolean = true> {
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
+  contentPermissions?: T;
   twoFactorEnabled?: T;
   twoFactorSecret?: T;
   twoFactorPending?: T;
@@ -3262,9 +3274,18 @@ export interface EditorReviewsSelect<T extends boolean = true> {
 
 export interface ContentEntry {
   id: number;
+  cms?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   title: string;
   slug: string;
-  kind: 'faq' | 'team' | 'project' | 'service';
+  kind: string;
   data?:
     | {
         [k: string]: unknown;
@@ -3280,11 +3301,42 @@ export interface ContentEntry {
 }
 
 export interface ContentEntriesSelect<T extends boolean = true> {
+  cms?: T;
   title?: T;
   slug?: T;
   kind?: T;
   data?: T;
   published?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+
+
+export interface ContentType {
+  id: number;
+  title: string;
+  /**
+   * Lowercase letters, numbers and hyphens. Immutable after creation.
+   */
+  slug: string;
+  fields:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+
+
+export interface ContentTypesSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  fields?: T;
   updatedAt?: T;
   createdAt?: T;
 }

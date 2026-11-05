@@ -1,7 +1,8 @@
 import hosso from '@hosso-config'
 import { NavHamburger, NavWrapper } from '@payloadcms/next/client'
 import { Logout } from '@payloadcms/ui'
-import type { Payload } from 'payload'
+import {isContentRestricted} from '@/lib/content-permissions'
+import {createLocalReq,type Payload} from 'payload'
 import React from 'react'
 
 import { canModerate, canPublish, hasRole, isAdmin } from '@/lib/access'
@@ -120,7 +121,9 @@ export const Nav = async ({ payload, user, i18n }: Props) => {
     })
   if (writer) content.push({ id: 'workflow', label: 'Biên tập', href: '/admin/content?kind=workflow', icon: 'file' })
   if (editor) content.push({ id: 'shared-content', label: 'Dữ liệu dùng chung', href: '/admin/content?kind=content-entries', icon: 'box' })
-  if (editor) content.push({ id: 'releases', label: 'Xuất bản website', href: '/admin/releases', icon: 'file' })
+  if (writer) content.push({ id: 'content-import', label: 'Nhập Excel / CSV', href: '/admin/content?kind=import', icon: 'file' })
+  if (isAdmin(u)) content.push({ id: 'content-types', label: 'Loại nội dung', href: '/admin/collections/content-types', icon: 'box' })
+  if (editor && !(await isContentRestricted(await createLocalReq({user:u as any},payload)))) content.push({ id: 'releases', label: 'Xuất bản website', href: '/admin/releases', icon: 'file' })
   if (canModerate(u))
     content.push({
       id: 'comments',

@@ -38,6 +38,8 @@ jobs:
       - run: node scripts/test-partner-connections.mjs
       - run: node scripts/test-shipping-workflow.mjs
       - run: pnpm test:cms-workspace
+      - run: pnpm test:content-models
+      - run: pnpm test:content-model-migration
       - run: pnpm test:cms-migration
       - run: pnpm test:site-package
 

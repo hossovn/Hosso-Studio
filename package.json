@@ -51,7 +51,9 @@
     "test:editor-design-workspace": "node --experimental-strip-types scripts/test-editor-design-workspace.mjs",
     "test:cms-workspace": "node scripts/test-cms-workspace.mjs",
     "test:cms-migration": "node scripts/test-cms-migration.mjs",
-    "test:cms-browser": "node scripts/test-cms-browser.mjs"
+    "test:cms-browser": "node scripts/test-cms-browser.mjs",
+    "test:content-models": "node scripts/test-cms-workspace.mjs scripts/test-content-models.ts",
+    "test:content-model-migration": "node scripts/test-content-model-migration.mjs"
   },
   "pnpm": {
     "overrides": {

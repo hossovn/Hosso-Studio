@@ -50,3 +50,7 @@ Postgres: chạy migration `20261105_090000_cms_workspace` bằng quy trình c�
 - `pnpm test:cms-workspace`: kiểm thử trên SQLite tạm riêng, không dùng dữ liệu thật.
 - `pnpm test:cms-migration`: so migration với schema Payload hiện có.
 - `pnpm test:cms-browser`: kiểm thử trình duyệt với fixture vừa tạo; chỉ cho phép localhost. Chỉ định `HOSSO_EDITOR_ORIGIN` và `HOSSO_PLAYWRIGHT_MODULE` nếu cần.
+
+## Loại nội dung tùy chỉnh, Excel/CSV và quyền theo phạm vi
+
+Xem [hướng dẫn tạo loại nội dung, nhập bảng tính và phân quyền](CMS-CONTENT-MODELS.md).

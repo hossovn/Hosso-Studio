@@ -5,6 +5,7 @@ import { cmsField, cmsBeforeChange } from '../lib/cms-hooks'
 import { ownOrEditor, postWriters, publishers } from '../lib/access'
 import { builderLinkField, onlyPublishersPublish, seoFields } from '../lib/content'
 import { lockSiteMutation } from '../lib/site-publication-lock'
+import { scopedContentAccess, enforceContentScope,contentVersionAccess } from '../lib/content-permissions'
 
 /** Bài viết / tin tức / cẩm nang. Nội dung dựng bằng cùng trình dựng kéo thả như trang. Địa chỉ công khai: /bai-viet/<slug>. */
 export const Posts: CollectionConfig = {
@@ -13,10 +14,11 @@ export const Posts: CollectionConfig = {
   labels: { singular: 'Bài viết', plural: 'Bài viết' },
   admin: { useAsTitle: 'title', defaultColumns: ['title', '_status', 'categories', 'createdBy', 'publishedAt'], group: 'Nội dung', components: { beforeListTable: ['/components/admin/ContentTabs#ContentTabs'] } },
   access: {
-    read: ({ req: { user } }) => (user ? true : { _status: { equals: 'published' } }),
+    readVersions:contentVersionAccess('posts'),
+    read: scopedContentAccess('posts','read',({ req: { user } }) => (user ? true : { _status: { equals: 'published' } })),
     create: postWriters,
-    update: ownOrEditor,
-    delete: publishers,
+    update: scopedContentAccess('posts','edit',ownOrEditor),
+    delete: scopedContentAccess('posts','publish',publishers),
   },
   versions: { drafts: { autosave: true, schedulePublish: true }, maxPerDoc: 20 },
   hooks: {
@@ -28,6 +30,7 @@ export const Posts: CollectionConfig = {
       },
     ],
     beforeChange: [
+      enforceContentScope,
       cmsBeforeChange,
       onlyPublishersPublish,
       ({ data, operation, req }) => {

@@ -4,6 +4,7 @@ import { cmsField, cmsBeforeChange } from '../lib/cms-hooks'
 import { pageEditors, publishers } from '../lib/access'
 import { builderLinkField, onlyPublishersPublish, seoFields } from '../lib/content'
 import { lockSiteMutation } from '../lib/site-publication-lock'
+import { scopedContentAccess, enforceContentScope,contentVersionAccess } from '../lib/content-permissions'
 
 export const Pages: CollectionConfig = {
   slug: 'pages',
@@ -13,13 +14,14 @@ export const Pages: CollectionConfig = {
   // Khách chỉ thấy bản đã xuất bản; người đăng nhập thấy cả bản nháp.
   // Biên tập viên sửa và lưu nháp; chỉ quản trị viên được xuất bản (hook bên dưới).
   access: {
-    read: ({ req: { user } }) => (user ? true : { _status: { equals: 'published' } }),
+    readVersions:contentVersionAccess('pages'),
+    read: scopedContentAccess('pages','read',({ req: { user } }) => (user ? true : { _status: { equals: 'published' } })),
     create: pageEditors,
-    update: pageEditors,
-    delete: publishers,
+    update: scopedContentAccess('pages','edit',pageEditors),
+    delete: scopedContentAccess('pages','publish',publishers),
   },
   versions: { drafts: { autosave: true, schedulePublish: true }, maxPerDoc: 20 },
-  hooks: { beforeOperation: [lockSiteMutation], beforeChange: [cmsBeforeChange, onlyPublishersPublish] },
+  hooks: { beforeOperation: [lockSiteMutation], beforeChange: [enforceContentScope, cmsBeforeChange, onlyPublishersPublish] },
   fields: [
     cmsField,
     { name: 'title', type: 'text', label: 'Tiêu đề', required: true, localized: true },

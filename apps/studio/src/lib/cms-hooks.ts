@@ -22,7 +22,7 @@ export const cmsBeforeChange: CollectionBeforeChangeHook = async ({ data, origin
   }
   const deletedAt = Object.hasOwn(data, 'deletedAt') ? data.deletedAt : originalDoc?.deletedAt
   if (data._status === 'published' && deletedAt) throw new APIError('Khôi phục nội dung khỏi thùng rác trước khi xuất bản.', 400)
-  const edited = originalDoc && ['title', 'content', 'articleBody', 'writingMode', 'articleTemplate', 'excerpt', 'description'].some((key) => data[key] !== undefined && JSON.stringify(data[key]) !== JSON.stringify(originalDoc[key]))
+  const edited = originalDoc && ['title', 'content', 'articleBody', 'writingMode', 'articleTemplate', 'excerpt', 'description', 'data'].some((key) => data[key] !== undefined && JSON.stringify(data[key]) !== JSON.stringify(originalDoc[key]))
   if (edited && old.review === 'approved' && next.review === 'approved') next.review = 'review'
   if ((data._status === 'published' || deletedAt) && old.scheduledAt && originalDoc?.id) await cancelCmsSchedule(req, collection.slug, originalDoc.id)
   if (data._status === 'published') { next.review = 'approved'; next.scheduledAt = null }
