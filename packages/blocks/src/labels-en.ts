@@ -255,6 +255,13 @@ export const blockLabelsEn: Record<string, string> = {
   'Lọc theo danh mục': 'Filter by category',
   'Cho phép sắp xếp': 'Allow sorting',
   'Phân trang danh sách': 'List pagination',
+  'Biểu tượng nút gửi': 'Submit button icon',
+  'Mũi tên chéo ↗': 'Diagonal arrow ↗',
+  'Mũi tên ngang →': 'Right arrow →',
+  'Chiều rộng nút gửi': 'Submit button width',
+  'Vừa chữ': 'Fit text',
+  'Rộng 100%': 'Full width (100%)',
+  'Khung biểu mẫu rộng hết ô': 'Expand form to container width',
 }
 
 /** Dịch nhãn theo ngôn ngữ admin; `extra` là từ điển bổ sung (ví dụ của plugin). */

@@ -1,5 +1,5 @@
 export type FormFieldDef = { label: string; name: string; type: string; options?: string | null; required?: boolean | null; placeholder?: string | null }
-export type FieldRule = { step?: number; when?: { field: string; operator: 'equals' | 'notEquals' | 'filled' | 'checked'; value?: string }; minLength?: number; maxLength?: number; min?: number; max?: number }
+export type FieldRule = { step?: number; width?: 'full' | 'half'; when?: { field: string; operator: 'equals' | 'notEquals' | 'filled' | 'checked'; value?: string }; minLength?: number; maxLength?: number; min?: number; max?: number }
 export type QuoteLine = { field: string; price: number; options?: Record<string, number>; quantityField?: string }
 export type QuoteConfig = { label: string; currency: 'VND' | 'USD' | 'EUR'; base: number; lines: QuoteLine[] }
 export type FormRules = { steps?: string[]; fields?: Record<string, FieldRule>; quote?: QuoteConfig }
@@ -15,6 +15,7 @@ export function normalizeFormRules(value: unknown, fields: FormFieldDef[]): Form
     if (!names.includes(name) || !own(source)) throw new Error('Luật biểu mẫu trỏ tới trường không tồn tại.')
     const rule: FieldRule = {}
     if (source.step != null) { if (!Number.isInteger(source.step) || source.step < 0 || source.step >= Math.max(1, steps.length)) throw new Error('Bước của trường không hợp lệ.'); rule.step = source.step }
+    if (source.width != null) { if (source.width !== 'full' && source.width !== 'half') throw new Error('Độ rộng trường không hợp lệ.'); rule.width = source.width }
     for (const key of ['minLength', 'maxLength', 'min', 'max'] as const) if (source[key] != null) { if (!Number.isFinite(source[key]) || (key.endsWith('Length') && (!Number.isInteger(source[key]) || source[key] < 0 || source[key] > 5000))) throw new Error('Giới hạn dữ liệu không hợp lệ.'); rule[key] = source[key] }
     if ((rule.minLength ?? 0) > (rule.maxLength ?? 5000) || (rule.min ?? -Infinity) > (rule.max ?? Infinity)) throw new Error('Giá trị nhỏ nhất phải nhỏ hơn giá trị lớn nhất.')
     if (source.when) {

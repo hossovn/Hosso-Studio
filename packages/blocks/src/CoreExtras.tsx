@@ -71,13 +71,20 @@ export const CategoryGrid: BlockRenderer = ({ heading, items }) => (
 )
 
 /** Biểu mẫu tùy chỉnh (định nghĩa trong admin → Biểu mẫu); dữ liệu form lấy qua loader của lõi. */
-export const FormBlock: BlockRenderer = ({ heading, data }) => {
+export const FormBlock: BlockRenderer = ({ heading, submitIcon, submitFull, fullWidth, data }) => {
   const d = data as { status: string; form?: FormDef } | undefined
+  const icon = submitIcon === 'arrow-up-right' || submitIcon === 'arrow-right' ? submitIcon : 'none'
+  const isFullBtn = submitFull === 'yes' || submitFull === true
+  const isFullBox = fullWidth === 'yes' || fullWidth === true
   return (
     <section className="ss-section">
       <div className="ss-wrap ss-form-wrap">
-        {heading && <h2>{heading}</h2>}
-        {!d || d.status === 'loading' ? <p className="ss-muted">…</p> : d.status === 'ok' && d.form ? <FormView form={d.form} /> : null}
+        {heading && <h2 data-hs-part="heading" data-hs-part-label="Tiêu đề">{heading}</h2>}
+        {!d || d.status === 'loading' ? (
+          <p className="ss-muted">…</p>
+        ) : d.status === 'ok' && d.form ? (
+          <FormView form={d.form} submitIcon={icon} submitFull={isFullBtn} fullWidth={isFullBox} />
+        ) : null}
       </div>
     </section>
   )

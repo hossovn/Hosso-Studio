@@ -3,6 +3,10 @@
 /** Font Google đều có tiếng Việt. `w` là tập độ đậm có thật (Google từ chối độ đậm không tồn tại). */
 export const FREE_FONTS: { name: string; w: string; stack: string }[] = [
   { name: 'Be Vietnam Pro', w: '300;400;500;600;700;800', stack: 'sans-serif' },
+  { name: 'Manrope', w: '400;500;600;700;800', stack: 'sans-serif' },
+  { name: 'Inter', w: '400;500;600;700', stack: 'sans-serif' },
+  { name: 'Plus Jakarta Sans', w: '400;500;600;700;800', stack: 'sans-serif' },
+  { name: 'Noto Sans KR', w: '400;500;600;700', stack: 'sans-serif' },
   { name: 'Montserrat', w: '300;400;500;600;700;800', stack: 'sans-serif' },
   { name: 'Raleway', w: '300;400;500;600;700;800', stack: 'sans-serif' },
   { name: 'Nunito', w: '300;400;600;700;800', stack: 'sans-serif' },
@@ -63,5 +67,23 @@ export const CLIPS: Record<string, string> = {
 export const CLIP_LABEL: Record<string, string> = { '': 'Không', triangle: 'Tam giác', diamond: 'Thoi', hexagon: 'Lục giác', pentagon: 'Ngũ giác', star: 'Ngôi sao', arrow: 'Mũi tên', chevron: 'Chevron', slant: 'Hình bình hành', cross: 'Dấu cộng', badge: 'Huy hiệu', wave: 'Sóng', blob: 'Blob' }
 export const BLOB_RADIUS = '60% 40% 30% 70% / 60% 30% 70% 40%'
 
-/** Nền màu đơn hoặc gradient 2 màu (`bg2` + góc `angle`). */
-export const fillCss = (p: Record<string, any>) => (p.bg2 && p.bg ? `linear-gradient(${Number(p.angle ?? 135)}deg, ${p.bg}, ${p.bg2})` : p.bg)
+const SAFE_COLOR_RE =
+  /^(?:#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|transparent|rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}(?:\s*,\s*(?:0|1|0?\.\d+))?\s*\))$/
+
+/** Chỉ nhận mã màu CSS an toàn (#hex, transparent, rgb/rgba) để chặn chèn CSS qua JSON. */
+export const safeCssColor = (value: unknown, fallback = ''): string => {
+  if (typeof value !== 'string') return fallback
+  const trimmed = value.trim()
+  return SAFE_COLOR_RE.test(trimmed) ? trimmed : fallback
+}
+
+/** Nền màu đơn hoặc gradient 2 màu (`bg2` + góc `angle` hoặc `fillType: 'radial'`). */
+export const fillCss = (p: Record<string, any>): string | undefined => {
+  const c1 = safeCssColor(p.bg)
+  if (!c1) return undefined
+  const c2 = safeCssColor(p.bg2)
+  if (!c2) return c1
+  if (p.fillType === 'radial') return `radial-gradient(circle at 50% 50%, ${c1}, ${c2})`
+  const deg = Number(p.angle ?? 135)
+  return `linear-gradient(${Number.isFinite(deg) ? deg : 135}deg, ${c1}, ${c2})`
+}

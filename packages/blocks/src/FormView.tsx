@@ -2,6 +2,7 @@
 import React, { useId, useRef, useState } from 'react'
 import { useLocale, useT } from './locale-client'
 import { calculateFormQuote, validateFormValues, visibleFormFields, type FormRules, type FormFieldDef } from './form-rules'
+import { ICON_BODY } from './icons-data'
 
 export type FormDef = {
   slug: string
@@ -12,8 +13,15 @@ export type FormDef = {
   rules?: FormRules | null
 }
 
+export type FormViewProps = {
+  form: FormDef
+  submitIcon?: 'none' | 'arrow-up-right' | 'arrow-right'
+  submitFull?: boolean
+  fullWidth?: boolean
+}
+
 /** Biểu mẫu tùy chỉnh: kiểm tra phía server theo định nghĩa trong admin; có ô bẫy bot. */
-export function FormView({ form }: { form: FormDef }) {
+export function FormView({ form, submitIcon = 'none', submitFull = false, fullWidth = false }: FormViewProps) {
   const t = useT()
   const { locale, preview } = useLocale()
   const [state, setState] = useState<'idle' | 'busy' | 'sent' | 'error'>('idle')
@@ -72,16 +80,33 @@ export function FormView({ form }: { form: FormDef }) {
       </div>
     )
   }
+
+  const iconSvg = submitIcon && submitIcon !== 'none' ? ICON_BODY[submitIcon] : undefined
   return (
-    <form ref={formRef} className="ss-form" onSubmit={submit} noValidate aria-busy={state === 'busy'}>
+    <form
+      ref={formRef}
+      className={`ss-form${fullWidth ? ' is-full-width' : ''}`}
+      data-hs-part="form"
+      data-hs-part-label="Khung biểu mẫu"
+      onSubmit={submit}
+      noValidate
+      aria-busy={state === 'busy'}
+    >
       {steps.length > 1 && <div className="ss-form-progress" role="status" aria-live="polite">{locale === 'en' ? 'Step' : 'Bước'} {step + 1}/{steps.length} · {steps[step]}<progress value={step + 1} max={steps.length} /></div>}
       {visible.filter((field) => (form.rules?.fields?.[field.name]?.step ?? 0) === step).map((f) => {
         const id = `f-${instance}-${f.name}`
         const err = errors[f.name]
         const rule = form.rules?.fields?.[f.name] ?? {}
+        const labelCls = [f.type === 'checkbox' ? 'ss-check' : '', rule.width === 'half' ? 'is-half' : ''].filter(Boolean).join(' ') || undefined
         const common = { id, name: f.name, required: Boolean(f.required), disabled: state === 'busy', placeholder: f.placeholder ?? undefined, 'aria-invalid': err ? true : undefined, 'aria-describedby': err ? id + '-error' : undefined, onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => { const value = f.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value; setValues((before) => ({ ...before, [f.name]: value })); setErrors((before) => ({ ...before, [f.name]: '' })) } }
         return (
-          <label key={f.name} htmlFor={id} className={f.type === 'checkbox' ? 'ss-check' : undefined}>
+          <label
+            key={f.name}
+            htmlFor={id}
+            className={labelCls}
+            data-hs-part={f.type === 'checkbox' ? 'checkbox' : 'field'}
+            data-hs-part-label={f.type === 'checkbox' ? 'Ô đồng ý' : 'Nhãn trường'}
+          >
             {f.type === 'checkbox' ? (
               <>
                 <input type="checkbox" checked={Boolean(values[f.name])} {...common} /> {f.label}
@@ -91,9 +116,9 @@ export function FormView({ form }: { form: FormDef }) {
                 {f.label}
                 {f.required ? ' *' : ''}
                 {f.type === 'textarea' ? (
-                  <textarea rows={4} value={values[f.name] ?? ''} minLength={rule.minLength} maxLength={Math.min(5000, rule.maxLength ?? 5000)} {...common} />
+                  <textarea rows={4} value={values[f.name] ?? ''} minLength={rule.minLength} maxLength={Math.min(5000, rule.maxLength ?? 5000)} data-hs-part="input" data-hs-part-label="Ô nhập liệu" {...common} />
                 ) : f.type === 'select' ? (
-                  <select {...common} value={values[f.name] ?? ''}>
+                  <select data-hs-part="input" data-hs-part-label="Ô nhập liệu" {...common} value={values[f.name] ?? ''}>
                     <option value="">{t('form.choose')}</option>
                     {(f.options ?? '').split(',').map((o) => o.trim()).filter(Boolean).map((o) => (
                       <option key={o} value={o}>
@@ -102,7 +127,7 @@ export function FormView({ form }: { form: FormDef }) {
                     ))}
                   </select>
                 ) : (
-                  <input type={f.type} value={values[f.name] ?? ''} minLength={rule.minLength} maxLength={Math.min(500, rule.maxLength ?? 500)} min={rule.min} max={rule.max} {...common} />
+                  <input type={f.type} value={values[f.name] ?? ''} minLength={rule.minLength} maxLength={Math.min(500, rule.maxLength ?? 500)} min={rule.min} max={rule.max} data-hs-part="input" data-hs-part-label="Ô nhập liệu" {...common} />
                 )}
               </>
             )}
@@ -118,8 +143,11 @@ export function FormView({ form }: { form: FormDef }) {
         </p>
       )}
       {step > 0 && <button className="ss-btn ss-form-back" type="button" disabled={state === 'busy'} onClick={() => { setStep(step - 1); setErrors({}); setState('idle') }}>{locale === 'en' ? 'Back' : 'Quay lại'}</button>}
-      <button className="ss-btn" type="submit" disabled={state === 'busy'}>
-        {step < steps.length - 1 ? locale === 'en' ? 'Continue' : 'Tiếp tục' : form.submitLabel || t('form.submit')}
+      <button className={`ss-btn${submitFull ? ' is-full' : ''}`} data-hs-part="submit" data-hs-part-label="Nút gửi" type="submit" disabled={state === 'busy'}>
+        <span>{step < steps.length - 1 ? locale === 'en' ? 'Continue' : 'Tiếp tục' : form.submitLabel || t('form.submit')}</span>
+        {iconSvg && step >= steps.length - 1 && (
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" dangerouslySetInnerHTML={{ __html: iconSvg }} />
+        )}
       </button>
     </form>
   )

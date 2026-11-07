@@ -1,4 +1,8 @@
 import assert from 'node:assert/strict'
+import { createRequire } from 'node:module'
+const studioRequire = createRequire(new URL('../apps/studio/package.json', import.meta.url))
+const React = studioRequire('react')
+const { renderToStaticMarkup } = studioRequire('react-dom/server')
 import { readLinkAction, actionHref } from '../packages/blocks/src/link-actions.ts'
 import {
   captureFrameVariant,
@@ -7,6 +11,13 @@ import {
   materializeFrameVariant,
 } from '../packages/blocks/src/design-presets.ts'
 import { contentOnlyPage, isContentOnlyChange } from '../packages/blocks/src/content-editing.ts'
+import { FREE_FONTS, fillCss, safeCssColor } from '../packages/blocks/src/free-style.ts'
+import { ICON_BODY } from '../packages/blocks/src/icons-data.ts'
+import { FONTS } from '../packages/blocks/src/types.ts'
+import { normalizeFormRules } from '../packages/blocks/src/form-rules.ts'
+import { FormView } from '../packages/blocks/src/FormView.tsx'
+import { LocaleProvider } from '../packages/blocks/src/locale-client.tsx'
+import { baseCss } from '../packages/blocks/src/base-css.ts'
 
 // 1. Link actions: #state:<frameId>:<variantId> and #popover:<frameId>
 assert.equal(actionHref('state', 'frame_tablet:tab_menu'), '#state:frame_tablet:tab_menu')
@@ -156,3 +167,87 @@ for (const tamper of [
   assert.equal(isContentOnlyChange(pageBase, bad), false)
 }
 console.log('PASS Task 1.3: content-only lock permits copy edits in _variants & accordion items while blocking tampering')
+
+// 4. Task 2: Fonts, Icons, Radial/Blur fillCss + safeCssColor, and 2-Column Stylable Forms
+for (const fontName of ['Manrope', 'Inter', 'Plus Jakarta Sans', 'Noto Sans KR']) {
+  assert.ok(FREE_FONTS.some((f) => f.name === fontName), `FREE_FONTS must include ${fontName}`)
+  assert.ok(Object.values(FONTS).includes(fontName), `FONTS must include ${fontName}`)
+}
+for (const icon of [
+  'arrow-up-right',
+  'arrow-down',
+  'tablet',
+  'monitor',
+  'smartphone',
+  'wifi',
+  'signal',
+  'battery-full',
+  'phone-call',
+  'message-circle',
+  'plus',
+  'play',
+  'pause',
+  'qr-code',
+]) {
+  assert.ok(Boolean(ICON_BODY[icon]), `ICON_BODY must include ${icon}`)
+}
+
+assert.equal(safeCssColor('#facc15'), '#facc15')
+assert.equal(safeCssColor('#fff'), '#fff')
+assert.equal(safeCssColor('#facc1580'), '#facc1580')
+assert.equal(safeCssColor('transparent'), 'transparent')
+assert.equal(safeCssColor('rgba(255, 255, 255, 0.85)'), 'rgba(255, 255, 255, 0.85)')
+assert.equal(safeCssColor('red;background:url(evil)', ''), '')
+assert.equal(safeCssColor('javascript:alert(1)', '#000000'), '#000000')
+assert.equal(
+  fillCss({ bg: '#facc15', bg2: 'transparent', fillType: 'radial' }),
+  'radial-gradient(circle at 50% 50%, #facc15, transparent)',
+)
+assert.equal(
+  fillCss({ bg: '#facc15', bg2: '#f59e0b', angle: 90 }),
+  'linear-gradient(90deg, #facc15, #f59e0b)',
+)
+assert.equal(fillCss({ bg: 'red;background:url(evil)', bg2: 'transparent', fillType: 'radial' }), undefined)
+console.log('PASS Task 2.1: Fonts, Lucide icons, radial fillCss, and safeCssColor injection defense')
+
+const formFields = [
+  { name: 'name', label: 'Họ tên', type: 'text', required: true },
+  { name: 'phone', label: 'Số điện thoại', type: 'tel', required: true },
+  { name: 'note', label: 'Ghi chú', type: 'textarea' },
+  { name: 'consent', label: 'Đồng ý chính sách bảo mật', type: 'checkbox', required: true },
+]
+const normalizedRules = normalizeFormRules(
+  { fields: { name: { width: 'half' }, phone: { width: 'half' }, note: { width: 'full' } } },
+  formFields,
+)
+assert.equal(normalizedRules.fields?.name?.width, 'half')
+assert.equal(normalizedRules.fields?.phone?.width, 'half')
+assert.equal(normalizedRules.fields?.note?.width, 'full')
+assert.throws(() => normalizeFormRules({ fields: { name: { width: 'third' } } }, formFields))
+
+assert.match(baseCss, /\.ss-form>label\.is-half\{grid-column:span 1\}/)
+const formHtml = renderToStaticMarkup(
+  React.createElement(
+    LocaleProvider,
+    { locale: 'vi', preview: false },
+    React.createElement(FormView, {
+      form: {
+        slug: 'tu-van',
+        title: 'Đăng ký tư vấn',
+        submitLabel: 'Gửi yêu cầu',
+        fields: formFields,
+        rules: normalizedRules,
+      },
+      submitIcon: 'arrow-up-right',
+      submitFull: true,
+    }),
+  ),
+)
+assert.match(formHtml, /class="[^"]*is-half[^"]*"/)
+assert.match(formHtml, /data-hs-part="form"/)
+assert.match(formHtml, /data-hs-part="field"/)
+assert.match(formHtml, /data-hs-part="input"/)
+assert.match(formHtml, /data-hs-part="checkbox"/)
+assert.match(formHtml, /data-hs-part="submit"/)
+assert.match(formHtml, /M7 7h10v10/)
+console.log('PASS Task 2.2: Two-column FieldRule.width, FormView submitIcon & data-hs-part hooks')

@@ -141,11 +141,11 @@ export const categoryGrid: BlockSchema<{ heading: string; items: { label: string
   defaultProps: { heading: 'Danh mục sản phẩm', items: [] },
 }
 
-export const formBlock: BlockSchema<{ heading: string; form: string }> = {
+export const formBlock: BlockSchema<{ heading: string; form: string; submitIcon: string; submitFull: string; fullWidth: string }> = {
   type: 'Form',
   label: 'Biểu mẫu (tùy chỉnh)',
-  fields: { heading: { type: 'text', label: 'Tiêu đề' }, form: { type: 'ref', collection: 'forms', label: 'Biểu mẫu' } },
-  defaultProps: { heading: '', form: '' },
+  fields: { heading: { type: 'text', label: 'Tiêu đề' }, form: { type: 'ref', collection: 'forms', label: 'Biểu mẫu' }, submitIcon: { type: 'select', label: 'Biểu tượng nút gửi', options: [{ label: 'Không', value: 'none' }, { label: 'Mũi tên chéo ↗', value: 'arrow-up-right' }, { label: 'Mũi tên ngang →', value: 'arrow-right' }] }, submitFull: { type: 'radio', label: 'Chiều rộng nút gửi', options: [{ label: 'Vừa chữ', value: 'no' }, { label: 'Rộng 100%', value: 'yes' }] }, fullWidth: { type: 'radio', label: 'Khung biểu mẫu rộng hết ô', options: [{ label: 'Mặc định', value: 'no' }, { label: 'Rộng 100%', value: 'yes' }] } },
+  defaultProps: { heading: '', form: '', submitIcon: 'none', submitFull: 'no', fullWidth: 'no' },
 }
 
 export const reusable: BlockSchema<{ slug: string }> = {

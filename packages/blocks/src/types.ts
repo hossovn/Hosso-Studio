@@ -61,6 +61,10 @@ export type BlockRenderer<P = any> = ComponentType<P & { id: string }>
 /** Font có sẵn (khai báo bằng next/font trong app). Quản trị viên chọn trong admin. */
 export const FONTS = {
   'be-vietnam-pro': 'Be Vietnam Pro',
+  manrope: 'Manrope',
+  inter: 'Inter',
+  'plus-jakarta-sans': 'Plus Jakarta Sans',
+  'noto-sans-kr': 'Noto Sans KR',
   barlow: 'Barlow',
   'chakra-petch': 'Chakra Petch',
   'jetbrains-mono': 'JetBrains Mono',
