@@ -16,6 +16,7 @@ import * as breakpoints from '../packages/blocks/src/responsive-breakpoints.ts'
 import * as linkActions from '../packages/blocks/src/link-actions.ts'
 import * as reusableOverrides from '../packages/blocks/src/reusable-overrides.ts'
 import * as repeaterData from '../packages/blocks/src/repeater-data.ts'
+import * as designPresets from '../packages/blocks/src/design-presets.ts'
 const { newId } = freeGeometry
 
 const require = createRequire(new URL('../apps/studio/package.json', import.meta.url))
@@ -148,15 +149,25 @@ const motionText = compile('../packages/blocks/src/MotionText.tsx', { './motion-
 const responsiveLayout = compile('../packages/blocks/src/responsive-layout.ts', { './layout-constraints.ts': layoutConstraints, './responsive-breakpoints.ts': breakpoints })
 const canvasWidgets = compile('../packages/blocks/src/canvas-widgets.tsx', {})
 const frameLayout = compile('../packages/blocks/src/frame-layout.ts', { './free-geometry.ts': freeGeometry })
-const { FreeElementView, FreeOverlay, FreeCanvasView, makeElement } = compile('../packages/blocks/src/FreeCanvas.tsx', {
+let freeCanvasExports = {}
+const freeInteractiveScope = compile('../packages/blocks/src/FreeInteractiveScope.tsx', {
+  './canvas-widgets': canvasWidgets, './design-presets': designPresets, './free-geometry': freeGeometry,
+  './link-actions': linkActions, './motion-effects': motionEffects, './MotionScope': motionScope,
+  './responsive-breakpoints': breakpoints, './responsive-layout': responsiveLayout,
+  './FreeCanvas': { FREE_MAX_PX: 1440, FREE_W: 1200, FreeElementView: (props) => React.createElement(freeCanvasExports.FreeElementView, props) },
+})
+freeCanvasExports = compile('../packages/blocks/src/FreeCanvas.tsx', {
+  './FreeInteractiveScope': freeInteractiveScope,
   './canvas-widgets': canvasWidgets, './responsive-layout': responsiveLayout,
   './responsive-breakpoints': breakpoints,
   './MotionEffects': motionRuntime, './MotionScope': motionScope, './MotionText': motionText, './motion-effects': motionEffects,
   './ScrollEffect': scrollRuntime, './scroll-effects': scrollEffects,
-  './free-style': freeStyle, './free-extra': {}, './icons-data': { ICON_BODY: { test: '<path d="M4 4h16v16H4z" />' } }, './FreeSwiper': { FreeSwiper }, './free-geometry': freeGeometry, './element-states': elementStates, './rich-text': richText,
+  './free-style': freeStyle, './free-extra': {}, './icons-data': { ICON_BODY: { test: '<path d="M4 4h16v16H4z" />' } }, './FreeSwiper': { FreeSwiper }, './free-geometry': freeGeometry, './element-states': elementStates, './rich-text': richText
+// end FreeCanvas compile
 })
+const { FreeElementView, FreeOverlay, FreeCanvasView, makeElement } = freeCanvasExports
 const legacyButton = makeElement('button', { id: 'legacy-button', props: { text: 'Legacy', href: '/legacy' } })
-const { SECTION_TEMPLATES, SECTION_TEMPLATES_MORE, HEADER_TEMPLATES } = compile('../apps/studio/src/app/(editor)/editor/[id]/SectionTemplates.ts', { '@hosso/studio-blocks': { makeElement }, '../../../../../../../packages/blocks/src/frame-layout': frameLayout })
+const { SECTION_TEMPLATES, SECTION_TEMPLATES_MORE, HEADER_TEMPLATES } = compile('../apps/studio/src/app/(editor)/editor/[id]/SectionTemplates.ts', { '@hosso/studio-blocks': { makeElement, newId }, '../../../../../../../packages/blocks/src/design-presets': designPresets, '../../../../../../../packages/blocks/src/frame-layout': frameLayout })
 for (const template of [...SECTION_TEMPLATES, ...SECTION_TEMPLATES_MORE]) {
   const first = template.build(), second = template.build()
   assert.ok(second.every((el) => !first.some((other) => other.id === el.id)), `${template.id}: independent IDs`)
@@ -298,7 +309,7 @@ assert.match(pagesMarkup, /popover="auto"/)
 assert.match(pagesMarkup, /role="dialog" aria-label="Trang"/)
 assert.match(pagesMarkup, /aria-label="Tìm trang"/)
 console.log('PASS: populated template library, line-icon rail with brand tool and accessible pages dropdown')
-assert.deepEqual(ELEMENT_CATALOG.map((item) => item.type), ['text', 'button', 'container', 'image', 'swiper', 'video'])
+assert.deepEqual(ELEMENT_CATALOG.map((item) => item.type), ['text', 'button', 'container', 'image', 'swiper', 'video', 'accordion'])
 for (const item of ELEMENT_CATALOG) { assert.equal(item.create().type, item.type); assert.ok(item.preview); assert.notEqual(item.create().id, item.create().id) }
 console.log('PASS: element catalog, legacy/state rendering, canvas state preview, section scope, reduced motion and serialized round-trip')
 assert.equal(PAGE_TEMPLATES.length, 8)

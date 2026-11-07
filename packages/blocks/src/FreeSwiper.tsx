@@ -3,7 +3,6 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { A11y, Autoplay, EffectFade, Keyboard, Navigation, Pagination } from 'swiper/modules'
 import type { Swiper as SwiperInstance } from 'swiper'
-import { ICON_BODY } from './icons-data'
 
 export type FreeSlide = { image: string; alt?: string; text?: string }
 
@@ -58,7 +57,6 @@ export function FreeSwiper({
   const auto = !editing && motion && !paused && seconds > 0
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-      {playToggle && slides.length > 1 && <style>{SWIPER_CTRL_CSS}</style>}
       <Swiper
         key={`${editing}-${motion}-${seconds}-${effect}-${cards}-${space}`}
         modules={[A11y, Autoplay, EffectFade, Keyboard, Navigation, Pagination]}
@@ -95,35 +93,6 @@ export function FreeSwiper({
           </SwiperSlide>
         ))}
       </Swiper>
-      {playToggle && slides.length > 1 && (
-        <div className="hs-swiper-ctrl" role="group" aria-label={playToggleLabel}>
-          <button type="button" disabled={editing} aria-label="Slide trước" onClick={() => swiper.current?.slidePrev()}>
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" dangerouslySetInnerHTML={{ __html: ICON_BODY['chevron-left'] }} />
-          </button>
-          {seconds > 0 && (
-            <button
-              type="button"
-              disabled={editing}
-              aria-pressed={paused}
-              aria-label={paused ? 'Tiếp tục tự chạy' : 'Tạm dừng tự chạy'}
-              onClick={() => {
-                const next = !paused
-                setPaused(next)
-                if (next) swiper.current?.autoplay?.stop()
-                else swiper.current?.autoplay?.start()
-              }}
-            >
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" dangerouslySetInnerHTML={{ __html: paused ? ICON_BODY.play : ICON_BODY.pause }} />
-            </button>
-          )}
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#4b5563', fontVariantNumeric: 'tabular-nums', minWidth: 42, textAlign: 'center' }}>
-            {active + 1} / {slides.length}
-          </span>
-          <button type="button" disabled={editing} aria-label="Slide tiếp theo" onClick={() => swiper.current?.slideNext()}>
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" dangerouslySetInnerHTML={{ __html: ICON_BODY['chevron-right'] }} />
-          </button>
-        </div>
-      )}
       {thumbnails && slides.length > 1 && (
         <div className="hs-swiper-thumbs" role="group" aria-label="Slides">
           {slides.map((slide, i) => (
@@ -141,6 +110,42 @@ export function FreeSwiper({
               <img src={slide.image} alt="" />
             </button>
           ))}
+        </div>
+      )}
+      {playToggle && slides.length > 1 && (
+        <div className="hs-swiper-ctrl" role="group" aria-label={playToggleLabel}>
+          <style>{SWIPER_CTRL_CSS}</style>
+          <button type="button" disabled={editing} aria-label="Slide trước" onClick={() => swiper.current?.slidePrev()}>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="m15 18-6-6 6-6" />
+            </svg>
+          </button>
+          {seconds > 0 && (
+            <button
+              type="button"
+              disabled={editing}
+              aria-pressed={paused}
+              aria-label={paused ? 'Tiếp tục tự chạy' : 'Tạm dừng tự chạy'}
+              onClick={() => {
+                const next = !paused
+                setPaused(next)
+                if (next) swiper.current?.autoplay?.stop()
+                else swiper.current?.autoplay?.start()
+              }}
+            >
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                {paused ? <polygon points="6 3 20 12 6 21 6 3" /> : <><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></>}
+              </svg>
+            </button>
+          )}
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#4b5563', fontVariantNumeric: 'tabular-nums', minWidth: 42, textAlign: 'center' }}>
+            {active + 1} / {slides.length}
+          </span>
+          <button type="button" disabled={editing} aria-label="Slide tiếp theo" onClick={() => swiper.current?.slideNext()}>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </button>
         </div>
       )}
     </div>

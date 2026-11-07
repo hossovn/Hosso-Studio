@@ -635,7 +635,7 @@ function PageOverviewInspector({ data, setSel, commit, title, areaKind = '' }: {
         <label className="cv-check"><input type="checkbox" checked={Boolean(rp.sticky)} onChange={(e) => putRoot({ sticky: e.target.checked })} />Ghim cố định đầu trang khi cuộn (Sticky)</label>
         <Row label="Nền Header (hỗ trợ rgba kính mờ)"><input style={ctl} value={rp.headerBg ?? ''} placeholder="rgba(255, 255, 255, 0.86)" onChange={(e) => putRoot({ headerBg: e.target.value })} /></Row>
         <Row label="Độ mờ kính (Backdrop Blur px)"><RangeControl value={rp.backdropBlur ?? 0} onChange={(v) => putRoot({ backdropBlur: Math.min(24, Math.max(0, Number(v) || 0)) })} min={0} max={24} /></Row>
-        <Row label="Viền dưới (CSS border)"><input style={ctl} value={rp.borderBottom ?? ''} placeholder="1px solid rgba(15, 23, 42, 0.08)" onChange={(e) => putRoot({ borderBottom: e.target.value })} /></Row>
+        <Row label="Màu viền dưới"><input style={ctl} value={rp.borderBottom ?? ''} placeholder="rgba(15, 23, 42, 0.08)" onChange={(e) => putRoot({ borderBottom: e.target.value })} /></Row>
         <label className="cv-check"><input type="checkbox" checked={Boolean(rp.hideAutoSlots)} onChange={(e) => putRoot({ hideAutoSlots: e.target.checked })} />Ẩn cụm ngôn ngữ/tiện ích tự động góc phải</label>
         <div className="cv-subheading">Thanh tiến độ đọc trang</div>
         <label className="cv-check"><input type="checkbox" checked={Boolean(rp.readingProgress)} onChange={(e) => putRoot({ readingProgress: e.target.checked })} />Hiện thanh tiến độ cuộn trang ở đáy Header</label>

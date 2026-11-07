@@ -47,6 +47,7 @@ export function ReadingProgress({ color = '#facc15', height = 3 }: { color?: str
     >
       <div
         ref={barRef}
+        data-hs-reading-progress=""
         style={{
           width: '100%',
           height: '100%',
