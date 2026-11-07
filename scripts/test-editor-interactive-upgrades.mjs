@@ -18,6 +18,7 @@ import { normalizeFormRules } from '../packages/blocks/src/form-rules.ts'
 import { FormView } from '../packages/blocks/src/FormView.tsx'
 import { LocaleProvider } from '../packages/blocks/src/locale-client.tsx'
 import { baseCss } from '../packages/blocks/src/base-css.ts'
+import { FreeCanvasView, FreeElementView, makeElement } from '../packages/blocks/src/FreeCanvas.tsx'
 
 // 1. Link actions: #state:<frameId>:<variantId> and #popover:<frameId>
 assert.equal(actionHref('state', 'frame_tablet:tab_menu'), '#state:frame_tablet:tab_menu')
@@ -251,3 +252,76 @@ assert.match(formHtml, /data-hs-part="checkbox"/)
 assert.match(formHtml, /data-hs-part="submit"/)
 assert.match(formHtml, /M7 7h10v10/)
 console.log('PASS Task 2.2: Two-column FieldRule.width, FormView submitIcon & data-hs-part hooks')
+
+// 5. Task 3: Canvas Primitives (accordion, video overlay, swiper multi-card/playToggle, shape blur, svh Hero & gradient overlay)
+const accEl = makeElement('accordion', {
+  props: {
+    exclusive: true,
+    iconStyle: 'plus',
+    items: [
+      { question: 'MenuMate có cần mạng Internet không?', answer: 'Hỗ trợ đồng bộ nội bộ mượt mà.', defaultOpen: true },
+      { question: 'Thời gian triển khai bao lâu?', answer: 'Chỉ 24 giờ để lên thực đơn.', defaultOpen: false },
+    ],
+  },
+})
+assert.equal(accEl.type, 'accordion')
+const accHtml = renderToStaticMarkup(React.createElement(FreeElementView, { el: accEl }))
+assert.match(accHtml, /<details[^>]*open/)
+assert.match(accHtml, /<details[^>]*name="hs-acc-/)
+assert.match(accHtml, /<summary/)
+assert.match(accHtml, /MenuMate có cần mạng Internet không\?/)
+assert.match(accHtml, /Thời gian triển khai bao lâu\?/)
+assert.doesNotMatch(accHtml, /transition:\s*all/i)
+
+const vidEl = makeElement('video', {
+  props: {
+    url: '/demo/tablet-order.mp4',
+    poster: '/editor-templates/restaurant.jpg',
+    controlsMode: 'overlay',
+    playLabel: 'Xem video giới thiệu',
+    pauseLabel: 'Tạm dừng video',
+    radius: 16,
+  },
+})
+const vidHtml = renderToStaticMarkup(React.createElement(FreeElementView, { el: vidEl }))
+assert.match(vidHtml, /<video[^>]*playsInline/i)
+assert.match(vidHtml, /aria-label="Xem video giới thiệu"/)
+
+const auraShape = makeElement('shape', {
+  props: { bg: '#facc15', bg2: 'transparent', fillType: 'radial', blur: 24, radius: 999 },
+})
+const shapeHtml = renderToStaticMarkup(React.createElement(FreeElementView, { el: auraShape }))
+assert.match(shapeHtml, /radial-gradient\(circle at 50% 50%, #facc15, transparent\)/)
+assert.match(shapeHtml, /filter:blur\(/)
+
+const svhPublicHtml = renderToStaticMarkup(
+  React.createElement(FreeCanvasView, {
+    id: 'hero1',
+    height: 760,
+    heightMode: 'svh',
+    svh: 100,
+    svhOffset: 82,
+    minHeightPx: 610,
+    bgImage: '/editor-templates/restaurant.jpg',
+    bgOverlay: 85,
+    bgOverlayColor: '#111827',
+    bgOverlayColor2: 'transparent',
+    bgOverlayAngle: 90,
+  }),
+)
+assert.match(svhPublicHtml, /min-height:max\(610px, calc\(100svh - 82px\)\)/)
+assert.match(svhPublicHtml, /linear-gradient\(90deg, #111827, transparent\)/)
+
+const svhEditorHtml = renderToStaticMarkup(
+  React.createElement(FreeCanvasView, {
+    id: 'hero1',
+    height: 760,
+    heightMode: 'svh',
+    svh: 100,
+    svhOffset: 82,
+    minHeightPx: 610,
+    _noFree: true,
+  }),
+)
+assert.doesNotMatch(svhEditorHtml, /100svh/)
+console.log('PASS Task 3: accordion, video overlay, radial-blur shape, svh Hero & directional bgOverlay')

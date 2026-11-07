@@ -1,11 +1,12 @@
 'use client'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 
-import { fontStack } from './free-style'
+import { fontStack, safeCssColor } from './free-style'
+import { ICON_BODY } from './icons-data'
 
-/** Phần tử tự do có tương tác hoặc dữ liệu riêng: đếm ngược, tab, menu thu gọn/hamburger, bảng, bản đồ, nhúng, breadcrumb. `u` đổi px thiết kế sang cqw. */
+/** Phần tử tự do có tương tác hoặc dữ liệu riêng: đếm ngược, tab, accordion, video overlay, menu thu gọn/hamburger, bảng, bản đồ, nhúng, breadcrumb. `u` đổi px thiết kế sang cqw. */
 type U = (n: number) => string
-const mkU = (unit: number): U => (n) => `${(Number(n) / unit) * 100}cqw`
+const mkU = (unit: number, scale?: number): U => (n) => (scale !== undefined ? `${Number(n) * scale}px` : `${(Number(n) / unit) * 100}cqw`)
 const SAFE_HREF = /^(https?:\/\/|\/|#|mailto:|tel:)/i
 const href = (h: unknown) => (typeof h === 'string' && SAFE_HREF.test(h.trim()) ? h.trim() : '#')
 const font = (p: Record<string, any>): React.CSSProperties => ({ fontFamily: fontStack(p.font) ?? 'inherit' })
@@ -140,5 +141,201 @@ export function FreeBreadcrumb({ p, unit, editing }: { p: Record<string, any>; u
         )
       })}
     </nav>
+  )
+}
+
+export type AccordionItem = { question: string; answer: string; defaultOpen?: boolean }
+
+const ACCORDION_CSS = `
+.hs-acc summary{list-style:none;cursor:pointer;user-select:none}
+.hs-acc summary::-webkit-details-marker{display:none}
+.hs-acc summary:focus-visible{outline:2px solid currentColor;outline-offset:2px;border-radius:8px}
+.hs-acc details[open][data-open-bg="1"]{background:var(--hs-acc-open-bg)!important;border-color:var(--hs-acc-accent)!important}
+.hs-acc[data-icon="plus"] details[open] .hs-acc-icon{transform:rotate(45deg)}
+.hs-acc[data-icon="chevron"] details[open] .hs-acc-icon{transform:rotate(180deg)}
+@media(prefers-reduced-motion:no-preference){
+  .hs-acc .hs-acc-icon{transition:transform 180ms cubic-bezier(.23,1,.32,1)}
+  .hs-acc summary:active{transform:scale(.99)}
+  .hs-acc details[open] .hs-acc-body{animation:hsAccReveal 180ms cubic-bezier(.23,1,.32,1)}
+}
+@keyframes hsAccReveal{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+`
+
+export function FreeAccordion({ elId, p, unit, scale, editing = false }: { elId: string; p: Record<string, any>; unit: number; scale?: number; editing?: boolean }) {
+  const u = mkU(unit, scale)
+  const items: AccordionItem[] = Array.isArray(p.items) && p.items.length
+    ? p.items
+    : [{ question: 'Câu hỏi thường gặp?', answer: 'Nội dung giải đáp chi tiết.', defaultOpen: true }]
+  const iconStyle = p.iconStyle === 'chevron' ? 'chevron' : 'plus'
+  const bg = safeCssColor(p.bg, '#ffffff')
+  const openBg = safeCssColor(p.openBg, '')
+  const borderColor = safeCssColor(p.borderColor, '#e5e7eb')
+  const qColor = safeCssColor(p.color, '#111827')
+  const aColor = safeCssColor(p.answerColor, '#4b5563')
+  const accent = safeCssColor(p.accent, '#15803d')
+  const radius = u(p.radius ?? 14)
+  const padX = u(p.padX ?? 22)
+  const padY = u(p.padY ?? 18)
+  const qSize = u(p.size ?? 18)
+  const aSize = u(p.answerSize ?? Math.round((Number(p.size) || 18) * 0.88))
+  const groupName = p.exclusive !== false ? `hs-acc-${elId.replace(/[^a-zA-Z0-9_-]/g, '')}` : undefined
+
+  return (
+    <div
+      className="hs-acc"
+      data-icon={iconStyle}
+      style={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: u(p.gap ?? 12),
+        overflowY: 'auto',
+        boxSizing: 'border-box',
+        ['--hs-acc-open-bg' as string]: openBg || bg,
+        ['--hs-acc-accent' as string]: accent,
+        ...font(p),
+      }}
+    >
+      <style>{ACCORDION_CSS}</style>
+      {items.map((it, idx) => (
+        <details
+          key={idx}
+          name={groupName}
+          open={Boolean(it.defaultOpen)}
+          data-open-bg={openBg ? '1' : undefined}
+          onClick={editing ? (e) => e.preventDefault() : undefined}
+          style={{
+            background: bg,
+            border: `${u(p.borderW ?? 1)} solid ${borderColor}`,
+            borderRadius: radius,
+            overflow: 'hidden',
+            flexShrink: 0,
+          }}
+        >
+          <summary
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: u(14),
+              padding: `${padY} ${padX}`,
+              color: qColor,
+              fontSize: qSize,
+              fontWeight: p.weight ?? 700,
+              lineHeight: 1.35,
+            }}
+          >
+            <span>{it.question}</span>
+            <span
+              className="hs-acc-icon"
+              aria-hidden="true"
+              style={{
+                width: u(28),
+                height: u(28),
+                borderRadius: '50%',
+                background: safeCssColor(p.iconBg, '#f3f4f6'),
+                color: accent,
+                display: 'inline-grid',
+                placeItems: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <svg viewBox="0 0 24 24" width={u(16)} height={u(16)} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                {iconStyle === 'chevron' ? <path d="m6 9 6 6 6-6" /> : <><path d="M5 12h14" /><path d="M12 5v14" /></>}
+              </svg>
+            </span>
+          </summary>
+          <div
+            className="hs-acc-body"
+            style={{
+              padding: `0 ${padX} ${padY}`,
+              color: aColor,
+              fontSize: aSize,
+              lineHeight: 1.6,
+              whiteSpace: 'pre-wrap',
+            }}
+          >
+            {it.answer}
+          </div>
+        </details>
+      ))}
+    </div>
+  )
+}
+
+const VIDEO_OVERLAY_CSS = `
+.hs-vid-btn{border:0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;color:#fff;background:rgba(17,24,39,.76);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.hs-vid-btn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+@media(prefers-reduced-motion:no-preference){
+  .hs-vid-btn{transition:transform 160ms cubic-bezier(.23,1,.32,1),opacity 160ms cubic-bezier(.23,1,.32,1)}
+  .hs-vid-btn:hover{transform:scale(1.04)}
+  .hs-vid-btn:active{transform:scale(.97)}
+}
+@media(prefers-reduced-transparency:reduce){
+  .hs-vid-btn{backdrop-filter:none;-webkit-backdrop-filter:none;background:#111827}
+}
+`
+
+export function FreeVideoPlayer({ p, unit, scale, editing = false }: { p: Record<string, any>; unit: number; scale?: number; editing?: boolean }) {
+  const u = mkU(unit, scale)
+  const ref = useRef<HTMLVideoElement>(null)
+  const [playing, setPlaying] = useState(false)
+  const radius = u(p.radius ?? 0)
+  const playLabel = String(p.playLabel || 'Phát video')
+  const pauseLabel = String(p.pauseLabel || 'Tạm dừng video')
+  const toggle = () => {
+    if (editing || !ref.current) return
+    if (ref.current.paused) {
+      ref.current.play().catch(() => {})
+    } else {
+      ref.current.pause()
+    }
+  }
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: radius, overflow: 'hidden', background: '#0f172a' }}>
+      <style>{VIDEO_OVERLAY_CSS}</style>
+      <video
+        ref={ref}
+        src={p.url}
+        poster={p.poster || undefined}
+        loop={Boolean(p.loop)}
+        muted={Boolean(p.muted)}
+        autoPlay={!editing && Boolean(p.autoplay) && Boolean(p.muted)}
+        playsInline
+        preload="metadata"
+        onClick={toggle}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => setPlaying(false)}
+        style={{ width: '100%', height: '100%', display: 'block', objectFit: p.fit === 'contain' ? 'contain' : 'cover', cursor: editing ? 'default' : 'pointer' }}
+      />
+      <button
+        type="button"
+        className="hs-vid-btn"
+        aria-label={playing ? pauseLabel : playLabel}
+        aria-pressed={playing}
+        disabled={editing}
+        onClick={toggle}
+        style={
+          playing
+            ? { position: 'absolute', right: u(14), bottom: u(14), width: u(42), height: u(42), borderRadius: '50%', opacity: 0.86 }
+            : { position: 'absolute', inset: 0, margin: 'auto', width: u(68), height: u(68), borderRadius: '50%', boxShadow: '0 12px 28px rgba(0,0,0,.32)' }
+        }
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width={playing ? u(18) : u(26)}
+          height={playing ? u(18) : u(26)}
+          fill="currentColor"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+          dangerouslySetInnerHTML={{ __html: playing ? ICON_BODY.pause : ICON_BODY.play }}
+        />
+      </button>
+    </div>
   )
 }

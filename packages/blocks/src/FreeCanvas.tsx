@@ -1,7 +1,7 @@
 import React from 'react'
 import { CANVAS_WIDGET_CSS } from './canvas-widgets'
-import { BLOB_RADIUS, BOX_SHADOWS, CLIPS, TEXT_SHADOWS, fillCss, fontImport, fontStack, shadowCss } from './free-style'
-import { FreeBreadcrumb, FreeCountdown, FreeEmbed, FreeFoldMenu, FreeMap, FreeTable, FreeTabs } from './free-extra'
+import { BLOB_RADIUS, BOX_SHADOWS, CLIPS, TEXT_SHADOWS, fillCss, fontImport, fontStack, safeCssColor, shadowCss } from './free-style'
+import { FreeAccordion, FreeBreadcrumb, FreeCountdown, FreeEmbed, FreeFoldMenu, FreeMap, FreeTable, FreeTabs, FreeVideoPlayer } from './free-extra'
 import { ICON_BODY } from './icons-data'
 import type { BlockRenderer } from './types'
 import { FreeSwiper } from './FreeSwiper'
@@ -26,7 +26,7 @@ export { newId } from './free-geometry'
 export const FREE_W = 1200
 export const FREE_MAX_PX = 1440
 
-export type FreeType = 'heading' | 'text' | 'button' | 'shape' | 'line' | 'icon' | 'image' | 'video' | 'menu' | 'countdown' | 'number' | 'table' | 'map' | 'embed' | 'tabs' | 'breadcrumb' | 'container' | 'swiper' | 'widget'
+export type FreeType = 'heading' | 'text' | 'button' | 'shape' | 'line' | 'icon' | 'image' | 'video' | 'menu' | 'countdown' | 'number' | 'table' | 'map' | 'embed' | 'tabs' | 'accordion' | 'breadcrumb' | 'container' | 'swiper' | 'widget'
 export type FreeElement = { id: string; parentId?: string; type: FreeType; x: number; y: number; w: number; h: number; props: Record<string, any>; responsive?: Partial<Record<'tablet' | 'mobile' | `bp-${number}`, DevicePatch>> }
 
 const ICON_PATHS: Record<string, string> = {
@@ -81,6 +81,7 @@ export function makeElement(type: FreeType, over: Partial<FreeElement> & { props
     map: { type: 'map', x: 80, y: 60, w: 560, h: 360, props: { query: 'Nhà thờ Đức Bà, Hồ Chí Minh', zoom: 15 } },
     embed: { type: 'embed', x: 80, y: 60, w: 560, h: 360, props: { url: '' } },
     tabs: { type: 'tabs', x: 80, y: 60, w: 520, h: 220, props: { tabs: [{ label: 'Tab 1', text: 'Nội dung của tab 1' }, { label: 'Tab 2', text: 'Nội dung của tab 2' }, { label: 'Tab 3', text: 'Nội dung của tab 3' }], accent: '#15803d', size: 18, bg: '#f9fafb', radius: 12 } },
+    accordion: { type: 'accordion', x: 80, y: 60, w: 680, h: 320, props: { exclusive: true, iconStyle: 'plus', size: 18, answerSize: 15, weight: 700, color: '#111827', answerColor: '#4b5563', accent: '#15803d', bg: '#ffffff', borderColor: '#e5e7eb', radius: 14, gap: 12, padX: 22, padY: 18, items: [{ question: 'Câu hỏi thường gặp số 1?', answer: 'Nhập câu trả lời chi tiết tại bảng thuộc tính bên phải.', defaultOpen: true }, { question: 'Câu hỏi thường gặp số 2?', answer: 'Khách có thể bấm để mở hoặc đóng từng mục mượt mà.', defaultOpen: false }] } },
     breadcrumb: { type: 'breadcrumb', x: 80, y: 60, w: 560, h: 36, props: { items: [{ label: 'Trang chủ', href: '/' }, { label: 'Trang 1', href: '#' }, { label: 'Trang 2', href: '#' }], size: 16, color: '#6b7280', accent: '#15803d' } },
   }
   const b = base[type]
@@ -93,7 +94,7 @@ const FM_CSS = '.fm-has{position:relative}.fm-sub{display:none;position:absolute
 export function FreeElementView({ el, unit = FREE_W, scale, editing = false, state, scrollEffects = true, children }: { el: FreeElement; unit?: number; scale?: number; editing?: boolean; state?: ElementState; scrollEffects?: boolean; children?: React.ReactNode }) {
   if (el.type === 'widget') return <>{children ?? <div>Chọn khối để thêm nội dung</div>}</>
   const p = el.props
-  const imp = ['heading', 'text', 'button', 'menu', 'countdown', 'number', 'table', 'tabs', 'breadcrumb'].includes(el.type) ? fontImport(p.font) : ''
+  const imp = ['heading', 'text', 'button', 'menu', 'countdown', 'number', 'table', 'tabs', 'accordion', 'breadcrumb'].includes(el.type) ? fontImport(p.font) : ''
   const op = p.opacity != null && p.opacity !== '' ? Math.min(100, Math.max(0, Number(p.opacity))) : 100
   const rot = Number(p.rotate) || 0
   const bodyOpacity = ['text', 'heading', 'button', 'image'].includes(el.type)
@@ -155,7 +156,7 @@ function FreeElementBody({ el, unit, scale, editing, state }: { el: FreeElement;
     const content = <>{typeof p.icon === 'string' && Object.hasOwn(ICON_BODY, p.icon) && <svg viewBox="0 0 24 24" width={u(p.size ?? 18)} height={u(p.size ?? 18)} fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" style={{ flexShrink: 0 }} dangerouslySetInnerHTML={{ __html: ICON_BODY[p.icon] }} />}{richText ? <span dangerouslySetInnerHTML={{ __html: richText }} /> : p.text}</>
     return editing ? <span {...stateAttrs} style={st}>{content}</span> : <a {...stateAttrs} href={safeHref(p.href)} style={st}>{content}</a>
   }
-  if (el.type === 'shape') return <div style={{ width: '100%', height: '100%', boxSizing: 'border-box', background: fillCss(p), borderRadius: p.clip === 'blob' ? BLOB_RADIUS : p.radius >= 999 ? '50%' : u(p.radius ?? 0), border: p.borderW ? `${u(p.borderW)} solid ${p.borderColor}` : 0, clipPath: CLIPS[p.clip], boxShadow: CLIPS[p.clip] ? undefined : shadowCss(BOX_SHADOWS[p.bshadow], u) }} />
+  if (el.type === 'shape') { const blurPx = Math.min(40, Math.max(0, Number(p.blur) || 0)); return <div style={{ width: '100%', height: '100%', boxSizing: 'border-box', background: fillCss(p), borderRadius: p.clip === 'blob' ? BLOB_RADIUS : p.radius >= 999 ? '50%' : u(p.radius ?? 0), border: p.borderW ? `${u(p.borderW)} solid ${p.borderColor}` : 0, clipPath: CLIPS[p.clip], boxShadow: CLIPS[p.clip] ? undefined : shadowCss(BOX_SHADOWS[p.bshadow], u), filter: blurPx > 0 ? `blur(${u(blurPx)})` : undefined }} /> }
   if (el.type === 'line') {
     const t = u(p.thickness ?? 2)
     const st: React.CSSProperties = p.vertical ? { height: '100%', borderLeft: `${t} ${p.dashed ? 'dashed' : 'solid'} ${p.color}` } : { width: '100%', borderTop: `${t} ${p.dashed ? 'dashed' : 'solid'} ${p.color}` }
@@ -178,15 +179,17 @@ function FreeElementBody({ el, unit, scale, editing, state }: { el: FreeElement;
     return p.href && !editing ? <a {...stateAttrs} href={safeHref(p.href)} style={frameStyle}>{picture}</a> : <div {...stateAttrs} style={frameStyle}>{picture}</div>
   }
   if (el.type === 'container') return <div style={{ width: '100%', height: '100%', boxSizing: 'border-box', background: fillCss(p) || 'transparent', backgroundImage: typeof p.bgImage === 'string' && p.bgImage ? 'url(' + JSON.stringify(p.bgImage) + ')' : undefined, backgroundSize: p.bgFit === 'contain' ? 'contain' : 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', borderRadius: u(p.radius || 0), border: p.borderW ? `${u(p.borderW)} solid ${p.borderColor ?? '#111827'}` : undefined, boxShadow: shadowCss(BOX_SHADOWS[p.bshadow], u) }} />
-  if (el.type === 'swiper') return <FreeSwiper slides={Array.isArray(p.slides) ? p.slides : []} seconds={Number(p.seconds) || 0} editing={editing} effect={p.effect === 'fade' ? 'fade' : 'slide'} thumbnails={p.thumbnails === true} />
+  if (el.type === 'swiper') return <FreeSwiper slides={Array.isArray(p.slides) ? p.slides : []} seconds={Number(p.seconds) || 0} editing={editing} effect={p.effect === 'fade' ? 'fade' : 'slide'} thumbnails={p.thumbnails === true} perView={Number(p.perView) || 1} gap={Number(p.gap) || 0} slideRadius={Number(p.slideRadius) || 0} playToggle={Boolean(p.playToggle)} playToggleLabel={typeof p.playToggleLabel === 'string' && p.playToggleLabel ? p.playToggleLabel : undefined} />
   if (el.type === 'video') {
     const embed = videoEmbed(String(p.url ?? ''))
     if (embed && !editing) return <iframe src={embed} title={p.title || 'Video'} style={{ width: '100%', height: '100%', border: 0 }} allowFullScreen loading="lazy" />
-    if (p.url && !embed && !editing) return <video src={p.url} poster={p.poster || undefined} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+    if (p.url && !embed && p.controlsMode === 'overlay') return <FreeVideoPlayer p={p} unit={unit} scale={scale} editing={editing} />
+    if (p.url && !embed && !editing) return <video src={p.url} poster={p.poster || undefined} loop={Boolean(p.loop)} muted={Boolean(p.muted)} playsInline controls style={{ width: '100%', height: '100%', objectFit: p.fit === 'contain' ? 'contain' : 'cover', borderRadius: u(p.radius ?? 0) }} />
     return <div style={{ position: 'relative', width: '100%', height: '100%', background: '#111827', color: '#fff', display: 'grid', placeItems: 'center', fontSize: u(18) }}>{p.poster && <img src={p.poster} alt={p.title || 'Video'} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}<span style={{ position: 'relative', padding: '6px 10px', borderRadius: 4, background: '#111827bb' }}>▶ Video</span></div>
   }
   if (el.type === 'countdown') return <FreeCountdown p={p} unit={unit} />
   if (el.type === 'tabs') return <FreeTabs p={p} unit={unit} editing={editing} />
+  if (el.type === 'accordion') return <FreeAccordion elId={el.id} p={p} unit={unit} scale={scale} editing={editing} />
   if (el.type === 'table') return <FreeTable p={p} unit={unit} />
   if (el.type === 'map') return <FreeMap p={p} />
   if (el.type === 'embed') return <FreeEmbed p={p} />
@@ -271,19 +274,28 @@ export const FreeOverlay = ({ elements, height, responsive, breakpoints, scope =
  * Block "Vùng tự do": chỉ là khoảng trống có chiều cao; các phần tử nằm ở lớp phủ chung (`_els`, cũng dùng cho mọi block khác).
  * `elements` là tên prop cũ, vẫn đọc được. `_noFree` được editor đặt khi nó tự vẽ lớp chỉnh sửa.
  */
-export const FreeCanvasView: BlockRenderer = (props: { id?: string; height?: number; bgImage?: string; bgVideo?: string; bgOverlay?: number; bgOverlayColor?: string; bgSize?: string; bgRepeat?: string; bgPositionX?: number; bgPositionY?: number; bgAttachment?: string; bgImageOpacity?: number; bgBlur?: number; bgVideoFit?: string; _els?: FreeElement[]; elements?: FreeElement[]; _noFree?: boolean; _states?: unknown; _editorState?: ElementState; _responsive?: Record<string, any>; _breakpoints?: unknown }) => {
+export const FreeCanvasView: BlockRenderer = (props: { id?: string; height?: number; heightMode?: 'canvas' | 'svh'; svh?: number; svhOffset?: number; minHeightPx?: number; bgImage?: string; bgVideo?: string; bgOverlay?: number; bgOverlayColor?: string; bgOverlayColor2?: string; bgOverlayAngle?: number; bgSize?: string; bgRepeat?: string; bgPositionX?: number; bgPositionY?: number; bgAttachment?: string; bgImageOpacity?: number; bgBlur?: number; bgVideoFit?: string; _els?: FreeElement[]; elements?: FreeElement[]; _noFree?: boolean; _states?: unknown; _editorState?: ElementState; _responsive?: Record<string, any>; _breakpoints?: unknown }) => {
   const { height = 0, bgImage, bgVideo, bgOverlay = 0, bgOverlayColor = '#000000', bgSize = 'cover', bgRepeat = 'no-repeat', bgPositionX = 50, bgPositionY = 50, bgAttachment = 'scroll', bgImageOpacity = 100, bgBlur = 0, bgVideoFit = 'cover', _els, elements, _noFree } = props
   const stateCss = props.id ? elementStatesCss(props.id, props) : ''
   const els = _els ?? elements ?? []
   // Chiều cao chính xác theo trường "height"; khối cũ chưa có height thì tự vừa phần tử.
   const h = Number(height) > 0 ? Number(height) : Math.max(freeHeight(0, els), _noFree ? 140 : 0)
+  const useSvh = !_noFree && props.heightMode === 'svh'
+  const svhVal = Math.min(100, Math.max(40, Number(props.svh) || 100))
+  const svhOff = Math.min(300, Math.max(0, Number(props.svhOffset) || 0))
+  const minPx = Math.min(1600, Math.max(240, Number(props.minHeightPx) || 560))
+  const sectionMinHeight = useSvh ? `max(${minPx}px, ${svhOff > 0 ? `calc(${svhVal}svh - ${svhOff}px)` : `${svhVal}svh`})` : undefined
+  const ov1 = safeCssColor(bgOverlayColor, '#000000')
+  const ov2 = safeCssColor(props.bgOverlayColor2, '')
+  const ovDeg = Number.isFinite(Number(props.bgOverlayAngle)) ? Number(props.bgOverlayAngle) : 90
+  const overlayBg = ov2 ? `linear-gradient(${ovDeg}deg, ${ov1}, ${ov2})` : ov1
   return (
-    <section className={"hs-free " + (stateCss && props.id ? elementStateScope(props.id) : "")} data-hs-state={props._editorState} style={{ overflow: 'hidden' }}>
+    <section className={"hs-free " + (stateCss && props.id ? elementStateScope(props.id) : "")} data-hs-state={props._editorState} style={{ overflowX: 'clip', overflowY: 'hidden', minHeight: sectionMinHeight }}>
       {stateCss && <style>{stateCss}</style>}
-      <div style={{ position: 'relative' }}>
+      <div style={{ position: 'relative', minHeight: sectionMinHeight }}>
       {bgImage && <div aria-hidden="true" style={{ position: 'absolute', inset: 0, backgroundImage: `url("${String(bgImage).replace(/"/g, '%22')}")`, backgroundSize: ['cover', 'contain', 'auto'].includes(bgSize) ? bgSize : 'cover', backgroundRepeat: ['no-repeat', 'repeat', 'repeat-x', 'repeat-y'].includes(bgRepeat) ? bgRepeat : 'no-repeat', backgroundPosition: `${Math.min(100, Math.max(0, Number(bgPositionX) || 0))}% ${Math.min(100, Math.max(0, Number(bgPositionY) || 0))}%`, backgroundAttachment: bgAttachment === 'fixed' ? 'fixed' : 'scroll', opacity: Math.min(100, Math.max(0, Number(bgImageOpacity) || 0)) / 100, filter: Number(bgBlur) > 0 ? `blur(${Math.min(40, Math.max(0, Number(bgBlur)))}px)` : undefined, transform: Number(bgBlur) > 0 ? 'scale(1.05)' : undefined, pointerEvents: 'none' }} />}
       {bgVideo && <video src={bgVideo} autoPlay muted loop playsInline aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: bgVideoFit === 'contain' ? 'contain' : 'cover', objectPosition: `${Math.min(100, Math.max(0, Number(bgPositionX) || 0))}% ${Math.min(100, Math.max(0, Number(bgPositionY) || 0))}%` }} />}
-      {bgOverlay > 0 && <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: SAFE_COLOR.test(bgOverlayColor) ? bgOverlayColor : '#000000', opacity: Math.min(100, Math.max(0, bgOverlay)) / 100, pointerEvents: 'none' }} />}
+      {bgOverlay > 0 && <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: overlayBg, opacity: Math.min(100, Math.max(0, bgOverlay)) / 100, pointerEvents: 'none' }} />}
       <div data-hs-variants={encodeURIComponent((props.id || 'free') + '-height')} style={{ position: 'relative', maxWidth: FREE_MAX_PX, margin: '0 auto', containerType: 'inline-size' }}>
         <style>{variantCss((props.id || 'free') + '-height', props._breakpoints)}</style>
         {(_noFree ? ['desktop'] as const : layoutVariants(props._breakpoints)).map((device) => {
