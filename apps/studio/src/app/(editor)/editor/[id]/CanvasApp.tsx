@@ -293,9 +293,9 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
 
   // ---- Thêm nội dung ----
   const blocks = data.content
-  const section = (els: FreeElement[], height?: number, bg?: string): Block => ({
+  const section = (els: FreeElement[], height?: number, bg?: string, extraProps?: Record<string, unknown>): Block => ({
     type: 'FreeCanvas',
-    props: { id: newBlockId('FreeCanvas'), height: height ?? Math.max(400, ...els.map((e) => e.y + e.h + 40)), ...(bg ? { _bgHex: bg } : {}), _els: els },
+    props: { id: newBlockId('FreeCanvas'), height: height ?? Math.max(400, ...els.map((e) => e.y + e.h + 40)), ...(bg ? { _bgHex: bg } : {}), ...(extraProps ?? {}), _els: els },
   })
   const viewTarget = () => {
     const doc = docs[0]
@@ -352,7 +352,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
       setSel({ block: blockId(nb), el: els[els.length - 1].id, multi: els.map((el) => el.id) })
     },
     addSection: (tpl) => {
-      const nb = section(tpl.els, tpl.height, tpl.bg)
+      const nb = section(tpl.els, tpl.height, tpl.bg, tpl.extraProps)
       revealBlock.current = blockId(nb)
       commit(insertBlock(data, nb, afterVisible()))
       setSel({ block: blockId(nb), el: '' })
@@ -399,7 +399,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
   const commands: EditorCommand[] = [
     { id: 'undo', label: 'Hoàn tác', run: undo }, { id: 'redo', label: 'Làm lại', run: redo },
     { id: 'replace', label: 'Tìm và thay thế trên trang', run: () => setReplaceOpen(true) },
-    ...([{ type: 'text', label: 'Thêm văn bản' }, { type: 'image', label: 'Thêm ảnh' }, { type: 'button', label: 'Thêm nút bấm' }, { type: 'video', label: 'Thêm video' }] as const).map((item) => ({ id: 'add-' + item.type, label: item.label, run: () => ops.addEls([makeElement(item.type)]) })),
+    ...([{ type: 'text', label: 'Thêm văn bản' }, { type: 'image', label: 'Thêm ảnh' }, { type: 'button', label: 'Thêm nút bấm' }, { type: 'video', label: 'Thêm video' }, { type: 'accordion', label: 'Thêm câu hỏi thu gọn (FAQ)' }] as const).map((item) => ({ id: 'add-' + item.type, label: item.label, run: () => ops.addEls([makeElement(item.type)]) })),
     ...([{ tab: 'frames', label: 'Chia ô và bố cục' }, { tab: 'input', label: 'Thêm biểu mẫu' }, { tab: 'media', label: 'Thư viện ảnh' }, { tab: 'drawing', label: 'Thước và căn chỉnh' }, { tab: 'responsive', label: 'Thiết bị và breakpoint' }] as const).map((item) => ({ id: item.tab, label: item.label, run: () => { setTab(item.tab); openLeft() } })),
     { id: 'split-view', label: 'Xem desktop và mobile cạnh nhau', run: () => setSplitView((value) => !value) },
     ...([{ id: 'styles', label: 'Kiểu dáng chung có liên kết' }, { id: 'variants', label: 'Biến thể của khung' }, { id: 'audit', label: 'Kiểm tra giao diện' }, { id: 'content', label: 'Chỉ sửa nội dung' }] as const).map((item) => ({ id: item.id, label: item.label, run: () => openDesign(item.id) })),
@@ -561,6 +561,7 @@ export function CanvasApp({ config, data: initial, onChange, css, htmlClass, tit
               commit={commit}
               labelOf={labelOf}
               title={title}
+              areaKind={areaKind}
               onClose={() => setRightOpen(false)}
             />
           </div>

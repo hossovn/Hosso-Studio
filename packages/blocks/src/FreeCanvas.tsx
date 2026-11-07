@@ -81,7 +81,7 @@ export function makeElement(type: FreeType, over: Partial<FreeElement> & { props
     breadcrumb: { type: 'breadcrumb', x: 80, y: 60, w: 560, h: 36, props: { items: [{ label: 'Trang chủ', href: '/' }, { label: 'Trang 1', href: '#' }, { label: 'Trang 2', href: '#' }], size: 16, color: '#6b7280', accent: '#15803d' } },
   }
   const b = base[type]
-  return { ...b, ...over, id: newId(), props: { ...b.props, ...(over.props ?? {}) } }
+  return { ...b, ...over, id: over.id ?? newId(), props: { ...b.props, ...(over.props ?? {}) } }
 }
 
 /** Nội dung của một phần tử, lấp đầy khung chứa. `unit` là bề rộng thiết kế ứng với bề rộng khung (mặc định FREE_W; thẻ xem trước dùng bề rộng phần tử). */

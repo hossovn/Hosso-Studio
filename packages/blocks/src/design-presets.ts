@@ -47,14 +47,14 @@ export function applyFrameVariant(list: FreeElement[], rootId: string, variant: 
   for (const el of list) { if (el.id === rootId) result.push(...next); else if (!old.has(el.id)) result.push(el) }
   return result
 }
-export function ensureDefaultFrameVariant(list: FreeElement[], rootId: string): FreeElement[] {
+export function ensureDefaultFrameVariant(list: FreeElement[], rootId: string, defaultName = 'Mặc định'): FreeElement[] {
   const root = list.find((el) => el.id === rootId && el.type === 'container')
   if (!root) return list
   const existing: FrameVariant[] = Array.isArray(root.props._variants) ? root.props._variants : []
   if (existing.length > 0) {
     return root.props._variant ? list : list.map((el) => el.id === rootId ? { ...el, props: { ...el.props, _variant: existing[0].id } } : el)
   }
-  const initial = captureFrameVariant(list, root, 'default', 'Mặc định')
+  const initial = captureFrameVariant(list, root, 'default', defaultName)
   return list.map((el) => el.id === rootId ? { ...el, props: { ...el.props, _variants: [initial], _variant: 'default' } } : el)
 }
 export function materializeFrameVariant(list: FreeElement[], rootId: string, variantId: string, fallbackId?: () => string): FreeElement[] {

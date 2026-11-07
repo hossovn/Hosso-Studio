@@ -7,7 +7,7 @@ import type { SectionTemplate } from './SectionTemplates'
 const categories = [
   { id: 'all', label: 'Tất cả mẫu', test: () => true },
   { id: 'intro', label: 'Chào đón & giới thiệu', test: (id: string) => /hero|banner|intro/.test(id) },
-  { id: 'content', label: 'Nội dung & dịch vụ', test: (id: string) => /features|steps|faq|icon-grid|stats|team/.test(id) },
+  { id: 'content', label: 'Nội dung & dịch vụ', test: (id: string) => /features|steps|faq|interactive|icon-grid|stats|team/.test(id) },
   { id: 'images', label: 'Hình ảnh & chuyển động', test: (id: string) => /gallery|motion/.test(id) },
   { id: 'commerce', label: 'Bán hàng & đánh giá', test: (id: string) => /pricing|promo|testimonials|logos/.test(id) },
   { id: 'contact', label: 'Liên hệ & đăng ký', test: (id: string) => /contact|cta|newsletter/.test(id) },
@@ -18,7 +18,7 @@ export function SectionLibrary({ templates, query, areaKind, onInsert }: {
   templates: SectionTemplate[]
   query: string
   areaKind: string
-  onInsert: (template: { height: number; bg?: string; els: ReturnType<SectionTemplate['build']> }) => void
+  onInsert: (template: { height: number; bg?: string; els: ReturnType<SectionTemplate['build']>; extraProps?: Record<string, unknown> }) => void
 }) {
   const [category, setCategory] = useState('all')
   const active = categories.find((item) => item.id === category) ?? categories[0]
@@ -31,7 +31,7 @@ export function SectionLibrary({ templates, query, areaKind, onInsert }: {
       <div className="cv-gallery-intro"><div><h3>{areaKind === 'header' ? 'Đầu trang' : areaKind === 'footer' ? 'Chân trang' : active.label}</h3><p>Bấm để thêm, hoặc kéo mẫu vào vị trí bạn muốn.</p></div><span role="status">{list.length} mẫu</span></div>
       <div className="cv-section-grid">
         {!query && category === 'all' && <button type="button" className="cv-blank-template" draggable onDragStart={(e) => { e.dataTransfer.setData('text/plain', 'hosso-section:blank'); e.dataTransfer.effectAllowed = 'copy' }} onClick={() => onInsert({ height: 400, els: [] })}><span><Plus size={30} strokeWidth={1.3} /></span><strong>Phần trống</strong><small>Tự thiết kế theo ý bạn</small></button>}
-        {list.map((template) => <button type="button" className="cv-section-card" key={template.id} aria-label={`Thêm phần ${template.label}`} draggable onDragStart={(e) => { e.dataTransfer.setData('text/plain', 'hosso-section:' + template.id); e.dataTransfer.effectAllowed = 'copy' }} onClick={() => onInsert({ height: template.height, bg: template.bg, els: template.build() })}>
+        {list.map((template) => <button type="button" className="cv-section-card" key={template.id} aria-label={`Thêm phần ${template.label}`} draggable onDragStart={(e) => { e.dataTransfer.setData('text/plain', 'hosso-section:' + template.id); e.dataTransfer.effectAllowed = 'copy' }} onClick={() => onInsert({ height: template.height, bg: template.bg, els: template.build(), extraProps: template.extraProps })}>
           <div className="cv-section-art"><SectionPreview tpl={template} /><span className="cv-section-add"><Plus size={18} /></span></div><strong>{template.label}</strong>
         </button>)}
       </div>

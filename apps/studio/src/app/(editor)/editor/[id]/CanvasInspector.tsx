@@ -1,6 +1,7 @@
 'use client'
 import { ConstraintsPanel } from './ConstraintsPanel'
 import { moveIntoFrame } from '../../../../../../../packages/blocks/src/frame-layout'
+import { captureFrameVariant, ensureDefaultFrameVariant, switchFrameVariant, type FrameVariant } from '../../../../../../../packages/blocks/src/design-presets'
 import { ActionPanel } from './ActionPanel'
 import { ReusableOverridesPanel } from './ReusableEditor'
 import { DEVICE_WIDTH, elementFamily, type WidgetPartDevice, type ElementState, type ElementDevice } from '@hosso/studio-blocks'
@@ -191,7 +192,7 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
     return rows
   }
   const textual = el.type === 'heading' || el.type === 'text' || el.type === 'button'
-  const NAMES: Record<string, string> = { container: 'Container', swiper: 'Swiper', countdown: 'Đếm ngược', number: 'Số liệu', table: 'Bảng', map: 'Bản đồ', embed: 'Nhúng', tabs: 'Tab', breadcrumb: 'Breadcrumb', menu: 'Menu', heading: 'Tiêu đề', text: 'Văn bản', button: 'Nút bấm', shape: 'Hình khối', line: 'Đường kẻ', icon: 'Icon', image: 'Ảnh', video: 'Video' }
+  const NAMES: Record<string, string> = { container: 'Container', swiper: 'Swiper', accordion: 'Câu hỏi thu gọn (FAQ)', countdown: 'Đếm ngược', number: 'Số liệu', table: 'Bảng', map: 'Bản đồ', embed: 'Nhúng', tabs: 'Tab', breadcrumb: 'Breadcrumb', menu: 'Menu', heading: 'Tiêu đề', text: 'Văn bản', button: 'Nút bấm', shape: 'Hình khối', line: 'Đường kẻ', icon: 'Icon', image: 'Ảnh', video: 'Video' }
   const ObjectIcon = OBJECT_ICONS[el.type] ?? Shapes
   return (
     <>
@@ -229,7 +230,37 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
       </Group>
       <Group title="Nội dung" show={tab === 'content'}>
         {el.type === 'widget' && <FieldsForm fields={config?.components[p.widget?.type]?.fields ?? {}} values={p.widget?.props ?? {}} onChange={(key, value) => put({ widget: { ...p.widget, props: { ...p.widget?.props, [key]: value } } })} />}
-        {el.type === 'container' && <Row label="Tên Container"><input style={ctl} value={p.name || ''} onChange={(e) => put({ name: e.target.value })} /></Row>}
+        {el.type === 'container' && <>
+          <Row label="Tên Container"><input style={ctl} value={p.name || ''} onChange={(e) => put({ name: e.target.value })} /></Row>
+          <div className="cv-subheading">Tương tác (Tab / Hộp nổi Popover)</div>
+          <label className="cv-check"><input type="checkbox" checked={Boolean(p._isPopover)} onChange={(e) => put({ _isPopover: e.target.checked, _frame: true })} />Ẩn trên trang, chỉ mở dạng hộp nổi (#popover)</label>
+          {(() => {
+            const variants: FrameVariant[] = Array.isArray(p._variants) ? p._variants : []
+            const activeVarId = p._variant || variants[0]?.id || ''
+            const list = elsOf(block)
+            if (!variants.length) return <button type="button" style={{ ...btn, width: '100%', borderColor: '#2d7b57', color: '#2d7b57', background: '#edf5ef' }} onClick={() => {
+              const seeded = ensureDefaultFrameVariant(list, el.id, 'Tab 1')
+              const seededFrame = seeded.find((it) => it.id === el.id)!
+              const tab2 = captureFrameVariant(seeded, seededFrame, `tab_${Date.now().toString(36)}`, 'Tab 2')
+              const baseVars: FrameVariant[] = seededFrame.props._variants ?? []
+              commit(setBlockEls(data, blockId(block), seeded.map((it) => it.id === el.id ? { ...it, props: { ...it.props, _variants: [...baseVars, tab2], _variant: baseVars[0]?.id || 'default', _frame: true } } : it)))
+            }}>＋ Bật trạng thái Tab (Tab 1 / Tab 2)</button>
+            return <div style={{ display: 'grid', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {variants.map((v) => <button key={v.id} type="button" aria-pressed={activeVarId === v.id} style={{ ...btn, background: activeVarId === v.id ? '#edf5ef' : '#fff', borderColor: activeVarId === v.id ? '#2d7b57' : '#e3e6ea', color: activeVarId === v.id ? '#2d7b57' : '#20242b' }} onClick={() => commit(setBlockEls(data, blockId(block), switchFrameVariant(list, el.id, v.id, () => crypto.randomUUID())))}>{v.name}</button>)}
+                <button type="button" style={btn} disabled={variants.length >= 12} onClick={() => {
+                  const synced = activeVarId ? switchFrameVariant(list, el.id, activeVarId, () => crypto.randomUUID()) : list
+                  const syncedFrame = synced.find((it) => it.id === el.id)!
+                  const nextVar = captureFrameVariant(synced, syncedFrame, `tab_${Date.now().toString(36)}`, `Tab ${variants.length + 1}`)
+                  const curVars: FrameVariant[] = syncedFrame.props._variants ?? variants
+                  commit(setBlockEls(data, blockId(block), synced.map((it) => it.id === el.id ? { ...it, props: { ...it.props, _variants: [...curVars, nextVar], _variant: nextVar.id } } : it)))
+                }}>＋ Thêm tab</button>
+              </div>
+              {activeVarId && <Row label="Tên trạng thái đang sửa"><input style={ctl} value={variants.find((v) => v.id === activeVarId)?.name ?? ''} onChange={(e) => put({ _variants: variants.map((v) => v.id === activeVarId ? { ...v, name: e.target.value } : v) })} /></Row>}
+              <p className="cv-tool-help">Chọn từng tab ở trên để sửa nội dung riêng trên canvas. Gắn hành động “Đổi trạng thái khung (Tab)” cho nút bấm tới khung <code>{el.id}</code>.</p>
+            </div>
+          })()}
+        </>}
         {el.type === 'swiper' && <>
           {(Array.isArray(p.slides) ? p.slides : []).map((slide: { image: string; alt?: string; text?: string }, i: number) => <div key={i} style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: 12, marginBottom: 12 }}>
             <Row label={'Slide ' + (i + 1)}><MediaField kind="image" value={slide.image} onChange={(image) => put({ slides: p.slides.map((s: unknown, n: number) => n === i ? { ...slide, image } : s) })} /></Row>
@@ -242,6 +273,9 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
           <Row label="Tự chạy (giây, 0 = tắt)"><input type="number" min={0} max={60} style={ctl} value={p.seconds || 0} onChange={(e) => put({ seconds: Math.max(0, Math.min(60, Number(e.target.value) || 0)) })} /></Row>
           <Row label="Chuyển ảnh"><select aria-label="Chuyển ảnh" style={ctl} value={p.effect === 'fade' ? 'fade' : 'slide'} onChange={(e) => put({ effect: e.target.value })}><option value="slide">Trượt ngang</option><option value="fade">Chuyển mờ</option></select></Row>
           <label className="cv-scroll-mobile"><input type="checkbox" checked={p.thumbnails === true} onChange={(e) => put({ thumbnails: e.target.checked })} />Hiện ảnh nhỏ để chọn</label>
+          <Row label="Số thẻ hiển thị cùng lúc"><SegControl value={String(p.perView ?? 1)} onChange={(v) => put({ perView: Number(v) })} options={[1, 2, 3, 4].map((n) => ({ label: `${n} thẻ`, value: String(n) }))} /></Row>
+          <label className="cv-check"><input type="checkbox" checked={Boolean(p.playToggle)} onChange={(e) => put({ playToggle: e.target.checked })} />Hiện thanh Điều hướng + Tạm dừng / Phát</label>
+          {Boolean(p.playToggle) && <Row label="Nhãn nút chạy/dừng"><input style={ctl} value={p.playToggleLabel ?? ''} placeholder="Tạm dừng / Phát" onChange={(e) => put({ playToggleLabel: e.target.value })} /></Row>}
         </>}
         {textual && <Row label={el.type === 'button' ? 'Chữ trên nút' : 'Nội dung'}><textarea style={{ ...ctl, minHeight: 64 }} value={p.text ?? ''} onChange={(e) => put({ text: e.target.value })} /></Row>}
         {['button', 'text', 'heading', 'image'].includes(el.type) && <ActionPanel key={el.id} href={p.href} data={data} onChange={(href, anchor) => commit(patchElProps(anchor ? patchBlock(data, anchor, { _anchor: true }) : data, el.id, { href }))} />}
@@ -300,7 +334,34 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
             <textarea style={{ ...ctl, minHeight: 100 }} key={el.id} defaultValue={(p.items ?? []).map((i: { label: string; href: string }) => `${i.label} | ${i.href}`).join('\n')} onChange={(e) => put({ items: e.target.value.split('\n').filter((l) => l.trim()).map((l) => { const [label, ...rest] = l.split('|'); return { label: label.trim(), href: rest.join('|').trim() || '#' } }) })} />
           </Row>
         )}
-        {el.type === 'video' && <Row label="Link YouTube hoặc tệp video"><input style={ctl} value={p.url ?? ''} onChange={(e) => put({ url: e.target.value })} /></Row>}
+        {el.type === 'accordion' && <>
+          {(Array.isArray(p.items) ? p.items : []).map((item: { question: string; answer: string; defaultOpen?: boolean }, i: number) => <div key={i} style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: 12, marginBottom: 12 }}>
+            <Row label={'Câu hỏi ' + (i + 1)}><input style={ctl} value={item.question ?? ''} onChange={(e) => put({ items: p.items.map((it: unknown, n: number) => n === i ? { ...item, question: e.target.value } : it) })} /></Row>
+            <Row label="Câu trả lời"><textarea style={{ ...ctl, minHeight: 68 }} value={item.answer ?? ''} onChange={(e) => put({ items: p.items.map((it: unknown, n: number) => n === i ? { ...item, answer: e.target.value } : it) })} /></Row>
+            <label className="cv-check"><input type="checkbox" checked={Boolean(item.defaultOpen)} onChange={(e) => put({ items: p.items.map((it: any, n: number) => n === i ? { ...item, defaultOpen: e.target.checked } : (p.exclusive !== false && e.target.checked ? { ...it, defaultOpen: false } : it)) })} />Mở sẵn khi vào trang</label>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button type="button" style={btn} disabled={i === 0} onClick={() => { const items = [...p.items]; [items[i - 1], items[i]] = [items[i], items[i - 1]]; put({ items }) }}>Lên</button>
+              <button type="button" style={btn} disabled={i === p.items.length - 1} onClick={() => { const items = [...p.items]; [items[i], items[i + 1]] = [items[i + 1], items[i]]; put({ items }) }}>Xuống</button>
+              <button type="button" style={btn} disabled={p.items.length <= 1} onClick={() => put({ items: p.items.filter((_: unknown, n: number) => n !== i) })}>Xóa</button>
+            </div>
+          </div>)}
+          <button type="button" style={btn} onClick={() => put({ items: [...(p.items || []), { question: 'Câu hỏi mới?', answer: 'Nội dung trả lời chi tiết.', defaultOpen: false }] })}>＋ Thêm câu hỏi</button>
+          <label className="cv-check"><input type="checkbox" checked={p.exclusive !== false} onChange={(e) => put({ exclusive: e.target.checked })} />Chỉ mở 1 câu hỏi mỗi lúc</label>
+          <Row label="Biểu tượng đóng/mở"><SegControl value={p.iconStyle === 'chevron' ? 'chevron' : 'plus'} onChange={(iconStyle) => put({ iconStyle })} options={[{ label: 'Dấu cộng (+)', value: 'plus' }, { label: 'Mũi tên (⌄)', value: 'chevron' }]} /></Row>
+        </>}
+        {el.type === 'video' && <>
+          <Row label="Link YouTube hoặc tệp video MP4"><input style={ctl} value={p.url ?? ''} onChange={(e) => put({ url: e.target.value })} /></Row>
+          <Row label="Ảnh bìa (Poster)"><MediaField kind="image" value={p.poster ?? ''} onChange={(poster) => put({ poster })} /></Row>
+          <Row label="Kiểu điều khiển (MP4)"><SegControl value={p.controlsMode === 'overlay' ? 'overlay' : 'native'} onChange={(controlsMode) => put({ controlsMode })} options={[{ label: 'Trình duyệt', value: 'native' }, { label: 'Nút Play nổi', value: 'overlay' }]} /></Row>
+          {p.controlsMode === 'overlay' && <>
+            <Row label="Nhãn nút phát"><input style={ctl} value={p.playLabel ?? 'Phát video'} onChange={(e) => put({ playLabel: e.target.value })} /></Row>
+            <Row label="Nhãn nút tạm dừng"><input style={ctl} value={p.pauseLabel ?? 'Tạm dừng video'} onChange={(e) => put({ pauseLabel: e.target.value })} /></Row>
+          </>}
+          <label className="cv-check"><input type="checkbox" checked={Boolean(p.autoplay)} onChange={(e) => put({ autoplay: e.target.checked, ...(e.target.checked ? { muted: true } : {}) })} />Tự động phát (tự tắt tiếng)</label>
+          <label className="cv-check"><input type="checkbox" checked={Boolean(p.loop)} onChange={(e) => put({ loop: e.target.checked })} />Lặp lại liên tục</label>
+          <label className="cv-check"><input type="checkbox" checked={Boolean(p.muted)} onChange={(e) => put({ muted: e.target.checked })} />Tắt tiếng mặc định</label>
+        </>}
+
         {el.type === 'icon' && (
           <Row label="Icon"><IconPicker value={p.name} onChange={(n) => put({ name: n })} /></Row>
         )}
@@ -384,6 +445,34 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
             </Row>
           </>
         )}
+        {el.type === 'accordion' && <>
+          <Row label="Cỡ chữ câu hỏi"><RangeControl value={Number(((p.size ?? 18) * pixelScale).toFixed(2))} onChange={(v) => put({ size: (Number(v) || 12) / pixelScale })} min={12} max={42} /></Row>
+          <Row label="Cỡ chữ câu trả lời"><RangeControl value={Number(((p.answerSize ?? 15) * pixelScale).toFixed(2))} onChange={(v) => put({ answerSize: (Number(v) || 11) / pixelScale })} min={11} max={32} /></Row>
+          <Row label="Màu câu hỏi"><ColorControl value={p.color ?? '#111827'} onChange={(color) => put({ color })} /></Row>
+          <Row label="Màu câu trả lời"><ColorControl value={p.answerColor ?? '#4b5563'} onChange={(answerColor) => put({ answerColor })} /></Row>
+          <Row label="Màu nhấn / viền đang mở"><ColorControl value={p.accent ?? '#eab308'} onChange={(accent) => put({ accent })} /></Row>
+          <Row label="Nền thẻ"><ColorControl value={p.bg ?? '#ffffff'} onChange={(bg) => put({ bg })} /></Row>
+          <Row label="Nền thẻ khi mở"><ColorControl value={p.openBg ?? '#fefce8'} onChange={(openBg) => put({ openBg })} /></Row>
+          <Row label="Màu viền thẻ"><ColorControl value={p.borderColor ?? '#e5e7eb'} onChange={(borderColor) => put({ borderColor })} /></Row>
+          <Row label="Bo góc thẻ"><RangeControl value={p.radius ?? 16} onChange={(v) => put({ radius: Number(v) || 0 })} min={0} max={40} /></Row>
+          <Row label="Khoảng cách giữa các câu"><RangeControl value={p.gap ?? 12} onChange={(v) => put({ gap: Number(v) || 0 })} min={0} max={36} /></Row>
+          <Row label="Đệm ngang (px)"><RangeControl value={p.padX ?? 22} onChange={(v) => put({ padX: Number(v) || 8 })} min={8} max={64} /></Row>
+          <Row label="Đệm dọc (px)"><RangeControl value={p.padY ?? 18} onChange={(v) => put({ padY: Number(v) || 8 })} min={8} max={48} /></Row>
+          <Row label="Font chữ">
+            <select style={ctl} value={p.font ?? ''} onChange={(e) => put({ font: e.target.value })}>
+              <option value="">Mặc định của site</option>
+              {FREE_FONTS.map((f) => <option key={f.name} value={f.name}>{f.name}</option>)}
+            </select>
+          </Row>
+        </>}
+        {el.type === 'swiper' && <>
+          <Row label="Khoảng cách thẻ (px)"><RangeControl value={p.gap ?? 16} onChange={(v) => put({ gap: Number(v) || 0 })} min={0} max={48} /></Row>
+          <Row label="Bo góc thẻ (px)"><RangeControl value={p.slideRadius ?? (p.radius ?? 16)} onChange={(v) => put({ slideRadius: Number(v) || 0 })} min={0} max={48} /></Row>
+        </>}
+        {el.type === 'video' && <>
+          <Row label="Cách vừa khung"><SegControl value={p.fit === 'contain' ? 'contain' : 'cover'} onChange={(fit) => put({ fit })} options={[{ label: 'Phủ kín', value: 'cover' }, { label: 'Vừa video', value: 'contain' }]} /></Row>
+          <Row label="Bo góc"><RangeControl value={p.radius ?? 16} onChange={(v) => put({ radius: Number(v) || 0 })} min={0} max={80} /></Row>
+        </>}
         {el.type === 'line' && (
           <>
             <Row label="Màu"><ColorControl value={p.color} onChange={(v) => put({ color: v })} /></Row>
@@ -391,6 +480,7 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
             <Row label="Kiểu nét"><SegControl value={p.dashed ? 'd' : 's'} onChange={(v) => put({ dashed: v === 'd' })} options={[{ label: 'Liền', value: 's' }, { label: 'Đứt', value: 'd' }]} /></Row>
           </>
         )}
+
         {el.type === 'icon' && (
           <>
             <Row label="Màu"><ColorControl value={p.color} onChange={(v) => put({ color: v })} /></Row>
@@ -414,8 +504,11 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
         )}
         {(el.type === 'button' || el.type === 'shape' || el.type === 'container') && (
           <>
-            <Row label="Nền chuyển màu (màu cuối)"><ColorControl value={p.bg2 ?? ''} onChange={(v) => put({ bg2: v })} /></Row>
-            {Boolean(p.bg2) && <Row label="Góc chuyển màu"><RangeControl value={p.angle ?? 135} onChange={(v) => put({ angle: Number(v) || 0 })} min={0} max={360} /></Row>}
+            <Row label="Nền chuyển màu (màu cuối)"><ColorControl value={p.bg2 === 'transparent' ? '' : (p.bg2 ?? '')} onChange={(v) => put({ bg2: v })} /></Row>
+            {el.type === 'shape' && <button type="button" style={{ ...btn, width: '100%', marginBottom: 10, background: p.bg2 === 'transparent' ? '#edf5ef' : '#fff', borderColor: p.bg2 === 'transparent' ? '#2d7b57' : '#e3e6ea', color: p.bg2 === 'transparent' ? '#2d7b57' : '#374151' }} aria-pressed={p.bg2 === 'transparent'} onClick={() => put(p.bg2 === 'transparent' ? { bg2: '', fillType: 'linear' } : { bg2: 'transparent', fillType: 'radial' })}>{p.bg2 === 'transparent' ? '✓ Đích trong suốt (Hào quang)' : 'Đặt đích trong suốt (Hào quang)'}</button>}
+            {Boolean(p.bg2) && el.type === 'shape' && <Row label="Kiểu chuyển màu"><SegControl value={p.fillType === 'radial' ? 'radial' : 'linear'} onChange={(fillType) => put({ fillType })} options={[{ label: 'Thẳng (Linear)', value: 'linear' }, { label: 'Tỏa tròn (Radial)', value: 'radial' }]} /></Row>}
+            {Boolean(p.bg2) && p.fillType !== 'radial' && <Row label="Góc chuyển màu"><RangeControl value={p.angle ?? 135} onChange={(v) => put({ angle: Number(v) || 0 })} min={0} max={360} /></Row>}
+            {el.type === 'shape' && <Row label="Làm mờ hào quang (Blur px)"><RangeControl value={p.blur ?? 0} onChange={(v) => put({ blur: Math.min(40, Math.max(0, Number(v) || 0)) })} min={0} max={40} /></Row>}
             <Row label="Đổ bóng"><Choice value={p.bshadow ?? ''} onChange={(v) => put({ bshadow: v })} options={['', ...Object.keys(BOX_SHADOWS)]} /></Row>
           </>
         )}
@@ -493,7 +586,9 @@ function BlockInspector({ block, config, data, commit, labelOf, state, onStateCh
         <div className="cv-subheading">Lớp phủ</div>
         <Row label="Màu lớp phủ"><ColorControl value={block.props.bgOverlayColor ?? '#000000'} onChange={(v) => put({ bgOverlayColor: v })} /></Row>
         <Row label="Độ đậm lớp phủ"><RangeControl value={block.props.bgOverlay ?? 0} onChange={(v) => put({ bgOverlay: Math.min(100, Math.max(0, Number(v) || 0)) })} min={0} max={100} /></Row>
-        <button type="button" className="cv-clear-background" onClick={() => put({ _bgHex: '', _bg2Hex: '', bgImage: '', bgVideo: '', bgOverlay: 0, bgBlur: 0, bgImageOpacity: 100, bgAttachment: 'scroll' })}>Xóa toàn bộ nền</button>
+        <Row label="Màu phủ cuối (Gradient)"><div style={{ display: 'grid', gap: 6 }}><ColorControl value={block.props.bgOverlayColor2 === 'transparent' ? '' : (block.props.bgOverlayColor2 ?? '')} onChange={(v) => put({ bgOverlayColor2: v })} /><button type="button" style={{ ...btn, background: block.props.bgOverlayColor2 === 'transparent' ? '#edf5ef' : '#fff', borderColor: block.props.bgOverlayColor2 === 'transparent' ? '#2d7b57' : '#e3e6ea', color: block.props.bgOverlayColor2 === 'transparent' ? '#2d7b57' : '#374151' }} aria-pressed={block.props.bgOverlayColor2 === 'transparent'} onClick={() => put({ bgOverlayColor2: block.props.bgOverlayColor2 === 'transparent' ? '' : 'transparent' })}>{block.props.bgOverlayColor2 === 'transparent' ? '✓ Đích trong suốt (Sáng dần)' : 'Đặt đích trong suốt (Hero)'}</button></div></Row>
+        {Boolean(block.props.bgOverlayColor2) && <Row label="Góc phủ chuyển hướng"><RangeControl value={block.props.bgOverlayAngle ?? 90} onChange={(v) => put({ bgOverlayAngle: Number(v) || 0 })} min={0} max={360} /></Row>}
+        <button type="button" className="cv-clear-background" onClick={() => put({ _bgHex: '', _bg2Hex: '', bgImage: '', bgVideo: '', bgOverlay: 0, bgOverlayColor2: '', bgOverlayAngle: 90, bgBlur: 0, bgImageOpacity: 100, bgAttachment: 'scroll' })}>Xóa toàn bộ nền</button>
       </>}
       <Row label="Màu viền"><ColorControl value={block.props._bdHex ?? ''} onChange={(v) => put({ _bdHex: v })} /></Row>
       <Row label="Độ dày viền"><RangeControl value={block.props._bdPx ?? 0} onChange={(v) => put({ _bdPx: Number(v) || 0 })} min={0} max={20} /></Row>
@@ -501,6 +596,13 @@ function BlockInspector({ block, config, data, commit, labelOf, state, onStateCh
     </Group>
     <Group title="Bố cục" show={tab === 'layout'}>
       {section && <>
+        <Row label="Chế độ chiều cao"><SegControl value={block.props.heightMode === 'svh' ? 'svh' : 'canvas'} onChange={(heightMode) => put({ heightMode })} options={[{ label: 'Theo khung (px)', value: 'canvas' }, { label: 'Tràn màn hình (svh)', value: 'svh' }]} /></Row>
+        {block.props.heightMode === 'svh' && <>
+          <Row label="Tỉ lệ màn hình (svh)"><RangeControl value={block.props.svh ?? 100} onChange={(v) => put({ svh: Math.min(100, Math.max(40, Number(v) || 100)) })} min={40} max={100} /></Row>
+          <Row label="Trừ chiều cao Header (px)"><RangeControl value={block.props.svhOffset ?? 82} onChange={(v) => put({ svhOffset: Math.min(200, Math.max(0, Number(v) || 0)) })} min={0} max={200} /></Row>
+          <Row label="Chiều cao tối thiểu (px)"><RangeControl value={block.props.minHeightPx ?? 610} onChange={(v) => put({ minHeightPx: Math.min(1200, Math.max(320, Number(v) || 610)) })} min={320} max={1200} /></Row>
+          <p className="cv-tool-help">Trên trang thật, phần này tự giãn tối thiểu theo màn hình thiết bị (svh). Trong khung soạn thảo vẫn giữ chiều cao thiết kế bên dưới để căn vị trí chuẩn.</p>
+        </>}
         <Row label="Chiều cao (px, khung 1200px)"><RangeControl value={block.props.height ?? 400} onChange={(v) => put({ height: Number(v) || 80 })} min={80} max={2000} /></Row>
         <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>{[320, 480, 640, 800].map((h) => <button key={h} type="button" style={{ ...btn, flex: 1, padding: '4px 6px', fontSize: 11 }} onClick={() => put({ height: h })}>{h}px</button>)}</div>
       </>}
@@ -515,7 +617,7 @@ function BlockInspector({ block, config, data, commit, labelOf, state, onStateCh
   </>
 }
 
-function PageOverviewInspector({ data, setSel, commit, title }: {
+function PageOverviewInspector({ data, setSel, commit, title, areaKind = '' }: { areaKind?: 'header' | 'footer' | '';
   data: PageData
   setSel: (s: Sel) => void
   commit: (d: PageData, key?: string) => void
@@ -526,6 +628,23 @@ function PageOverviewInspector({ data, setSel, commit, title }: {
   return <div className="cv-page-overview">
     <div className="cv-object-heading"><span className="cv-module-icon"><FileText size={20} aria-hidden="true" /></span><div><strong>{title || 'Trang web'}</strong></div></div>
     <dl className="cv-page-stats"><div><dt>Số phần</dt><dd>{blocks.length}</dd></div><div><dt>Phần tử</dt><dd>{totalEls}</dd></div></dl>
+    {areaKind === 'header' && (() => {
+      const rp = data.root?.props ?? {}
+      const putRoot = (patch: Record<string, any>) => commit({ ...data, root: { ...data.root, props: { ...rp, ...patch } } }, 'root:' + Object.keys(patch).join(','))
+      return <Group title="Đầu trang dính & Kính mờ (Sticky Header)">
+        <label className="cv-check"><input type="checkbox" checked={Boolean(rp.sticky)} onChange={(e) => putRoot({ sticky: e.target.checked })} />Ghim cố định đầu trang khi cuộn (Sticky)</label>
+        <Row label="Nền Header (hỗ trợ rgba kính mờ)"><input style={ctl} value={rp.headerBg ?? ''} placeholder="rgba(255, 255, 255, 0.86)" onChange={(e) => putRoot({ headerBg: e.target.value })} /></Row>
+        <Row label="Độ mờ kính (Backdrop Blur px)"><RangeControl value={rp.backdropBlur ?? 0} onChange={(v) => putRoot({ backdropBlur: Math.min(24, Math.max(0, Number(v) || 0)) })} min={0} max={24} /></Row>
+        <Row label="Viền dưới (CSS border)"><input style={ctl} value={rp.borderBottom ?? ''} placeholder="1px solid rgba(15, 23, 42, 0.08)" onChange={(e) => putRoot({ borderBottom: e.target.value })} /></Row>
+        <label className="cv-check"><input type="checkbox" checked={Boolean(rp.hideAutoSlots)} onChange={(e) => putRoot({ hideAutoSlots: e.target.checked })} />Ẩn cụm ngôn ngữ/tiện ích tự động góc phải</label>
+        <div className="cv-subheading">Thanh tiến độ đọc trang</div>
+        <label className="cv-check"><input type="checkbox" checked={Boolean(rp.readingProgress)} onChange={(e) => putRoot({ readingProgress: e.target.checked })} />Hiện thanh tiến độ cuộn trang ở đáy Header</label>
+        {Boolean(rp.readingProgress) && <>
+          <Row label="Màu thanh tiến độ"><ColorControl value={rp.progressColor ?? '#eab308'} onChange={(progressColor) => putRoot({ progressColor })} /></Row>
+          <Row label="Độ dày thanh (px)"><RangeControl value={rp.progressHeight ?? 3} onChange={(v) => putRoot({ progressHeight: Math.min(8, Math.max(2, Number(v) || 3)) })} min={2} max={8} /></Row>
+        </>}
+      </Group>
+    })()}
     <div className="cv-page-commands">
       <button type="button" className="cv-primary-command" onClick={() => {
         const nb: Block = { type: 'FreeCanvas', props: { id: `FreeCanvas-${Date.now().toString(36)}`, height: 450, _els: [] } }
@@ -558,6 +677,7 @@ export function CanvasInspector({
   state = 'normal',
   onStateChange = () => {},
   onDeviceChange = () => {},
+  areaKind = '',
 }: {
   data: PageData
   config: any
@@ -574,6 +694,7 @@ export function CanvasInspector({
   state?: ElementState
   onStateChange?: (state: ElementState) => void
   onDeviceChange?: (device: ElementDevice) => void
+  areaKind?: 'header' | 'footer' | ''
 }) {
   const hit = sel.el ? findEl(data, sel.el) : null
   const block = sel.block ? (data.content ?? []).find((b) => blockId(b) === sel.block) : undefined
@@ -585,7 +706,7 @@ export function CanvasInspector({
       ? <WidgetPartsInspector block={block} path={sel.part} data={data} commit={commit} setSel={setSel} device={partDevice} />
       : <BlockInspector block={block} config={config} data={data} commit={commit} labelOf={labelOf} state={state} onStateChange={onStateChange} device={partDevice} onDeviceChange={onDeviceChange} locale={locale} />}
   </>
-  else body = <PageOverviewInspector data={data} setSel={setSel} commit={commit} title={title} />
+  else body = <PageOverviewInspector data={data} setSel={setSel} commit={commit} title={title} areaKind={areaKind} />
   return (
     <aside className="cv-insp" style={{ width: 310, flex: '0 0 310px', borderLeft: `1px solid ${LINE}`, background: '#fff', overflowY: 'auto', fontFamily: 'inherit', display: 'flex', flexDirection: 'column' }}>
       <style>{INSPECTOR_CSS}</style>

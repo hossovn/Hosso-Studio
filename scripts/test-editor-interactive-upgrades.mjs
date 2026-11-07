@@ -25,6 +25,7 @@ import {
   isTriggerActive,
   projectInteractiveList,
 } from '../packages/blocks/src/FreeInteractiveScope.tsx'
+import { SECTION_TEMPLATES } from '../apps/studio/src/app/(editor)/editor/[id]/SectionTemplates.ts'
 
 // 1. Link actions: #state:<frameId>:<variantId> and #popover:<frameId>
 assert.equal(actionHref('state', 'frame_tablet:tab_menu'), '#state:frame_tablet:tab_menu')
@@ -386,3 +387,47 @@ assert.match(overlayHtml, /role="tab"/)
 assert.match(overlayHtml, /aria-selected="true"/)
 assert.match(overlayHtml, /aria-haspopup="dialog"/)
 console.log('PASS Task 4: FreeInteractiveScope projection, popover extraction, and ARIA tab/popover SSR')
+
+// 7. Task 5: Starter Interactive & SVH Section Templates + Unique Instance IDs
+for (const id of ['hero-svh', 'interactive-tabs', 'interactive-steps', 'faq-accordion']) {
+  const tpl = SECTION_TEMPLATES.find((item) => item.id === id)
+  assert.ok(tpl, `Missing starter SECTION_TEMPLATE "${id}"`)
+  const first = tpl.build()
+  const second = tpl.build()
+  assert.ok(first.length >= 2, `Template "${id}" must produce elements`)
+  const ids1 = new Set(first.map((el) => el.id))
+  assert.equal(ids1.size, first.length, `Template "${id}" elements must have unique IDs`)
+  for (const el of second) {
+    assert.equal(ids1.has(el.id), false, `Template "${id}" build() must mint fresh IDs per insertion`)
+  }
+}
+
+const heroSvh = SECTION_TEMPLATES.find((item) => item.id === 'hero-svh')
+assert.equal(heroSvh.extraProps?.heightMode, 'svh')
+assert.equal(heroSvh.extraProps?.svh, 100)
+assert.equal(heroSvh.extraProps?.bgOverlayColor2, 'transparent')
+
+for (const id of ['interactive-tabs', 'interactive-steps']) {
+  const tpl = SECTION_TEMPLATES.find((item) => item.id === id)
+  const els = tpl.build()
+  const triggers = els.filter((el) => typeof el.props.href === 'string' && el.props.href.startsWith('#state:'))
+  assert.ok(triggers.length >= 3, `Template "${id}" must include >= 3 #state triggers`)
+  for (const trig of triggers) {
+    const parsed = readLinkAction(trig.props.href)
+    assert.equal(parsed.type, 'state')
+    const [targetFrameId, variantId] = parsed.value.split(':')
+    const frame = els.find((el) => el.id === targetFrameId && el.type === 'container')
+    assert.ok(frame, `Trigger ${trig.props.href} in "${id}" must target a container frame in the same template`)
+    assert.ok(
+      Array.isArray(frame.props._variants) && frame.props._variants.some((v) => v.id === variantId),
+      `Trigger ${trig.props.href} in "${id}" must match a variant in target frame _variants`,
+    )
+    assert.ok(trig.props._states?.desktop?.active, `Trigger in "${id}" should define _states.desktop.active styling`)
+  }
+}
+
+const faqTpl = SECTION_TEMPLATES.find((item) => item.id === 'faq-accordion')
+const faqEls = faqTpl.build()
+const faqAcc = faqEls.find((el) => el.type === 'accordion')
+assert.ok(faqAcc && Array.isArray(faqAcc.props.items) && faqAcc.props.items.length >= 3)
+console.log('PASS Task 5: Starter templates (hero-svh, interactive-tabs, interactive-steps, faq-accordion) verified')

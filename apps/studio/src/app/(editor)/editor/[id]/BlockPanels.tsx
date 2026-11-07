@@ -17,7 +17,7 @@ type TabDef = { id: string; title: string; icon: string; blocks: (type: string) 
 const TABS: TabDef[] = [
   { id: 'sections', title: 'Phần', icon: 'M4 5h16v14H4zM4 10h16M10 10v9', blocks: (t) => t === 'FreeCanvas', sections: true },
   { id: 'text', title: 'Văn bản', icon: 'M5 6h14M12 6v13M8 19h8', blocks: (t) => t === 'Text', library: ['Tiêu đề', 'Tiêu đề kiểu', 'Văn bản', 'Văn bản kiểu'] },
-  { id: 'elements', title: 'Phần tử', icon: 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z', blocks: () => false, library: ['Nút bấm', 'Menu', 'Hình khối', 'Hình học', 'Nền chuyển màu', 'Đường kẻ', ...Object.keys(ICON_CATS).map((k) => `Icon · ${k}`)] },
+  { id: 'elements', title: 'Phần tử', icon: 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z', blocks: () => false, library: ['Nút bấm', 'Menu', 'Tab và đường dẫn', 'Hình khối', 'Hình học', 'Nền chuyển màu', 'Đường kẻ', ...Object.keys(ICON_CATS).map((k) => `Icon · ${k}`)] },
   { id: 'media', title: 'Ảnh/Video', icon: 'M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4', blocks: (t) => ['Image', 'Video', 'Slider'].includes(t), library: ['Ảnh và video'] },
   { id: 'shop', title: 'Cửa hàng', icon: 'M4 9l1-5h14l1 5M5 9v11h14V9M9 20v-6h6v6', blocks: (t) => /^(Shop|Wim)/.test(t) },
   { id: 'forms', title: 'Nhập liệu', icon: 'M4 6h16v4H4zM4 14h16v4H4z', blocks: (t) => ['ContactForm', 'Form', 'SearchBox'].includes(t) },
@@ -227,6 +227,8 @@ export const LIBRARY: { title: string; cols: number; items: { label: string; mak
     { label: 'Nhúng (iframe)', make: S('embed', {}) },
   ] },
   { title: 'Tab và đường dẫn', cols: 1, items: [
+    { label: 'FAQ thu gọn (Dấu +)', make: S('accordion', {}) },
+    { label: 'FAQ thu gọn (Mũi tên)', make: S('accordion', { props: { iconStyle: 'chevron', accent: '#15803d', openBg: '#f0fdf4' } }) },
     { label: 'Tab xanh', make: S('tabs', {}) },
     { label: 'Tab cam', make: S('tabs', { props: { accent: '#ea580c' } }) },
     { label: 'Breadcrumb', make: S('breadcrumb', {}) },
@@ -305,7 +307,7 @@ function Panel({ tab, types, labelOf, T, lang }: { tab: TabDef; types: string[];
           <p style={{ margin: '0 0 10px', fontSize: 12, opacity: 0.65 }}>{T('Bấm để chèn vào dưới phần đang chọn. Mọi thứ trong phần đều kéo thả sửa được.')}</p>
           <div style={{ display: 'grid', gap: 10, marginBottom: 16 }}>
             {tpls.map((tpl) => (
-              <button key={tpl.id} type="button" className="he-card" onClick={() => insertSection({ height: tpl.height, bg: tpl.bg, els: tpl.build() })} style={{ cursor: 'pointer', font: 'inherit' }}>
+              <button key={tpl.id} type="button" className="he-card" onClick={() => insertSection({ height: tpl.height, bg: tpl.bg, els: tpl.build(), extraProps: tpl.extraProps })} style={{ cursor: 'pointer', font: 'inherit' }}>
                 <SectionPreview tpl={tpl} />
                 <span>{T(tpl.label)}</span>
               </button>
@@ -368,6 +370,7 @@ export const ELEMENT_CATALOG: readonly ElementCatalogItem[] = ([
   ['image', 'Hình ảnh', 'Ảnh và video'],
   ['swiper', 'Trình chiếu', 'Ảnh và video'],
   ['video', 'Video', 'Ảnh và video'],
+  ['accordion', 'Câu hỏi FAQ', 'Phần tử'],
 ] as const).map(([type, label, category]) => {
   const create = () => makeElement(type,
     type === 'image' ? { props: sampleImage }

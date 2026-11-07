@@ -1,8 +1,9 @@
-import { makeElement, type FreeElement } from '@hosso/studio-blocks'
+import { makeElement, newId, type FreeElement } from '@hosso/studio-blocks'
+import { captureFrameVariant } from '../../../../../../../packages/blocks/src/design-presets'
 import { createFrameLayout } from '../../../../../../../packages/blocks/src/frame-layout'
 
 /** Mẫu section (kiểu Webcake "Phần → Mẫu"): một canvas có sẵn chiều cao, nền và các phần tử đã bố trí; chèn xong vẫn kéo thả sửa tự do. */
-export type SectionTemplate = { id: string; label: string; height: number; bg?: string; build: () => FreeElement[] }
+export type SectionTemplate = { id: string; label: string; height: number; bg?: string; extraProps?: Record<string, unknown>; build: () => FreeElement[] }
 
 const H = (text: string, over: { x: number; y: number; w: number; h: number; size: number; color?: string; align?: string; level?: number }): FreeElement =>
   makeElement('heading', { x: over.x, y: over.y, w: over.w, h: over.h, props: { text, size: over.size, color: over.color ?? '#111827', align: over.align ?? 'left', level: over.level ?? 2, weight: 700 } })
@@ -11,6 +12,191 @@ const P = (text: string, over: { x: number; y: number; w: number; h: number; siz
 const Btn = (text: string, x: number, y: number, props: Record<string, unknown> = {}): FreeElement => makeElement('button', { x, y, w: 200, h: 56, props: { text, ...props } })
 
 export const SECTION_TEMPLATES: SectionTemplate[] = [
+  {
+    id: 'hero-svh',
+    label: 'Hero tràn màn hình (100svh)',
+    height: 700,
+    bg: '#0f172a',
+    extraProps: {
+      heightMode: 'svh',
+      svh: 100,
+      svhOffset: 82,
+      minHeightPx: 620,
+      bgImage: '/editor-templates/restaurant.jpg',
+      bgOverlay: 85,
+      bgOverlayColor: '#0f172a',
+      bgOverlayColor2: 'transparent',
+      bgOverlayAngle: 95,
+    },
+    build: () => [
+      makeElement('shape', { x: 700, y: 120, w: 420, h: 420, props: { bg: '#facc15', bg2: 'transparent', fillType: 'radial', blur: 36, opacity: 32, radius: 999 } }),
+      makeElement('text', { x: 88, y: 128, w: 340, h: 36, props: { text: 'GIẢI PHÁP VẬN HÀNH NHÀ HÀNG HIỆN ĐẠI', size: 13, weight: 700, spacing: 2, color: '#fde047', bg: 'rgba(250,204,21,0.14)', radius: 999, padX: 16, padY: 8, vAlign: 'center', font: 'Manrope' } }),
+      makeElement('heading', { x: 88, y: 184, w: 590, h: 168, props: { text: 'Gọi món tại bàn nhanh gấp 3 lần bằng Tablet', level: 1, size: 54, weight: 800, lh: 1.12, color: '#ffffff', font: 'Manrope' } }),
+      makeElement('text', { x: 88, y: 368, w: 530, h: 84, props: { text: 'Đồng bộ đơn xuống bếp và thu ngân trong 0.5 giây. Triển khai trọn gói phần cứng lẫn phần mềm chỉ trong 24 giờ.', size: 19, lh: 1.55, color: '#cbd5e1', font: 'Inter' } }),
+      makeElement('button', { x: 88, y: 478, w: 224, h: 56, props: { text: 'Nhận tư vấn miễn phí', bg: '#facc15', color: '#111827', radius: 999, size: 16, weight: 700, font: 'Manrope', href: '/lien-he' } }),
+      makeElement('button', { x: 328, y: 478, w: 196, h: 56, props: { text: 'Xem quy trình', bg: 'transparent', color: '#ffffff', borderW: 1.5, borderColor: 'rgba(255,255,255,0.42)', radius: 999, size: 16, weight: 600, font: 'Manrope', href: '#' } }),
+      makeElement('image', { x: 716, y: 132, w: 400, h: 436, props: { src: '/editor-templates/cafe.jpg', alt: 'Không gian trải nghiệm gọi món tại bàn', radius: 28, bshadow: 'lg' } }),
+    ],
+  },
+  {
+    id: 'interactive-tabs',
+    label: 'Tab tương tác đổi khung',
+    height: 640,
+    bg: '#f8fafc',
+    build: () => {
+      const frameId = newId()
+      const badgeId = newId(), headId = newId(), descId = newId(), ctaId = newId(), imgId = newId()
+      const frame: FreeElement = makeElement('container', {
+        id: frameId,
+        x: 80,
+        y: 196,
+        w: 1040,
+        h: 384,
+        props: { _frame: true, name: 'Khung nội dung Tab', bg: '#ffffff', radius: 24, borderW: 1, borderColor: '#e2e8f0', bshadow: 'md' },
+      })
+      const makeChildren = (badge: string, heading: string, desc: string, cta: string, src: string): FreeElement[] => [
+        makeElement('text', { id: badgeId, parentId: frameId, x: 128, y: 242, w: 240, h: 32, props: { text: badge, size: 12, weight: 700, spacing: 1.5, color: '#a16207', bg: '#fef9c3', radius: 999, padX: 14, padY: 6, vAlign: 'center', font: 'Manrope' } }),
+        makeElement('heading', { id: headId, parentId: frameId, x: 128, y: 290, w: 460, h: 96, props: { text: heading, level: 3, size: 32, weight: 800, lh: 1.2, color: '#0f172a', font: 'Manrope' } }),
+        makeElement('text', { id: descId, parentId: frameId, x: 128, y: 398, w: 450, h: 78, props: { text: desc, size: 16, lh: 1.55, color: '#475569', font: 'Inter' } }),
+        makeElement('button', { id: ctaId, parentId: frameId, x: 128, y: 492, w: 196, h: 48, props: { text: cta, bg: '#111827', color: '#ffffff', radius: 999, size: 15, weight: 700, font: 'Manrope', href: '/lien-he' } }),
+        makeElement('image', { id: imgId, parentId: frameId, x: 628, y: 228, w: 456, h: 320, props: { src, alt: heading, radius: 18 } }),
+      ]
+      const tabs = [
+        { id: 'tab_order', tabLabel: '1. Gọi món tại bàn', badge: 'TRẢI NGHIỆM THỰC KHÁCH', heading: 'Thực đơn hình ảnh trực quan ngay tại bàn', desc: 'Khách tự chọn món, tùy chỉnh khẩu vị và gửi đơn trực tiếp không cần chờ nhân viên ghi giấy.', cta: 'Dùng thử thực đơn', src: '/editor-templates/restaurant.jpg' },
+        { id: 'tab_pos', tabLabel: '2. Đồng bộ bếp & POS', badge: 'VẬN HÀNH TỨC THÌ', heading: 'Phiếu chế biến in tự động tại quầy bếp trong 0.5s', desc: 'Loại bỏ hoàn toàn sai sót nhầm bàn, sót món giờ cao điểm và tối ưu 40% nhân sự chạy bàn.', cta: 'Xem luồng đồng bộ', src: '/editor-templates/cafe.jpg' },
+        { id: 'tab_report', tabLabel: '3. Quản trị doanh thu', badge: 'DỮ LIỆU THỜI GIAN THỰC', heading: 'Báo cáo doanh thu, món bán chạy theo từng ca', desc: 'Theo dõi hiệu suất từng chi nhánh trên điện thoại mọi lúc mọi nơi với biểu đồ trực quan.', cta: 'Khám phá báo cáo', src: '/editor-templates/workspace.jpg' },
+      ]
+      const variants = tabs.map((t) => captureFrameVariant([frame, ...makeChildren(t.badge, t.heading, t.desc, t.cta, t.src)], frame, t.id, t.tabLabel))
+      const hydratedFrame: FreeElement = { ...frame, props: { ...frame.props, _variants: variants, _variant: variants[0].id } }
+      const triggers = tabs.map((t, i) =>
+        makeElement('button', {
+          x: 228 + i * 252,
+          y: 122,
+          w: 236,
+          h: 48,
+          props: {
+            text: t.tabLabel,
+            href: `#state:${frameId}:${t.id}`,
+            bg: '#ffffff',
+            color: '#475569',
+            borderW: 1,
+            borderColor: '#cbd5e1',
+            radius: 999,
+            size: 15,
+            weight: 700,
+            font: 'Manrope',
+            _states: {
+              desktop: {
+                active: { backgroundColor: '#111827', color: '#ffffff', borderColor: '#111827', transitionMs: 160 },
+                hover: { borderColor: '#64748b', transitionMs: 150 },
+              },
+            },
+          },
+        }),
+      )
+      return [
+        makeElement('heading', { x: 200, y: 44, w: 800, h: 56, props: { text: 'Một hệ sinh thái khép kín từ bàn ăn tới bếp', level: 2, size: 38, weight: 800, align: 'center', color: '#0f172a', font: 'Manrope' } }),
+        ...triggers,
+        hydratedFrame,
+        ...makeChildren(tabs[0].badge, tabs[0].heading, tabs[0].desc, tabs[0].cta, tabs[0].src),
+      ]
+    },
+  },
+  {
+    id: 'interactive-steps',
+    label: 'Quy trình 3 bước đổi màn hình',
+    height: 600,
+    bg: '#ffffff',
+    build: () => {
+      const frameId = newId()
+      const stepBadgeId = newId(), previewImgId = newId(), captionId = newId()
+      const frame: FreeElement = makeElement('container', {
+        id: frameId,
+        x: 580,
+        y: 96,
+        w: 540,
+        h: 432,
+        props: { _frame: true, name: 'Màn hình bước quy trình', bg: '#0f172a', radius: 28, bshadow: 'lg' },
+      })
+      const makeStepChildren = (badge: string, caption: string, src: string): FreeElement[] => [
+        makeElement('text', { id: stepBadgeId, parentId: frameId, x: 612, y: 124, w: 220, h: 30, props: { text: badge, size: 12, weight: 700, spacing: 1.4, color: '#fde047', font: 'Manrope' } }),
+        makeElement('image', { id: previewImgId, parentId: frameId, x: 612, y: 166, w: 476, h: 286, props: { src, alt: caption, radius: 18 } }),
+        makeElement('text', { id: captionId, parentId: frameId, x: 612, y: 468, w: 476, h: 36, props: { text: caption, size: 15, weight: 600, color: '#e2e8f0', font: 'Inter' } }),
+      ]
+      const steps = [
+        { id: 'step_1', btnText: 'Bước 01 · Khảo sát & chuẩn hóa thực đơn', badge: 'BƯỚC 01 / KHỞI TẠO', caption: 'Đội ngũ nhập liệu món ăn, phân nhóm combo và thiết kế hình ảnh chuẩn nhận diện.', src: '/editor-templates/restaurant.jpg' },
+        { id: 'step_2', btnText: 'Bước 02 · Lắp đặt Tablet & kết nối POS', badge: 'BƯỚC 02 / LẮP ĐẶT TẬN NƠI', caption: 'Cấu hình mạng nội bộ ổn định, đế sạc bàn ăn và máy in nhiệt tại bếp.', src: '/editor-templates/cafe.jpg' },
+        { id: 'step_3', btnText: 'Bước 03 · Đào tạo 15 phút & vận hành ngay', badge: 'BƯỚC 03 / ĐỒNG HÀNH 24/7', caption: 'Nhân viên sử dụng thành thạo ngay ca đầu tiên, hỗ trợ kỹ thuật xuyên suốt.', src: '/editor-templates/workspace.jpg' },
+      ]
+      const variants = steps.map((s) => captureFrameVariant([frame, ...makeStepChildren(s.badge, s.caption, s.src)], frame, s.id, s.btnText))
+      const hydratedFrame: FreeElement = { ...frame, props: { ...frame.props, _variants: variants, _variant: variants[0].id } }
+      const stepButtons = steps.map((s, i) =>
+        makeElement('button', {
+          x: 80,
+          y: 210 + i * 106,
+          w: 460,
+          h: 88,
+          props: {
+            text: s.btnText,
+            href: `#state:${frameId}:${s.id}`,
+            bg: '#f8fafc',
+            color: '#1e293b',
+            borderW: 1.5,
+            borderColor: '#e2e8f0',
+            radius: 18,
+            size: 16,
+            weight: 700,
+            font: 'Manrope',
+            _states: {
+              desktop: {
+                active: { backgroundColor: '#fefce8', borderColor: '#eab308', color: '#0f172a', transitionMs: 160 },
+                hover: { borderColor: '#94a3b8', transitionMs: 150 },
+              },
+            },
+          },
+        }),
+      )
+      return [
+        makeElement('heading', { x: 80, y: 88, w: 460, h: 96, props: { text: 'Triển khai trọn gói chỉ trong 3 bước', level: 2, size: 38, weight: 800, lh: 1.18, color: '#0f172a', font: 'Manrope' } }),
+        ...stepButtons,
+        hydratedFrame,
+        ...makeStepChildren(steps[0].badge, steps[0].caption, steps[0].src),
+      ]
+    },
+  },
+  {
+    id: 'faq-accordion',
+    label: 'Câu hỏi thu gọn (Accordion FAQ)',
+    height: 540,
+    bg: '#f8fafc',
+    build: () => [
+      makeElement('text', { x: 80, y: 76, w: 220, h: 30, props: { text: 'HỎI ĐÁP NHANH', size: 12, weight: 700, spacing: 1.8, color: '#15803d', font: 'Manrope' } }),
+      makeElement('heading', { x: 80, y: 114, w: 390, h: 108, props: { text: 'Giải đáp mọi thắc mắc trước khi triển khai', level: 2, size: 38, weight: 800, lh: 1.18, color: '#0f172a', font: 'Manrope' } }),
+      makeElement('text', { x: 80, y: 236, w: 380, h: 72, props: { text: 'Chưa thấy câu hỏi của bạn? Đội ngũ tư vấn luôn sẵn sàng hỗ trợ trực tiếp trong 5 phút.', size: 16, lh: 1.55, color: '#475569', font: 'Inter' } }),
+      makeElement('button', { x: 80, y: 328, w: 210, h: 52, props: { text: 'Chat với chuyên viên', bg: '#111827', color: '#ffffff', radius: 999, size: 15, weight: 700, font: 'Manrope', href: '/lien-he' } }),
+      makeElement('accordion', {
+        x: 516,
+        y: 72,
+        w: 604,
+        h: 404,
+        props: {
+          exclusive: true,
+          iconStyle: 'plus',
+          accent: '#eab308',
+          openBg: '#fefce8',
+          radius: 16,
+          gap: 12,
+          font: 'Manrope',
+          items: [
+            { question: 'Chi phí thuê trọn gói đã bao gồm phần mềm POS chưa?', answer: 'Đã bao gồm đầy đủ máy tính bảng tại bàn, chân đế chống trộm, phần mềm gọi món và đồng bộ máy in bếp, không phát sinh phụ phí ẩn.', defaultOpen: true },
+            { question: 'Khi mạng Wi-Fi chập chờn thì gọi món có bị gián đoạn không?', answer: 'Hệ thống ưu tiên đồng bộ qua mạng nội bộ (LAN) tại nhà hàng, đảm bảo đơn gọi món vẫn chuyển xuống bếp tức thì và ổn định.', defaultOpen: false },
+            { question: 'Thiết bị rơi vỡ hoặc hư hỏng trong quá trình sử dụng xử lý thế nào?', answer: 'Gói bảo hành 1 đổi 1 tận nơi trong 24 giờ giúp nhà hàng luôn duy trì đủ số lượng máy phục vụ khách.', defaultOpen: false },
+            { question: 'Nhà hàng có thể tự cập nhật món hết hàng hoặc đổi giá ngay không?', answer: 'Quản lý có thể bật/tắt món tạm hết hoặc cập nhật giá theo khung giờ chỉ với 1 chạm, đồng bộ lên toàn bộ tablet trong 1 giây.', defaultOpen: false },
+          ],
+        },
+      }),
+    ],
+  },
   {
     id: 'motion-hero', label: 'Hero ảnh nổi', height: 560, bg: '#eff6f2',
     build: () => [

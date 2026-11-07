@@ -1,5 +1,5 @@
 'use client'
-import { FREE_MAX_PX, FREE_W, FreeElementView, renderCanvasWidgets, cloneElements, elementFamily, transformFamily, convertSectionBox, makeElement, elementStateScope, elementStatesCss, type FreeElement, type FreeType, type ElementState } from '@hosso/studio-blocks'
+import { FREE_MAX_PX, FREE_W, FreeElementView, renderCanvasWidgets, cloneElements, elementFamily, transformFamily, convertSectionBox, makeElement, elementStateScope, elementStatesCss, useInteractiveElements, InteractivePopoverPortal, type FreeElement, type FreeType, type ElementState } from '@hosso/studio-blocks'
 import { createFrameLayout, frameAtPoint, insertIntoFrame, moveIntoFrame, reorderFrameChild } from '../../../../../../../packages/blocks/src/frame-layout'
 import { arrangeResolvedElements } from '../../../../../../../packages/blocks/src/layout-constraints'
 import { FrameTools } from './FrameTools'
@@ -41,14 +41,14 @@ function droppedElement(payload: string, config?: any): FreeElement | undefined 
   if (payload.startsWith('hosso-library:')) return LIBRARY.flatMap((group) => group.items.map((item) => ({ key: group.title + '/' + item.label, create: item.make }))).find((item) => item.key === payload.slice(14))?.create()
   if (!payload.startsWith('hosso-widget:')) return
   const type = payload.slice(13)
-  return ['text', 'button', 'container', 'image', 'swiper', 'video'].includes(type) ? makeElement(type as FreeType) : undefined
+  return ['text', 'button', 'container', 'image', 'swiper', 'video', 'accordion'].includes(type) ? makeElement(type as FreeType) : undefined
 }
 function droppedSection(payload: string, siteCtx: SiteCtx): Block | undefined {
   if (!payload.startsWith('hosso-section:')) return
   const id = payload.slice(14)
   const template = [...SECTION_TEMPLATES, ...HEADER_TEMPLATES, ...FOOTER_TEMPLATES].find((tpl) => tpl.id === id)
   if (!template && id !== 'blank') return
-  return { type: 'FreeCanvas', props: { id: newBlockId('FreeCanvas'), height: template?.height ?? 400, ...(template?.bg ? { _bgHex: template.bg } : {}), _els: template?.build(siteCtx) ?? [] } }
+  return { type: 'FreeCanvas', props: { id: newBlockId('FreeCanvas'), height: template?.height ?? 400, ...(template?.bg ? { _bgHex: template.bg } : {}), ...(template && 'extraProps' in template && template.extraProps ? template.extraProps : {}), _els: template?.build(siteCtx) ?? [] } }
 }
 
 // ---------- Khung xem trước cách ly CSS ----------
@@ -202,6 +202,8 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
   const drag = useRef<Drag | null>(null)
   const dragIds = useRef<string[]>([])
   const list = draft ?? els
+  const interactive = useInteractiveElements(list, Boolean(preview), host)
+  const renderList = preview ? interactive.projected : list
   const widgets = renderCanvasWidgets(list, config?.components ?? {}, true)
   // Explicit pixels avoid container-query layout suppression in portaled iframe widgets.
   const scale = size.w / FREE_W
@@ -426,14 +428,14 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
     <style>{HF_CSS + CANVAS_WIDGET_CSS}</style>
     {!preview && !contentOnly && onGuides && <CanvasRulers width={FREE_W} height={scale ? size.h / scale : 400} scale={scale} value={savedGuides} onChange={onGuides} />}
     {!preview && labelHint && !list.length && <div style={{ position: 'absolute', inset: 0, border: '1px dashed #cbd5e1' }} />}
-    <MotionScope enabled={Boolean(preview && list.some((el) => !el.props._hidden && resolveMotionConfig(el.props)?.loop?.preset && resolveMotionConfig(el.props)?.loop?.preset !== 'none'))}>
-    {list.map((el) => {
-      const hidden = inheritedElementFlag(list, el.id, '_hidden')
+    <MotionScope enabled={Boolean(preview && renderList.some((el) => !el.props._hidden && resolveMotionConfig(el.props)?.loop?.preset && resolveMotionConfig(el.props)?.loop?.preset !== 'none'))}>
+    {renderList.map((el) => {
+      const hidden = inheritedElementFlag(renderList, el.id, '_hidden')
       const locked = inheritedElementFlag(list, el.id, '_locked')
       const active = !preview && interacting === el.id && sel.el === el.id
       const frame = el.type === 'container' && el.props._frame
       const emptyFrame = frame && !list.some((child) => child.parentId === el.id)
-      return <div key={el.id} className={'hf-el ' + (preview ? inheritedHideClasses(list, el.id) : '')} draggable={false} onDragStart={(e) => { if (!preview) e.preventDefault() }} data-free-ui="1" data-frame={frame ? el.id : undefined} data-editor-interactive={active ? "true" : undefined} data-element={el.id} data-element-type={el.type} data-element-action={Boolean(el.props.href)}
+      return <div key={el.id} className={'hf-el ' + (preview ? inheritedHideClasses(renderList, el.id) : '')} draggable={false} onDragStart={(e) => { if (!preview) e.preventDefault() }} data-free-ui="1" data-frame={frame ? el.id : undefined} data-editor-interactive={active ? "true" : undefined} data-element={el.id} data-element-type={el.type} data-element-action={Boolean(el.props.href)}
         onPointerDown={(e) => start(e, el, 'move')}
         onContextMenu={(e) => {
           if (preview) return
@@ -443,15 +445,16 @@ function Layer({ blockId: bid, els, sel, setSel, onEls, onTransfer, preview = fa
           setCtxMenu({ x: e.clientX, y: e.clientY, el })
         }}
         onPointerEnter={() => !preview && setHover(el.id)} onPointerLeave={() => setHover('')}
-        onDoubleClick={(event) => { if (preview || locked || contentOnly) return; if (TEXTY.has(el.type)) setEditing(el.id); else if (el.type === 'image') { if (event.altKey && /^\/api\/media\/file\//.test(el.props.src ?? '')) setEditingImage(el); else setFraming(el.id) } else if (el.type === 'video' || el.type === 'swiper' || el.type === 'widget') setInteracting(el.id) }}
+        onDoubleClick={(event) => { if (preview || locked || contentOnly) return; if (TEXTY.has(el.type)) setEditing(el.id); else if (el.type === 'image') { if (event.altKey && /^\/api\/media\/file\//.test(el.props.src ?? '')) setEditingImage(el); else setFraming(el.id) } else if (el.type === 'video' || el.type === 'swiper' || el.type === 'widget' || el.type === 'accordion') setInteracting(el.id) }}
         style={{ display: preview && hidden ? 'none' : undefined, position: 'absolute', outline: !preview && (sel.el === el.id || sel.multi?.includes(el.id)) ? `1px solid ${BRAND}` : !preview && frame ? '1px dashed #a3b8ab' : undefined, outlineOffset: -1, left: px(el.x), top: px(el.y), width: px(el.w), height: px(el.h), opacity: movingIds.has(el.id) ? 0 : hidden ? 0.3 : 1, zIndex: el.type === 'container' ? 0 : 1, cursor: preview || active || locked ? 'auto' : editing === el.id ? 'text' : 'move', touchAction: preview || active ? 'auto' : 'none', userSelect: preview ? 'auto' : 'none', pointerEvents: preview && el.type === 'container' ? 'none' : 'auto' }}>
         {editing === el.id && !preview ? <InlineText el={el} scale={scale} onDone={(value) => { setEditing(''); if (value) commit(mapOne(el.id, (it) => ({ ...it, props: { ...it.props, text: value.text, richText: value.richText } }))) }} /> :
-          <div onPointerDown={active ? (e) => e.stopPropagation() : undefined} style={{ width: '100%', height: '100%', pointerEvents: preview || active ? 'auto' : 'none' }}><FreeElementView el={el} scale={scale} editing={!preview && !active} scrollEffects={preview} state={!preview && cur?.id === el.id ? selectedState : undefined}>{widgets[el.id]}</FreeElementView></div>}
+          <div onPointerDown={active ? (e) => e.stopPropagation() : undefined} style={{ width: '100%', height: '100%', pointerEvents: preview || active ? 'auto' : 'none' }}><FreeElementView el={el} scale={scale} editing={!preview && !active} scrollEffects={preview} state={preview ? (interactive.isActive(el.props.href) ? 'active' : undefined) : (cur?.id === el.id ? selectedState : undefined)} linkProps={preview ? interactive.triggerProps(el.props.href) : undefined} itemLinkProps={preview ? interactive.triggerProps : undefined}>{widgets[el.id]}</FreeElementView></div>}
         {!preview && emptyFrame && !hidden && <div style={{ position: 'absolute', inset: 0, display: 'grid', placeContent: 'center', gap: 8, textAlign: 'center', color: '#6c8675', pointerEvents: 'none', font: '12px/1.5 system-ui,sans-serif' }}><span>{el.props._name || 'Ô trống'}</span><span style={{ fontSize: 20 }}>＋</span><span>Kéo nội dung vào đây</span></div>}
         {!preview && framing === el.id && <ImageFraming el={el} scale={scale} patch={(props) => commit(mapOne(el.id, (item) => ({ ...item, props: { ...item.props, ...props } })), `p:${el.id}`)} done={() => setFraming('')} />}
       </div>
     })}
     </MotionScope>
+    {preview && <InteractivePopoverPortal list={list} activeVariants={interactive.activeVariants} openPopover={interactive.openPopover} onClose={interactive.closePopover} renderElement={(el, popScale) => <FreeElementView el={el} scale={popScale} state={interactive.isActive(el.props.href) ? 'active' : undefined} linkProps={interactive.triggerProps(el.props.href)} itemLinkProps={interactive.triggerProps}>{widgets[el.id]}</FreeElementView>} />}
     {moving.length > 0 && rect && createPortal(<div data-free-ui="1" style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 99999 }}>
       {moving.map((el) => <div key={el.id} style={{ position: 'absolute', left: rect.left + px(el.x), top: rect.top + px(el.y), width: px(el.w), height: px(el.h), containerType: 'inline-size' }}><FreeElementView el={el} scale={scale} editing /></div>)}
     </div>, host.current!.ownerDocument.body)}

@@ -71,10 +71,10 @@ export function useAddFreeElement() {
 /** Hàm chèn một section mới (canvas trống hoặc từ mẫu) ngay dưới block đang chọn, không chọn thì cuối trang. */
 export function useInsertSection() {
   const { appState, dispatch, selectedItem } = usePuck()
-  return (tpl: { height: number; bg?: string; els: FreeElement[] }) => {
+  return (tpl: { height: number; bg?: string; els: FreeElement[]; extraProps?: Record<string, unknown> }) => {
     const content = [...((appState.data.content ?? []) as any[])]
     const at = selectedItem ? content.findIndex((c) => c.props?.id === (selectedItem as any).props?.id) : -1
-    const block = { type: 'FreeCanvas', props: { id: `FreeCanvas-${newId()}`, height: tpl.height, ...(tpl.bg ? { _bgHex: tpl.bg } : {}), _els: tpl.els } }
+    const block = { type: 'FreeCanvas', props: { id: `FreeCanvas-${newId()}`, height: tpl.height, ...(tpl.bg ? { _bgHex: tpl.bg } : {}), ...(tpl.extraProps ?? {}), _els: tpl.els } }
     content.splice(at >= 0 ? at + 1 : content.length, 0, block)
     dispatch({ type: 'setData', data: { ...appState.data, content } } as any)
     freeStore.set('')

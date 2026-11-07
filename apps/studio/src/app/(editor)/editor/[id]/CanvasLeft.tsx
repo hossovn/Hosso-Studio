@@ -49,7 +49,7 @@ const TABS: { id: Tab; title: string; icon: typeof Type; groups?: string[]; widg
   { id: 'popup', title: 'Popup', icon: AppWindow },
 ]
 
-const NAMES: Record<string, string> = { countdown: 'Đếm ngược', number: 'Số liệu', table: 'Bảng', map: 'Bản đồ', embed: 'Nhúng', tabs: 'Tab', breadcrumb: 'Breadcrumb', menu: 'Menu', heading: 'Tiêu đề', text: 'Văn bản', button: 'Nút', shape: 'Hình khối', line: 'Đường kẻ', icon: 'Icon', image: 'Ảnh', video: 'Video' }
+const NAMES: Record<string, string> = { accordion: 'Câu hỏi thu gọn (FAQ)', countdown: 'Đếm ngược', number: 'Số liệu', table: 'Bảng', map: 'Bản đồ', embed: 'Nhúng', tabs: 'Tab', breadcrumb: 'Breadcrumb', menu: 'Menu', heading: 'Tiêu đề', text: 'Văn bản', button: 'Nút', shape: 'Hình khối', line: 'Đường kẻ', icon: 'Icon', image: 'Ảnh', video: 'Video' }
 export const elLabel = (el: FreeElement) => {
   if (el.props._name) return String(el.props._name)
   const t = String(el.props.text ?? '').replace(/\s+/g, ' ').trim()
@@ -58,7 +58,7 @@ export const elLabel = (el: FreeElement) => {
 
 export type LeftOps = {
   addEls: (els: FreeElement[]) => void
-  addSection: (tpl: { height: number; bg?: string; els: FreeElement[] }) => void
+  addSection: (tpl: { height: number; bg?: string; els: FreeElement[]; extraProps?: Record<string, unknown> }) => void
   addWidget: (type: string, props?: Record<string, unknown>) => void
   addPattern: (pattern: Pattern) => void
   addBlocks: (blocks: Block[]) => void
@@ -289,7 +289,7 @@ export function CanvasLeft({
         </div>
         <div className="cv-panel-body" key={tab}>
         {['text', 'elements', 'media'].includes(tab) && <div className="cv-quick-add tw:grid tw:grid-cols-3 tw:gap-2 tw:mb-4" aria-label="Thêm phần tử">
-          {([{ type: 'text', label: 'Văn bản', Icon: Type }, { type: 'button', label: 'Nút bấm', Icon: MousePointer2 }, { type: 'container', label: 'Nhóm', Icon: Square }, { type: 'image', label: 'Hình ảnh', Icon: Image }, { type: 'swiper', label: 'Trình chiếu', Icon: GalleryHorizontal }, { type: 'video', label: 'Video', Icon: Video }] satisfies { type: FreeType; label: string; Icon: typeof Type }[]).map(({ type, label, Icon }) => (
+          {([{ type: 'text', label: 'Văn bản', Icon: Type }, { type: 'button', label: 'Nút bấm', Icon: MousePointer2 }, { type: 'container', label: 'Nhóm', Icon: Square }, { type: 'image', label: 'Hình ảnh', Icon: Image }, { type: 'swiper', label: 'Trình chiếu', Icon: GalleryHorizontal }, { type: 'video', label: 'Video', Icon: Video }, { type: 'accordion', label: 'Câu hỏi FAQ', Icon: LayersIcon }] satisfies { type: FreeType; label: string; Icon: typeof Type }[]).map(({ type, label, Icon }) => (
             <button key={type} type="button" draggable title={label} onDragStart={(e) => { e.dataTransfer.setData('text/plain', 'hosso-widget:' + type); e.dataTransfer.effectAllowed = 'copy' }} onClick={() => ops.addEls([ELEMENT_CATALOG.find((item) => item.type === type)?.create() ?? makeElement(type)])}><span className="cv-quick-icon"><Icon size={20} strokeWidth={1.6} /></span>{label}</button>
           ))}
         </div>}
