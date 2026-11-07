@@ -8,6 +8,7 @@ import fs from 'fs'
 import pkg from '../../package.json'
 import { hasRole } from './access'
 import { serviceTokenOk, verifySsoToken } from './kiln-auth'
+import { getPayloadSiteLocales } from './locale'
 
 const json = (body: unknown, status = 200) => Response.json(body, { status })
 
@@ -34,7 +35,8 @@ export const siteStatus: Endpoint = {
         return { id: p.id, version: p.manifest?.version, ok: st?.ok ?? true, ...(st?.detail ? { detail: st.detail } : {}) }
       }),
     )
-    return json({ ok: db && plugins.every((p) => p.ok), version: pkg.version, uptimeSec: Math.round(process.uptime()), db, disk, plugins, locales: hosso.locales.map((l) => l.code) })
+    const { locales: activeLocales } = await getPayloadSiteLocales(req.payload)
+    return json({ ok: db && plugins.every((p) => p.ok), version: pkg.version, uptimeSec: Math.round(process.uptime()), db, disk, plugins, locales: activeLocales.map((l) => l.code) })
   },
 }
 

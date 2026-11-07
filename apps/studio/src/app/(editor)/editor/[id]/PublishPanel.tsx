@@ -27,7 +27,7 @@ export function PublishPanel({ nav, data, config, setSel, onDevice, metadata, on
     ]).then(([pages, posts, media]) => { if (!live) return; setPaths(new Set(['/', '/tim-kiem', '/bai-viet', '/danh-muc', '/the', ...(pages.docs ?? []).map((page: Meta) => page.slug === 'home' ? '/' : '/' + page.slug), ...(posts.docs ?? []).map((post: Meta) => '/bai-viet/' + post.slug)])); setImages(media.docs ?? []) }).catch(() => { if (live) setError('Không tải được dữ liệu SEO.') })
     return () => { live = false }
   }, [nav?.id, nav?.locale])
-  const issues = useMemo(() => inspectPage({ ...meta, content: data }, { paths, blockTypes: new Set(Object.keys(config.components)), locale: nav?.locale ?? 'vi', locales: ['vi', 'en'], seo: !nav || ['pages', 'posts'].includes(nav.collection) }), [meta, data, config, paths, nav])
+  const issues = useMemo(() => inspectPage({ ...meta, content: data }, { paths, blockTypes: new Set(Object.keys(config.components)), locale: nav?.locale ?? 'vi', locales: nav?.locales?.length ? nav.locales : ['vi', 'en'], seo: !nav || ['pages', 'posts'].includes(nav.collection) }), [meta, data, config, paths, nav])
   const change = (next: Meta) => { setMeta(next); onMetadataChange?.(next); setMessage('') }
   const save = async () => {
     if (!nav || !['pages', 'posts'].includes(nav.collection)) return

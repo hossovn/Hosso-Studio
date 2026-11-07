@@ -7,6 +7,7 @@ import { lockSitePublication } from './site-publication-lock'
 import { contentTypes } from './content-types'
 import { assertContent, canContent } from './content-permissions'
 import hosso from '@hosso-config'
+import { getPayloadSiteLocales } from './locale'
 const allowed = ['pages','posts','media','content-entries'] as const
 const writer = (req: PayloadRequest) => hasRole(req.user,'admin','publisher','editor','author')
 const noStore = { 'Cache-Control': 'no-store' }
@@ -39,7 +40,8 @@ export async function mediaReferences(req: PayloadRequest, id: string, filename:
 }
 export const cmsList: Endpoint = { path: '/site/cms', method: 'get', handler: async (req) => {
  if (!writer(req)) return json({ error: 'Forbidden' },403)
- const sp = params(req), collection = sp.get('kind') || 'pages', locale = hosso.locales.some((l) => l.code === sp.get('locale')) ? sp.get('locale')! : hosso.locales[0].code
+ const { locales: activeLocales, defaultLocale: activeDefault } = await getPayloadSiteLocales(req.payload, true)
+ const sp = params(req), collection = sp.get('kind') || 'pages', locale = activeLocales.some((l) => l.code === sp.get('locale')) ? sp.get('locale')! : activeDefault
  if (!(allowed as readonly string[]).includes(collection) || !manage(req,collection)) return json({ error: 'Forbidden' },403)
  const q = (sp.get('q') || '').trim().slice(0,160), trash = sp.get('status') === 'trash', where: any = { and: [] }
  if (q) where.and.push({ or: (collection === 'media' ? ['filename','alt'] : ['title','slug']).map((key) => ({ [key]: { contains: q } })) })
@@ -58,7 +60,7 @@ export const cmsList: Endpoint = { path: '/site/cms', method: 'get', handler: as
  const users = canPublish(req.user) ? (await allCmsDocs(req,'users', {overrideAccess:true,select:{email:true,roles:true},where:{roles:{in:['admin','publisher','editor','author']}}})).map((u) => ({ id: String(u.id), email: u.email })) : []
  const parents = collection === 'pages' ? (await allCmsDocs(req, 'pages', { locale })).map((d) => ({id:d.id,title:d.title})) : []
  const settings: any = collection === 'pages' ? await req.payload.findGlobal({ slug: 'site-settings', draft: true, depth: 0, req, overrideAccess: true }) : null
- return json({ docs: docs.slice((page-1)*size,page*size).map(({ id,title,slug,_status,updatedAt,categories,cms,mimeType,filename,url,alt,published,kind,writingMode,deletedAt,permissions }: any) => ({ id,title,slug,_status,updatedAt,categories,cms,mimeType,filename,url,alt,published,kind,writingMode,deletedAt,permissions })), types:collection==='content-entries'?await contentTypes(req):[],canManageTypes:isAdmin(req.user),total, page, pages: Math.max(1,Math.ceil(total/size)), folders, categories, users, parents, canPublish: canPublish(req.user), canHome: isAdmin(req.user), canEditPages: hasRole(req.user,'admin','publisher','editor'), homeSlug: settings?.homeSlug || 'home', defaultLocale:hosso.locales[0].code, locale })
+ return json({ docs: docs.slice((page-1)*size,page*size).map(({ id,title,slug,_status,updatedAt,categories,cms,mimeType,filename,url,alt,published,kind,writingMode,deletedAt,permissions }: any) => ({ id,title,slug,_status,updatedAt,categories,cms,mimeType,filename,url,alt,published,kind,writingMode,deletedAt,permissions })), types:collection==='content-entries'?await contentTypes(req):[],canManageTypes:isAdmin(req.user),total, page, pages: Math.max(1,Math.ceil(total/size)), folders, categories, users, parents, canPublish: canPublish(req.user), canHome: isAdmin(req.user), canEditPages: hasRole(req.user,'admin','publisher','editor'), homeSlug: settings?.homeSlug || 'home', defaultLocale:activeDefault, locale })
 } }
 export const cmsSearch: Endpoint = { path: '/site/cms/search', method: 'get', handler: async (req) => {
  if (!writer(req)) return json({ error: 'Forbidden' },403)
@@ -71,7 +73,7 @@ export const cmsSearch: Endpoint = { path: '/site/cms/search', method: 'get', ha
   const where: any = { and: [{ or: fields.map((key) => ({ [key]: { contains: q } })) }] }
   if (collection === 'posts' && !hasRole(req.user,'admin','publisher','editor')) where.and.push({ createdBy: { equals: req.user!.id } })
   let docs
-  try { docs = await req.payload.find({ collection: collection as any, where, draft: ['pages','posts'].includes(collection), depth: 0, limit: 6, req, overrideAccess: false, locale: (sp.get('locale') || hosso.locales[0].code) as any }) }
+  try { docs = await req.payload.find({ collection: collection as any, where, draft: ['pages','posts'].includes(collection), depth: 0, limit: 6, req, overrideAccess: false, locale: (sp.get('locale') || (await getPayloadSiteLocales(req.payload, true)).defaultLocale) as any }) }
   catch(error:any){if(error.status===403)continue;throw error}
   for (const doc of docs.docs as any[]) results.push({ id: doc.id, kind: collection, title: doc.title || doc.name || doc.alt || doc.filename, href: '/admin/collections/' + collection + '/' + doc.id })
  }
@@ -81,7 +83,8 @@ export const cmsMutate: Endpoint = { path: '/site/cms', method: 'post', handler:
  if (!writer(req)) return json({ error: 'Forbidden' },403)
  const body = await req.json?.().catch(() => null), collection = body?.kind
  if (!(allowed as readonly string[]).includes(collection) || !manage(req,collection) || !Array.isArray(body.ids) || !body.ids.length || body.ids.length > 50) return json({ error: 'Invalid request' },400)
- const locale = hosso.locales.some((l) => l.code === body.locale) ? body.locale : hosso.locales[0].code
+ const { locales: activeLocales, defaultLocale: activeDefault } = await getPayloadSiteLocales(req.payload, true)
+ const locale = activeLocales.some((l) => l.code === body.locale) ? body.locale : activeDefault
  try { return await inTransaction(req, async () => {
   await lockSitePublication(req)
   const output = []
@@ -96,7 +99,7 @@ export const cmsMutate: Endpoint = { path: '/site/cms', method: 'post', handler:
     const { id: _id, createdAt, updatedAt, deletedAt, cms, _status, createdBy, ...copy } = doc
     const slug = String(doc.slug) + '-copy-' + crypto.randomUUID().slice(0,8)
     const created: any = await req.payload.create({ collection, data: { ...copy, slug, title: doc.title + ' (bản sao)', cms: { review: 'draft' }, _status: 'draft' }, draft: true, locale, req, overrideAccess: false })
-    for (const language of hosso.locales.filter((l) => l.code !== locale)) { const source: any = await req.payload.findByID({ collection,id,locale: language.code as any,fallbackLocale:false,draft:true,depth:0,req,overrideAccess:false }); const translated = Object.fromEntries(['title','description','excerpt','content','articleBody','seo'].filter((key) => source[key] != null).map((key) => [key,source[key]])); if (Object.keys(translated).length) await req.payload.update({ collection,id:created.id,data:{...translated,_status:'draft'},draft:true,locale:language.code as any,req,overrideAccess:false }) }
+    for (const language of activeLocales.filter((l) => l.code !== locale)) { const source: any = await req.payload.findByID({ collection,id,locale: language.code as any,fallbackLocale:false,draft:true,depth:0,req,overrideAccess:false }); const translated = Object.fromEntries(['title','description','excerpt','content','articleBody','seo'].filter((key) => source[key] != null).map((key) => [key,source[key]])); if (Object.keys(translated).length) await req.payload.update({ collection,id:created.id,data:{...translated,_status:'draft'},draft:true,locale:language.code as any,req,overrideAccess:false }) }
     output.push(created.id); continue
    }
    if (body.action === 'trash') { if (!canPublish(req.user) || !['pages','posts'].includes(collection)) throw new APIError('Forbidden',403); await cancelSchedule(req,collection,id); await req.payload.update({ collection,id,data:{deletedAt:new Date().toISOString(),_status:'draft',cms:{...doc.cms,review:'draft',scheduledAt:null}} as any,req,overrideAccess:false }); output.push(id); continue }
@@ -124,7 +127,8 @@ export const cmsUsage: Endpoint = { path: '/site/cms/media-usage/:id', method: '
 
 export const cmsCreateArticle: Endpoint = { path:'/site/cms/article',method:'post',handler:async(req)=>{
  if(!writer(req)) return json({error:'Forbidden'},403)
- const body=await req.json?.().catch(()=>null), locale=hosso.locales.some((l)=>l.code===body?.locale)?body.locale:hosso.locales[0].code
+ const { locales: activeLocales, defaultLocale: activeDefault } = await getPayloadSiteLocales(req.payload, true)
+ const body=await req.json?.().catch(()=>null), locale=activeLocales.some((l)=>l.code===body?.locale)?body.locale:activeDefault
  const doc=await req.payload.create({collection:'posts',draft:true,locale,req,overrideAccess:false,data:{title:req.i18n?.language==='en'?'Untitled article':'Bài viết mới',slug:'article-'+crypto.randomUUID().slice(0,8),writingMode:'article',articleTemplate:'reading',_status:'draft',articleBody:{root:{type:'root',version:1,direction:null,format:'',indent:0,children:[{type:'paragraph',version:1,direction:null,format:'',indent:0,children:[]}]}}}})
  return json({id:doc.id})
 }}

@@ -5,7 +5,7 @@ import React, { useEffect, useState } from 'react'
 import type { PageData } from './canvas-model'
 import { copyPageMeta } from './page-copy'
 
-export type NavCtx = { id: string; collection: string; locale: string; defaultLocale: string }
+export type NavCtx = { id: string; collection: string; locale: string; defaultLocale: string; locales?: string[] }
 
 const row: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px', border: 0, borderRadius: 6, background: 'transparent', font: 'inherit', fontSize: 13, color: '#20242b', textAlign: 'left', cursor: 'pointer', textDecoration: 'none', boxSizing: 'border-box' }
 const on: React.CSSProperties = { background: 'color-mix(in srgb, var(--hosso-brand, #15803d) 12%, #fff)', color: 'var(--hosso-brand, #15803d)', fontWeight: 700 }

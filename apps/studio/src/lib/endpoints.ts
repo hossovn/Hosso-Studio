@@ -11,6 +11,7 @@ import { adminLang } from './admin-i18n'
 import { both, msg } from './lang'
 import { notify } from './notify'
 import { makeShareToken } from './share'
+import { getPayloadSiteLocales } from './locale'
 import { importSitePackage } from './site-import'
 import { buildSitePackage } from './site-package'
 import { allow, clientIp } from './ratelimit'
@@ -137,7 +138,8 @@ export const shareLink: Endpoint = {
     if (!doc) return json({ error: 'not_found' }, 404)
     const base = (process.env.HOSSO_PUBLIC_URL || new URL(req.url ?? 'http://localhost').origin).replace(/\/$/, '')
     const locale = String(req.query?.locale ?? '')
-    const prefix = locale && locale !== hosso.locales[0]?.code ? `/${locale}` : ''
+    const { defaultLocale: activeDefault } = await getPayloadSiteLocales(req.payload, true)
+    const prefix = locale && locale !== activeDefault ? `/${locale}` : ''
     const path = c === 'posts' ? `/bai-viet/${doc.slug}` : doc.slug === 'home' ? '' : `/${doc.slug}`
     return json({ url: `${base}${prefix}${path || '/'}?share=${makeShareToken(c, doc.id)}` })
   },

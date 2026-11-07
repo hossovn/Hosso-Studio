@@ -170,6 +170,66 @@ export const SiteSettings: GlobalConfig = {
           ],
         },
         {
+          label: 'Ngôn ngữ',
+          fields: [
+            {
+              name: 'siteLocales',
+              type: 'array',
+              label: 'Ngôn ngữ hiển thị trên website',
+              maxRows: 8,
+              labels: { singular: 'Ngôn ngữ', plural: 'Ngôn ngữ' },
+              admin: {
+                initCollapsed: false,
+                description: 'Dòng đầu tiên là ngôn ngữ mặc định (không có tiền tố trên đường dẫn). Để trống để dùng mặc định của hệ thống.',
+              },
+              fields: [
+                {
+                  name: 'code',
+                  type: 'select',
+                  required: true,
+                  label: 'Mã ngôn ngữ',
+                  options: [
+                    { label: 'Tiếng Việt (vi)', value: 'vi' },
+                    { label: 'Tiếng Hàn - 한국어 (ko)', value: 'ko' },
+                    { label: 'Tiếng Anh - English (en)', value: 'en' },
+                    { label: 'Tiếng Nhật - 日本語 (ja)', value: 'ja' },
+                    { label: 'Tiếng Trung - 中文 (zh)', value: 'zh' },
+                    { label: 'Tiếng Pháp - Français (fr)', value: 'fr' },
+                    { label: 'Tiếng Đức - Deutsch (de)', value: 'de' },
+                    { label: 'Tiếng Thái - ไทย (th)', value: 'th' },
+                  ],
+                },
+                { name: 'label', type: 'text', label: 'Tên hiển thị ngôn ngữ', admin: { placeholder: 'Tiếng Việt / 한국어 / English' } },
+                { name: 'shortLabel', type: 'text', label: 'Nhãn ngắn trên nút chuyển', admin: { placeholder: 'VN / KR / EN' } },
+              ],
+            },
+            {
+              name: 'localeSwitcherStyle',
+              type: 'select',
+              defaultValue: 'code',
+              label: 'Kiểu nút chuyển ngôn ngữ',
+              options: [
+                { label: 'Chữ tối giản (VI / KO)', value: 'code' },
+                { label: 'Nút viên thuốc kèm quốc kỳ (VN | KR)', value: 'pill-flag' },
+                { label: 'Menu thả xuống kèm quốc kỳ (VN ▾)', value: 'dropdown-flag' },
+              ],
+            },
+          ],
+        },
+        {
+          label: 'Hỗ trợ nổi & Live Chat',
+          fields: [
+            { name: 'floatingDockEnabled', type: 'checkbox', defaultValue: true, label: 'Hiện cụm nút liên hệ nổi góc phải' },
+            { name: 'floatingCallLabel', type: 'text', localized: true, label: 'Nhãn phụ nút gọi điện', admin: { placeholder: 'Hotline 24/7' } },
+            { name: 'zaloQr', type: 'upload', relationTo: 'media', label: 'Ảnh mã QR Zalo (để trống sẽ mở trực tiếp liên kết Zalo)' },
+            { name: 'liveChatEnabled', type: 'checkbox', defaultValue: false, label: 'Bật khung chat trực tuyến (Live Chat)' },
+            { name: 'liveChatTitle', type: 'text', localized: true, label: 'Tiêu đề khung chat', admin: { placeholder: 'Hỗ trợ trực tuyến' } },
+            { name: 'liveChatSubtitle', type: 'text', localized: true, label: 'Dòng trạng thái khung chat', admin: { placeholder: 'Phản hồi nhanh trong vài phút' } },
+            { name: 'liveChatGreeting', type: 'textarea', localized: true, label: 'Lời chào tự động khi mở chat', admin: { placeholder: 'Xin chào! Bạn cần tư vấn hoặc hỗ trợ gì hôm nay?' } },
+            { name: 'liveChatAccent', type: 'text', validate: hex, label: 'Màu chủ đạo khung chat', admin: { placeholder: '#2563eb' } },
+          ],
+        },
+        {
           label: 'Bảo trì',
           fields: [
             { name: 'maintenanceMode', type: 'checkbox', label: 'Bật chế độ bảo trì', defaultValue: false, admin: { description: 'Khách vãng lai chỉ thấy trang bảo trì. Quản trị viên đã đăng nhập vẫn xem site bình thường.' } },

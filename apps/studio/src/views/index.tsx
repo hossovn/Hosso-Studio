@@ -51,10 +51,10 @@ const crumbsLd = (items: [string, string][]) => ({
 
 const dateFmt = (iso: string, locale: string) => new Date(iso).toLocaleDateString(locale === 'vi' ? 'vi-VN' : locale, { timeZone: 'Asia/Ho_Chi_Minh' })
 
-// path: đường dẫn không có tiền tố ngôn ngữ; trả canonical của ngôn ngữ hiện tại và liên kết hreflang của mọi ngôn ngữ.
-const alternates = (path: string, locale: string) => ({
-  canonical: href(path, locale),
-  languages: Object.fromEntries(hosso.locales.map((l) => [l.code, href(path, l.code)])),
+// path: đường dẫn không có tiền tố ngôn ngữ; trả canonical của ngôn ngữ hiện tại và liên kết hreflang của mọi ngôn ngữ đang bật.
+const alternates = (path: string, locale: string, activeLocales: readonly { code: string }[], activeDefault: string) => ({
+  canonical: href(path, locale, activeDefault),
+  languages: Object.fromEntries(activeLocales.map((l) => [l.code, href(path, l.code, activeDefault)])),
 })
 
 /** Nội dung Puck → trang: bỏ block không biết, thay khối dùng lại, chạy loader, rồi Render. */
@@ -100,12 +100,13 @@ export async function pageMeta(slug: string, locale: string, sp: SP): Promise<Me
   const image = mediaUrl(seo.image)
   const title = seo.title || page.title
   const path = slug === 'home' ? '/' : `/${slug}`
+  const site = await loadSite(locale)
   return {
-    title: slug === 'home' ? { absolute: seo.title || (await loadSite(locale)).chrome.siteName } : title,
+    title: slug === 'home' ? { absolute: seo.title || site.chrome.siteName } : title,
     description: page.description ?? undefined,
     robots: seo.noindex || shared || await sitePreview() ? { index: false, follow: false } : undefined,
-    alternates: alternates(path, locale),
-    openGraph: { title, description: page.description ?? undefined, type: 'website', images: image ? [image] : undefined, locale: locale === 'vi' ? 'vi_VN' : locale },
+    alternates: alternates(path, locale, site.locales, site.defaultLocale),
+    openGraph: { title, description: page.description ?? undefined, type: 'website', images: image ? [image] : undefined, locale: site.ogLocale },
   }
 }
 
@@ -144,12 +145,13 @@ export async function postMeta(slug: string, locale: string, sp: SP): Promise<Me
   const seo = (post.seo ?? {}) as { title?: string; image?: unknown; noindex?: boolean }
   const image = mediaUrl(seo.image) ?? mediaUrl(post.cover)
   const title = seo.title || post.title
+  const site = await loadSite(locale)
   return {
     title,
     description: post.excerpt ?? undefined,
     robots: seo.noindex || shared || await sitePreview() ? { index: false, follow: false } : undefined,
-    alternates: alternates(`/bai-viet/${post.slug}`, locale),
-    openGraph: { title, description: post.excerpt ?? undefined, type: 'article', publishedTime: post.publishedAt ?? undefined, images: image ? [image] : undefined },
+    alternates: alternates(`/bai-viet/${post.slug}`, locale, site.locales, site.defaultLocale),
+    openGraph: { title, description: post.excerpt ?? undefined, type: 'article', publishedTime: post.publishedAt ?? undefined, images: image ? [image] : undefined, locale: site.ogLocale },
   }
 }
 
@@ -254,8 +256,8 @@ async function getTerm(kind: 'category' | 'tag', slug: string, locale: string) {
 }
 
 export async function termMeta(kind: 'category' | 'tag', slug: string, locale: string): Promise<Metadata> {
-  const term = await getTerm(kind, slug, locale)
-  return term ? { title: term.name, description: term.description ?? undefined, alternates: alternates(`/bai-viet/${kind === 'category' ? 'danh-muc' : 'the'}/${slug}`, locale) } : {}
+  const [term, site] = await Promise.all([getTerm(kind, slug, locale), loadSite(locale)])
+  return term ? { title: term.name, description: term.description ?? undefined, alternates: alternates(`/bai-viet/${kind === 'category' ? 'danh-muc' : 'the'}/${slug}`, locale, site.locales, site.defaultLocale) } : {}
 }
 
 export async function TermView({ kind, slug, locale, sp }: { kind: 'category' | 'tag'; slug: string; locale: string; sp: SP }) {

@@ -2,7 +2,7 @@ import { setLocale } from '@hosso/studio-blocks'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-import { defaultLocaleCode, splitLocale } from '@/lib/locale'
+import { getSiteLocaleConfig, splitLocale } from '@/lib/locale'
 import { PageView, PostView, SearchView, TermView, pageMeta, postMeta, resolveRoute, searchMeta, termMeta, type SP } from '@/views'
 
 export const dynamic = 'force-dynamic'
@@ -10,8 +10,9 @@ export const dynamic = 'force-dynamic'
 type Args = { params: Promise<{ slug?: string[] }>; searchParams: Promise<SP> }
 
 async function parse(params: Args['params']) {
-  const { locale, rest } = splitLocale((await params).slug ?? [])
-  setLocale(locale, defaultLocaleCode)
+  const { locales: activeLocales, defaultLocale: activeDefault } = await getSiteLocaleConfig()
+  const { locale, rest } = splitLocale((await params).slug ?? [], activeLocales, activeDefault)
+  setLocale(locale, activeDefault)
   const route = resolveRoute(rest)
   if (!route) notFound()
   return { locale, route }

@@ -649,7 +649,7 @@ export function Editor(props: Props) {
             rootRender={(config as any).canvasRoot}
             areaKind={props.collection === 'area' ? (props.id === 'siteHeader' ? 'header' : props.id === 'siteFooter' ? 'footer' : '') : ''}
             siteCtx={{ siteName: props.chrome.siteName, logo: props.chrome.logoUrl, announcement: props.chrome.announcement, menu: props.chrome.headerMenu, footerMenu: props.chrome.footerMenu, contact: props.chrome.contact }}
-            nav={{ id: props.id, collection: props.collection, locale: props.locale, defaultLocale: props.defaultLocale }}
+            nav={{ id: props.id, collection: props.collection, locale: props.locale, defaultLocale: props.defaultLocale, locales: props.locales.map((l) => l.code) }}
             scopes={scopes}
             labelOf={(type) => String((config as any).components[type]?.label ?? type)}
             lang={props.lang}
@@ -657,13 +657,13 @@ export function Editor(props: Props) {
               <details className="he-more">
                 <summary aria-label={T('Thêm công cụ')}>⋯</summary>
                 <div>
-                  <LocaleSwitch id={props.id} collection={props.collection} locale={props.locale} defaultLocale={props.defaultLocale} locales={props.locales} />
+
                   {!isArea && <PageTools id={props.id} title={props.title} slug={props.slug} collection={props.collection} locale={props.locale} defaultLocale={props.defaultLocale} />}
                   <a href={puckHref} style={{ fontSize: 13 }}>Mở bằng editor cũ (theo block)</a>
                 </div>
               </details>
             }
-            actions={<>{previewControls}<ActionsView id={props.id} collection={props.collection} publicHref={props.publicHref} canPublish={props.canPublish} busy={busy} locale={props.locale} onSave={(d, publish) => persist(d, publish)} getData={() => dataRef.current} /></>}
+            actions={<><LocaleSwitch id={props.id} collection={props.collection} locale={props.locale} defaultLocale={props.defaultLocale} locales={props.locales} />{previewControls}<ActionsView id={props.id} collection={props.collection} publicHref={props.publicHref} canPublish={props.canPublish} busy={busy} locale={props.locale} onSave={(d, publish) => persist(d, publish)} getData={() => dataRef.current} /></>}
           />
         </CanvasBoundary>
       ) : (
@@ -695,11 +695,12 @@ export function Editor(props: Props) {
           ),
           headerActions: () => (
             <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              <LocaleSwitch id={props.id} collection={props.collection} locale={props.locale} defaultLocale={props.defaultLocale} locales={props.locales} />
               {previewControls}
               <details className="he-more">
                 <summary aria-label={T('Thêm công cụ')}>⋯</summary>
                 <div>
-                  <LocaleSwitch id={props.id} collection={props.collection} locale={props.locale} defaultLocale={props.defaultLocale} locales={props.locales} />
+
                   {!isArea && <PatternPicker lang={props.lang} />}
                   {!isArea && <PageTools id={props.id} title={props.title} slug={props.slug} collection={props.collection} locale={props.locale} defaultLocale={props.defaultLocale} />}
                 </div>

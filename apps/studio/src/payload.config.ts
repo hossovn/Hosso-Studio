@@ -11,6 +11,7 @@ import { fileURLToPath } from 'url'
 
 import hosso from '@hosso-config'
 import { Bookings } from './collections/Bookings'
+import { ChatSessions } from './collections/ChatSessions'
 import { ContactMessages } from './collections/ContactMessages'
 import { Media } from './collections/Media'
 import { Comments } from './collections/Comments'
@@ -32,6 +33,8 @@ import { Redirects } from './collections/Redirects'
 import { SiteAreas } from './globals/SiteAreas'
 import { SiteSettings } from './globals/SiteSettings'
 import { backupCreate, backupDownload, commentSubmit, editLock, formExport, formSubmit, packageImport, shareLink, templateCover, templateInstall } from './lib/endpoints'
+import { chatInbox, chatPoll, chatReply, chatSend, chatStart, chatStatus } from './lib/live-chat'
+import { getPayloadLocalizationLocales } from './lib/locales-catalog'
 import { siteStatus, ssoLogin } from './lib/kiln'
 import { Users } from './collections/Users'
 import { ensureAdmin, seedIfEmpty } from './lib/seed'
@@ -89,10 +92,10 @@ const base: Config = {
   i18n: { supportedLanguages: { vi, en }, fallbackLanguage: 'vi' },
   // Hàng đợi tác vụ: chạy mỗi phút để xuất bản/hủy xuất bản theo lịch đặt trong trang và bài viết.
   jobs: { autoRun: [{ cron: '* * * * *', limit: isPostgres ? 10 : 1, queue: 'default' }] },
-  collections: [Pages, Posts, ContentEntries, ContentTypes, PostCategories, PostTags, Comments, Forms, FormSubmissions, ReusableBlocks, Media, ContactMessages, Bookings, Redirects, EditLocks, EditorReviews, SiteReleases, Users],
+  collections: [Pages, Posts, ContentEntries, ContentTypes, PostCategories, PostTags, Comments, Forms, FormSubmissions, ReusableBlocks, Media, ContactMessages, ChatSessions, Bookings, Redirects, EditLocks, EditorReviews, SiteReleases, Users],
   globals: [SiteSettings, SiteAreas],
   // Ngôn ngữ nội dung: ngôn ngữ đầu tiên trong hosso.config.ts là mặc định; thiếu bản dịch thì dùng ngôn ngữ mặc định.
-  localization: { locales: hosso.locales.map((l) => ({ code: l.code, label: l.label })), defaultLocale: hosso.locales[0].code, fallback: true },
+  localization: { locales: getPayloadLocalizationLocales(hosso.locales), defaultLocale: hosso.locales[0].code, fallback: true },
   typescript: { outputFile: path.resolve(dirname, 'payload-types.ts') },
   db: isPostgres
     ? postgresAdapter({ pool: { connectionString: databaseUrl }, migrationDir: path.resolve(dirname, 'migrations') })
@@ -121,6 +124,12 @@ const base: Config = {
     siteReleaseReview,
     siteReleasePublish,
     siteReleaseRestore,
+    chatStart,
+    chatSend,
+    chatPoll,
+    chatInbox,
+    chatReply,
+    chatStatus,
     {
       path: '/health',
       method: 'get',

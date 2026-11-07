@@ -21,7 +21,9 @@ const read = (name: string) => (zip[name] ? JSON.parse(strFromU8(zip[name])) : u
 const manifest = read('manifest.json')
   if (manifest?.format !== 2) throw new Error(M('Gói không hợp lệ hoặc không đúng phiên bản định dạng (cần định dạng 2; xuất lại bằng bản Studio mới).', 'Invalid package or wrong format version (format 2 is required; export again with a current Studio).'))
 
-  const LOCALES = hosso.locales.map((l) => l.code)
+  const KNOWN_CODES = new Set(['vi', 'en', 'ko', 'ja', 'zh', 'fr', 'de', 'th', ...hosso.locales.map((l) => l.code)])
+  const manifestLocales = ((manifest.locales ?? []) as string[]).filter((code) => KNOWN_CODES.has(code))
+  const LOCALES = [...new Set([...hosso.locales.map((l) => l.code), ...manifestLocales])]
   const D = LOCALES[0]
 
   // Cảnh báo nếu theme/plugin/ngôn ngữ của gói chưa có trên cài đặt này (nội dung vẫn nhập, phần thiếu bị bỏ qua).

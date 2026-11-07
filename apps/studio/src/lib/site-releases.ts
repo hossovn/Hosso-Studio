@@ -9,6 +9,7 @@ import { AREAS } from '../globals/SiteAreas'
 import { inspectPage, type PublishIssue } from './publish-checks'
 import { msg } from './lang'
 import { lockSitePublication } from './site-publication-lock'
+import { getPayloadSiteLocales } from './locale'
 
 type Scope = 'pages' | 'posts' | 'reusable-blocks' | 'site-areas' | 'site-settings'
 export type ReleaseItem = { key: string; scope: Scope; id?: string | number; title: string; translations: Record<string, Record<string, any>> }
@@ -24,7 +25,9 @@ const defaultLocale = hosso.locales[0].code
 
 async function capture(req: PayloadRequest, draft: boolean): Promise<ReleaseItem[]> {
   const result = new Map<string, ReleaseItem>()
-  for (const { code: locale } of hosso.locales) {
+  const { locales: activeLocales } = await getPayloadSiteLocales(req.payload, draft)
+  const localeList = [...new Map([...activeLocales, ...hosso.locales].map((l) => [l.code, l])).values()]
+  for (const { code: locale } of localeList) {
     for (const scope of COLLECTIONS) {
       let page = 1, hasNextPage = true
       while (hasNextPage) {
@@ -89,7 +92,8 @@ async function inspect(req: PayloadRequest, state: Awaited<ReturnType<typeof rev
     const targets = item.scope === 'site-settings'
       ? [{ area: undefined, doc: { content: { content: [{ type: 'NavMenu', props: { id: 'site-menus', items: [...(doc.headerMenu ?? []), ...(doc.footerMenu ?? [])] } }] } } }]
       : item.scope === 'site-areas' ? AREAS.filter((area) => doc[area.name]).map((area) => ({ area: area.name, doc: { content: doc[area.name] } })) : [{ area: undefined, doc }]
-    for (const target of targets) for (const issue of inspectPage(target.doc, { paths, blockTypes, locale, locales: hosso.locales.map((value) => value.code), lang: req.i18n?.language, seo: item.scope === 'pages' || item.scope === 'posts' })) {
+    const { locales: activeLocales } = await getPayloadSiteLocales(req.payload, true)
+    for (const target of targets) for (const issue of inspectPage(target.doc, { paths, blockTypes, locale, locales: activeLocales.map((value) => value.code), lang: req.i18n?.language, seo: item.scope === 'pages' || item.scope === 'posts' })) {
       issues.push({ ...issue, key: item.key, locale, href: editorHref(item, locale, target.area, issue) })
     }
   }

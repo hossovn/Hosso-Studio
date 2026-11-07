@@ -23,7 +23,9 @@ export async function buildSitePackage(payload: Payload) {
     return value
   }, 2)))
 
-  const LOCALES = hosso.locales.map((l) => l.code)
+  const preSettings: any = await payload.findGlobal({ slug: 'site-settings', locale: hosso.locales[0].code as any, fallbackLocale: false, depth: 0, overrideAccess: true }).catch(() => ({}))
+  const configuredCodes = Array.isArray(preSettings?.siteLocales) ? preSettings.siteLocales.map((r: any) => String(r?.code ?? '').trim().toLowerCase()).filter(Boolean) : []
+  const LOCALES = [...new Set([...(configuredCodes.length ? configuredCodes : []), ...hosso.locales.map((l) => l.code)])]
   const D = LOCALES[0]
   const fileOf = (m: any) => (m && typeof m === 'object' && m.filename ? { filename: m.filename } : null)
   const slugsOf = (list: any) => ((list ?? []) as any[]).filter((x) => x && typeof x === 'object' && x.slug).map((x) => x.slug as string)
@@ -163,14 +165,14 @@ export async function buildSitePackage(payload: Payload) {
   }
   const sites = await forEachLocale((l) => payload.findGlobal({ slug: 'site-settings', locale: l as any, fallbackLocale: false, depth: 1, overrideAccess: true }) as Promise<any>)
   const shared = strip(sites[D])
-  const LOCALIZED = ['siteName', 'announcement', 'footerText', 'headerMenu', 'footerMenu', 'social', 'contact']
-  for (const k of ['logo', 'favicon']) shared[k] = fileOf(shared[k])
+  const LOCALIZED = ['siteName', 'announcement', 'footerText', 'headerMenu', 'footerMenu', 'social', 'contact', 'floatingCallLabel', 'liveChatTitle', 'liveChatSubtitle', 'liveChatGreeting']
+  for (const k of ['logo', 'favicon', 'zaloQr']) if (shared[k] !== undefined) shared[k] = fileOf(shared[k])
   json('data/site-settings.json', {
     shared: Object.fromEntries(Object.entries(shared).filter(([k]) => !LOCALIZED.includes(k) || k === 'contact')),
     translations: Object.fromEntries(
       LOCALES.map((l) => {
         const s = strip(sites[l])
-        return [l, pick(s, ['siteName', 'announcement', 'footerText', 'headerMenu', 'footerMenu', 'social', 'contact'])]
+        return [l, pick(s, ['siteName', 'announcement', 'footerText', 'headerMenu', 'footerMenu', 'social', 'contact', 'floatingCallLabel', 'liveChatTitle', 'liveChatSubtitle', 'liveChatGreeting'])]
       }),
     ),
   })

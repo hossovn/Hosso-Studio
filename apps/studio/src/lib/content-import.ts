@@ -9,6 +9,7 @@ import {canContent,type ContentScope} from './content-permissions'
 import {inTransaction} from '../../../../packages/blocks/src/transactions'
 import {lockSitePublication} from './site-publication-lock'
 import hosso from '@hosso-config'
+import { getPayloadSiteLocales } from './locale'
 
 export type ImportSheet={name:string;headers:string[];rows:{number:number;cells:string[]}[]}
 function fail(message:string,status=400):never{throw new APIError(message,status)}
@@ -71,7 +72,8 @@ function convert(field:any,text:string):any{
 }
 const article=(text:string)=>({root:{type:'root',version:1,direction:null,format:'',indent:0,children:text.split(/\r?\n/).map(text=>({type:'paragraph',version:1,direction:null,format:'',indent:0,children:[{type:'text',version:1,text,format:0,style:'',mode:'normal',detail:0}]}))}})
 export async function planImport(req:PayloadRequest,input:ImportInput){
- if(!input||!['pages','posts','content-entries'].includes(input.collection)||!['skip','update','error'].includes(input.mode)||!hosso.locales.some(l=>l.code===input.locale)||!Array.isArray(input.rows)||!input.rows.length||input.rows.length>LIMIT||typeof input.mapping!=='object'||!input.mapping)fail('Cấu hình nhập không hợp lệ.')
+ const { locales: activeLocales } = await getPayloadSiteLocales(req.payload, true)
+ if(!input||!['pages','posts','content-entries'].includes(input.collection)||!['skip','update','error'].includes(input.mode)||!activeLocales.some(l=>l.code===input.locale)||!Array.isArray(input.rows)||!input.rows.length||input.rows.length>LIMIT||typeof input.mapping!=='object'||!input.mapping)fail('Cấu hình nhập không hợp lệ.')
  const type=input.collection==='content-entries'?await contentType(req,input.type||''):undefined,fields=importFields(input.collection,type?.fields)
  if(JSON.stringify(input).length>8*1024*1024)fail('Dữ liệu nhập tối đa 8 MB.')
  if(Object.keys(input.mapping).some(key=>!fields.some(f=>f.key===key))||Object.values(input.mapping).some(v=>!Number.isInteger(v)||v<0||v>49)||new Set(Object.values(input.mapping)).size!==Object.values(input.mapping).length)fail('Ghép cột không hợp lệ hoặc một cột được dùng nhiều lần.')

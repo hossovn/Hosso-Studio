@@ -5,7 +5,9 @@ import {
   baseCss,
   buildPuckConfig,
   coreBlocks,
+  getDefaultLocale,
   localizeHref,
+  setLocale,
   type BlockSchema,
   type FontId,
   type MenuItem,
@@ -17,6 +19,18 @@ import { getPayload } from 'payload'
 import { cache } from 'react'
 
 import { coreLoaders } from './core-loaders'
+import { ogLocaleFor, resolveSiteLocales, resolveSwitcherStyle, type LocaleSwitcherStyle, type SiteLocaleItem } from './locales-catalog'
+
+export type FloatingSupportConfig = {
+  dockEnabled: boolean
+  callLabel?: string
+  zaloQrUrl?: string
+  liveChatEnabled: boolean
+  liveChatTitle?: string
+  liveChatSubtitle?: string
+  liveChatGreeting?: string
+  liveChatAccent?: string
+}
 import { sitePreview } from './site-preview'
 
 export const allBlocks = (): BlockSchema<any>[] => [...coreBlocks, ...hosso.plugins.flatMap((p) => p.blocks ?? [])]
@@ -28,7 +42,7 @@ const fontStack = (id: FontId) =>
 type Overrides = Record<string, string | undefined | null>
 
 export const defaultLocale = hosso.locales[0].code
-export const href = (path: string, locale: string) => localizeHref(path, locale, defaultLocale)
+export const href = (path: string, locale: string, defLocale: string = getDefaultLocale() || defaultLocale) => localizeHref(path, locale, defLocale)
 
 export const mediaUrl = (m: unknown) =>
   m && typeof m === 'object' && (m as { filename?: string }).filename ? `/api/media/file/${encodeURIComponent((m as { filename: string }).filename)}` : undefined
@@ -42,9 +56,26 @@ const menu = (items: any[] | undefined, locale: string): MenuItem[] =>
   }))
 
 /** Theme đang chọn, token đã gộp (token của theme, ghi đè bởi quản trị viên) thành CSS, và dữ liệu khung site theo ngôn ngữ. */
-export const loadSite = cache(async (locale: string = defaultLocale, editorDraft = false): Promise<{ theme: Theme; css: string; siteName?: string; homeSlug?: string; chrome: SiteChrome; favicon: string; maintenance?: { message: string } }> => {
+export const loadSite = cache(async (locale: string = defaultLocale, editorDraft = false): Promise<{
+  theme: Theme
+  css: string
+  siteName?: string
+  homeSlug?: string
+  chrome: SiteChrome
+  favicon: string
+  maintenance?: { message: string }
+  locales: SiteLocaleItem[]
+  defaultLocale: string
+  localeSwitcherStyle: LocaleSwitcherStyle
+  floatingSupport: FloatingSupportConfig
+  ogLocale: string
+}> => {
   const payload = await getPayload({ config })
   const settings = (await payload.findGlobal({ slug: 'site-settings', draft: editorDraft || await sitePreview(), depth: 1, locale: locale as any })) as Record<string, any>
+  const activeLocales = resolveSiteLocales(settings.siteLocales, hosso.locales)
+  const activeDefault = activeLocales[0].code
+  const localeSwitcherStyle = resolveSwitcherStyle(settings.localeSwitcherStyle)
+  setLocale(locale, activeDefault)
   const theme = hosso.themes.find((t) => t.manifest.name === settings.theme) ?? hosso.themes[0]
   const ov: Overrides = settings[`tokens_${theme.manifest.name}`] ?? {}
   const base = theme.manifest.tokens
@@ -86,6 +117,20 @@ export const loadSite = cache(async (locale: string = defaultLocale, editorDraft
     chrome,
     favicon: mediaUrl(settings.favicon) ?? hosso.brand.favicon,
     maintenance: settings.maintenanceMode ? { message: settings.maintenanceMessage || '' } : undefined,
+    locales: activeLocales,
+    defaultLocale: activeDefault,
+    localeSwitcherStyle,
+    ogLocale: ogLocaleFor(locale),
+    floatingSupport: {
+      dockEnabled: settings.floatingDockEnabled !== false,
+      callLabel: settings.floatingCallLabel || undefined,
+      zaloQrUrl: mediaUrl(settings.zaloQr),
+      liveChatEnabled: Boolean(settings.liveChatEnabled),
+      liveChatTitle: settings.liveChatTitle || undefined,
+      liveChatSubtitle: settings.liveChatSubtitle || undefined,
+      liveChatGreeting: settings.liveChatGreeting || undefined,
+      liveChatAccent: settings.liveChatAccent || undefined,
+    },
   }
 })
 
