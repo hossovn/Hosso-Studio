@@ -84,6 +84,7 @@ const base: Config = {
         widgets: { Component: '/components/admin/WidgetsView#WidgetsView', path: '/widgets' },
         plugins: { Component: '/components/admin/PluginsView#PluginsView', path: '/plugins' },
         releases: { Component: '/components/admin/ReleasesView#ReleasesView', path: '/releases' },
+        chat: { Component: '/components/admin/ChatInboxView#ChatInboxView', path: '/chat' },
       },
       providers: ['/components/admin/BrandStyle#BrandStyle'],
       beforeLogin: ['/components/admin/LoginCode#LoginCode'],

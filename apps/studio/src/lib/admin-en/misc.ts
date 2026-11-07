@@ -150,4 +150,5 @@ export const misc: Record<string, string> = {
   'Chọn plugin bật bằng biến NEXT_PUBLIC_HOSSO_PLUGINS (id cách nhau bằng dấu phẩy, để trống là bật tất cả). Thêm hoặc đổi plugin cần dựng lại (build) và triển khai lại.': 'Choose which plugins are enabled with the NEXT_PUBLIC_HOSSO_PLUGINS variable (comma-separated ids, empty enables all). Adding or changing plugins requires a rebuild and redeploy.',
   'Kết nối Hosso WIM': 'Hosso WIM connection',
   'Kết nối Hosso WIM (địa chỉ API và khóa)': 'Connect Hosso WIM (API address and key)',
+  'Chỉ quản trị viên và kiểm duyệt viên được xem trò chuyện trực tuyến.': 'Only administrators and moderators can view live chat.',
 }

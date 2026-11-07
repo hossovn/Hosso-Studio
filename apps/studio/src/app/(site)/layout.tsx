@@ -13,7 +13,7 @@ import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { ReadingProgress } from '@/components/ReadingProgress'
 import { isAdmin } from '@/lib/access'
 import { fontClassNames } from '@/lib/fonts'
-import { currentLocale, defaultLocaleCode } from '@/lib/locale'
+import { currentLocale } from '@/lib/locale'
 import { loadSite } from '@/lib/site'
 import { sitePreview } from '@/lib/site-preview'
 
@@ -21,13 +21,13 @@ export const dynamic = 'force-dynamic'
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await currentLocale()
-  const { chrome, favicon } = await loadSite(locale)
+  const { chrome, favicon, ogLocale } = await loadSite(locale)
   const base = process.env.HOSSO_PUBLIC_URL
   return {
     metadataBase: base ? new URL(base) : undefined,
     title: { default: chrome.siteName, template: `%s | ${chrome.siteName}` },
     icons: { icon: favicon },
-    openGraph: { siteName: chrome.siteName, locale: locale === 'vi' ? 'vi_VN' : locale },
+    openGraph: { siteName: chrome.siteName, locale: ogLocale },
     ...(await sitePreview() ? { robots: { index: false, follow: false } } : {}),
   }
 }
@@ -41,7 +41,16 @@ const visitorIsAdmin = async () => {
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   const locale = await currentLocale()
-  const { css, theme, chrome, maintenance } = await loadSite(locale)
+  const {
+    css,
+    theme,
+    chrome,
+    maintenance,
+    locales: siteLocales,
+    defaultLocale: siteDefaultLocale,
+    localeSwitcherStyle,
+    floatingSupport,
+  } = await loadSite(locale)
   if (maintenance && !(await visitorIsAdmin())) {
     return (
       <html lang={locale}>
@@ -52,7 +61,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         <body style={{ margin: 0, minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 24, textAlign: 'center', font: '16px/1.6 system-ui, sans-serif', color: '#111827' }}>
           <main>
             <h1 style={{ margin: '0 0 12px', fontSize: 28 }}>{chrome.siteName}</h1>
-            <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{maintenance.message || (locale === 'vi' ? 'Website đang được bảo trì. Vui lòng quay lại sau.' : 'This site is under maintenance. Please check back soon.')}</p>
+            <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{maintenance.message || (locale === 'vi' ? 'Website đang được bảo trì. Vui lòng quay lại sau.' : locale === 'ko' ? '현재 사이트 점검 중입니다. 잠시 후 다시 방문해 주세요.' : 'This site is under maintenance. Please check back soon.')}</p>
           </main>
         </body>
       </html>
@@ -63,7 +72,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   // Header/footer tự dựng trong editor (vùng siteHeader/siteFooter) thay cho của theme khi có nội dung.
   const [customHeader, customFooter] = await Promise.all([loadArea('siteHeader', locale), loadArea('siteFooter', locale)])
   const slots = [
-    hosso.locales.length > 1 ? <LanguageSwitcher key="lang" locales={hosso.locales} /> : null,
+    siteLocales.length > 1 ? <LanguageSwitcher key="lang" locales={siteLocales} variant={localeSwitcherStyle} /> : null,
     ...hosso.plugins.map((p, i) => (p.headerSlot ? React.createElement(p.headerSlot, { key: i }) : null)),
   ].filter(Boolean)
   const hp = (customHeader?.root?.props ?? {}) as Record<string, unknown>
@@ -75,6 +84,15 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   const showProgress = Boolean(hp.readingProgress)
   const progressColor = safeCssColor(hp.progressColor, '#facc15')
   const progressHeight = Math.min(8, Math.max(2, Number(hp.progressHeight) || 3))
+  const showContactDock =
+    floatingSupport.dockEnabled &&
+    Boolean(
+      floatingSupport.liveChatEnabled ||
+        chrome.contact.phone ||
+        chrome.contact.zalo ||
+        chrome.contact.email ||
+        floatingSupport.zaloQrUrl,
+    )
   return (
     <html lang={locale} className={fontClassNames}>
       <head>
@@ -91,8 +109,8 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body style={{ margin: 0 }}>
-        <LocaleProvider locale={locale} defaultLocale={defaultLocaleCode}>
-          <div className="hs-theme">
+        <LocaleProvider locale={locale} defaultLocale={siteDefaultLocale}>
+          <div className={showContactDock ? 'hs-theme has-contact-dock' : 'hs-theme'}>
             <a className="hs-skip" href="#main">
               {t('nav.skip')}
             </a>
@@ -125,11 +143,11 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
             <main id="main">{children}</main>
             <Area name="beforeFooter" locale={locale} />
             {customFooter ? (
-              <>
-                <footer className="site-chrome-footer"><Area name="siteFooter" locale={locale} /></footer>
-                <ContactFloat contact={chrome.contact} />
-              </>
-            ) : Footer && <Footer chrome={chrome} />}
+              <footer className="site-chrome-footer"><Area name="siteFooter" locale={locale} /></footer>
+            ) : (
+              Footer && <Footer chrome={chrome} />
+            )}
+            {showContactDock && <ContactFloat contact={chrome.contact} support={floatingSupport} />}
             <Area name="afterFooter" locale={locale} />
           </div>
         </LocaleProvider>

@@ -53,4 +53,8 @@ export const nav: Record<string, string> = {
   'Mở mục con của {label}': 'Open submenu of {label}',
   'Xem website': 'View website',
   'Thu gọn menu': 'Collapse menu',
+  'Trò chuyện trực tuyến': 'Live Chat',
+  'chưa đọc': 'unread',
+  'Hộp thư Live Chat': 'Live Chat inbox',
+  'Dữ liệu phiên chat': 'Chat session records',
 }

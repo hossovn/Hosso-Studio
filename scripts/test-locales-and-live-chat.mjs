@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import Module, { createRequire } from 'node:module'
 
+import { baseCss } from '../packages/blocks/src/base-css.ts'
+import { safeCssColor } from '../packages/blocks/src/free-style.ts'
 import { localizeHref, setLocale, t, translate } from '../packages/blocks/src/i18n.ts'
+import { LocaleProvider, useLocale, useT } from '../packages/blocks/src/locale-client.tsx'
 import { strings as enStrings } from '../packages/blocks/src/strings.en.ts'
 import { strings as koStrings } from '../packages/blocks/src/strings.ko.ts'
 import { strings as viStrings } from '../packages/blocks/src/strings.vi.ts'
@@ -322,4 +327,167 @@ const moderator = { id: 'staff-1', email: 'support@menumate.vn', roles: ['modera
   assert.equal(lastStatus, 429, 'Exceeding chatStart IP rate limit must return 429')
 }
 
-console.log('Task 1 & Task 2 dynamic locales + live chat security checks passed.')
+// --- 4. UI Components & Admin Inbox View Contract Checks ---
+{
+  assert.match(
+    baseCss,
+    /\.hs-theme\.has-contact-dock\s*:is\(\.hs-float,\.ha-float,\.ta-float\)\{display:none!important\}/,
+    'baseCss must suppress duplicate legacy theme floating docks when ContactFloat is active',
+  )
+
+  const studioRequire = createRequire(new URL('../apps/studio/package.json', import.meta.url))
+  const ts = studioRequire('typescript')
+  const React = studioRequire('react')
+  const { renderToStaticMarkup } = studioRequire('react-dom/server')
+
+  const compileTsx = (relativePath, stubs = {}) => {
+    const sourceUrl = new URL(relativePath, import.meta.url)
+    const mod = new Module(sourceUrl.pathname)
+    mod.require = (id) => (id in stubs ? stubs[id] : studioRequire(id))
+    const transpiled = ts.transpileModule(fs.readFileSync(sourceUrl, 'utf8'), {
+      compilerOptions: {
+        target: ts.ScriptTarget.ES2022,
+        module: ts.ModuleKind.CommonJS,
+        jsx: ts.JsxEmit.React,
+        esModuleInterop: true,
+      },
+    }).outputText
+    mod._compile(transpiled, sourceUrl.pathname)
+    return mod.exports
+  }
+
+  let mockedPath = '/ko/bang-gia'
+  const blocksStub = { LocaleProvider, useLocale, useT, safeCssColor }
+  const { LanguageSwitcher } = compileTsx('../apps/studio/src/components/LanguageSwitcher.tsx', {
+    'next/navigation': { usePathname: () => mockedPath },
+    '@hosso/studio-blocks': blocksStub,
+  })
+
+  const twoLocales = [
+    { code: 'vi', label: 'Tiếng Việt', shortLabel: 'VN' },
+    { code: 'ko', label: '한국어', shortLabel: 'KR' },
+  ]
+
+  // Single locale renders empty
+  assert.equal(
+    renderToStaticMarkup(
+      React.createElement(LocaleProvider, { locale: 'vi', defaultLocale: 'vi' }, React.createElement(LanguageSwitcher, { locales: [twoLocales[0]] })),
+    ),
+    '',
+  )
+
+  // Pill-flag variant renders inline SVG flags + short labels + unprefixed default locale link
+  const pillHtml = renderToStaticMarkup(
+    React.createElement(
+      LocaleProvider,
+      { locale: 'ko', defaultLocale: 'vi' },
+      React.createElement(LanguageSwitcher, { locales: twoLocales, variant: 'pill-flag' }),
+    ),
+  )
+  assert.match(pillHtml, /data-hs-lang-switcher="pill-flag"/)
+  assert.match(pillHtml, /<svg[^>]*class="ss-flag-svg"/)
+  assert.match(pillHtml, /href="\/bang-gia"/)
+  assert.match(pillHtml, /href="\/ko\/bang-gia"/)
+  assert.match(pillHtml, />VN</)
+  assert.match(pillHtml, />KR</)
+
+  // Dropdown-flag variant renders accessible menu button with active KR flag & label
+  const dropHtml = renderToStaticMarkup(
+    React.createElement(
+      LocaleProvider,
+      { locale: 'ko', defaultLocale: 'vi' },
+      React.createElement(LanguageSwitcher, { locales: twoLocales, variant: 'dropdown-flag' }),
+    ),
+  )
+  assert.match(dropHtml, /data-hs-lang-switcher="dropdown-flag"/)
+  assert.match(dropHtml, /aria-haspopup="menu"/)
+  assert.match(dropHtml, />KR</)
+
+  // ContactFloat renders phone + callLabel, Zalo QR trigger, email, and Live Chat toggle
+  const { ContactFloat } = compileTsx('../apps/studio/src/components/ContactFloat.tsx', {
+    '@hosso/studio-blocks': blocksStub,
+  })
+  const dockHtml = renderToStaticMarkup(
+    React.createElement(
+      LocaleProvider,
+      { locale: 'ko', defaultLocale: 'vi' },
+      React.createElement(ContactFloat, {
+        contact: { phone: '0909 123 456', zalo: '0909123456', email: 'hi@menumate.vn' },
+        support: {
+          dockEnabled: true,
+          callLabel: '1800-MENU',
+          zaloQrUrl: '/media/zalo-qr.png',
+          liveChatEnabled: true,
+          liveChatAccent: '#1d4ed8',
+        },
+      }),
+    ),
+  )
+  assert.match(dockHtml, /data-hs-contact-dock="true"/)
+  assert.match(dockHtml, /1800-MENU/)
+  assert.match(dockHtml, /data-hs-chat-toggle="true"/)
+  assert.match(dockHtml, /mailto:hi@menumate\.vn/)
+
+  // Dock disabled renders nothing
+  assert.equal(
+    renderToStaticMarkup(
+      React.createElement(
+        LocaleProvider,
+        { locale: 'vi', defaultLocale: 'vi' },
+        React.createElement(ContactFloat, {
+          contact: { phone: '0909123456' },
+          support: { dockEnabled: false, liveChatEnabled: true },
+        }),
+      ),
+    ),
+    '',
+  )
+
+  // ChatInboxView RBAC check: unauthorized users never render ChatInboxClient or query DB
+  const accessMod = compileTsx('../apps/studio/src/lib/access.ts')
+  let payloadTouched = false
+  const { ChatInboxView } = compileTsx('../apps/studio/src/components/admin/ChatInboxView.tsx', {
+    '@payloadcms/ui': { Gutter: (props) => React.createElement('div', props) },
+    '@/lib/access': accessMod,
+    '@/lib/admin-i18n': {
+      adminLang: (l) => (l === 'en' ? 'en' : 'vi'),
+      makeT: (lang) => (s) => (lang === 'en' && s.includes('Chỉ quản trị viên') ? 'Only administrators and moderators can view live chat.' : s),
+    },
+    './ChatInboxClient': {
+      ChatInboxClient: ({ lang, initialSessionId }) =>
+        React.createElement('div', { 'data-inbox-mounted': lang, 'data-session': initialSessionId || '' }),
+    },
+  })
+
+  const forbiddenHtml = renderToStaticMarkup(
+    await ChatInboxView({
+      initPageResult: {
+        req: {
+          i18n: { language: 'en' },
+          user: { id: 'u-editor', roles: ['editor'] },
+          payload: new Proxy({}, { get: () => { payloadTouched = true; throw new Error('must not touch payload') } }),
+        },
+      },
+      searchParams: {},
+    }),
+  )
+  assert.equal(payloadTouched, false)
+  assert.match(forbiddenHtml, /Only administrators and moderators can view live chat\./)
+  assert.doesNotMatch(forbiddenHtml, /data-inbox-mounted/)
+
+  const allowedHtml = renderToStaticMarkup(
+    await ChatInboxView({
+      initPageResult: {
+        req: {
+          i18n: { language: 'vi' },
+          user: { id: 'u-mod', roles: ['moderator'] },
+        },
+      },
+      searchParams: { session: '42' },
+    }),
+  )
+  assert.match(allowedHtml, /data-inbox-mounted="vi"/)
+  assert.match(allowedHtml, /data-session="42"/)
+}
+
+console.log('All dynamic locales, storefront UI, live chat security, and admin inbox checks passed.')

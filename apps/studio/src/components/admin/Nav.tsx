@@ -38,11 +38,12 @@ export const Nav = async ({ payload, user, i18n }: Props) => {
   const T = makeT(adminLang(i18n?.language))
   const u = user ?? null
   const today = new Date(Date.now() - 24 * 3600_000).toISOString()
-  const [pendingComments, draftPages, draftPosts, formsToday] = await Promise.all([
+  const [pendingComments, draftPages, draftPosts, formsToday, unreadChats] = await Promise.all([
     canModerate(u) ? count(payload, 'comments', { status: { equals: 'pending' } }, u) : 0,
     hasRole(u, 'admin', 'publisher', 'editor') ? count(payload, 'pages', { _status: { equals: 'draft' } }, u) : 0,
     hasRole(u, 'admin', 'publisher', 'editor', 'author') ? count(payload, 'posts', { _status: { equals: 'draft' }, ...(!hasRole(u, 'admin', 'publisher', 'editor') ? { createdBy: { equals: u?.id } } : {}) }, u) : 0,
     canModerate(u) ? count(payload, 'form-submissions', { createdAt: { greater_than: today } }, u) : 0,
+    canModerate(u) && (payload.collections as Record<string, unknown>)['chat-sessions'] ? count(payload, 'chat-sessions', { unreadByStaff: { greater_than: 0 } }, u) : 0,
   ])
 
   // Cửa hàng (plugin shop): gom Đơn hàng, Sản phẩm, Thống kê thành nhóm riêng như Webcake; các mục này không lặp lại trong menu Plugin.
@@ -155,6 +156,20 @@ export const Nav = async ({ payload, user, i18n }: Props) => {
       ],
     })
 
+  if (canModerate(u))
+    content.push({
+      id: 'live-chat',
+      label: 'Trò chuyện trực tuyến',
+      href: '/admin/chat',
+      icon: 'chat',
+      badge: unreadChats || undefined,
+      badgeTitle: 'chưa đọc',
+      badgeTone: 'alert',
+      children: [
+        { label: 'Hộp thư Live Chat', href: '/admin/chat', exact: true },
+        { label: 'Dữ liệu phiên chat', href: '/admin/collections/chat-sessions' },
+      ],
+    })
   const look: NavSection['items'] = []
   if (isAdmin(u)) look.push({ id: 'theme', label: 'Giao diện', href: '/admin/templates', icon: 'brush', children: [{ label: 'Kho giao diện', href: '/admin/templates' }, { label: 'Tùy biến giao diện', href: '/admin/customize' }, ...(canPublish(u) ? [{ label: 'Widget', href: '/admin/widgets' }, { label: 'Header và footer', href: '/admin/globals/site-areas' }] : [])] })
   else if (canPublish(u)) look.push({ id: 'theme', label: 'Giao diện', href: '/admin/globals/site-areas', icon: 'brush', children: [{ label: 'Widget (kéo thả)', href: '/admin/widgets' }, { label: 'Header và footer (trình dựng)', href: '/admin/globals/site-areas' }] })
