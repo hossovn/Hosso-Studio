@@ -49,6 +49,7 @@
     "migrate": "pnpm --filter @hosso/studio migrate",
     "studio:import-wordpress": "pnpm --filter @hosso/studio studio:import-wordpress",
     "test:editor-design-workspace": "node --experimental-strip-types scripts/test-editor-design-workspace.mjs",
+    "test:editor-interactive": "node --experimental-strip-types scripts/test-editor-interactive-upgrades.mjs",
     "test:cms-workspace": "node scripts/test-cms-workspace.mjs",
     "test:cms-migration": "node scripts/test-cms-migration.mjs",
     "test:cms-browser": "node scripts/test-cms-browser.mjs",
