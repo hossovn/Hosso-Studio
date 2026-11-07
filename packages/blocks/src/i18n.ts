@@ -1,11 +1,12 @@
 import * as React from 'react'
 import { strings as en } from './strings.en'
+import { strings as ko } from './strings.ko'
 import { strings as vi, type StringKey } from './strings.vi'
 
 export type { StringKey }
 
-/** Từ điển theo ngôn ngữ. Thêm ngôn ngữ: tạo strings.<mã>.ts rồi đăng ký ở đây và trong hosso.config.ts. */
-const dictionaries: Record<string, Record<StringKey, string>> = { vi, en }
+/** Từ điển theo ngôn ngữ. Thêm ngôn ngữ: tạo strings.<mã>.ts rồi đăng ký ở đây. */
+const dictionaries: Record<string, Record<StringKey, string>> = { vi, en, ko }
 
 export const DEFAULT_LOCALE = 'vi'
 
@@ -15,7 +16,9 @@ type Store = { locale: string; defaultLocale: string }
 const makeStore = (): Store => ({ locale: DEFAULT_LOCALE, defaultLocale: DEFAULT_LOCALE })
 const reactCache = (React as unknown as { cache?: <T>(fn: () => T) => () => T }).cache
 const shared = makeStore()
-const store: () => Store = reactCache ? reactCache(makeStore) : () => shared
+const probe = reactCache ? reactCache(() => ({})) : null
+const cachedStore = reactCache ? reactCache(makeStore) : null
+const store = (): Store => (probe && cachedStore && probe() === probe() ? cachedStore() : shared)
 
 export const setLocale = (locale: string, defaultLocale?: string) => {
   const st = store()
