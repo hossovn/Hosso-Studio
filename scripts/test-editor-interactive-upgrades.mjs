@@ -18,7 +18,13 @@ import { normalizeFormRules } from '../packages/blocks/src/form-rules.ts'
 import { FormView } from '../packages/blocks/src/FormView.tsx'
 import { LocaleProvider } from '../packages/blocks/src/locale-client.tsx'
 import { baseCss } from '../packages/blocks/src/base-css.ts'
-import { FreeCanvasView, FreeElementView, makeElement } from '../packages/blocks/src/FreeCanvas.tsx'
+import { FreeCanvasView, FreeElementView, FreeOverlay, makeElement } from '../packages/blocks/src/FreeCanvas.tsx'
+import {
+  defaultActiveVariants,
+  extractPopoverFamily,
+  isTriggerActive,
+  projectInteractiveList,
+} from '../packages/blocks/src/FreeInteractiveScope.tsx'
 
 // 1. Link actions: #state:<frameId>:<variantId> and #popover:<frameId>
 assert.equal(actionHref('state', 'frame_tablet:tab_menu'), '#state:frame_tablet:tab_menu')
@@ -325,3 +331,58 @@ const svhEditorHtml = renderToStaticMarkup(
 )
 assert.doesNotMatch(svhEditorHtml, /100svh/)
 console.log('PASS Task 3: accordion, video overlay, radial-blur shape, svh Hero & directional bgOverlay')
+
+// 6. Task 4: FreeInteractiveScope (#state tab switching + #popover portal projection & active states)
+const qrFrame = {
+  id: 'qr_pop',
+  type: 'container',
+  x: 880,
+  y: 90,
+  w: 240,
+  h: 280,
+  props: { _frame: true, _isPopover: true, bg: '#ffffff', radius: 16 },
+}
+const qrChild = {
+  id: 'qr_text',
+  parentId: 'qr_pop',
+  type: 'text',
+  x: 900,
+  y: 120,
+  w: 200,
+  h: 40,
+  props: { text: 'Quét mã Zalo OA', size: 16, color: '#111827' },
+}
+const btnTab1 = makeElement('button', { id: 'b_t1', props: { text: 'Tab 1', href: '#state:f1:default' } })
+const btnTab2 = makeElement('button', { id: 'b_t2', props: { text: 'Tab 2', href: '#state:f1:tab2' } })
+const btnQr = makeElement('button', { id: 'b_qr', props: { text: 'Tư vấn Zalo', href: '#popover:qr_pop' } })
+const interactiveList = [...movedList, qrFrame, qrChild, btnTab1, btnTab2, btnQr]
+
+const defaults = defaultActiveVariants(interactiveList)
+assert.deepEqual(defaults, { f1: 'default' })
+
+const flowDefault = projectInteractiveList(interactiveList, {}, true)
+assert.equal(flowDefault.some((e) => e.id === 'qr_pop' || e.id === 'qr_text'), false, 'Popover frame must hide in normal flow')
+assert.equal(flowDefault.find((e) => e.id === 'c1')?.props.text, 'Tab 1 Edited')
+
+const flowTab2 = projectInteractiveList(interactiveList, { f1: 'tab2' }, true)
+assert.equal(flowTab2.find((e) => e.id === 'c1')?.props.text, 'Tab 2 Edited')
+
+const popEls = extractPopoverFamily(interactiveList, 'qr_pop', {})
+assert.ok(popEls && popEls.length === 2)
+assert.equal(popEls[0].x, 0)
+assert.equal(popEls[0].y, 0)
+assert.equal(popEls[1].x, 20)
+assert.equal(popEls[1].y, 30)
+
+assert.equal(isTriggerActive('#state:f1:default', {}, defaults, null), true)
+assert.equal(isTriggerActive('#state:f1:tab2', {}, defaults, null), false)
+assert.equal(isTriggerActive('#state:f1:tab2', { f1: 'tab2' }, defaults, null), true)
+assert.equal(isTriggerActive('#popover:qr_pop', {}, defaults, null), false)
+assert.equal(isTriggerActive('#popover:qr_pop', {}, defaults, 'qr_pop'), true)
+
+const overlayHtml = renderToStaticMarkup(React.createElement(FreeOverlay, { elements: interactiveList, height: 600, scope: 'sec_demo' }))
+assert.doesNotMatch(overlayHtml, /Quét mã Zalo OA/, 'Popover child text must not render inline before trigger')
+assert.match(overlayHtml, /role="tab"/)
+assert.match(overlayHtml, /aria-selected="true"/)
+assert.match(overlayHtml, /aria-haspopup="dialog"/)
+console.log('PASS Task 4: FreeInteractiveScope projection, popover extraction, and ARIA tab/popover SSR')

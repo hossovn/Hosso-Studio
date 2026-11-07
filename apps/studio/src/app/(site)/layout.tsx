@@ -1,6 +1,6 @@
 import hosso from '@hosso-config'
 import '@hosso/studio-blocks/swiper.css'
-import { LocaleProvider, t } from '@hosso/studio-blocks'
+import { LocaleProvider, safeCssColor, t } from '@hosso/studio-blocks'
 import config from '@payload-config'
 import type { Metadata } from 'next'
 import { headers } from 'next/headers'
@@ -10,6 +10,7 @@ import React from 'react'
 import { Area, loadArea } from '@/components/Area'
 import { ContactFloat } from '@/components/ContactFloat'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { ReadingProgress } from '@/components/ReadingProgress'
 import { isAdmin } from '@/lib/access'
 import { fontClassNames } from '@/lib/fonts'
 import { currentLocale, defaultLocaleCode } from '@/lib/locale'
@@ -65,11 +66,23 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
     hosso.locales.length > 1 ? <LanguageSwitcher key="lang" locales={hosso.locales} /> : null,
     ...hosso.plugins.map((p, i) => (p.headerSlot ? React.createElement(p.headerSlot, { key: i }) : null)),
   ].filter(Boolean)
+  const hp = (customHeader?.root?.props ?? {}) as Record<string, unknown>
+  const isSticky = Boolean(hp.sticky)
+  const headerBg = safeCssColor(hp.headerBg, '')
+  const blurPx = Math.min(24, Math.max(0, Number(hp.backdropBlur) || 0))
+  const borderBottom = safeCssColor(hp.borderBottom, '')
+  const hideAutoSlots = Boolean(hp.hideAutoSlots)
+  const showProgress = Boolean(hp.readingProgress)
+  const progressColor = safeCssColor(hp.progressColor, '#facc15')
+  const progressHeight = Math.min(8, Math.max(2, Number(hp.progressHeight) || 3))
   return (
     <html lang={locale} className={fontClassNames}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <style>{css}</style>
+        {blurPx > 0 && (
+          <style>{`@media(prefers-reduced-transparency:reduce){.site-chrome-header.has-blur{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:var(--hs-bg,#ffffff)!important}}`}</style>
+        )}
         {/* Chỉ trong khung xem trước của trang Tùy biến giao diện (admin cùng origin): nhận biến --hs-* để đổi màu/font tức thì. */}
         <script
           dangerouslySetInnerHTML={{
@@ -85,9 +98,25 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
             </a>
             <Area name="beforeHeader" locale={locale} />
             {customHeader ? (
-              <header className="site-chrome-header" style={{ position: 'relative', zIndex: 40 }}>
+              <header
+                className={`site-chrome-header${isSticky ? ' is-sticky' : ''}${blurPx > 0 ? ' has-blur' : ''}`}
+                style={{
+                  position: isSticky ? 'sticky' : 'relative',
+                  top: isSticky ? 0 : undefined,
+                  zIndex: 40,
+                  background: headerBg || undefined,
+                  backdropFilter: blurPx > 0 ? `blur(${blurPx}px)` : undefined,
+                  WebkitBackdropFilter: blurPx > 0 ? `blur(${blurPx}px)` : undefined,
+                  borderBottom: borderBottom ? `1px solid ${borderBottom}` : undefined,
+                }}
+              >
                 <Area name="siteHeader" locale={locale} />
-                {slots.length ? <div style={{ position: 'absolute', top: 12, right: 16, display: 'flex', gap: 12, alignItems: 'center', zIndex: 20 }}>{slots}</div> : null}
+                {!hideAutoSlots && slots.length ? (
+                  <div style={{ position: 'absolute', top: 12, right: 16, display: 'flex', gap: 12, alignItems: 'center', zIndex: 20 }}>
+                    {slots}
+                  </div>
+                ) : null}
+                {showProgress && <ReadingProgress color={progressColor} height={progressHeight} />}
               </header>
             ) : (
               Header && <Header chrome={chrome} actions={slots.length ? slots : undefined} />

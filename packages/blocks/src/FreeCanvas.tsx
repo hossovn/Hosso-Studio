@@ -1,23 +1,22 @@
 import React from 'react'
-import { CANVAS_WIDGET_CSS } from './canvas-widgets'
 import { BLOB_RADIUS, BOX_SHADOWS, CLIPS, TEXT_SHADOWS, fillCss, fontImport, fontStack, safeCssColor, shadowCss } from './free-style'
 import { FreeAccordion, FreeBreadcrumb, FreeCountdown, FreeEmbed, FreeFoldMenu, FreeMap, FreeTable, FreeTabs, FreeVideoPlayer } from './free-extra'
 import { ICON_BODY } from './icons-data'
 import type { BlockRenderer } from './types'
 import { FreeSwiper } from './FreeSwiper'
-import { inheritedElementFlag, inheritedHideClasses, newId } from './free-geometry'
+import { newId } from './free-geometry'
 import { elementStateScope, elementStatesCss } from './element-states'
 import type { ElementState } from './element-states'
 import { ScrollEffect } from './ScrollEffect'
 import { normalizeScrollEffect } from './scroll-effects'
 import { resolveMotionConfig } from './motion-effects'
 import { MotionEffects } from './MotionEffects'
-import { MotionScope } from './MotionScope'
 import { MotionText } from './MotionText'
-import { blockForDevice, elementForDevice, type DevicePatch } from './responsive-layout'
-import { baseDevice, layoutWidth, layoutVariants, variantCss } from './responsive-breakpoints'
+import { blockForDevice, type DevicePatch } from './responsive-layout'
+import { layoutVariants, variantCss } from './responsive-breakpoints'
 import { sanitizeRichText } from './rich-text'
 export { newId } from './free-geometry'
+export { FreeOverlay } from './FreeInteractiveScope'
 
 /**
  * Vùng tự do (kiểu Webcake/Canva): một vùng cao cố định, bên trong là các phần tử đặt theo tọa độ trên khung thiết kế rộng FREE_W px.
@@ -48,7 +47,6 @@ const ICON_PATHS: Record<string, string> = {
 export const FREE_ICONS = [...new Set([...Object.keys(ICON_BODY), ...Object.keys(ICON_PATHS)])]
 
 const SAFE_HREF = /^(https?:\/\/|\/|#|mailto:|tel:)/i
-const SAFE_COLOR = /^#[0-9a-f]{6}$/i
 const safeHref = (h: unknown) => (typeof h === 'string' && SAFE_HREF.test(h.trim()) ? h.trim() : '#')
 const videoEmbed = (url: string) => {
   const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{6,})/) ?? []
@@ -57,8 +55,6 @@ const videoEmbed = (url: string) => {
 
 /** Chiều cao thực của vùng (px thiết kế): vừa khít phần tử, không thấp hơn mức tối thiểu của khối. */
 export const freeHeight = (min: number | undefined, elements: FreeElement[] = []) => Math.max(Number(min) || 0, ...elements.map((e) => e.y + e.h + 24), 0)
-
-
 
 /** Phần tử mới với kích thước và kiểu mặc định theo loại; `over` ghi đè (ví dụ cấp tiêu đề). */
 export function makeElement(type: FreeType, over: Partial<FreeElement> & { props?: Record<string, any> } = {}): FreeElement {
@@ -91,7 +87,7 @@ export function makeElement(type: FreeType, over: Partial<FreeElement> & { props
 /** Nội dung của một phần tử, lấp đầy khung chứa. `unit` là bề rộng thiết kế ứng với bề rộng khung (mặc định FREE_W; thẻ xem trước dùng bề rộng phần tử). */
 /** Menu thả xuống: mục có `children` mở danh sách con khi rê chuột hoặc focus bàn phím. */
 const FM_CSS = '.fm-has{position:relative}.fm-sub{display:none;position:absolute;left:0;top:100%;z-index:60;margin:0;list-style:none;background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15)}.fm-has:hover>.fm-sub,.fm-has:focus-within>.fm-sub{display:block}.fm-sub a:hover{background:#f3f4f6}'
-export function FreeElementView({ el, unit = FREE_W, scale, editing = false, state, scrollEffects = true, children }: { el: FreeElement; unit?: number; scale?: number; editing?: boolean; state?: ElementState; scrollEffects?: boolean; children?: React.ReactNode }) {
+export function FreeElementView({ el, unit = FREE_W, scale, editing = false, state, scrollEffects = true, linkProps, itemLinkProps, children }: { el: FreeElement; unit?: number; scale?: number; editing?: boolean; state?: ElementState; scrollEffects?: boolean; linkProps?: Record<string, any>; itemLinkProps?: (href: unknown) => Record<string, any>; children?: React.ReactNode }) {
   if (el.type === 'widget') return <>{children ?? <div>Chọn khối để thêm nội dung</div>}</>
   const p = el.props
   const imp = ['heading', 'text', 'button', 'menu', 'countdown', 'number', 'table', 'tabs', 'accordion', 'breadcrumb'].includes(el.type) ? fontImport(p.font) : ''
@@ -100,7 +96,7 @@ export function FreeElementView({ el, unit = FREE_W, scale, editing = false, sta
   const bodyOpacity = ['text', 'heading', 'button', 'image'].includes(el.type)
   const stateCss = elementStatesCss(el.id, p)
   const motion = scrollEffects && !editing && el.type !== 'container' ? resolveMotionConfig(p) : null
-  const inner = <FreeElementBody el={el} unit={unit} scale={scale} editing={editing || !scrollEffects} state={state} />
+  const inner = <FreeElementBody el={el} unit={unit} scale={scale} editing={editing || !scrollEffects} state={state} linkProps={linkProps} itemLinkProps={itemLinkProps} />
   const scrolling = scrollEffects && !editing && el.type !== 'container' && p._scroll?.mode !== 'entrance' && normalizeScrollEffect(p._scroll)
   const effects = (content: React.ReactNode) => {
     const animated = motion ? <MotionEffects value={motion}>{content}</MotionEffects> : content
@@ -118,7 +114,7 @@ export function FreeElementView({ el, unit = FREE_W, scale, editing = false, sta
   return effects(styled)
 }
 
-function FreeElementBody({ el, unit, scale, editing, state }: { el: FreeElement; unit: number; scale?: number; editing: boolean; state?: ElementState }) {
+function FreeElementBody({ el, unit, scale, editing, state, linkProps, itemLinkProps }: { el: FreeElement; unit: number; scale?: number; editing: boolean; state?: ElementState; linkProps?: Record<string, any>; itemLinkProps?: (href: unknown) => Record<string, any> }) {
   const p = el.props
   const opacity = p.opacity != null && p.opacity !== '' && Number.isFinite(Number(p.opacity)) ? Math.min(100, Math.max(0, Number(p.opacity))) / 100 : undefined
   const stateAttrs = { className: p._states ? elementStateScope(el.id) : undefined, 'data-hs-state': state }
@@ -149,12 +145,12 @@ function FreeElementBody({ el, unit, scale, editing, state }: { el: FreeElement;
     boxShadow: shadowCss(BOX_SHADOWS[p.bshadow], u),
     overflow: p.overflow === 'hidden' ? 'hidden' : 'visible',
   }
-  if (el.type === 'heading') return React.createElement(`h${Math.min(6, Math.max(1, Number(p.level) || 2))}`, { ...stateAttrs, style: textBox }, p.href && !editing ? <a href={safeHref(p.href)} style={{ color: 'inherit', textDecoration: 'inherit' }}>{ink}</a> : ink)
-  if (el.type === 'text') return p.href && !editing ? <a {...stateAttrs} href={safeHref(p.href)} style={{ ...textBox, textDecoration: p.underline ? 'underline' : 'none' }}>{ink}</a> : <p {...stateAttrs} style={textBox}>{ink}</p>
+  if (el.type === 'heading') return React.createElement(`h${Math.min(6, Math.max(1, Number(p.level) || 2))}`, { ...stateAttrs, style: textBox }, p.href && !editing ? <a href={safeHref(p.href)} {...linkProps} style={{ color: 'inherit', textDecoration: 'inherit' }}>{ink}</a> : ink)
+  if (el.type === 'text') return p.href && !editing ? <a {...stateAttrs} href={safeHref(p.href)} {...linkProps} style={{ ...textBox, textDecoration: p.underline ? 'underline' : 'none' }}>{ink}</a> : <p {...stateAttrs} style={textBox}>{ink}</p>
   if (el.type === 'button') {
     const st: React.CSSProperties = { ...text, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: u(8), width: '100%', height: '100%', boxSizing: 'border-box', background: fillCss(p), borderRadius: u(p.radius ?? 0), border: p.borderW ? `${u(p.borderW)} solid ${p.borderColor}` : 0, textAlign: 'center', textDecoration: p.underline ? 'underline' : 'none', boxShadow: shadowCss(BOX_SHADOWS[p.bshadow], u), WebkitTextFillColor: undefined, WebkitBackgroundClip: undefined, backgroundClip: undefined }
     const content = <>{typeof p.icon === 'string' && Object.hasOwn(ICON_BODY, p.icon) && <svg viewBox="0 0 24 24" width={u(p.size ?? 18)} height={u(p.size ?? 18)} fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" style={{ flexShrink: 0 }} dangerouslySetInnerHTML={{ __html: ICON_BODY[p.icon] }} />}{richText ? <span dangerouslySetInnerHTML={{ __html: richText }} /> : p.text}</>
-    return editing ? <span {...stateAttrs} style={st}>{content}</span> : <a {...stateAttrs} href={safeHref(p.href)} style={st}>{content}</a>
+    return editing ? <span {...stateAttrs} style={st}>{content}</span> : <a {...stateAttrs} href={safeHref(p.href)} {...linkProps} style={st}>{content}</a>
   }
   if (el.type === 'shape') { const blurPx = Math.min(40, Math.max(0, Number(p.blur) || 0)); return <div style={{ width: '100%', height: '100%', boxSizing: 'border-box', background: fillCss(p), borderRadius: p.clip === 'blob' ? BLOB_RADIUS : p.radius >= 999 ? '50%' : u(p.radius ?? 0), border: p.borderW ? `${u(p.borderW)} solid ${p.borderColor}` : 0, clipPath: CLIPS[p.clip], boxShadow: CLIPS[p.clip] ? undefined : shadowCss(BOX_SHADOWS[p.bshadow], u), filter: blurPx > 0 ? `blur(${u(blurPx)})` : undefined }} /> }
   if (el.type === 'line') {
@@ -176,16 +172,16 @@ function FreeElementBody({ el, unit, scale, editing, state }: { el: FreeElement;
     const zoom = Math.max(1, Math.min(5, Number(p.imageZoom) || 1)), fx = focal(p.focalX), fy = focal(p.focalY)
     const picture = <img src={p.src} alt={p.alt ?? ''} style={{ width: '100%', height: '100%', display: 'block', objectFit: imageStyle.objectFit, objectPosition: `${fx}% ${fy}%`, transform: `scale(${zoom})`, transformOrigin: `${fx}% ${fy}%` }} />
     const frameStyle = { ...imageStyle, overflow: 'hidden', opacity }
-    return p.href && !editing ? <a {...stateAttrs} href={safeHref(p.href)} style={frameStyle}>{picture}</a> : <div {...stateAttrs} style={frameStyle}>{picture}</div>
+    return p.href && !editing ? <a {...stateAttrs} href={safeHref(p.href)} {...linkProps} style={frameStyle}>{picture}</a> : <div {...stateAttrs} style={frameStyle}>{picture}</div>
   }
   if (el.type === 'container') return <div style={{ width: '100%', height: '100%', boxSizing: 'border-box', background: fillCss(p) || 'transparent', backgroundImage: typeof p.bgImage === 'string' && p.bgImage ? 'url(' + JSON.stringify(p.bgImage) + ')' : undefined, backgroundSize: p.bgFit === 'contain' ? 'contain' : 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', borderRadius: u(p.radius || 0), border: p.borderW ? `${u(p.borderW)} solid ${p.borderColor ?? '#111827'}` : undefined, boxShadow: shadowCss(BOX_SHADOWS[p.bshadow], u) }} />
   if (el.type === 'swiper') return <FreeSwiper slides={Array.isArray(p.slides) ? p.slides : []} seconds={Number(p.seconds) || 0} editing={editing} effect={p.effect === 'fade' ? 'fade' : 'slide'} thumbnails={p.thumbnails === true} perView={Number(p.perView) || 1} gap={Number(p.gap) || 0} slideRadius={Number(p.slideRadius) || 0} playToggle={Boolean(p.playToggle)} playToggleLabel={typeof p.playToggleLabel === 'string' && p.playToggleLabel ? p.playToggleLabel : undefined} />
   if (el.type === 'video') {
     const embed = videoEmbed(String(p.url ?? ''))
-    if (embed && !editing) return <iframe src={embed} title={p.title || 'Video'} style={{ width: '100%', height: '100%', border: 0 }} allowFullScreen loading="lazy" />
+    if (embed && !editing) return <iframe src={embed} title={p.title || 'Video'} style={{ width: '100%', height: '100%', border: 0, borderRadius: u(p.radius ?? 0) }} allowFullScreen loading="lazy" />
     if (p.url && !embed && p.controlsMode === 'overlay') return <FreeVideoPlayer p={p} unit={unit} scale={scale} editing={editing} />
     if (p.url && !embed && !editing) return <video src={p.url} poster={p.poster || undefined} loop={Boolean(p.loop)} muted={Boolean(p.muted)} playsInline controls style={{ width: '100%', height: '100%', objectFit: p.fit === 'contain' ? 'contain' : 'cover', borderRadius: u(p.radius ?? 0) }} />
-    return <div style={{ position: 'relative', width: '100%', height: '100%', background: '#111827', color: '#fff', display: 'grid', placeItems: 'center', fontSize: u(18) }}>{p.poster && <img src={p.poster} alt={p.title || 'Video'} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}<span style={{ position: 'relative', padding: '6px 10px', borderRadius: 4, background: '#111827bb' }}>▶ Video</span></div>
+    return <div style={{ position: 'relative', width: '100%', height: '100%', background: '#111827', color: '#fff', display: 'grid', placeItems: 'center', fontSize: u(18), borderRadius: u(p.radius ?? 0), overflow: 'hidden' }}>{p.poster && <img src={p.poster} alt={p.title || 'Video'} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}<span style={{ position: 'relative', padding: '6px 10px', borderRadius: 4, background: '#111827bb' }}>▶ Video</span></div>
   }
   if (el.type === 'countdown') return <FreeCountdown p={p} unit={unit} />
   if (el.type === 'tabs') return <FreeTabs p={p} unit={unit} editing={editing} />
@@ -201,7 +197,7 @@ function FreeElementBody({ el, unit, scale, editing, state }: { el: FreeElement;
         {p.label ? <span style={{ fontSize: u(Math.max(12, (p.size ?? 72) * 0.26)), color: p.labelColor ?? '#6b7280', marginTop: u(6) }}>{p.label}</span> : null}
       </div>
     )
-  if (el.type === 'menu' && (p.variant === 'collapse' || p.variant === 'hamburger')) return <FreeFoldMenu p={p} unit={unit} hamburger={p.variant === 'hamburger'} editing={editing} />
+  if (el.type === 'menu' && (p.variant === 'collapse' || p.variant === 'hamburger')) return <FreeFoldMenu p={p} unit={unit} hamburger={p.variant === 'hamburger'} editing={editing} itemLinkProps={itemLinkProps} />
   if (el.type === 'menu') {
     const items: { label: string; href: string; children?: { label: string; href: string }[] }[] = Array.isArray(p.items) ? p.items : []
     const st: React.CSSProperties = { display: 'flex', flexDirection: p.vertical ? 'column' : 'row', flexWrap: 'wrap', alignItems: p.vertical ? 'flex-start' : 'center', justifyContent: p.align === 'center' ? 'center' : p.align === 'right' ? 'flex-end' : 'flex-start', gap: u(p.gap ?? 24), width: '100%', height: '100%', margin: 0, padding: 0, listStyle: 'none' }
@@ -228,13 +224,13 @@ function FreeElementBody({ el, unit, scale, editing, state }: { el: FreeElement;
             const kids = Array.isArray(it.children) ? it.children : []
             return (
               <li key={i} style={liStyle(i)} className={kids.length ? 'fm-has' : undefined}>
-                {editing ? <span style={linkOf(i)}>{it.label}</span> : <a href={safeHref(it.href)} style={linkOf(i)}>{it.label}</a>}
+                {editing ? <span style={linkOf(i)}>{it.label}</span> : <a href={safeHref(it.href)} {...(itemLinkProps ? itemLinkProps(it.href) : undefined)} style={linkOf(i)}>{it.label}</a>}
                 {!!kids.length && <span aria-hidden="true" style={{ ...linkOf(i), marginLeft: u(6), fontSize: u((p.size ?? 16) * 0.7) }}>▾</span>}
                 {!!kids.length && (
                   <ul className="fm-sub" style={{ minWidth: u(240), padding: `${u(6)} 0` }}>
                     {kids.map((k, j) => {
                       const st: React.CSSProperties = { display: 'block', padding: `${u(9)} ${u(18)}`, fontFamily: fontStack(p.font), fontSize: u((p.size ?? 16) * 0.95), fontWeight: 500, color: '#111827', textDecoration: 'none', whiteSpace: 'nowrap' }
-                      return <li key={j}>{editing ? <span style={st}>{k.label}</span> : <a href={safeHref(k.href)} style={st}>{k.label}</a>}</li>
+                      return <li key={j}>{editing ? <span style={st}>{k.label}</span> : <a href={safeHref(k.href)} {...(itemLinkProps ? itemLinkProps(k.href) : undefined)} style={st}>{k.label}</a>}</li>
                     })}
                   </ul>
                 )}
@@ -246,28 +242,6 @@ function FreeElementBody({ el, unit, scale, editing, state }: { el: FreeElement;
     )
   }
   return null
-}
-
-/** Lớp phần tử phủ lên một block (prop `_els`): rộng tối đa FREE_MAX_PX, canh giữa, tọa độ tính từ góc trên trái của block. */
-export const FreeOverlay = ({ elements, height, responsive, breakpoints, scope = 'page', widgets = {} }: { elements: FreeElement[]; height?: number; responsive?: Record<string, any>; breakpoints?: unknown; scope?: string; widgets?: Record<string, React.ReactNode> }) => {
-  const devices = elements.some((el) => Object.keys(el.responsive ?? {}).length || el.props._constraints || el.props._layout) ? layoutVariants(breakpoints) : ['desktop'] as const
-  return (
-  <div className="hs-free-layer" data-scroll-boundary style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, width: `min(100%, ${FREE_MAX_PX}px)`, margin: '0 auto', containerType: 'inline-size', pointerEvents: 'none' }}>
-    {elements.some((el) => el.type === 'widget') && <style>{CANVAS_WIDGET_CSS}</style>}
-    <MotionScope enabled={elements.some((el) => !el.props._hidden && resolveMotionConfig(el.props)?.loop?.preset && resolveMotionConfig(el.props)?.loop?.preset !== 'none')}>
-    {devices.length > 1 && <style>{variantCss(scope + '-overlay', breakpoints)}</style>}
-    <div data-hs-variants={encodeURIComponent(scope + '-overlay')} style={{ position: 'absolute', inset: 0 }}>
-    {devices.map((device) => <div key={device} data-hs-variant={devices.length > 1 ? device : undefined} style={{ position: 'absolute', inset: 0, display: device === 'desktop' ? 'block' : 'none' }}>
-    {blockForDevice({ type: 'FreeCanvas', props: { _els: elements, height, _responsive: responsive } }, device).props._els.map((el: FreeElement) => { return (
-      <div key={el.id} className={inheritedHideClasses(elements, el.id)} style={{ display: inheritedElementFlag(elements, el.id, '_hidden', baseDevice(layoutWidth(device))) ? 'none' : undefined, position: 'absolute', left: `${(el.x / FREE_W) * 100}%`, top: `${(el.y / FREE_W) * 100}cqw`, width: `${(el.w / FREE_W) * 100}%`, height: `${(el.h / FREE_W) * 100}cqw`, pointerEvents: el.type === 'container' ? 'none' : 'auto', zIndex: el.type === 'container' ? 0 : 1 }}>
-        <FreeElementView el={el}>{widgets[el.id]}</FreeElementView>
-      </div>
-    )})}
-    </div>)}
-    </div>
-    </MotionScope>
-  </div>
-  )
 }
 
 /**

@@ -1,5 +1,5 @@
 import config from '@payload-config'
-import { stripUnknown, type PageData } from '@hosso/studio-blocks'
+import { FreeOverlay, renderCanvasWidgets, stripUnknown, type FreeElement, type PageData } from '@hosso/studio-blocks'
 import { Render } from '@puckeditor/core/rsc'
 import { getPayload } from 'payload'
 import React from 'react'
@@ -26,9 +26,18 @@ export async function Area({ name, locale }: { name: AreaName; locale: string })
   let data = stripUnknown(raw, puckConfig)
   data = await expandReusable(data, locale)
   data = await attachBlockData(data, {}, locale)
+  const float = ((data as any).root?.props?._float ?? []) as FreeElement[]
   return (
-    <div className={`site-area site-area-${name}`}>
+    <div className={`site-area site-area-${name}`} style={float.length ? { position: 'relative' } : undefined}>
       <Render config={puckConfig as any} data={data as any} />
+      {float.length > 0 && (
+        <FreeOverlay
+          elements={float}
+          scope={`${name}-float`}
+          widgets={renderCanvasWidgets(float, puckConfig.components)}
+          breakpoints={data.root?.props?._breakpoints}
+        />
+      )}
     </div>
   )
 }

@@ -42,3 +42,11 @@ export { MotionEffects } from './MotionEffects'
 export { MotionScope } from './MotionScope'
 export { MotionText } from './MotionText'
 export { ScrollStory } from './ScrollStory'
+export {
+  InteractivePopoverPortal,
+  defaultActiveVariants,
+  extractPopoverFamily,
+  isTriggerActive,
+  projectInteractiveList,
+  useInteractiveElements,
+} from './FreeInteractiveScope'

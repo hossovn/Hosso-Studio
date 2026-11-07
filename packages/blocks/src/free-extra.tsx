@@ -57,7 +57,7 @@ export function FreeTabs({ p, unit, editing = false }: { p: Record<string, any>;
 
 type MItem = { label: string; href: string }
 /** Menu thu gọn (dropdown) hoặc nút hamburger mở danh sách. */
-export function FreeFoldMenu({ p, unit, hamburger, editing }: { p: Record<string, any>; unit: number; hamburger: boolean; editing: boolean }) {
+export function FreeFoldMenu({ p, unit, hamburger, editing, itemLinkProps }: { p: Record<string, any>; unit: number; hamburger: boolean; editing: boolean; itemLinkProps?: (href: unknown) => Record<string, any> }) {
   const u = mkU(unit)
   const items: MItem[] = Array.isArray(p.items) ? p.items : []
   const [open, setOpen] = useState(false)
@@ -65,7 +65,7 @@ export function FreeFoldMenu({ p, unit, hamburger, editing }: { p: Record<string
   const link: React.CSSProperties = { display: 'block', padding: `${u(10)} ${u(14)}`, fontSize: u(p.size ?? 16), fontWeight: p.weight ?? 500, color: p.color ?? '#111827', textDecoration: 'none', ...font(p) }
   const list = (
     <ul style={{ margin: 0, padding: 0, listStyle: 'none', background: '#ffffff', borderRadius: u(10), boxShadow: `0 ${u(8)} ${u(24)} rgba(0,0,0,.15)`, overflow: 'hidden' }}>
-      {items.map((it, k) => <li key={k}>{editing ? <span style={link}>{it.label}</span> : <a href={href(it.href)} style={link}>{it.label}</a>}</li>)}
+      {items.map((it, k) => <li key={k}>{editing ? <span style={link}>{it.label}</span> : <a href={href(it.href)} {...(itemLinkProps ? itemLinkProps(it.href) : undefined)} onClick={(e) => { itemLinkProps?.(it.href)?.onClick?.(e); setOpen(false) }} style={link}>{it.label}</a>}</li>)}
     </ul>
   )
   if (hamburger)

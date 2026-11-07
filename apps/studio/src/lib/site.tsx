@@ -133,7 +133,8 @@ export async function attachBlockData<T extends { content: Item[] }>(
 ): Promise<T> {
   data = { ...data, content: data.content.filter((item) => !item.props._repeatTarget && !(item.props._els ?? item.props.elements ?? []).some((el: any) => el.props?._repeatTarget)) }
   const floating = (data as any).root?.props?._float ?? []
-  const embedded = [...data.content.flatMap((item) => item.props._els ?? item.props.elements ?? []), ...floating].some((el) => el.type === 'widget')
+  const hasEmbeddedWidget = (els: any[]) => els.some((el) => el?.type === 'widget' || (Array.isArray(el?.props?._variants) && el.props._variants.some((v: any) => (v?.elements ?? []).some((ve: any) => ve?.type === 'widget'))))
+  const embedded = hasEmbeddedWidget([...data.content.flatMap((item) => item.props._els ?? item.props.elements ?? []), ...floating])
   if (!embedded && !data.content.some((c) => loaderFor(c.type))) return data
   const payload = await getPayload({ config })
   const cookies = Object.fromEntries((await nextCookies()).getAll().map((c) => [c.name, c.value]))
@@ -147,7 +148,11 @@ export async function attachBlockData<T extends { content: Item[] }>(
         return { ...item, props: { ...item.props, data: { status: 'error', kind: 'internal' } } }
       }
   }
-  const loadElements = async (elements: any[]) => Promise.all(elements.map(async (el) => {
+  const loadElements = async (elements: any[]): Promise<any[]> => Promise.all(elements.map(async (el) => {
+    if (el.type === 'container' && Array.isArray(el.props?._variants)) {
+      const variants = await Promise.all(el.props._variants.map(async (v: any) => (Array.isArray(v?.elements) ? { ...v, elements: await loadElements(v.elements) } : v)))
+      return { ...el, props: { ...el.props, _variants: variants } }
+    }
     if (el.type !== 'widget' || !el.props?.widget || ['FreeCanvas', 'Reusable'].includes(el.props.widget.type)) return el
     const { _els, elements: legacy, ...props } = el.props.widget.props ?? {}
     return { ...el, props: { ...el.props, widget: await loadItem({ type: el.props.widget.type, props: { ...props, id: el.id } }) } }
