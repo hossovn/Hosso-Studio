@@ -67,7 +67,6 @@ export interface Config {
   };
   blocks: {};
   collections: {
-    'site-releases': SiteRelease;
     pages: Page;
     posts: Post;
     'content-entries': ContentEntry;
@@ -80,17 +79,23 @@ export interface Config {
     'reusable-blocks': ReusableBlock;
     media: Media;
     'contact-messages': ContactMessage;
+    'chat-sessions': ChatSession;
     bookings: Booking;
     redirects: Redirect;
     'edit-locks': EditLock;
     'editor-reviews': EditorReview;
+    'site-releases': SiteRelease;
     users: User;
+    'commerce-events': CommerceEvent;
+    'commerce-rate-buckets': CommerceRateBucket;
     'shop-categories': ShopCategory;
     'shop-products': ShopProduct;
     'shop-reviews': ShopReview;
     'shop-orders': ShopOrder;
+    'shop-order-groups': ShopOrderGroup;
     affiliates: Affiliate;
     'affiliate-referrals': AffiliateReferral;
+    'affiliate-withdrawals': AffiliateWithdrawal;
     'affiliate-clicks': AffiliateClick;
     'affiliate-orders': AffiliateOrder;
     'affiliate-payouts': AffiliatePayout;
@@ -100,15 +105,11 @@ export interface Config {
     shipments: Shipment;
     vouchers: Voucher;
     payments: Payment;
+    'payment-transactions': PaymentTransaction;
+    'payment-refunds': PaymentRefund;
     customers: Customer;
     'customer-orders': CustomerOrder;
-    'cross-sell-partners': CrossSellPartner;
-    'cross-sell-listings': CrossSellListing;
-    'cross-sell-offers': CrossSellOffer;
-    'cross-sell-transfers': CrossSellTransfer;
-    'cross-sell-dispatches': CrossSellDispatch;
-    'cross-sell-receipts': CrossSellReceipt;
-    'cross-sell-events': CrossSellEvent;
+    'garage-price-groups': GaragePriceGroup;
     'payload-kv': PayloadKv;
     'payload-jobs': PayloadJob;
     'payload-locked-documents': PayloadLockedDocument;
@@ -117,7 +118,6 @@ export interface Config {
   };
   collectionsJoins: {};
   collectionsSelect: {
-    'site-releases': SiteReleasesSelect<false> | SiteReleasesSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
     'content-entries': ContentEntriesSelect<false> | ContentEntriesSelect<true>;
@@ -130,17 +130,23 @@ export interface Config {
     'reusable-blocks': ReusableBlocksSelect<false> | ReusableBlocksSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     'contact-messages': ContactMessagesSelect<false> | ContactMessagesSelect<true>;
+    'chat-sessions': ChatSessionsSelect<false> | ChatSessionsSelect<true>;
     bookings: BookingsSelect<false> | BookingsSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     'edit-locks': EditLocksSelect<false> | EditLocksSelect<true>;
     'editor-reviews': EditorReviewsSelect<false> | EditorReviewsSelect<true>;
+    'site-releases': SiteReleasesSelect<false> | SiteReleasesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    'commerce-events': CommerceEventsSelect<false> | CommerceEventsSelect<true>;
+    'commerce-rate-buckets': CommerceRateBucketsSelect<false> | CommerceRateBucketsSelect<true>;
     'shop-categories': ShopCategoriesSelect<false> | ShopCategoriesSelect<true>;
     'shop-products': ShopProductsSelect<false> | ShopProductsSelect<true>;
     'shop-reviews': ShopReviewsSelect<false> | ShopReviewsSelect<true>;
     'shop-orders': ShopOrdersSelect<false> | ShopOrdersSelect<true>;
+    'shop-order-groups': ShopOrderGroupsSelect<false> | ShopOrderGroupsSelect<true>;
     affiliates: AffiliatesSelect<false> | AffiliatesSelect<true>;
     'affiliate-referrals': AffiliateReferralsSelect<false> | AffiliateReferralsSelect<true>;
+    'affiliate-withdrawals': AffiliateWithdrawalsSelect<false> | AffiliateWithdrawalsSelect<true>;
     'affiliate-clicks': AffiliateClicksSelect<false> | AffiliateClicksSelect<true>;
     'affiliate-orders': AffiliateOrdersSelect<false> | AffiliateOrdersSelect<true>;
     'affiliate-payouts': AffiliatePayoutsSelect<false> | AffiliatePayoutsSelect<true>;
@@ -150,15 +156,11 @@ export interface Config {
     shipments: ShipmentsSelect<false> | ShipmentsSelect<true>;
     vouchers: VouchersSelect<false> | VouchersSelect<true>;
     payments: PaymentsSelect<false> | PaymentsSelect<true>;
+    'payment-transactions': PaymentTransactionsSelect<false> | PaymentTransactionsSelect<true>;
+    'payment-refunds': PaymentRefundsSelect<false> | PaymentRefundsSelect<true>;
     customers: CustomersSelect<false> | CustomersSelect<true>;
     'customer-orders': CustomerOrdersSelect<false> | CustomerOrdersSelect<true>;
-    'cross-sell-partners': CrossSellPartnersSelect<false> | CrossSellPartnersSelect<true>;
-    'cross-sell-listings': CrossSellListingsSelect<false> | CrossSellListingsSelect<true>;
-    'cross-sell-offers': CrossSellOffersSelect<false> | CrossSellOffersSelect<true>;
-    'cross-sell-transfers': CrossSellTransfersSelect<false> | CrossSellTransfersSelect<true>;
-    'cross-sell-dispatches': CrossSellDispatchesSelect<false> | CrossSellDispatchesSelect<true>;
-    'cross-sell-receipts': CrossSellReceiptsSelect<false> | CrossSellReceiptsSelect<true>;
-    'cross-sell-events': CrossSellEventsSelect<false> | CrossSellEventsSelect<true>;
+    'garage-price-groups': GaragePriceGroupsSelect<false> | GaragePriceGroupsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -168,40 +170,47 @@ export interface Config {
   db: {
     defaultIDType: number;
   };
-  fallbackLocale: ('false' | 'none' | 'null') | false | null | ('vi' | 'en') | ('vi' | 'en')[];
+  fallbackLocale:
+    | ('false' | 'none' | 'null')
+    | false
+    | null
+    | ('vi' | 'en' | 'ko' | 'ja' | 'zh' | 'fr' | 'de' | 'th')
+    | ('vi' | 'en' | 'ko' | 'ja' | 'zh' | 'fr' | 'de' | 'th')[];
   globals: {
     'site-settings': SiteSetting;
     'site-areas': SiteArea;
     'shop-settings': ShopSetting;
+    'affiliate-settings': AffiliateSetting;
     'wim-settings': WimSetting;
     'shipping-settings': ShippingSetting;
     'payment-settings': PaymentSetting;
     'notify-settings': NotifySetting;
     'analytics-settings': AnalyticsSetting;
-    'cross-sell-settings': CrossSellSetting;
     'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
     'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
     'site-areas': SiteAreasSelect<false> | SiteAreasSelect<true>;
     'shop-settings': ShopSettingsSelect<false> | ShopSettingsSelect<true>;
+    'affiliate-settings': AffiliateSettingsSelect<false> | AffiliateSettingsSelect<true>;
     'wim-settings': WimSettingsSelect<false> | WimSettingsSelect<true>;
     'shipping-settings': ShippingSettingsSelect<false> | ShippingSettingsSelect<true>;
     'payment-settings': PaymentSettingsSelect<false> | PaymentSettingsSelect<true>;
     'notify-settings': NotifySettingsSelect<false> | NotifySettingsSelect<true>;
     'analytics-settings': AnalyticsSettingsSelect<false> | AnalyticsSettingsSelect<true>;
-    'cross-sell-settings': CrossSellSettingsSelect<false> | CrossSellSettingsSelect<true>;
     'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
-  locale: 'vi' | 'en';
+  locale: 'vi' | 'en' | 'ko' | 'ja' | 'zh' | 'fr' | 'de' | 'th';
   widgets: {
     collections: CollectionsWidget;
   };
   user: User;
   jobs: {
     tasks: {
+      'commerce-event-delivery': TaskCommerceEventDelivery;
       'shop-order-recovery': TaskShopOrderRecovery;
-      'cross-sell-sync': TaskCrossSellSync;
+      'affiliate-month-end': TaskAffiliateMonthEnd;
+      'notify-order-email': TaskNotifyOrderEmail;
       schedulePublish: TaskSchedulePublish;
       inline: {
         input: unknown;
@@ -435,6 +444,60 @@ export interface User {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "content-entries".
+ */
+export interface ContentEntry {
+  id: number;
+  cms?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  title: string;
+  slug: string;
+  kind: string;
+  data?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  published?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "content-types".
+ */
+export interface ContentType {
+  id: number;
+  title: string;
+  /**
+   * Lowercase letters, numbers and hyphens. Immutable after creation.
+   */
+  slug: string;
+  fields:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "comments".
  */
 export interface Comment {
@@ -482,7 +545,15 @@ export interface Form {
     | number
     | boolean
     | null;
-  delivery?: { [k: string]: unknown } | unknown[] | string | number | boolean | null;
+  delivery?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -542,6 +613,35 @@ export interface ContactMessage {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "chat-sessions".
+ */
+export interface ChatSession {
+  id: number;
+  visitorName: string;
+  visitorPhone?: string | null;
+  visitorEmail?: string | null;
+  locale?: string | null;
+  pagePath?: string | null;
+  status?: ('open' | 'replied' | 'closed') | null;
+  unreadByStaff?: number | null;
+  unreadByVisitor?: number | null;
+  lastMessageAt?: string | null;
+  lastMessagePreview?: string | null;
+  tokenHash: string;
+  messages?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "bookings".
  */
 export interface Booking {
@@ -591,6 +691,110 @@ export interface EditLock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "editor-reviews".
+ */
+export interface EditorReview {
+  id: number;
+  scope: string;
+  targetCollection: string;
+  targetId: string;
+  language: string;
+  owner: string;
+  element?: string | null;
+  x: number;
+  y: number;
+  parentId?: string | null;
+  body: string;
+  authorId: string;
+  authorName: string;
+  resolved?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-releases".
+ */
+export interface SiteRelease {
+  id: number;
+  title: string;
+  actor: string;
+  action: 'publish' | 'restore';
+  sourceRelease?: string | null;
+  reviewToken: string;
+  before:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  after:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  summary:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "commerce-events".
+ */
+export interface CommerceEvent {
+  id: number;
+  key: string;
+  kind: 'onOrderPaid' | 'onOrderStatusChanged';
+  consumer: string;
+  body:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  orderNo: string;
+  state: 'pending' | 'processing' | 'done' | 'failed';
+  attempts?: number | null;
+  nextAttemptAt?: string | null;
+  leaseUntil?: string | null;
+  leaseToken?: string | null;
+  lastError?: string | null;
+  completedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "commerce-rate-buckets".
+ */
+export interface CommerceRateBucket {
+  id: number;
+  key: string;
+  count?: number | null;
+  expiresAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "shop-categories".
  */
 export interface ShopCategory {
@@ -603,6 +807,7 @@ export interface ShopCategory {
   parent?: (number | null) | ShopCategory;
   image?: (number | null) | Media;
   order?: number | null;
+  affiliateRate?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -683,6 +888,28 @@ export interface ShopProduct {
   length?: number | null;
   width?: number | null;
   height?: number | null;
+  affiliateRate?: number | null;
+  garagePrices?:
+    | {
+        group: number | GaragePriceGroup;
+        variantId?: string | null;
+        overrideEnabled?: boolean | null;
+        price: number;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "garage-price-groups".
+ */
+export interface GaragePriceGroup {
+  id: number;
+  name: string;
+  active?: boolean | null;
+  wimPriceListId?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -706,6 +933,27 @@ export interface ShopReview {
  */
 export interface ShopOrder {
   id: number;
+  workflowVersion?: number | null;
+  approvalState?: ('awaiting' | 'approved' | 'rejected') | null;
+  approvedAt?: string | null;
+  approvedBy?: string | null;
+  workflowState?: string | null;
+  fulfillmentIntent?: ('shipping' | 'completed') | null;
+  processingPlan?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  customerDecision?: ('accept_available' | 'cancel_all') | null;
+  decisionAt?: string | null;
+  decisionRevision?: number | null;
+  reservationExpiresAt?: string | null;
+  originalTotal?: number | null;
+  refundDue?: number | null;
   orderNo?: string | null;
   cartId?: string | null;
   checkoutDraft?:
@@ -719,6 +967,19 @@ export interface ShopOrder {
     | null;
   checkoutComplete?: boolean | null;
   checkoutState?: string | null;
+  processingIssue?: string | null;
+  processingUntil?: string | null;
+  operationsVersion?: number | null;
+  operationHistory?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  cancellationReason?: string | null;
   checkoutKey?: string | null;
   lookupToken?: string | null;
   placedHooks?:
@@ -774,6 +1035,9 @@ export interface ShopOrder {
         variantId?: string | null;
         source?: string | null;
         remoteId?: string | null;
+        image?: string | null;
+        priceSource?: string | null;
+        priceGroup?: string | null;
         name?: string | null;
         code?: string | null;
         price?: number | null;
@@ -791,90 +1055,34 @@ export interface ShopOrder {
     | number
     | boolean
     | null;
+  affiliateRefundedLines?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   /**
    * Cumulative refunded goods after discounts, excluding shipping.
    */
   affiliateRefundedAmount?: number | null;
   affiliateCompletedAt?: string | null;
-  crossSellPartner?: (number | null) | CrossSellPartner;
-  crossSellTransfer?: (number | null) | CrossSellTransfer;
-  crossSellPurchase?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  crossSellPurchases?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  crossSellInboundKey?: string | null;
-  crossSellInboundPartner?: (number | null) | CrossSellPartner;
-  crossSellInboundPurchase?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
   updatedAt: string;
   createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "cross-sell-partners".
+ * via the `definition` "shop-order-groups".
  */
-export interface CrossSellPartner {
+export interface ShopOrderGroup {
   id: number;
-  name: string;
-  kind: 'hosso' | 'woocommerce';
-  apiUrl: string;
-  authMethod: 'direct' | 'env';
-  /**
-   * Both Hosso Studio sites share this token
-   */
-  token?: string | null;
-  consumerKey?: string | null;
-  consumerSecret?: string | null;
-  credentialEnv?: string | null;
-  secretEnv?: string | null;
-  /**
-   * Agreed commission percentage with WordPress store
-   */
-  commissionPct?: number | null;
-  buyerName: string;
-  buyerPhone: string;
-  active?: boolean | null;
-  /**
-   * Optional: HOSSO_CROSS_SELL_* variable containing the webhook secret (at least 32 characters).
-   */
-  webhookSecretEnv?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "cross-sell-transfers".
- */
-export interface CrossSellTransfer {
-  id: number;
-  localOrder?: (number | null) | ShopOrder;
-  localOrderNo?: string | null;
-  partner: number | CrossSellPartner;
-  backend?: ('shop' | 'wim') | null;
-  wimOrderId?: string | null;
-  purchaseKey: string;
-  purchase:
+  key: string;
+  order: number | ShopOrder;
+  source: string;
+  label: string;
+  plan:
     | {
         [k: string]: unknown;
       }
@@ -883,23 +1091,34 @@ export interface CrossSellTransfer {
     | number
     | boolean
     | null;
-  state: 'pending' | 'sending' | 'sent' | 'uncertain';
-  remoteId?: string | null;
-  remoteStatus?: string | null;
-  remoteTotal?: number | null;
-  commission: number;
-  commissionStatus?: ('pending' | 'eligible' | 'cancelled') | null;
-  lastError?: string | null;
-  checkedAt?: string | null;
-  localStatus?: string | null;
-  localPaymentStatus?: string | null;
-  remotePaid?: boolean | null;
-  remoteUpdatedAt?: string | null;
-  remoteChangedAt?: string | null;
-  syncError?: string | null;
-  dispatchStartedAt?: string | null;
-  syncAttemptAt?: string | null;
-  nextSyncAt?: string | null;
+  result?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  committed?: boolean | null;
+  state:
+    | 'pending'
+    | 'processing'
+    | 'accepted'
+    | 'missing'
+    | 'unknown'
+    | 'cancelling'
+    | 'cancelled'
+    | 'fulfilled'
+    | 'attention';
+  intent?: ('process' | 'cancel') | null;
+  stockReserved?: boolean | null;
+  stockReleased?: boolean | null;
+  attempts?: number | null;
+  nextAttemptAt?: string | null;
+  leaseToken?: string | null;
+  leaseUntil?: string | null;
+  issue?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -927,6 +1146,9 @@ export interface Affiliate {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Leave blank for the default. Product/category rates take precedence.
+   */
   commissionPct?: number | null;
   approval?: ('pending' | 'approved' | 'rejected') | null;
   commissionType?: ('percent' | 'fixed') | null;
@@ -961,6 +1183,47 @@ export interface AffiliateReferral {
   orderTotal?: number | null;
   commission?: number | null;
   status?: ('holding' | 'eligible' | 'review' | 'pending' | 'approved' | 'paid' | 'cancelled') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliate-withdrawals".
+ */
+export interface AffiliateWithdrawal {
+  id: number;
+  affiliate: number | Affiliate;
+  activeKey?: string | null;
+  amount?: number | null;
+  status: 'pending' | 'approved' | 'rejected' | 'paid';
+  commissions?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  bankInfo: string;
+  reason?: string | null;
+  payout?: (number | null) | AffiliatePayout;
+  reviewedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliate-payouts".
+ */
+export interface AffiliatePayout {
+  id: number;
+  affiliate: number | Affiliate;
+  amount?: number | null;
+  reference: string;
+  evidence: string;
+  bankInfo: string;
+  paidAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1016,21 +1279,6 @@ export interface AffiliateOrder {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "affiliate-payouts".
- */
-export interface AffiliatePayout {
-  id: number;
-  affiliate: number | Affiliate;
-  amount?: number | null;
-  reference: string;
-  evidence: string;
-  bankInfo: string;
-  paidAt?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "affiliate-payout-items".
  */
 export interface AffiliatePayoutItem {
@@ -1080,6 +1328,10 @@ export interface AffiliateRateLimit {
 export interface Shipment {
   id: number;
   orderId: string;
+  shipmentKey?: string | null;
+  deliveryBy?: ('store' | 'partner') | null;
+  codCollector?: ('store' | 'partner') | null;
+  groupLabel?: string | null;
   customerName?: string | null;
   phone?: string | null;
   address?: string | null;
@@ -1136,12 +1388,51 @@ export interface Voucher {
  */
 export interface Payment {
   id: number;
+  version?: number | null;
+  openingPaidAmount?: number | null;
+  refundedAmount?: number | null;
   orderNo: string;
   amount: number;
   status?: ('pending' | 'paid' | 'underpaid') | null;
   paidAmount?: number | null;
   transactionId?: string | null;
   paidAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-transactions".
+ */
+export interface PaymentTransaction {
+  id: number;
+  key: string;
+  provider: string;
+  reference: string;
+  bodyHash: string;
+  orderNo?: string | null;
+  amount: number;
+  currency: string;
+  accountNumber?: string | null;
+  state: 'unmatched' | 'allocated';
+  receivedAt: string;
+  actor?: string | null;
+  reason?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-refunds".
+ */
+export interface PaymentRefund {
+  id: number;
+  reference: string;
+  orderNo: string;
+  amount: number;
+  reason: string;
+  actor: string;
+  paidAt: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -1154,6 +1445,12 @@ export interface Customer {
   name: string;
   email: string;
   phone?: string | null;
+  garageStatus?: ('retail' | 'pending' | 'approved' | 'rejected' | 'suspended') | null;
+  garageName?: string | null;
+  garageTaxId?: string | null;
+  garageAddress?: string | null;
+  garageReason?: string | null;
+  priceGroup?: (number | null) | GaragePriceGroup;
   passwordHash?: string | null;
   addresses?:
     | {
@@ -1173,118 +1470,6 @@ export interface CustomerOrder {
   id: number;
   customer: number | Customer;
   orderNo: string;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "cross-sell-listings".
- */
-export interface CrossSellListing {
-  id: number;
-  partner: number | CrossSellPartner;
-  product?: (number | null) | ShopProduct;
-  backend?: ('shop' | 'wim') | null;
-  wimProductId?: string | null;
-  lastSyncedAt?: string | null;
-  nextSyncAt?: string | null;
-  syncError?: string | null;
-  remoteId: string;
-  remoteKey: string;
-  supplierPrice: number;
-  commissionPct: number;
-  active?: boolean | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "cross-sell-offers".
- */
-export interface CrossSellOffer {
-  id: number;
-  source: 'shop' | 'wim';
-  product?: (number | null) | ShopProduct;
-  wimProductId?: string | null;
-  partners: (number | CrossSellPartner)[];
-  commissionPct: number;
-  active?: boolean | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "cross-sell-dispatches".
- */
-export interface CrossSellDispatch {
-  id: number;
-  key: string;
-  transfer: number | CrossSellTransfer;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "cross-sell-receipts".
- */
-export interface CrossSellReceipt {
-  id: number;
-  key: string;
-  partner: number | CrossSellPartner;
-  purchaseKey: string;
-  purchase:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  body:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "cross-sell-events".
- */
-export interface CrossSellEvent {
-  id: number;
-  key: string;
-  purchaseKey: string;
-  transfer?: (number | null) | CrossSellTransfer;
-  partner: number | CrossSellPartner;
-  kind: string;
-  source: string;
-  actor: string;
-  occurredAt: string;
-  before?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  after?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1357,7 +1542,13 @@ export interface PayloadJob {
     | {
         executedAt: string;
         completedAt: string;
-        taskSlug: 'inline' | 'shop-order-recovery' | 'cross-sell-sync' | 'schedulePublish';
+        taskSlug:
+          | 'inline'
+          | 'commerce-event-delivery'
+          | 'shop-order-recovery'
+          | 'affiliate-month-end'
+          | 'notify-order-email'
+          | 'schedulePublish';
         taskID: string;
         input?:
           | {
@@ -1390,7 +1581,16 @@ export interface PayloadJob {
         id?: string | null;
       }[]
     | null;
-  taskSlug?: ('inline' | 'shop-order-recovery' | 'cross-sell-sync' | 'schedulePublish') | null;
+  taskSlug?:
+    | (
+        | 'inline'
+        | 'commerce-event-delivery'
+        | 'shop-order-recovery'
+        | 'affiliate-month-end'
+        | 'notify-order-email'
+        | 'schedulePublish'
+      )
+    | null;
   queue?: string | null;
   waitUntil?: string | null;
   processing?: boolean | null;
@@ -1403,6 +1603,7 @@ export interface PayloadJob {
     | number
     | boolean
     | null;
+  notifyOrderNo?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1414,16 +1615,20 @@ export interface PayloadLockedDocument {
   id: number;
   document?:
     | ({
-        relationTo: 'content-entries';
-        value: number | ContentEntry;
-      }
-    | {
         relationTo: 'pages';
         value: number | Page;
       } | null)
     | ({
         relationTo: 'posts';
         value: number | Post;
+      } | null)
+    | ({
+        relationTo: 'content-entries';
+        value: number | ContentEntry;
+      } | null)
+    | ({
+        relationTo: 'content-types';
+        value: number | ContentType;
       } | null)
     | ({
         relationTo: 'post-categories';
@@ -1458,6 +1663,10 @@ export interface PayloadLockedDocument {
         value: number | ContactMessage;
       } | null)
     | ({
+        relationTo: 'chat-sessions';
+        value: number | ChatSession;
+      } | null)
+    | ({
         relationTo: 'bookings';
         value: number | Booking;
       } | null)
@@ -1470,8 +1679,20 @@ export interface PayloadLockedDocument {
         value: number | EditLock;
       } | null)
     | ({
+        relationTo: 'site-releases';
+        value: number | SiteRelease;
+      } | null)
+    | ({
         relationTo: 'users';
         value: number | User;
+      } | null)
+    | ({
+        relationTo: 'commerce-events';
+        value: number | CommerceEvent;
+      } | null)
+    | ({
+        relationTo: 'commerce-rate-buckets';
+        value: number | CommerceRateBucket;
       } | null)
     | ({
         relationTo: 'shop-categories';
@@ -1490,12 +1711,20 @@ export interface PayloadLockedDocument {
         value: number | ShopOrder;
       } | null)
     | ({
+        relationTo: 'shop-order-groups';
+        value: number | ShopOrderGroup;
+      } | null)
+    | ({
         relationTo: 'affiliates';
         value: number | Affiliate;
       } | null)
     | ({
         relationTo: 'affiliate-referrals';
         value: number | AffiliateReferral;
+      } | null)
+    | ({
+        relationTo: 'affiliate-withdrawals';
+        value: number | AffiliateWithdrawal;
       } | null)
     | ({
         relationTo: 'affiliate-clicks';
@@ -1534,6 +1763,14 @@ export interface PayloadLockedDocument {
         value: number | Payment;
       } | null)
     | ({
+        relationTo: 'payment-transactions';
+        value: number | PaymentTransaction;
+      } | null)
+    | ({
+        relationTo: 'payment-refunds';
+        value: number | PaymentRefund;
+      } | null)
+    | ({
         relationTo: 'customers';
         value: number | Customer;
       } | null)
@@ -1542,34 +1779,9 @@ export interface PayloadLockedDocument {
         value: number | CustomerOrder;
       } | null)
     | ({
-        relationTo: 'cross-sell-partners';
-        value: number | CrossSellPartner;
-      } | null)
-    | ({
-        relationTo: 'cross-sell-listings';
-        value: number | CrossSellListing;
-      } | null)
-    | ({
-        relationTo: 'cross-sell-offers';
-        value: number | CrossSellOffer;
-      } | null)
-    | ({
-        relationTo: 'cross-sell-transfers';
-        value: number | CrossSellTransfer;
-      } | null)
-    | ({
-        relationTo: 'cross-sell-dispatches';
-        value: number | CrossSellDispatch;
-      } | null)
-    | ({
-        relationTo: 'cross-sell-receipts';
-        value: number | CrossSellReceipt;
-      } | null)
-    | ({
-        relationTo: 'cross-sell-events';
-        value: number | CrossSellEvent;
-      } | null)
-    | ({ relationTo: 'site-releases'; value: number | SiteRelease } | null);
+        relationTo: 'garage-price-groups';
+        value: number | GaragePriceGroup;
+      } | null);
   globalSlug?: string | null;
   user: {
     relationTo: 'users';
@@ -1664,6 +1876,31 @@ export interface PostsSelect<T extends boolean = true> {
   createdAt?: T;
   deletedAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "content-entries_select".
+ */
+export interface ContentEntriesSelect<T extends boolean = true> {
+  cms?: T;
+  title?: T;
+  slug?: T;
+  kind?: T;
+  data?: T;
+  published?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "content-types_select".
+ */
+export interface ContentTypesSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  fields?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1780,6 +2017,26 @@ export interface ContactMessagesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "chat-sessions_select".
+ */
+export interface ChatSessionsSelect<T extends boolean = true> {
+  visitorName?: T;
+  visitorPhone?: T;
+  visitorEmail?: T;
+  locale?: T;
+  pagePath?: T;
+  status?: T;
+  unreadByStaff?: T;
+  unreadByVisitor?: T;
+  lastMessageAt?: T;
+  lastMessagePreview?: T;
+  tokenHash?: T;
+  messages?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "bookings_select".
  */
 export interface BookingsSelect<T extends boolean = true> {
@@ -1820,6 +2077,43 @@ export interface EditLocksSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "editor-reviews_select".
+ */
+export interface EditorReviewsSelect<T extends boolean = true> {
+  scope?: T;
+  targetCollection?: T;
+  targetId?: T;
+  language?: T;
+  owner?: T;
+  element?: T;
+  x?: T;
+  y?: T;
+  parentId?: T;
+  body?: T;
+  authorId?: T;
+  authorName?: T;
+  resolved?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-releases_select".
+ */
+export interface SiteReleasesSelect<T extends boolean = true> {
+  title?: T;
+  actor?: T;
+  action?: T;
+  sourceRelease?: T;
+  reviewToken?: T;
+  before?: T;
+  after?: T;
+  summary?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
@@ -1848,6 +2142,37 @@ export interface UsersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "commerce-events_select".
+ */
+export interface CommerceEventsSelect<T extends boolean = true> {
+  key?: T;
+  kind?: T;
+  consumer?: T;
+  body?: T;
+  orderNo?: T;
+  state?: T;
+  attempts?: T;
+  nextAttemptAt?: T;
+  leaseUntil?: T;
+  leaseToken?: T;
+  lastError?: T;
+  completedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "commerce-rate-buckets_select".
+ */
+export interface CommerceRateBucketsSelect<T extends boolean = true> {
+  key?: T;
+  count?: T;
+  expiresAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "shop-categories_select".
  */
 export interface ShopCategoriesSelect<T extends boolean = true> {
@@ -1856,6 +2181,7 @@ export interface ShopCategoriesSelect<T extends boolean = true> {
   parent?: T;
   image?: T;
   order?: T;
+  affiliateRate?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1909,6 +2235,16 @@ export interface ShopProductsSelect<T extends boolean = true> {
   length?: T;
   width?: T;
   height?: T;
+  affiliateRate?: T;
+  garagePrices?:
+    | T
+    | {
+        group?: T;
+        variantId?: T;
+        overrideEnabled?: T;
+        price?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1930,11 +2266,29 @@ export interface ShopReviewsSelect<T extends boolean = true> {
  * via the `definition` "shop-orders_select".
  */
 export interface ShopOrdersSelect<T extends boolean = true> {
+  workflowVersion?: T;
+  approvalState?: T;
+  approvedAt?: T;
+  approvedBy?: T;
+  workflowState?: T;
+  fulfillmentIntent?: T;
+  processingPlan?: T;
+  customerDecision?: T;
+  decisionAt?: T;
+  decisionRevision?: T;
+  reservationExpiresAt?: T;
+  originalTotal?: T;
+  refundDue?: T;
   orderNo?: T;
   cartId?: T;
   checkoutDraft?: T;
   checkoutComplete?: T;
   checkoutState?: T;
+  processingIssue?: T;
+  processingUntil?: T;
+  operationsVersion?: T;
+  operationHistory?: T;
+  cancellationReason?: T;
   checkoutKey?: T;
   lookupToken?: T;
   placedHooks?: T;
@@ -1969,6 +2323,9 @@ export interface ShopOrdersSelect<T extends boolean = true> {
         variantId?: T;
         source?: T;
         remoteId?: T;
+        image?: T;
+        priceSource?: T;
+        priceGroup?: T;
         name?: T;
         code?: T;
         price?: T;
@@ -1977,15 +2334,33 @@ export interface ShopOrdersSelect<T extends boolean = true> {
       };
   restocked?: T;
   affiliateSnapshot?: T;
+  affiliateRefundedLines?: T;
   affiliateRefundedAmount?: T;
   affiliateCompletedAt?: T;
-  crossSellPartner?: T;
-  crossSellTransfer?: T;
-  crossSellPurchase?: T;
-  crossSellPurchases?: T;
-  crossSellInboundKey?: T;
-  crossSellInboundPartner?: T;
-  crossSellInboundPurchase?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shop-order-groups_select".
+ */
+export interface ShopOrderGroupsSelect<T extends boolean = true> {
+  key?: T;
+  order?: T;
+  source?: T;
+  label?: T;
+  plan?: T;
+  result?: T;
+  committed?: T;
+  state?: T;
+  intent?: T;
+  stockReserved?: T;
+  stockReleased?: T;
+  attempts?: T;
+  nextAttemptAt?: T;
+  leaseToken?: T;
+  leaseUntil?: T;
+  issue?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2031,6 +2406,23 @@ export interface AffiliateReferralsSelect<T extends boolean = true> {
   orderTotal?: T;
   commission?: T;
   status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliate-withdrawals_select".
+ */
+export interface AffiliateWithdrawalsSelect<T extends boolean = true> {
+  affiliate?: T;
+  activeKey?: T;
+  amount?: T;
+  status?: T;
+  commissions?: T;
+  bankInfo?: T;
+  reason?: T;
+  payout?: T;
+  reviewedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2119,6 +2511,10 @@ export interface AffiliateRateLimitsSelect<T extends boolean = true> {
  */
 export interface ShipmentsSelect<T extends boolean = true> {
   orderId?: T;
+  shipmentKey?: T;
+  deliveryBy?: T;
+  codCollector?: T;
+  groupLabel?: T;
   customerName?: T;
   phone?: T;
   address?: T;
@@ -2158,11 +2554,48 @@ export interface VouchersSelect<T extends boolean = true> {
  * via the `definition` "payments_select".
  */
 export interface PaymentsSelect<T extends boolean = true> {
+  version?: T;
+  openingPaidAmount?: T;
+  refundedAmount?: T;
   orderNo?: T;
   amount?: T;
   status?: T;
   paidAmount?: T;
   transactionId?: T;
+  paidAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-transactions_select".
+ */
+export interface PaymentTransactionsSelect<T extends boolean = true> {
+  key?: T;
+  provider?: T;
+  reference?: T;
+  bodyHash?: T;
+  orderNo?: T;
+  amount?: T;
+  currency?: T;
+  accountNumber?: T;
+  state?: T;
+  receivedAt?: T;
+  actor?: T;
+  reason?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-refunds_select".
+ */
+export interface PaymentRefundsSelect<T extends boolean = true> {
+  reference?: T;
+  orderNo?: T;
+  amount?: T;
+  reason?: T;
+  actor?: T;
   paidAt?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -2175,6 +2608,12 @@ export interface CustomersSelect<T extends boolean = true> {
   name?: T;
   email?: T;
   phone?: T;
+  garageStatus?: T;
+  garageName?: T;
+  garageTaxId?: T;
+  garageAddress?: T;
+  garageReason?: T;
+  priceGroup?: T;
   passwordHash?: T;
   addresses?:
     | T
@@ -2198,130 +2637,12 @@ export interface CustomerOrdersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "cross-sell-partners_select".
+ * via the `definition` "garage-price-groups_select".
  */
-export interface CrossSellPartnersSelect<T extends boolean = true> {
+export interface GaragePriceGroupsSelect<T extends boolean = true> {
   name?: T;
-  kind?: T;
-  apiUrl?: T;
-  authMethod?: T;
-  token?: T;
-  consumerKey?: T;
-  consumerSecret?: T;
-  credentialEnv?: T;
-  secretEnv?: T;
-  commissionPct?: T;
-  buyerName?: T;
-  buyerPhone?: T;
   active?: T;
-  webhookSecretEnv?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "cross-sell-listings_select".
- */
-export interface CrossSellListingsSelect<T extends boolean = true> {
-  partner?: T;
-  product?: T;
-  backend?: T;
-  wimProductId?: T;
-  lastSyncedAt?: T;
-  nextSyncAt?: T;
-  syncError?: T;
-  remoteId?: T;
-  remoteKey?: T;
-  supplierPrice?: T;
-  commissionPct?: T;
-  active?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "cross-sell-offers_select".
- */
-export interface CrossSellOffersSelect<T extends boolean = true> {
-  source?: T;
-  product?: T;
-  wimProductId?: T;
-  partners?: T;
-  commissionPct?: T;
-  active?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "cross-sell-transfers_select".
- */
-export interface CrossSellTransfersSelect<T extends boolean = true> {
-  localOrder?: T;
-  localOrderNo?: T;
-  partner?: T;
-  backend?: T;
-  wimOrderId?: T;
-  purchaseKey?: T;
-  purchase?: T;
-  state?: T;
-  remoteId?: T;
-  remoteStatus?: T;
-  remoteTotal?: T;
-  commission?: T;
-  commissionStatus?: T;
-  lastError?: T;
-  checkedAt?: T;
-  localStatus?: T;
-  localPaymentStatus?: T;
-  remotePaid?: T;
-  remoteUpdatedAt?: T;
-  remoteChangedAt?: T;
-  syncError?: T;
-  dispatchStartedAt?: T;
-  syncAttemptAt?: T;
-  nextSyncAt?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "cross-sell-dispatches_select".
- */
-export interface CrossSellDispatchesSelect<T extends boolean = true> {
-  key?: T;
-  transfer?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "cross-sell-receipts_select".
- */
-export interface CrossSellReceiptsSelect<T extends boolean = true> {
-  key?: T;
-  partner?: T;
-  purchaseKey?: T;
-  purchase?: T;
-  body?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "cross-sell-events_select".
- */
-export interface CrossSellEventsSelect<T extends boolean = true> {
-  key?: T;
-  purchaseKey?: T;
-  transfer?: T;
-  partner?: T;
-  kind?: T;
-  source?: T;
-  actor?: T;
-  occurredAt?: T;
-  before?: T;
-  after?: T;
+  wimPriceListId?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2362,6 +2683,7 @@ export interface PayloadJobsSelect<T extends boolean = true> {
   waitUntil?: T;
   processing?: T;
   meta?: T;
+  notifyOrderNo?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2480,11 +2802,33 @@ export interface SiteSetting {
     /**
      * Mặc định: Be Vietnam Pro
      */
-    fontBody?: ('be-vietnam-pro' | 'barlow' | 'chakra-petch' | 'jetbrains-mono') | null;
+    fontBody?:
+      | (
+          | 'be-vietnam-pro'
+          | 'manrope'
+          | 'inter'
+          | 'plus-jakarta-sans'
+          | 'noto-sans-kr'
+          | 'barlow'
+          | 'chakra-petch'
+          | 'jetbrains-mono'
+        )
+      | null;
     /**
      * Mặc định: Be Vietnam Pro
      */
-    fontHeading?: ('be-vietnam-pro' | 'barlow' | 'chakra-petch' | 'jetbrains-mono') | null;
+    fontHeading?:
+      | (
+          | 'be-vietnam-pro'
+          | 'manrope'
+          | 'inter'
+          | 'plus-jakarta-sans'
+          | 'noto-sans-kr'
+          | 'barlow'
+          | 'chakra-petch'
+          | 'jetbrains-mono'
+        )
+      | null;
     radius?: string | null;
     spacing?: string | null;
   };
@@ -2520,11 +2864,33 @@ export interface SiteSetting {
     /**
      * Mặc định: Be Vietnam Pro
      */
-    fontBody?: ('be-vietnam-pro' | 'barlow' | 'chakra-petch' | 'jetbrains-mono') | null;
+    fontBody?:
+      | (
+          | 'be-vietnam-pro'
+          | 'manrope'
+          | 'inter'
+          | 'plus-jakarta-sans'
+          | 'noto-sans-kr'
+          | 'barlow'
+          | 'chakra-petch'
+          | 'jetbrains-mono'
+        )
+      | null;
     /**
      * Mặc định: Barlow
      */
-    fontHeading?: ('be-vietnam-pro' | 'barlow' | 'chakra-petch' | 'jetbrains-mono') | null;
+    fontHeading?:
+      | (
+          | 'be-vietnam-pro'
+          | 'manrope'
+          | 'inter'
+          | 'plus-jakarta-sans'
+          | 'noto-sans-kr'
+          | 'barlow'
+          | 'chakra-petch'
+          | 'jetbrains-mono'
+        )
+      | null;
     radius?: string | null;
     spacing?: string | null;
   };
@@ -2572,11 +2938,33 @@ export interface SiteSetting {
     /**
      * Mặc định: Chakra Petch
      */
-    fontBody?: ('be-vietnam-pro' | 'barlow' | 'chakra-petch' | 'jetbrains-mono') | null;
+    fontBody?:
+      | (
+          | 'be-vietnam-pro'
+          | 'manrope'
+          | 'inter'
+          | 'plus-jakarta-sans'
+          | 'noto-sans-kr'
+          | 'barlow'
+          | 'chakra-petch'
+          | 'jetbrains-mono'
+        )
+      | null;
     /**
      * Mặc định: Chakra Petch
      */
-    fontHeading?: ('be-vietnam-pro' | 'barlow' | 'chakra-petch' | 'jetbrains-mono') | null;
+    fontHeading?:
+      | (
+          | 'be-vietnam-pro'
+          | 'manrope'
+          | 'inter'
+          | 'plus-jakarta-sans'
+          | 'noto-sans-kr'
+          | 'barlow'
+          | 'chakra-petch'
+          | 'jetbrains-mono'
+        )
+      | null;
     radius?: string | null;
     spacing?: string | null;
   };
@@ -2615,6 +3003,26 @@ export interface SiteSetting {
   };
   commentsEnabled?: boolean | null;
   commentsAutoApprove?: boolean | null;
+  /**
+   * The first row is the default language (no URL prefix). Leave empty to use the system default.
+   */
+  siteLocales?:
+    | {
+        code: 'vi' | 'ko' | 'en' | 'ja' | 'zh' | 'fr' | 'de' | 'th';
+        label?: string | null;
+        shortLabel?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  localeSwitcherStyle?: ('code' | 'pill-flag' | 'dropdown-flag') | null;
+  floatingDockEnabled?: boolean | null;
+  floatingCallLabel?: string | null;
+  zaloQr?: (number | null) | Media;
+  liveChatEnabled?: boolean | null;
+  liveChatTitle?: string | null;
+  liveChatSubtitle?: string | null;
+  liveChatGreeting?: string | null;
+  liveChatAccent?: string | null;
   /**
    * Visitors only see the maintenance page. Signed-in admins still see the site as usual.
    */
@@ -2703,6 +3111,7 @@ export interface SiteArea {
  */
 export interface ShopSetting {
   id: number;
+  reservationMinutes?: number | null;
   /**
    * When off, the whole site shows a contact label instead of prices and hides Add to cart. Each product can still override this.
    */
@@ -2722,6 +3131,19 @@ export interface ShopSetting {
    * Shown when the customer picks bank transfer. Leave empty to offer COD only.
    */
   bankInfo?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliate-settings".
+ */
+export interface AffiliateSetting {
+  id: number;
+  defaultRate?: number | null;
+  minimumWithdrawal?: number | null;
+  allowOffCycle?: boolean | null;
+  timeZone?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -2777,6 +3199,7 @@ export interface ShippingSetting {
         id?: string | null;
       }[]
     | null;
+  feeMode?: ('order' | 'shipment') | null;
   /**
    * 0 means no fee. Used when the GHN fee is off or GHN cannot calculate it.
    */
@@ -2839,17 +3262,6 @@ export interface AnalyticsSetting {
    * Digits only.
    */
   fbPixelId?: string | null;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "cross-sell-settings".
- */
-export interface CrossSellSetting {
-  id: number;
-  backend: 'shop' | 'wim';
-  wimBranchId?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -2976,6 +3388,23 @@ export interface SiteSettingsSelect<T extends boolean = true> {
       };
   commentsEnabled?: T;
   commentsAutoApprove?: T;
+  siteLocales?:
+    | T
+    | {
+        code?: T;
+        label?: T;
+        shortLabel?: T;
+        id?: T;
+      };
+  localeSwitcherStyle?: T;
+  floatingDockEnabled?: T;
+  floatingCallLabel?: T;
+  zaloQr?: T;
+  liveChatEnabled?: T;
+  liveChatTitle?: T;
+  liveChatSubtitle?: T;
+  liveChatGreeting?: T;
+  liveChatAccent?: T;
   maintenanceMode?: T;
   maintenanceMessage?: T;
   _status?: T;
@@ -3005,6 +3434,7 @@ export interface SiteAreasSelect<T extends boolean = true> {
  * via the `definition` "shop-settings_select".
  */
 export interface ShopSettingsSelect<T extends boolean = true> {
+  reservationMinutes?: T;
   showPrices?: T;
   priceHiddenLabel?: T;
   policyTitle?: T;
@@ -3015,6 +3445,19 @@ export interface ShopSettingsSelect<T extends boolean = true> {
         id?: T;
       };
   bankInfo?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliate-settings_select".
+ */
+export interface AffiliateSettingsSelect<T extends boolean = true> {
+  defaultRate?: T;
+  minimumWithdrawal?: T;
+  allowOffCycle?: T;
+  timeZone?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -3052,6 +3495,7 @@ export interface ShippingSettingsSelect<T extends boolean = true> {
         trackingUrl?: T;
         id?: T;
       };
+  feeMode?: T;
   flatFee?: T;
   freeShipOver?: T;
   useGhnFee?: T;
@@ -3102,17 +3546,6 @@ export interface AnalyticsSettingsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "cross-sell-settings_select".
- */
-export interface CrossSellSettingsSelect<T extends boolean = true> {
-  backend?: T;
-  wimBranchId?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  globalType?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs-stats_select".
  */
 export interface PayloadJobsStatsSelect<T extends boolean = true> {
@@ -3133,6 +3566,14 @@ export interface CollectionsWidget {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCommerce-event-delivery".
+ */
+export interface TaskCommerceEventDelivery {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskShop-order-recovery".
  */
 export interface TaskShopOrderRecovery {
@@ -3141,10 +3582,23 @@ export interface TaskShopOrderRecovery {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "TaskCross-sell-sync".
+ * via the `definition` "TaskAffiliate-month-end".
  */
-export interface TaskCrossSellSync {
+export interface TaskAffiliateMonthEnd {
   input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskNotify-order-email".
+ */
+export interface TaskNotifyOrderEmail {
+  input: {
+    orderNo: string;
+    kind: string;
+    audience: string;
+    status?: string | null;
+  };
   output?: unknown;
 }
 /**
@@ -3183,160 +3637,4 @@ export interface Auth {
 
 declare module 'payload' {
   export interface GeneratedTypes extends Config {}
-}
-export interface SiteRelease {
-  id: number;
-  title: string;
-  actor: string;
-  action: 'publish' | 'restore';
-  sourceRelease?: string | null;
-  reviewToken: string;
-  before:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  after:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  summary:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  updatedAt: string;
-  createdAt: string;
-}
-
-export interface SiteReleasesSelect<T extends boolean = true> {
-  title?: T;
-  actor?: T;
-  action?: T;
-  sourceRelease?: T;
-  reviewToken?: T;
-  before?: T;
-  after?: T;
-  summary?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-
-export interface EditorReview {
-  id: number;
-  scope: string;
-  targetCollection: string;
-  targetId: string;
-  language: string;
-  owner: string;
-  element?: string | null;
-  x: number;
-  y: number;
-  parentId?: string | null;
-  body: string;
-  authorId: string;
-  authorName: string;
-  resolved?: boolean | null;
-  updatedAt: string;
-  createdAt: string;
-}
-
-export interface EditorReviewsSelect<T extends boolean = true> {
-  scope?: T;
-  targetCollection?: T;
-  targetId?: T;
-  language?: T;
-  owner?: T;
-  element?: T;
-  x?: T;
-  y?: T;
-  parentId?: T;
-  body?: T;
-  authorId?: T;
-  authorName?: T;
-  resolved?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-
-export interface ContentEntry {
-  id: number;
-  cms?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  title: string;
-  slug: string;
-  kind: string;
-  data?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  published?: boolean | null;
-  updatedAt: string;
-  createdAt: string;
-}
-
-export interface ContentEntriesSelect<T extends boolean = true> {
-  cms?: T;
-  title?: T;
-  slug?: T;
-  kind?: T;
-  data?: T;
-  published?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-
-
-export interface ContentType {
-  id: number;
-  title: string;
-  /**
-   * Lowercase letters, numbers and hyphens. Immutable after creation.
-   */
-  slug: string;
-  fields:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  updatedAt: string;
-  createdAt: string;
-}
-
-
-export interface ContentTypesSelect<T extends boolean = true> {
-  title?: T;
-  slug?: T;
-  fields?: T;
-  updatedAt?: T;
-  createdAt?: T;
 }

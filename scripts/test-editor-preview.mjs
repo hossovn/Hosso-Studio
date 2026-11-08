@@ -376,6 +376,7 @@ const StyledSection = withStyle(FreeCanvasView)
 const { expandReusable, attachBlockData } = compile('../apps/studio/src/lib/site.tsx', {
   '../../../../packages/blocks/src/reusable-overrides': reusableOverrides,
   './site-preview': { sitePreview: async () => false },
+  './locales-catalog': compile('../apps/studio/src/lib/locales-catalog.ts', {}),
   '@payload-config': {}, '@hosso-config': { locales: [{ code: 'vi' }], plugins: [] }, '@hosso/studio-blocks': {}, './core-loaders': { coreLoaders: {} },
   'next/headers': {}, react: { ...React, cache: (fn) => fn },
   payload: { getPayload: async () => ({ find: async () => ({ docs: [{ content: { content: [{ type: 'Text', props: { id: 'inner', _hide: 'd' } }] } }] }) }) },
