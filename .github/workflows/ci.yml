@@ -70,6 +70,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: node scripts/check-package-roundtrip.mjs
         env: { PG_URL: 'postgres://postgres:hosso@localhost:5432/roundtrip' }
+      - run: node scripts/test-locales-chat-migration.mjs
+        env: { COMMERCE_TEST_DATABASE_URL: 'postgres://postgres:hosso@localhost:5432/roundtrip' }
       - run: node scripts/test-order-workflow-migration.mjs
         env: { COMMERCE_TEST_DATABASE_URL: 'postgres://postgres:hosso@localhost:5432/roundtrip' }
       - run: node scripts/test-partner-connections-migration.mjs
