@@ -207,7 +207,7 @@ export async function recoverOrder(req: PayloadRequest, order: OrderDoc) {
     try {
       await deliverOrderEvents(req, order, 'received')
       if (order.workflowVersion === 1 && order.approvalState === 'awaiting') return
-      if (order.workflowVersion === 1 && ['processing', 'awaiting_customer'].includes(order.workflowState || '') && order.reservationExpiresAt && Date.parse(order.reservationExpiresAt) <= Date.now()) await requestCancellation(req, order, 'Hết thời gian giữ hàng tạm trước khi chốt nguồn')
+      if (order.workflowVersion === 1 && ['processing', 'awaiting_customer'].includes(order.workflowState || '') && !order.checkoutDraft?.provisional?.committedAt && order.reservationExpiresAt && Date.parse(order.reservationExpiresAt) <= Date.now()) await requestCancellation(req, order, 'Hết thời gian giữ hàng tạm trước khi chốt nguồn')
       const result = await completeOrder(req, order)
       if (!result.ok) {
         const body = await result.json()
@@ -225,8 +225,9 @@ export async function recoverOrder(req: PayloadRequest, order: OrderDoc) {
     }
 }
 
-export async function placeOrder(req: PayloadRequest, input: Record<string, any>, options: { background?: boolean; trustedApproval?: boolean } = {}) {
+export async function placeOrder(req: PayloadRequest, input: Record<string, any>, options: { background?: boolean; trustedApproval?: boolean; provisionalUntil?: string } = {}) {
   const { payload } = req
+  if (options.provisionalUntil && (!options.trustedApproval || !Number.isFinite(Date.parse(options.provisionalUntil)) || Date.parse(options.provisionalUntil) <= Date.now() || Date.parse(options.provisionalUntil) > Date.now() + 1440 * 60000)) return fail(400, 'invalid_reservation', 'Invalid supplier reservation deadline')
   if (input.website) return fail(400, 'bad_request', 'bad_request')
   const cartId = text(input.checkoutId || input.cartId, 64)
   input = { ...input, cartId }
@@ -248,6 +249,7 @@ export async function placeOrder(req: PayloadRequest, input: Record<string, any>
   const price = await priced(req, p)
   if (price instanceof Response) return price
   const { draft } = p
+  if (options.provisionalUntil) draft.provisional = { expiresAt: options.provisionalUntil }
   const { total } = price
   if (input.quoteKey && input.quoteKey !== await quoteKey(draft, total)) return fail(409, 'quote_changed', 'Giá hoặc phí đã thay đổi. Vui lòng xem lại tổng và xác nhận đặt hàng lần nữa.')
   let processingPlan: Awaited<ReturnType<typeof buildProcessingPlan>>
@@ -262,7 +264,7 @@ export async function placeOrder(req: PayloadRequest, input: Record<string, any>
         req,
         overrideAccess: true,
         context: req.context,
-        data: { workflowVersion: 1, approvalState: options.trustedApproval ? 'approved' : 'awaiting', workflowState: options.trustedApproval ? 'processing' : 'awaiting_admin', processingPlan, ...(options.trustedApproval && { approvedAt: new Date().toISOString(), approvedBy: 'trusted-partner', status: 'confirmed' }), cartId: p.cartId, checkoutDraft: { ...draft, fingerprint: requestFingerprint }, checkoutComplete: false, checkoutState: 'awaiting_admin', checkoutKey: crypto.randomUUID(), lookupToken: crypto.randomUUID().replaceAll('-', '') + crypto.randomUUID().replaceAll('-', ''), subtotal: draft.subtotal, adjustments: draft.adjustments, total, paymentMethod: draft.payment, fulfillmentType: draft.fulfillment.type, branchId: draft.fulfillment.branchId, customerName: draft.customer.name, phone: draft.customer.phone, email: draft.customer.email, address: draft.customer.address, note: p.note, items: draft.items },
+        data: { workflowVersion: 1, approvalState: options.trustedApproval ? 'approved' : 'awaiting', workflowState: options.trustedApproval ? 'processing' : 'awaiting_admin', processingPlan, ...(options.provisionalUntil && { reservationExpiresAt: options.provisionalUntil }), ...(options.trustedApproval && { approvedAt: new Date().toISOString(), approvedBy: 'trusted-partner', status: 'confirmed' }), cartId: p.cartId, checkoutDraft: { ...draft, fingerprint: requestFingerprint }, checkoutComplete: false, checkoutState: 'awaiting_admin', checkoutKey: crypto.randomUUID(), lookupToken: crypto.randomUUID().replaceAll('-', '') + crypto.randomUUID().replaceAll('-', ''), subtotal: draft.subtotal, adjustments: draft.adjustments, total, paymentMethod: draft.payment, fulfillmentType: draft.fulfillment.type, branchId: draft.fulfillment.branchId, customerName: draft.customer.name, phone: draft.customer.phone, email: draft.customer.email, address: draft.customer.address, note: p.note, items: draft.items },
       })) as unknown as OrderDoc
       const orderNo = `SO-${String(created.id).padStart(6, '0')}`
       await payload.update({ collection: 'shop-orders' as any, id: created.id, req, data: { orderNo }, overrideAccess: true, context: { skipStatusEvent: true } })

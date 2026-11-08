@@ -188,6 +188,18 @@ export async function processOrderWorkflow(req: PayloadRequest, order: any) {
   if (groups.length && groups.every(group => ['accepted', 'fulfilled', 'cancelled', 'missing'].includes(group.state))) {
     const accepted = groups.filter(group => ['accepted', 'fulfilled'].includes(group.state))
     if (!accepted.length) { await requestCancellation(req, fresh, 'Không còn phần hàng được xác nhận'); return }
+    if (fresh.checkoutDraft?.provisional && !fresh.checkoutDraft.provisional.committedAt) {
+      await inTransaction(req, async () => {
+        const latest = await lockOrder(req, fresh.id)
+        if (latest.workflowState !== 'processing' || latest.checkoutDraft?.provisional?.committedAt) return
+        if (Date.parse(latest.reservationExpiresAt || '') <= Date.now()) {
+          await requestCancellation(req, latest, 'Supplier reservation expired')
+          return
+        }
+        await req.payload.update({ collection: 'shop-orders' as any, id: latest.id, req, overrideAccess: true, data: { checkoutState: 'reserved', processingIssue: null } })
+      })
+      return
+    }
     const sourceOrders = Object.fromEntries(accepted.filter(group => group.source !== 'shop').map(group => [group.key, { source: group.source, ...group.result }]))
     // A reservation may be provisional while the customer chooses the available part.
     // Commit the final delivery/COD snapshot before exposing the order to fulfillment.
@@ -220,6 +232,21 @@ export async function processOrderWorkflow(req: PayloadRequest, order: any) {
       await req.payload.update({ collection: 'shop-orders' as any, id: fresh.id, req, overrideAccess: true, data: { workflowState: 'ready', reservationExpiresAt: null, processingIssue: null, checkoutComplete: true, checkoutState: 'confirmed', sourceOrders } })
     })
   }
+}
+
+/** Commit only a live supplier hold; row locking serializes commit, cancellation and expiry. */
+export async function commitProvisionalOrder(req: PayloadRequest, id: string | number) {
+  await inTransaction(req, async () => {
+    const order = await lockOrder(req, id)
+    if (!order.checkoutDraft?.provisional) throw new Error('Not a provisional supplier order')
+    if (order.status === 'cancelled' || order.workflowState === 'cancelling') throw new Error('order_cancelled')
+    if (order.checkoutDraft.provisional.committedAt) return
+    if (order.checkoutState !== 'reserved' || order.workflowState !== 'processing' || Date.parse(order.reservationExpiresAt || '') <= Date.now()) throw new Error('reservation_expired')
+    const groups = await groupsFor(req.payload, order.id, req)
+    if (!groups.length || groups.some(group => group.intent === 'cancel' || group.state !== 'accepted')) throw new Error('Source reservation is not ready')
+    await req.payload.update({ collection: 'shop-orders' as any, id: order.id, req, overrideAccess: true, data: { checkoutDraft: { ...order.checkoutDraft, provisional: { ...order.checkoutDraft.provisional, committedAt: new Date().toISOString() } } } })
+  })
+  await processOrderWorkflow(req, await orderById(req, id))
 }
 
 export async function retryOrderGroups(req: PayloadRequest, order: any) {
