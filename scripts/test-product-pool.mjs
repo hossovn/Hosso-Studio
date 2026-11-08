@@ -23,7 +23,7 @@ const send = (res, body) => { res.setHeader('Content-Type', 'application/json');
 const bodyOf = async (req) => { let raw = ''; for await (const part of req) raw += part; return JSON.parse(raw) }
 const server = http.createServer(async (req, res) => {
   try {
-    const url = new URL(req.url, 'http://localhost'), path = url.pathname
+    const url = new URL(req.url, 'http://localhost'), path = url.pathname.replace(/^\/supplier-[ab](?=\/)/, '')
     if (path.endsWith('/capabilities')) return send(res, { version: 1, atomicReservation: true, idempotentEnsure: true, lookupByKey: true, cancelByKey: true, commit: true, fulfillment: true, reservationExpiry: true, holdMinutes: 1440 })
     if (path === '/api/plugins/cross-sell/catalog') return send(res, { item: { id: 'filter', name: 'Partner filter', price: 50000, stock: 10, commissionPct: 10 } })
     if (path === '/api/plugins/cross-sell/orders') {
@@ -117,7 +117,7 @@ try {
   const listings = []
   const localId = (listing) => typeof listing.product === 'object' ? listing.product.id : listing.product
   for (const name of ['Supplier A', 'Supplier B']) {
-    const partner = await payload.create({ collection: service.PARTNERS, overrideAccess: true, data: { name, kind: 'hosso', apiUrl, authMethod: 'direct', token: 'product-pool-supplier-token-at-least-32-characters', buyerName: 'Retail business', buyerPhone: '0901234567', active: true } })
+    const partner = await payload.create({ collection: service.PARTNERS, overrideAccess: true, data: { name, kind: 'hosso', apiUrl: apiUrl + (name === 'Supplier A' ? '/supplier-a' : '/supplier-b'), authMethod: 'direct', token: 'product-pool-supplier-token-at-least-32-characters', buyerName: 'Retail business', buyerPhone: '0901234567', active: true } })
     assert.equal(partner.token, '••••••••', 'Admin reads never expose the connection credential')
     const rawPartner = await payload.findByID({ collection: service.PARTNERS, id: partner.id, context: { crossSellCredentials: true }, overrideAccess: true })
     assert.match(rawPartner.token, /^enc:v1:/, 'Connection credential is encrypted at rest')

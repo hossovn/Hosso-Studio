@@ -146,6 +146,8 @@ export type OrderDraft = {
   /** Dữ liệu thô từ trình duyệt cho plugin đọc (ví dụ mã giảm giá: meta.voucher). */
   meta: Record<string, unknown>
   shipments?: FulfillmentGroup[]
+  /** Server-only supplier hold. Checkout never copies this field from browser input. */
+  provisional?: { expiresAt: string; committedAt?: string }
 }
 
 /** Hook `beforeOrder` có thể từ chối đơn (ví dụ mã giảm giá sai) bằng cách trả `{ reject }`. */

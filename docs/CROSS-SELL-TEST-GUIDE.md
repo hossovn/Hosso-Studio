@@ -70,12 +70,12 @@ HOSSO_CROSS_SELL_WP_SECRET=cs_dien_consumer_secret_cua_ban_o_day
 
 ## 3. Mạng lưới Bán chéo Ngang hàng (P2P) giữa MỌI Web Hosso Studio
 
-Mọi website dựng từ Hosso Studio (không chỉ riêng TCAP) đều có thể kết nối bán chéo cho nhau bằng cơ chế Shared Token. Bất kỳ cặp web nào muốn liên kết (Web A và Web B) chỉ cần trao đổi một chuỗi Token bí mật chung (tối thiểu 32 ký tự).
+Mọi website dựng từ Hosso Studio (không chỉ riêng TCAP) đều có thể kết nối bán chéo cho nhau bằng token xuất/nhập. Mỗi cặp website nên cấp một token cho từng chiều (tối thiểu 32 ký tự): token xuất của Web A là token nhập trên Web B, và ngược lại.
 
-### Bước 3.1: Thỏa thuận Token kết nối chung
-Ví dụ, Web A và Web B thống nhất một chuỗi khóa:
+### Bước 3.1: Cấp token cho từng chiều
+Ví dụ, Web A cấp token xuất riêng cho Web B:
 ```text
-hosso_p2p_network_secret_token_1234567890_abcdef
+hosso_a_export_to_b_1234567890_abcdef
 ```
 
 ### Bước 3.2: Thêm đối tác trên Dashboard của từng Web
@@ -85,13 +85,12 @@ Trên Web A (ví dụ: Web Test `http://localhost:3001/admin`):
    - **Kind:** Chọn **Hosso Studio (Shop / WIM)**
    - **Api url:** Điền URL của Web B (ví dụ: `https://web-b.com` hoặc `http://localhost:3000`)
    - **Phương thức nhập khóa:** Chọn **Nhập trực tiếp trên Dashboard (Tiện lợi)**
-   - **Shared Token bí mật:** Dán chuỗi token chung ở trên vào
+   - **Token nhập hàng:** Dán token xuất do Web B cấp
    - **Our business name & phone:** Thông tin doanh nghiệp của bạn
    - **Active:** Tích chọn **Active**
 2. Bấm **Lưu**.
 
-Trên Web B (Web đối tác):
-1. Làm tương tự: Thêm đối tác trỏ về URL của Web A, và **dán cùng chuỗi Token bí mật ở trên** vào ô Token.
+Trên Web B (Web đối tác), tạo hồ sơ trỏ về URL của Web A và dán **token xuất của Web A** vào phần xác thực chiều nhập. Nếu bật chiều xuất trên Web B, cấp token xuất riêng của Web B và gửi cho quản trị Web A.
 
 ### Bước 3.3: Cho phép xuất sản phẩm (Offers) và Bán hàng
 - Web nào muốn cho web kia bán sản phẩm của mình thì vào mục **Partner product permissions (Offers)** → Chọn sản phẩm → Chọn đối tác được phép bán → Bật **Active**.
@@ -106,6 +105,31 @@ Trên Web B (Web đối tác):
 3. Sau khi đặt hàng thành công:
    - Vào Admin Web Test → **Cross-sell transfers**: bạn sẽ thấy một bản ghi chuyển đơn tương ứng.
    - Bản ghi ghi nhận trạng thái: Đã gửi đơn đặt hàng sỉ sang WordPress / TCAP thành công, kèm mã đơn hàng nhà cung cấp.
+
+---
+
+## 4A. Cấu hình cặp website đang chạy thật
+
+Để bán chéo hai chiều giữa `https://thanhtrung.hosso.vn` và `https://tcap-web.hosso.vn`, tạo một hồ sơ đối tác trên **mỗi** website. Mỗi chiều dùng một token riêng; không đặt token trong URL.
+
+Trước khi tạo hồ sơ, cả hai deployment phải có `HOSSO_LICENSE_KEY` hợp lệ cho plugin cross-sell. Nếu dashboard báo **Plugin chưa có giấy phép hợp lệ**, catalog và chuyển đơn sẽ bị khóa.
+
+### Trên `thanhtrung.hosso.vn`
+
+1. Mở **Bán chéo đối tác → Đối tác → Tạo mới**.
+2. Chọn **Hosso Studio (Shop / WIM)**, URL đối tác `https://tcap-web.hosso.vn`.
+3. Bật **Nhập hàng** để bán sản phẩm của TCAP. Dán **export token do TCAP cấp** vào phần xác thực chiều nhập.
+4. Nếu muốn TCAP bán sản phẩm của Thanh Trung, bật **Xuất hàng**, tạo một export token riêng của Thanh Trung và gửi token đó cho quản trị TCAP.
+5. Nhập tên doanh nghiệp và số điện thoại nhận đơn, bật **Active**, rồi lưu.
+
+### Trên `tcap-web.hosso.vn`
+
+1. Tạo hồ sơ Hosso tương tự, URL đối tác `https://thanhtrung.hosso.vn`.
+2. Bật **Nhập hàng**, dùng export token do Thanh Trung cấp.
+3. Bật **Xuất hàng**, cấp một export token riêng của TCAP nếu muốn Thanh Trung bán hàng TCAP.
+4. Lưu hồ sơ, sau đó vào **Quyền bán sản phẩm (Offers)** để chọn từng sản phẩm và bật **Active**.
+
+Sau khi hai hồ sơ hoạt động, website bán lẻ vào dashboard **Bán chéo đối tác**, tải danh mục và bấm **Nhập / đồng bộ sản phẩm**. Chỉ sản phẩm có Offer đang bật mới xuất hiện ở website đối tác. Trước đơn thật, kiểm tra một sản phẩm ở mỗi chiều, tạo đơn thử giá trị nhỏ, xác nhận bản ghi **Cross-sell transfers**, rồi thống nhất quy trình lấy hàng, COD, đổi trả và đối soát hoa hồng.
 
 ---
 

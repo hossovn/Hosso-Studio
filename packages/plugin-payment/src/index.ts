@@ -107,7 +107,16 @@ const plugin: HossoPlugin = {
   commerce: {
     recordRefund,
     revisePayment: async (req, orderNo, total) => inTransaction(req, async () => {
-      const payment = (await req.payload.find({ collection: 'payments' as any, where: { orderNo: { equals: orderNo } }, limit: 1, depth: 0, req, overrideAccess: true })).docs[0] as any
+      let payment = (await req.payload.find({ collection: 'payments' as any, where: { orderNo: { equals: orderNo } }, limit: 1, depth: 0, req, overrideAccess: true })).docs[0] as any
+      if (!payment) {
+        const order = (await req.payload.find({ collection: 'shop-orders' as any, where: { orderNo: { equals: orderNo } }, limit: 1, depth: 0, req, overrideAccess: true })).docs[0] as any
+        if (!order || order.paymentStatus !== 'unpaid') throw new Error('Missing payment ledger requires reconciliation')
+        // Received hooks may have been disabled when this unpaid order arrived.
+        // Initialize its debt from the authoritative order, then allocate actual receipts.
+        await ensurePayment(req.payload, { id: orderNo, total: order.total }, undefined, req)
+        await allocateUnmatched(req, orderNo)
+        payment = (await req.payload.find({ collection: 'payments' as any, where: { orderNo: { equals: orderNo } }, limit: 1, depth: 0, req, overrideAccess: true })).docs[0] as any
+      }
       if (!payment || !Number.isSafeInteger(total) || total < 0 || total > payment.amount) throw new Error('Invalid payment revision')
       const version = payment.version || 0
       const claimed = await req.payload.db.updateOne({ collection: 'payments', req, where: { and: [{ id: { equals: payment.id } }, { version: { equals: version } }] }, data: { version: version + 1 }, options: { atomic: true } })
