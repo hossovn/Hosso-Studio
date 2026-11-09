@@ -102,6 +102,14 @@ export interface Config {
     'affiliate-payout-items': AffiliatePayoutItem;
     'affiliate-audit-logs': AffiliateAuditLog;
     'affiliate-rate-limits': AffiliateRateLimit;
+    'cross-sell-partners': CrossSellPartner;
+    'cross-sell-listings': CrossSellListing;
+    'cross-sell-offers': CrossSellOffer;
+    'cross-sell-transfers': CrossSellTransfer;
+    'cross-sell-dispatches': CrossSellDispatch;
+    'cross-sell-receipts': CrossSellReceipt;
+    'cross-sell-cancellations': CrossSellCancellation;
+    'cross-sell-events': CrossSellEvent;
     shipments: Shipment;
     vouchers: Voucher;
     payments: Payment;
@@ -153,6 +161,14 @@ export interface Config {
     'affiliate-payout-items': AffiliatePayoutItemsSelect<false> | AffiliatePayoutItemsSelect<true>;
     'affiliate-audit-logs': AffiliateAuditLogsSelect<false> | AffiliateAuditLogsSelect<true>;
     'affiliate-rate-limits': AffiliateRateLimitsSelect<false> | AffiliateRateLimitsSelect<true>;
+    'cross-sell-partners': CrossSellPartnersSelect<false> | CrossSellPartnersSelect<true>;
+    'cross-sell-listings': CrossSellListingsSelect<false> | CrossSellListingsSelect<true>;
+    'cross-sell-offers': CrossSellOffersSelect<false> | CrossSellOffersSelect<true>;
+    'cross-sell-transfers': CrossSellTransfersSelect<false> | CrossSellTransfersSelect<true>;
+    'cross-sell-dispatches': CrossSellDispatchesSelect<false> | CrossSellDispatchesSelect<true>;
+    'cross-sell-receipts': CrossSellReceiptsSelect<false> | CrossSellReceiptsSelect<true>;
+    'cross-sell-cancellations': CrossSellCancellationsSelect<false> | CrossSellCancellationsSelect<true>;
+    'cross-sell-events': CrossSellEventsSelect<false> | CrossSellEventsSelect<true>;
     shipments: ShipmentsSelect<false> | ShipmentsSelect<true>;
     vouchers: VouchersSelect<false> | VouchersSelect<true>;
     payments: PaymentsSelect<false> | PaymentsSelect<true>;
@@ -182,6 +198,7 @@ export interface Config {
     'shop-settings': ShopSetting;
     'affiliate-settings': AffiliateSetting;
     'wim-settings': WimSetting;
+    'cross-sell-settings': CrossSellSetting;
     'shipping-settings': ShippingSetting;
     'payment-settings': PaymentSetting;
     'notify-settings': NotifySetting;
@@ -194,6 +211,7 @@ export interface Config {
     'shop-settings': ShopSettingsSelect<false> | ShopSettingsSelect<true>;
     'affiliate-settings': AffiliateSettingsSelect<false> | AffiliateSettingsSelect<true>;
     'wim-settings': WimSettingsSelect<false> | WimSettingsSelect<true>;
+    'cross-sell-settings': CrossSellSettingsSelect<false> | CrossSellSettingsSelect<true>;
     'shipping-settings': ShippingSettingsSelect<false> | ShippingSettingsSelect<true>;
     'payment-settings': PaymentSettingsSelect<false> | PaymentSettingsSelect<true>;
     'notify-settings': NotifySettingsSelect<false> | NotifySettingsSelect<true>;
@@ -210,6 +228,7 @@ export interface Config {
       'commerce-event-delivery': TaskCommerceEventDelivery;
       'shop-order-recovery': TaskShopOrderRecovery;
       'affiliate-month-end': TaskAffiliateMonthEnd;
+      'cross-sell-sync': TaskCrossSellSync;
       'notify-order-email': TaskNotifyOrderEmail;
       schedulePublish: TaskSchedulePublish;
       inline: {
@@ -1069,6 +1088,131 @@ export interface ShopOrder {
    */
   affiliateRefundedAmount?: number | null;
   affiliateCompletedAt?: string | null;
+  crossSellPartner?: (number | null) | CrossSellPartner;
+  crossSellTransfer?: (number | null) | CrossSellTransfer;
+  crossSellPurchase?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  crossSellPurchases?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  crossSellInboundKey?: string | null;
+  crossSellInboundPartner?: (number | null) | CrossSellPartner;
+  crossSellInboundPurchase?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Connect multiple partner websites. Each website has one profile with independent import and export directions.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-partners".
+ */
+export interface CrossSellPartner {
+  id: number;
+  name: string;
+  importEnabled?: boolean | null;
+  exportEnabled?: boolean | null;
+  deliveryMode?: ('consolidated' | 'direct') | null;
+  codCollector?: ('store' | 'partner') | null;
+  shippingFee?: number | null;
+  allowRetailDiscounts?: boolean | null;
+  kind: 'hosso' | 'woocommerce';
+  apiUrl: string;
+  authMethod?: ('direct' | 'env') | null;
+  /**
+   * Use the export token issued to you by the partner website.
+   */
+  token?: string | null;
+  consumerKey?: string | null;
+  consumerSecret?: string | null;
+  credentialEnv?: string | null;
+  secretEnv?: string | null;
+  /**
+   * Agreed commission percentage with WordPress store
+   */
+  commissionPct?: number | null;
+  exportAuthMethod?: ('direct' | 'env') | null;
+  /**
+   * Enter this token in the partner Studio import settings or the WordPress Hosso Connector. Only explicitly permitted products are accessible.
+   */
+  exportToken?: string | null;
+  exportTokenEnv?: string | null;
+  buyerName: string;
+  buyerPhone: string;
+  active?: boolean | null;
+  /**
+   * Optional: HOSSO_CROSS_SELL_* variable containing the webhook secret (at least 32 characters).
+   */
+  webhookSecretEnv?: string | null;
+  siteKey?: string | null;
+  connectionVersion?: number | null;
+  legacyBasicIngress?: boolean | null;
+  mergedInto?: (number | null) | CrossSellPartner;
+  exportIdentity?: (number | null) | CrossSellPartner;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-transfers".
+ */
+export interface CrossSellTransfer {
+  id: number;
+  localOrder?: (number | null) | ShopOrder;
+  localOrderNo?: string | null;
+  partner: number | CrossSellPartner;
+  backend?: ('shop' | 'wim') | null;
+  wimOrderId?: string | null;
+  purchaseKey: string;
+  purchase:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  workflowKey?: string | null;
+  remoteRefundedAmount?: number | null;
+  state: 'pending' | 'sending' | 'sent' | 'uncertain';
+  remoteId?: string | null;
+  remoteStatus?: string | null;
+  remoteTotal?: number | null;
+  commission: number;
+  commissionStatus?: ('pending' | 'eligible' | 'cancelled') | null;
+  lastError?: string | null;
+  checkedAt?: string | null;
+  localStatus?: string | null;
+  localPaymentStatus?: string | null;
+  remotePaid?: boolean | null;
+  remoteUpdatedAt?: string | null;
+  remoteChangedAt?: string | null;
+  syncError?: string | null;
+  dispatchStartedAt?: string | null;
+  syncAttemptAt?: string | null;
+  nextSyncAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1323,6 +1467,128 @@ export interface AffiliateRateLimit {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-listings".
+ */
+export interface CrossSellListing {
+  id: number;
+  partner: number | CrossSellPartner;
+  product?: (number | null) | ShopProduct;
+  backend?: ('shop' | 'wim') | null;
+  wimProductId?: string | null;
+  lastSyncedAt?: string | null;
+  nextSyncAt?: string | null;
+  syncError?: string | null;
+  remoteId: string;
+  remoteKey: string;
+  supplierPrice: number;
+  commissionPct: number;
+  active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-offers".
+ */
+export interface CrossSellOffer {
+  id: number;
+  source: 'shop' | 'wim';
+  product?: (number | null) | ShopProduct;
+  wimProductId?: string | null;
+  partners: (number | CrossSellPartner)[];
+  commissionPct: number;
+  active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-dispatches".
+ */
+export interface CrossSellDispatch {
+  id: number;
+  key: string;
+  transfer: number | CrossSellTransfer;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-receipts".
+ */
+export interface CrossSellReceipt {
+  id: number;
+  key: string;
+  partner: number | CrossSellPartner;
+  purchaseKey: string;
+  purchase:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  body:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-cancellations".
+ */
+export interface CrossSellCancellation {
+  id: number;
+  key: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-events".
+ */
+export interface CrossSellEvent {
+  id: number;
+  key: string;
+  purchaseKey: string;
+  transfer?: (number | null) | CrossSellTransfer;
+  partner: number | CrossSellPartner;
+  kind: string;
+  source: string;
+  actor: string;
+  occurredAt: string;
+  before?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  after?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "shipments".
  */
 export interface Shipment {
@@ -1547,6 +1813,7 @@ export interface PayloadJob {
           | 'commerce-event-delivery'
           | 'shop-order-recovery'
           | 'affiliate-month-end'
+          | 'cross-sell-sync'
           | 'notify-order-email'
           | 'schedulePublish';
         taskID: string;
@@ -1587,6 +1854,7 @@ export interface PayloadJob {
         | 'commerce-event-delivery'
         | 'shop-order-recovery'
         | 'affiliate-month-end'
+        | 'cross-sell-sync'
         | 'notify-order-email'
         | 'schedulePublish'
       )
@@ -1749,6 +2017,38 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'affiliate-rate-limits';
         value: number | AffiliateRateLimit;
+      } | null)
+    | ({
+        relationTo: 'cross-sell-partners';
+        value: number | CrossSellPartner;
+      } | null)
+    | ({
+        relationTo: 'cross-sell-listings';
+        value: number | CrossSellListing;
+      } | null)
+    | ({
+        relationTo: 'cross-sell-offers';
+        value: number | CrossSellOffer;
+      } | null)
+    | ({
+        relationTo: 'cross-sell-transfers';
+        value: number | CrossSellTransfer;
+      } | null)
+    | ({
+        relationTo: 'cross-sell-dispatches';
+        value: number | CrossSellDispatch;
+      } | null)
+    | ({
+        relationTo: 'cross-sell-receipts';
+        value: number | CrossSellReceipt;
+      } | null)
+    | ({
+        relationTo: 'cross-sell-cancellations';
+        value: number | CrossSellCancellation;
+      } | null)
+    | ({
+        relationTo: 'cross-sell-events';
+        value: number | CrossSellEvent;
       } | null)
     | ({
         relationTo: 'shipments';
@@ -2337,6 +2637,13 @@ export interface ShopOrdersSelect<T extends boolean = true> {
   affiliateRefundedLines?: T;
   affiliateRefundedAmount?: T;
   affiliateCompletedAt?: T;
+  crossSellPartner?: T;
+  crossSellTransfer?: T;
+  crossSellPurchase?: T;
+  crossSellPurchases?: T;
+  crossSellInboundKey?: T;
+  crossSellInboundPartner?: T;
+  crossSellInboundPurchase?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2502,6 +2809,160 @@ export interface AffiliateAuditLogsSelect<T extends boolean = true> {
 export interface AffiliateRateLimitsSelect<T extends boolean = true> {
   key?: T;
   expiresAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-partners_select".
+ */
+export interface CrossSellPartnersSelect<T extends boolean = true> {
+  name?: T;
+  importEnabled?: T;
+  exportEnabled?: T;
+  deliveryMode?: T;
+  codCollector?: T;
+  shippingFee?: T;
+  allowRetailDiscounts?: T;
+  kind?: T;
+  apiUrl?: T;
+  authMethod?: T;
+  token?: T;
+  consumerKey?: T;
+  consumerSecret?: T;
+  credentialEnv?: T;
+  secretEnv?: T;
+  commissionPct?: T;
+  exportAuthMethod?: T;
+  exportToken?: T;
+  exportTokenEnv?: T;
+  buyerName?: T;
+  buyerPhone?: T;
+  active?: T;
+  webhookSecretEnv?: T;
+  siteKey?: T;
+  connectionVersion?: T;
+  legacyBasicIngress?: T;
+  mergedInto?: T;
+  exportIdentity?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-listings_select".
+ */
+export interface CrossSellListingsSelect<T extends boolean = true> {
+  partner?: T;
+  product?: T;
+  backend?: T;
+  wimProductId?: T;
+  lastSyncedAt?: T;
+  nextSyncAt?: T;
+  syncError?: T;
+  remoteId?: T;
+  remoteKey?: T;
+  supplierPrice?: T;
+  commissionPct?: T;
+  active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-offers_select".
+ */
+export interface CrossSellOffersSelect<T extends boolean = true> {
+  source?: T;
+  product?: T;
+  wimProductId?: T;
+  partners?: T;
+  commissionPct?: T;
+  active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-transfers_select".
+ */
+export interface CrossSellTransfersSelect<T extends boolean = true> {
+  localOrder?: T;
+  localOrderNo?: T;
+  partner?: T;
+  backend?: T;
+  wimOrderId?: T;
+  purchaseKey?: T;
+  purchase?: T;
+  workflowKey?: T;
+  remoteRefundedAmount?: T;
+  state?: T;
+  remoteId?: T;
+  remoteStatus?: T;
+  remoteTotal?: T;
+  commission?: T;
+  commissionStatus?: T;
+  lastError?: T;
+  checkedAt?: T;
+  localStatus?: T;
+  localPaymentStatus?: T;
+  remotePaid?: T;
+  remoteUpdatedAt?: T;
+  remoteChangedAt?: T;
+  syncError?: T;
+  dispatchStartedAt?: T;
+  syncAttemptAt?: T;
+  nextSyncAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-dispatches_select".
+ */
+export interface CrossSellDispatchesSelect<T extends boolean = true> {
+  key?: T;
+  transfer?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-receipts_select".
+ */
+export interface CrossSellReceiptsSelect<T extends boolean = true> {
+  key?: T;
+  partner?: T;
+  purchaseKey?: T;
+  purchase?: T;
+  body?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-cancellations_select".
+ */
+export interface CrossSellCancellationsSelect<T extends boolean = true> {
+  key?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-events_select".
+ */
+export interface CrossSellEventsSelect<T extends boolean = true> {
+  key?: T;
+  purchaseKey?: T;
+  transfer?: T;
+  partner?: T;
+  kind?: T;
+  source?: T;
+  actor?: T;
+  occurredAt?: T;
+  before?: T;
+  after?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -3185,6 +3646,17 @@ export interface WimSetting {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-settings".
+ */
+export interface CrossSellSetting {
+  id: number;
+  backend: 'shop' | 'wim';
+  wimBranchId?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "shipping-settings".
  */
 export interface ShippingSetting {
@@ -3485,6 +3957,17 @@ export interface WimSettingsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cross-sell-settings_select".
+ */
+export interface CrossSellSettingsSelect<T extends boolean = true> {
+  backend?: T;
+  wimBranchId?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "shipping-settings_select".
  */
 export interface ShippingSettingsSelect<T extends boolean = true> {
@@ -3585,6 +4068,14 @@ export interface TaskShopOrderRecovery {
  * via the `definition` "TaskAffiliate-month-end".
  */
 export interface TaskAffiliateMonthEnd {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCross-sell-sync".
+ */
+export interface TaskCrossSellSync {
   input?: unknown;
   output?: unknown;
 }

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 import hosso from '@hosso-config'
 import { SUPPORTED_LOCALE_CODES } from './lib/locales-catalog'
+import { kilnFramePolicy } from './lib/kiln-frame'
 
 // Gán header x-hosso-locale theo tiền tố đường dẫn (/ko/..., /en/...). Ngôn ngữ mặc định không có tiền tố.
 export function proxy(request: NextRequest) {
@@ -12,8 +13,10 @@ export function proxy(request: NextRequest) {
   const headers = new Headers(request.headers)
   headers.set('x-hosso-locale', locale)
   headers.set('x-hosso-preview', request.nextUrl.searchParams.get('preview') === '1' ? '1' : '0')
-  return NextResponse.next({ request: { headers } })
+  const response = NextResponse.next({ request: { headers } })
+  response.headers.set('Content-Security-Policy', kilnFramePolicy(process.env.HOSSO_KILN_FRAME_ORIGIN))
+  return response
 }
 
-// Chỉ trang công khai; bỏ qua admin, editor, api và tệp tĩnh.
-export const config = { matcher: ['/((?!api|admin|editor|_next|brand|.*\\..*).*)'] }
+// Apply runtime frame policy to application routes, preserving static assets.
+export const config = { matcher: ['/((?!_next|brand|.*\\..*).*)'] }

@@ -262,7 +262,17 @@ export const editLock: Endpoint = {
     if (held && !body.takeover) return json({ ok: false, holder: cur.email || 'người khác / someone else' })
     const data = { key, userId: me, email: user!.email ?? '', expiresAt: new Date(Date.now() + LOCK_TTL).toISOString() }
     if (cur) await req.payload.update({ collection: 'edit-locks', id: cur.id, data, overrideAccess: true })
-    else await req.payload.create({ collection: 'edit-locks', data, overrideAccess: true })
+    else {
+      try {
+        await req.payload.create({ collection: 'edit-locks', data, overrideAccess: true })
+      } catch (error) {
+        // Concurrent editor mounts may claim the same unique key. Respect the
+        // winner instead of reporting a validation error or stealing its lock.
+        const winner = (await req.payload.find({ collection: 'edit-locks', where: { key: { equals: key } }, limit: 1, depth: 0, overrideAccess: true })).docs[0]
+        if (!winner || new Date(winner.expiresAt).getTime() <= Date.now()) throw error
+        return json(winner.userId === me ? { ok: true } : { ok: false, holder: winner.email || 'người khác / someone else' })
+      }
+    }
     return json({ ok: true })
   },
 }

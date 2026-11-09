@@ -40,6 +40,9 @@ importers:
       '@hosso/plugin-analytics':
         specifier: workspace:*
         version: link:../../packages/plugin-analytics
+      '@hosso/plugin-cross-sell':
+        specifier: workspace:*
+        version: link:../../packages/plugin-cross-sell
       '@hosso/plugin-notify':
         specifier: workspace:*
         version: link:../../packages/plugin-notify

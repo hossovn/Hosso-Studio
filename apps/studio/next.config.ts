@@ -35,10 +35,10 @@ const payloadHeaders = config.headers!
 // Header bảo mật cơ bản cho mọi đường dẫn (khung nhúng cùng origin vẫn dùng được cho trình dựng và Tùy biến giao diện).
 const SECURITY = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
-  { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
 ]
+SECURITY.push({ key: 'Content-Security-Policy', value: "frame-ancestors 'self'" })
 config.headers = async () => [
   { source: '/:path*', headers: SECURITY },
   ...(await payloadHeaders()).flatMap((rule) =>

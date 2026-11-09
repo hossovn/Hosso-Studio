@@ -2,13 +2,71 @@ import type { Endpoint } from 'payload'
 import { getFieldsToSign, jwtSign } from 'payload'
 
 import hosso from '@hosso-config'
-import { randomUUID } from 'node:crypto'
+import { randomBytes, randomUUID } from 'node:crypto'
 import fs from 'fs'
 
 import pkg from '../../package.json'
 import { hasRole } from './access'
 import { serviceTokenOk, verifySsoToken } from './kiln-auth'
 import { getPayloadSiteLocales } from './locale'
+import { exchangeKilnCode } from './kiln-code'
+
+/** POST /api/site/sso-code: consume Kiln's one-use code on the server. */
+export const ssoCodeLogin: Endpoint = {
+  path: '/site/sso-code',
+  method: 'post',
+  handler: async (req) => {
+    const publicURL = process.env.HOSSO_PUBLIC_URL
+    const kilnURL = process.env.HOSSO_KILN_URL
+    const tenant = process.env.HOSSO_TENANT
+    const headers = { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' }
+    if (!publicURL || !kilnURL || !tenant) return Response.json({ error: 'sso_not_configured' }, { status: 503, headers })
+    if (req.headers.get('origin') !== new URL(publicURL).origin
+      || req.headers.get('x-requested-with') !== 'XMLHttpRequest'
+      || !req.headers.get('content-type')?.startsWith('application/json')) {
+      return Response.json({ error: 'forbidden' }, { status: 403, headers })
+    }
+    try {
+      const body = await req.json?.() as { code?: unknown }
+      const identity = await exchangeKilnCode(typeof body?.code === 'string' ? body.code : '', {
+        kilnURL, publicURL, tenant, allowHTTP: process.env.HOSSO_KILN_ALLOW_INSECURE_HTTP === 'true',
+      })
+      // Stable identity mapping never matches an unrelated local admin by email.
+      const email = `${identity.user_id.toLowerCase()}@kiln.invalid`
+      const find = () => req.payload.find({ collection: 'users', where: { email: { equals: email } }, limit: 1, depth: 0, overrideAccess: true })
+      let user = (await find()).docs[0]
+      if (!user) {
+        try {
+          user = await req.payload.create({ collection: 'users', overrideAccess: true,
+            data: { email, password: randomBytes(48).toString('base64url'), roles: ['admin'] },
+          })
+        } catch (err) {
+          // A simultaneous exchange may have created the same unique identity.
+          user = (await find()).docs[0]
+          if (!user) throw err
+        }
+      }
+      if (user.twoFactorEnabled || !hasRole(user, 'admin')) return Response.json({ error: 'local_login_required' }, { status: 403, headers })
+      const pages = await req.payload.find({ collection: 'pages', limit: 1, sort: 'createdAt', depth: 0, overrideAccess: true, draft: true })
+      let page = pages.docs[0]
+      if (!page) page = await req.payload.create({ collection: 'pages', overrideAccess: true, data: { title: 'Trang chủ', slug: 'home', _status: 'draft', content: { content: [], root: { props: {} } } } })
+      const config = req.payload.collections.users.config
+      const tokenExpiration = (config.auth as { tokenExpiration: number }).tokenExpiration
+      const now = new Date(), sid = randomUUID()
+      const sessions = (user.sessions ?? []).filter((s) => new Date(s.expiresAt) > now)
+      sessions.push({ id: sid, createdAt: now.toISOString(), expiresAt: new Date(now.getTime() + tokenExpiration * 1000).toISOString() })
+      await req.payload.db.updateOne({ collection: 'users', id: user.id, data: { sessions, updatedAt: null }, req, returning: false })
+      const fieldsToSign = getFieldsToSign({ collectionConfig: config, email: user.email, sid, user: { ...user, collection: 'users' } as never })
+      const { token, exp } = await jwtSign({ fieldsToSign, secret: req.payload.secret, tokenExpiration })
+      return Response.json({ redirect: `/editor/${page.id}` }, { headers: {
+        ...headers, 'Set-Cookie': `${req.payload.config.cookiePrefix}-token=${token}; Path=/; HttpOnly; SameSite=Lax; Expires=${new Date(exp * 1000).toUTCString()}${publicURL.startsWith('https:') ? '; Secure' : ''}`,
+      } })
+    } catch {
+      // Do not log the code or propagate provider internals to the browser.
+      return Response.json({ error: 'sso_failed' }, { status: 401, headers })
+    }
+  },
+}
 
 const json = (body: unknown, status = 200) => Response.json(body, { status })
 

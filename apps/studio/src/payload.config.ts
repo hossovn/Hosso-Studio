@@ -35,7 +35,7 @@ import { SiteSettings } from './globals/SiteSettings'
 import { backupCreate, backupDownload, commentSubmit, editLock, formExport, formSubmit, packageImport, shareLink, templateCover, templateInstall } from './lib/endpoints'
 import { chatInbox, chatPoll, chatReply, chatSend, chatStart, chatStatus } from './lib/live-chat'
 import { getPayloadLocalizationLocales } from './lib/locales-catalog'
-import { siteStatus, ssoLogin } from './lib/kiln'
+import { siteStatus, ssoLogin, ssoCodeLogin } from './lib/kiln'
 import { Users } from './collections/Users'
 import { ensureAdmin, seedIfEmpty } from './lib/seed'
 import { translateConfig } from './lib/translate-config'
@@ -44,6 +44,9 @@ import { frameAdminViews } from './lib/admin-views'
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 const databaseUrl = process.env.HOSSO_DATABASE_URL || 'file:./data/studio.db'
 const isPostgres = /^postgres(ql)?:/.test(databaseUrl)
+if (process.env.HOSSO_TENANT && (!isPostgres || (process.env.HOSSO_SECRET?.length ?? 0) < 32 || !process.env.HOSSO_MEDIA_DIR)) {
+  throw new Error('Managed Studio requires PostgreSQL, HOSSO_SECRET and durable HOSSO_MEDIA_DIR')
+}
 
 // SQLite (local) hoặc Postgres (deploy) chọn bằng HOSSO_DATABASE_URL.
 if (!isPostgres && databaseUrl.startsWith('file:')) {
@@ -99,7 +102,7 @@ const base: Config = {
   localization: { locales: getPayloadLocalizationLocales(hosso.locales), defaultLocale: hosso.locales[0].code, fallback: true },
   typescript: { outputFile: path.resolve(dirname, 'payload-types.ts') },
   db: isPostgres
-    ? postgresAdapter({ pool: { connectionString: databaseUrl }, migrationDir: path.resolve(dirname, 'migrations') })
+    ? postgresAdapter({ pool: { connectionString: databaseUrl }, migrationDir: path.resolve(dirname, 'migrations'), push: process.env.HOSSO_TENANT || process.env.HOSSO_DB_PUSH === 'false' ? false : undefined })
     : sqliteAdapter({
         transactionOptions: {},
         client: { url: databaseUrl },
@@ -122,6 +125,7 @@ const base: Config = {
     templateCover,
     siteStatus,
     ssoLogin,
+    ssoCodeLogin,
     siteReleaseReview,
     siteReleasePublish,
     siteReleaseRestore,
@@ -145,6 +149,9 @@ const base: Config = {
     },
   ],
   onInit: async (payload) => {
+    if (process.env.HOSSO_TENANT && (!process.env.HOSSO_ADMIN_EMAIL || !process.env.HOSSO_ADMIN_PASSWORD || process.env.HOSSO_ADMIN_PASSWORD.length < 32)) {
+      throw new Error('Managed Studio requires a private bootstrap admin with a strong password')
+    }
     await ensureAdmin(payload)
     if (process.env.HOSSO_SEED !== 'false') await seedIfEmpty(payload)
   },
