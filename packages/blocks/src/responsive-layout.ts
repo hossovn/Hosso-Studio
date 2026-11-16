@@ -9,7 +9,7 @@ type Block = { type: string; props: Record<string, any> }
 type Document = { content: Block[]; root?: any; [key: string]: any }
 export const DEVICE_WIDTH = { desktop: 1200, tablet: 768, mobile: 390 } as const
 const GEOMETRY = ['x', 'y', 'w', 'h'] as const
-const SHARED_PROPS = new Set(['text', 'richText', 'html', 'src', 'alt', 'href', 'url', 'poster', 'title', 'items', 'slides', 'name', '_name', '_hide', '_locked', '_hidden', '_states', '_motion', '_scroll', '_constraints', '_layout'])
+const SHARED_PROPS = new Set(['text', 'richText', 'html', 'src', 'alt', 'href', 'url', 'poster', 'title', 'items', 'slides', 'beforeSrc', 'afterSrc', 'beforeAlt', 'afterAlt', 'beforeLabel', 'afterLabel', 'sliderLabel', 'value', 'prefix', 'suffix', 'label', 'countUp', 'countFrom', 'countTo', 'countDuration', 'countDecimals', 'countLocale', 'countGrouping', 'countReplay', 'name', '_name', '_hide', '_locked', '_hidden', '_states', '_motion', '_scroll', '_constraints', '_layout'])
 const BLOCK_LAYOUT = new Set(['height', '_padT', '_padB', '_padL', '_padR', '_marT', '_marB', '_maxW', '_minH', '_offX', '_offY', '_guides'])
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 const elements = (props: Record<string, any>): ResponsiveElement[] => props._els ?? props.elements ?? []

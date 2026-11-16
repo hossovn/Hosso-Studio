@@ -13,6 +13,7 @@ import { ElementStateControls } from './StateStyleEditor'
 import { ScrollEffectControls } from './ScrollEffectControls'
 import { MotionControls } from './MotionControls'
 import { ProductSelection } from './ProductSelection'
+import { ComparisonContentControls, ComparisonStyleControls, CountUpControls } from './DetailingControls'
 
 import { blockId, dupEl, elsOf, findEl, isSection, orderEl, patchBlock, patchElProps, removeEl, updateEl, setBlockEls, type Block, type PageData, type Sel, NO_SEL } from './canvas-model'
 
@@ -192,7 +193,7 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
     return rows
   }
   const textual = el.type === 'heading' || el.type === 'text' || el.type === 'button'
-  const NAMES: Record<string, string> = { container: 'Container', swiper: 'Swiper', accordion: 'Câu hỏi thu gọn (FAQ)', countdown: 'Đếm ngược', number: 'Số liệu', table: 'Bảng', map: 'Bản đồ', embed: 'Nhúng', tabs: 'Tab', breadcrumb: 'Breadcrumb', menu: 'Menu', heading: 'Tiêu đề', text: 'Văn bản', button: 'Nút bấm', shape: 'Hình khối', line: 'Đường kẻ', icon: 'Icon', image: 'Ảnh', video: 'Video' }
+  const NAMES: Record<string, string> = { container: 'Container', swiper: 'Swiper', comparison: 'So sánh ảnh trước / sau', accordion: 'Câu hỏi thu gọn (FAQ)', countdown: 'Đếm ngược', number: 'Số liệu', table: 'Bảng', map: 'Bản đồ', embed: 'Nhúng', tabs: 'Tab', breadcrumb: 'Breadcrumb', menu: 'Menu', heading: 'Tiêu đề', text: 'Văn bản', button: 'Nút bấm', shape: 'Hình khối', line: 'Đường kẻ', icon: 'Icon', image: 'Ảnh', video: 'Video' }
   const ObjectIcon = OBJECT_ICONS[el.type] ?? Shapes
   return (
     <>
@@ -305,11 +306,13 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
           </Row>
         )}
         {el.type === 'countdown' && <Row label="Thời điểm kết thúc"><input style={ctl} type="datetime-local" value={p.end ?? ''} onChange={(e) => put({ end: e.target.value })} /></Row>}
+        {el.type === 'comparison' && <ComparisonContentControls p={p} put={put} />}
         {el.type === 'number' && (
           <>
             <Row label="Con số"><input style={ctl} value={p.value ?? ''} onChange={(e) => put({ value: e.target.value })} /></Row>
             <Row label="Hậu tố (+, %, k…)"><input style={ctl} value={p.suffix ?? ''} onChange={(e) => put({ suffix: e.target.value })} /></Row>
             <Row label="Nhãn"><input style={ctl} value={p.label ?? ''} onChange={(e) => put({ label: e.target.value })} /></Row>
+            <CountUpControls p={p} put={put} />
           </>
         )}
         {el.type === 'table' && (
@@ -367,6 +370,7 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
         )}
       </Group>
       <Group title="Kiểu" show={tab === 'style'}>
+        {el.type === 'comparison' && <ComparisonStyleControls p={p} put={put} />}
         {el.type === 'menu' && (
           <>
             <Row label="Kiểu menu">

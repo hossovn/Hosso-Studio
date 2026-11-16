@@ -1,6 +1,7 @@
 import { makeElement, newId, type FreeElement } from '@hosso/studio-blocks'
 import { captureFrameVariant } from '../../../../../../../packages/blocks/src/design-presets'
 import { createFrameLayout } from '../../../../../../../packages/blocks/src/frame-layout'
+import { EFFECT_TEMPLATES } from './EffectTemplates'
 
 /** Mẫu section (kiểu Webcake "Phần → Mẫu"): một canvas có sẵn chiều cao, nền và các phần tử đã bố trí; chèn xong vẫn kéo thả sửa tự do. */
 export type SectionTemplate = { id: string; label: string; height: number; bg?: string; extraProps?: Record<string, unknown>; build: () => FreeElement[] }
@@ -12,6 +13,7 @@ const P = (text: string, over: { x: number; y: number; w: number; h: number; siz
 const Btn = (text: string, x: number, y: number, props: Record<string, unknown> = {}): FreeElement => makeElement('button', { x, y, w: 200, h: 56, props: { text, ...props } })
 
 export const SECTION_TEMPLATES: SectionTemplate[] = [
+  ...EFFECT_TEMPLATES,
   {
     id: 'hero-svh',
     label: 'Hero tràn màn hình (100svh)',

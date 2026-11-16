@@ -12,6 +12,8 @@ import { normalizeScrollEffect } from './scroll-effects'
 import { resolveMotionConfig } from './motion-effects'
 import { MotionEffects } from './MotionEffects'
 import { MotionText } from './MotionText'
+import { FreeComparison } from './FreeComparison'
+import { FreeNumber } from './FreeNumber'
 import { blockForDevice, type DevicePatch } from './responsive-layout'
 import { layoutVariants, variantCss } from './responsive-breakpoints'
 import { sanitizeRichText } from './rich-text'
@@ -25,7 +27,7 @@ export { FreeOverlay } from './FreeInteractiveScope'
 export const FREE_W = 1200
 export const FREE_MAX_PX = 1440
 
-export type FreeType = 'heading' | 'text' | 'button' | 'shape' | 'line' | 'icon' | 'image' | 'video' | 'menu' | 'countdown' | 'number' | 'table' | 'map' | 'embed' | 'tabs' | 'accordion' | 'breadcrumb' | 'container' | 'swiper' | 'widget'
+export type FreeType = 'heading' | 'text' | 'button' | 'shape' | 'line' | 'icon' | 'image' | 'comparison' | 'video' | 'menu' | 'countdown' | 'number' | 'table' | 'map' | 'embed' | 'tabs' | 'accordion' | 'breadcrumb' | 'container' | 'swiper' | 'widget'
 export type FreeElement = { id: string; parentId?: string; type: FreeType; x: number; y: number; w: number; h: number; props: Record<string, any>; responsive?: Partial<Record<'tablet' | 'mobile' | `bp-${number}`, DevicePatch>> }
 
 const ICON_PATHS: Record<string, string> = {
@@ -69,6 +71,7 @@ export function makeElement(type: FreeType, over: Partial<FreeElement> & { props
     line: { type: 'line', x: 80, y: 60, w: 400, h: 12, props: { color: '#111827', thickness: 2, dashed: false, vertical: false } },
     icon: { type: 'icon', x: 80, y: 60, w: 64, h: 64, props: { name: 'star', color: '#111827' } },
     image: { type: 'image', x: 80, y: 60, w: 360, h: 240, props: { src: '', alt: '', radius: 0 } },
+    comparison: { type: 'comparison', x: 80, y: 60, w: 640, h: 400, props: { beforeSrc: '', afterSrc: '', beforeAlt: 'Ảnh trước khi thực hiện', afterAlt: 'Ảnh sau khi thực hiện', beforeLabel: 'Trước', afterLabel: 'Sau', sliderLabel: 'Kéo để so sánh ảnh trước và sau', position: 50, direction: 'horizontal', showLabels: true, accent: '#ffffff', radius: 16 } },
     video: { type: 'video', x: 80, y: 60, w: 480, h: 270, props: { url: '' } },
     menu: { type: 'menu', x: 80, y: 60, w: 640, h: 32, props: { items: [{ label: 'Trang chủ', href: '/' }, { label: 'Giới thiệu', href: '/gioi-thieu' }, { label: 'Liên hệ', href: '/lien-he' }], size: 16, weight: 500, color: '#111827', gap: 32, vertical: false, align: 'left' } },
     countdown: { type: 'countdown', x: 80, y: 60, w: 520, h: 120, props: { end: new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 16), size: 44, bg: '#111827', color: '#ffffff', radius: 16, gap: 14 } },
@@ -186,17 +189,12 @@ function FreeElementBody({ el, unit, scale, editing, state, linkProps, itemLinkP
   if (el.type === 'countdown') return <FreeCountdown p={p} unit={unit} />
   if (el.type === 'tabs') return <FreeTabs p={p} unit={unit} editing={editing} />
   if (el.type === 'accordion') return <FreeAccordion elId={el.id} p={p} unit={unit} scale={scale} editing={editing} />
+  if (el.type === 'comparison') return <FreeComparison p={p} unit={unit} scale={scale} editing={editing} />
   if (el.type === 'table') return <FreeTable p={p} unit={unit} />
   if (el.type === 'map') return <FreeMap p={p} />
   if (el.type === 'embed') return <FreeEmbed p={p} />
   if (el.type === 'breadcrumb') return <FreeBreadcrumb p={p} unit={unit} editing={editing} />
-  if (el.type === 'number')
-    return (
-      <div style={{ width: '100%', height: '100%', display: 'grid', alignContent: 'center', justifyItems: p.align === 'left' ? 'start' : p.align === 'right' ? 'end' : 'center', fontFamily: fontStack(p.font) ?? 'inherit', textAlign: p.align ?? 'center', lineHeight: 1.1 }}>
-        <span style={{ fontSize: u(p.size ?? 72), fontWeight: p.weight ?? 800, color: p.color, whiteSpace: 'nowrap' }}>{p.value}{p.suffix}</span>
-        {p.label ? <span style={{ fontSize: u(Math.max(12, (p.size ?? 72) * 0.26)), color: p.labelColor ?? '#6b7280', marginTop: u(6) }}>{p.label}</span> : null}
-      </div>
-    )
+  if (el.type === 'number') return <FreeNumber p={p} unit={unit} scale={scale} editing={editing} />
   if (el.type === 'menu' && (p.variant === 'collapse' || p.variant === 'hamburger')) return <FreeFoldMenu p={p} unit={unit} hamburger={p.variant === 'hamburger'} editing={editing} itemLinkProps={itemLinkProps} />
   if (el.type === 'menu') {
     const items: { label: string; href: string; children?: { label: string; href: string }[] }[] = Array.isArray(p.items) ? p.items : []

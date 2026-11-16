@@ -1,5 +1,5 @@
 type Page = { root?: any; content: { type: string; props: Record<string, any> }[]; [key: string]: any }
-export const CONTENT_KEYS = new Set(['text', 'richText', 'src', 'alt', 'href', 'title', 'heading', 'body', 'description', 'excerpt', 'label', 'caption', 'poster', 'playLabel', 'pauseLabel'])
+export const CONTENT_KEYS = new Set(['text', 'richText', 'src', 'alt', 'href', 'title', 'heading', 'body', 'description', 'excerpt', 'label', 'caption', 'poster', 'playLabel', 'pauseLabel', 'beforeSrc', 'afterSrc', 'beforeAlt', 'afterAlt', 'beforeLabel', 'afterLabel', 'sliderLabel', 'value', 'prefix', 'suffix'])
 const canonical = (value: any): any => Array.isArray(value) ? value.map(canonical) : value && typeof value === 'object' ? Object.fromEntries(Object.keys(value).sort().filter((key) => value[key] !== undefined).map((key) => [key, canonical(value[key])])) : value
 const same = (a: unknown, b: unknown) => JSON.stringify(canonical(a)) === JSON.stringify(canonical(b))
 
@@ -18,6 +18,9 @@ const contentProps = (base: Record<string, any>, next: Record<string, any>): Rec
     if (key in next && (typeof next[key] === 'string' || (key === 'richText' && typeof next[key] === 'object'))) {
       props[key] = next[key]
     }
+  }
+  for (const key of ['countFrom', 'countTo']) {
+    if (typeof next[key] === 'number' && Number.isFinite(next[key])) props[key] = next[key]
   }
   if (isFaqItems(base.items) && Array.isArray(next.items) && base.items.length === next.items.length) {
     props.items = base.items.map((item, idx) => {

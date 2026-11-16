@@ -17,6 +17,7 @@ import * as linkActions from '../packages/blocks/src/link-actions.ts'
 import * as reusableOverrides from '../packages/blocks/src/reusable-overrides.ts'
 import * as repeaterData from '../packages/blocks/src/repeater-data.ts'
 import * as designPresets from '../packages/blocks/src/design-presets.ts'
+import * as detailingEffects from '../packages/blocks/src/detailing-effects.ts'
 const { newId } = freeGeometry
 
 const require = createRequire(new URL('../apps/studio/package.json', import.meta.url))
@@ -157,6 +158,8 @@ const freeInteractiveScope = compile('../packages/blocks/src/FreeInteractiveScop
   './FreeCanvas': { FREE_MAX_PX: 1440, FREE_W: 1200, FreeElementView: (props) => React.createElement(freeCanvasExports.FreeElementView, props) },
 })
 freeCanvasExports = compile('../packages/blocks/src/FreeCanvas.tsx', {
+  './FreeComparison': compile('../packages/blocks/src/FreeComparison.tsx', { './detailing-effects': detailingEffects, './free-style': freeStyle }),
+  './FreeNumber': compile('../packages/blocks/src/FreeNumber.tsx', { './detailing-effects': detailingEffects, './free-style': freeStyle }),
   './FreeInteractiveScope': freeInteractiveScope,
   './canvas-widgets': canvasWidgets, './responsive-layout': responsiveLayout,
   './responsive-breakpoints': breakpoints,
@@ -167,7 +170,8 @@ freeCanvasExports = compile('../packages/blocks/src/FreeCanvas.tsx', {
 })
 const { FreeElementView, FreeOverlay, FreeCanvasView, makeElement } = freeCanvasExports
 const legacyButton = makeElement('button', { id: 'legacy-button', props: { text: 'Legacy', href: '/legacy' } })
-const { SECTION_TEMPLATES, SECTION_TEMPLATES_MORE, HEADER_TEMPLATES } = compile('../apps/studio/src/app/(editor)/editor/[id]/SectionTemplates.ts', { '@hosso/studio-blocks': { makeElement, newId }, '../../../../../../../packages/blocks/src/design-presets': designPresets, '../../../../../../../packages/blocks/src/frame-layout': frameLayout })
+const effectTemplates = compile('../apps/studio/src/app/(editor)/editor/[id]/EffectTemplates.ts', { '@hosso/studio-blocks': { makeElement } })
+const { SECTION_TEMPLATES, SECTION_TEMPLATES_MORE, HEADER_TEMPLATES } = compile('../apps/studio/src/app/(editor)/editor/[id]/SectionTemplates.ts', { './EffectTemplates': effectTemplates, '@hosso/studio-blocks': { makeElement, newId }, '../../../../../../../packages/blocks/src/design-presets': designPresets, '../../../../../../../packages/blocks/src/frame-layout': frameLayout })
 for (const template of [...SECTION_TEMPLATES, ...SECTION_TEMPLATES_MORE]) {
   const first = template.build(), second = template.build()
   assert.ok(second.every((el) => !first.some((other) => other.id === el.id)), `${template.id}: independent IDs`)
@@ -309,7 +313,7 @@ assert.match(pagesMarkup, /popover="auto"/)
 assert.match(pagesMarkup, /role="dialog" aria-label="Trang"/)
 assert.match(pagesMarkup, /aria-label="Tìm trang"/)
 console.log('PASS: populated template library, line-icon rail with brand tool and accessible pages dropdown')
-assert.deepEqual(ELEMENT_CATALOG.map((item) => item.type), ['text', 'button', 'container', 'image', 'swiper', 'video', 'accordion'])
+assert.deepEqual(ELEMENT_CATALOG.map((item) => item.type), ['text', 'button', 'container', 'image', 'comparison', 'number', 'swiper', 'video', 'accordion'])
 for (const item of ELEMENT_CATALOG) { assert.equal(item.create().type, item.type); assert.ok(item.preview); assert.notEqual(item.create().id, item.create().id) }
 console.log('PASS: element catalog, legacy/state rendering, canvas state preview, section scope, reduced motion and serialized round-trip')
 assert.equal(PAGE_TEMPLATES.length, 8)

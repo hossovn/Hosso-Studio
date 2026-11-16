@@ -7,8 +7,8 @@ import type { SectionTemplate } from './SectionTemplates'
 const categories = [
   { id: 'all', label: 'Tất cả mẫu', test: () => true },
   { id: 'intro', label: 'Chào đón & giới thiệu', test: (id: string) => /hero|banner|intro/.test(id) },
-  { id: 'content', label: 'Nội dung & dịch vụ', test: (id: string) => /features|steps|faq|interactive|icon-grid|stats|team/.test(id) },
-  { id: 'images', label: 'Hình ảnh & chuyển động', test: (id: string) => /gallery|motion/.test(id) },
+  { id: 'content', label: 'Nội dung & dịch vụ', test: (id: string) => /features|steps|faq|interactive|icon-grid|stats|statistics|team/.test(id) },
+  { id: 'images', label: 'Hình ảnh & chuyển động', test: (id: string) => /gallery|motion|comparison/.test(id) },
   { id: 'commerce', label: 'Bán hàng & đánh giá', test: (id: string) => /pricing|promo|testimonials|logos/.test(id) },
   { id: 'contact', label: 'Liên hệ & đăng ký', test: (id: string) => /contact|cta|newsletter/.test(id) },
   { id: 'layout', label: 'Bố cục trống', test: (id: string) => id.startsWith('container-') },

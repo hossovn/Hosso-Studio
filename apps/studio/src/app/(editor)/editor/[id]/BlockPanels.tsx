@@ -213,6 +213,7 @@ export const LIBRARY: { title: string; cols: number; items: { label: string; mak
     { label: 'Đếm ngược cam', make: S('countdown', { props: { bg: '#f59e0b', bg2: '#ef4444', color: '#ffffff', radius: 20 } }) },
   ] },
   { title: 'Số liệu', cols: 2, items: [
+    { label: 'Số đếm tăng dần', make: S('number', { props: { countUp: true, value: '5.000', label: 'Xe đã chăm sóc', countDuration: 1600 } }) },
     { label: 'Số xanh', make: S('number', {}) },
     { label: 'Số đen', make: S('number', { props: { color: '#111827', suffix: '%', value: '98', label: 'Hài lòng' } }) },
     { label: 'Số đỏ', make: S('number', { props: { color: '#dc2626', suffix: '', value: '24/7', label: 'Hỗ trợ' } }) },
@@ -236,6 +237,7 @@ export const LIBRARY: { title: string; cols: number; items: { label: string; mak
   ] },
   ...Object.entries(ICON_CATS).map(([cat, names]) => ({ title: `Icon · ${cat}`, cols: 6, items: names.map((name) => ({ label: name, make: S('icon', { props: { name } }) })) })),
   { title: 'Ảnh và video', cols: 2, items: [
+    { label: 'So sánh trước / sau', make: S('comparison', {}) },
     { label: 'Ảnh', make: S('image', { props: sampleImage }) },
     { label: 'Ảnh bo góc', make: S('image', { props: { ...sampleImage, radius: 24, bshadow: 'md' } }) },
     { label: 'Không gian', make: S('image', { props: { src: '/editor-templates/workspace.jpg', alt: 'Không gian làm việc' } }) },
@@ -368,6 +370,8 @@ export const ELEMENT_CATALOG: readonly ElementCatalogItem[] = ([
   ['button', 'Nút bấm', 'Phần tử'],
   ['container', 'Nhóm', 'Phần tử'],
   ['image', 'Hình ảnh', 'Ảnh và video'],
+  ['comparison', 'So sánh trước / sau', 'Ảnh và video'],
+  ['number', 'Số liệu / đếm tăng', 'Phần tử'],
   ['swiper', 'Trình chiếu', 'Ảnh và video'],
   ['video', 'Video', 'Ảnh và video'],
   ['accordion', 'Câu hỏi FAQ', 'Phần tử'],

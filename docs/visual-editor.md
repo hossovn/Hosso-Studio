@@ -73,6 +73,32 @@ suggestion; it does not continuously reflow content after later edits.
 See [Studio publishing](studio-publishing.md) for draft preview, pre-publish checks,
 website releases, restoration, permissions and the database migration.
 
+## Interactive detailing effects
+
+Open `/editor/effects` to try the new elements in an in-memory editor without
+changing the site's pages or settings. Enable Preview to interact; reload resets
+the demo. Three editable sections are also available in the section library.
+
+- **So sánh trước / sau**: add from the element library or quick-add panel. Choose
+  both images, their alt text and labels in Content. Set left/right or top/bottom
+  orientation and initial split; change the divider color, radius and image fit
+  in Design. Visitors can use mouse, touch, arrow keys, Home and End.
+- **Số liệu / đếm tăng**: enable **Số đếm tăng dần khi cuộn tới** in Content. Set
+  the start, optional numeric target, duration, decimal places, number format and
+  replay behavior. Without an explicit target, `Con số` is parsed using the chosen
+  locale (Vietnamese by default: `1.500` means 1500, `98,5` means 98.5). Existing
+  number elements remain literal until this option is enabled. Counters display
+  their final value in edit mode, on the server and with reduced motion; animation
+  pauses while offscreen or in a hidden tab. Screen readers receive the final value.
+- Select **Di chuột** for an image, button or text element to apply a quick
+  **Nâng nhẹ**, **Phóng nhẹ** or **Nổi bóng** preset. These use the existing device
+  state overrides and retain reduced-motion behavior. Fine-tune them in the state
+  design controls; remove them with **Xóa ghi đè**.
+
+Comparison sources, labels and counter content stay shared across device layouts.
+Layout and style can still be overridden per device. All effects remain ordinary
+Canvas JSON and travel with the existing site package export/import.
+
 Demo photographs: Unsplash photo IDs 1464822759023-fed622ff2c3b and
 1551632811-561732d1e306, downloaded to public/editor-demo. The sample video is the
 MDN interactive-examples flower.mp4 fixture and requires network access.

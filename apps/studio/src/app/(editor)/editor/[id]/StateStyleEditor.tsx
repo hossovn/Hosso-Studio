@@ -46,6 +46,13 @@ export function ElementStateControls({ props, onChange, state, onStateChange, de
   return <div className="cv-state-controls">
     <StatePicker value={selected} onChange={onStateChange} supported={supported} />
     <DevicePicker value={device} onChange={onDeviceChange} />
+    {selected === 'hover' && <div className="cv-state-presets" role="group" aria-label="Mẫu hiệu ứng di chuột" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '8px 0' }}>
+      {([
+        ['Nâng nhẹ', { translateY: -6, scale: 1, boxShadow: 'none' }],
+        ['Phóng nhẹ', { translateY: 0, scale: 1.04, boxShadow: 'none' }],
+        ['Nổi bóng', { translateY: -4, scale: 1, boxShadow: '0px 12px 24px 0px rgba(0,0,0,0.2)' }],
+      ] as const).map(([label, patch]) => <button type="button" key={label} onClick={() => onChange(writeElementState(writeElementState(props, 'normal', device, { transitionMs: 220 }), 'hover', device, patch), 'preset')} style={{ padding: '6px 8px', border: '1px solid #dce3df', borderRadius: 6, background: '#fff', font: 'inherit', fontSize: 11, cursor: 'pointer' }}>{label}</button>)}
+    </div>}
     <details open={selected !== 'normal'}><summary>Thiết kế trạng thái</summary><StateStyleEditor style={readElementState(props, selected, device)} onChange={(patch) => onChange(writeElementState(props, selected, device, patch), Object.keys(patch).join(','))} /></details>
     <button type="button" className="cv-state-clear" onClick={() => onChange(writeElementState(props, selected, device, Object.fromEntries(KEYS.map((key) => [key, undefined]))), 'reset')}><RotateCcw size={14} />Xóa ghi đè {DEVICES[device]}</button>
   </div>

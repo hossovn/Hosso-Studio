@@ -41,7 +41,7 @@ function droppedElement(payload: string, config?: any): FreeElement | undefined 
   if (payload.startsWith('hosso-library:')) return LIBRARY.flatMap((group) => group.items.map((item) => ({ key: group.title + '/' + item.label, create: item.make }))).find((item) => item.key === payload.slice(14))?.create()
   if (!payload.startsWith('hosso-widget:')) return
   const type = payload.slice(13)
-  return ['text', 'button', 'container', 'image', 'swiper', 'video', 'accordion'].includes(type) ? makeElement(type as FreeType) : undefined
+  return ['text', 'button', 'container', 'image', 'comparison', 'number', 'swiper', 'video', 'accordion'].includes(type) ? makeElement(type as FreeType) : undefined
 }
 function droppedSection(payload: string, siteCtx: SiteCtx): Block | undefined {
   if (!payload.startsWith('hosso-section:')) return
