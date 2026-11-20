@@ -8,6 +8,8 @@ assert.ok(process.env.COMMERCE_TEST_DATABASE_URL, 'Use a disposable PostgreSQL i
 const require = createRequire(new URL('../apps/studio/package.json', import.meta.url))
 const pgRequire = createRequire(require.resolve('@payloadcms/db-postgres'))
 const { Pool, Client } = pgRequire('pg'), { generateMigration } = pgRequire('drizzle-kit/api'), { PgDialect } = pgRequire('drizzle-orm/pg-core')
+const { drizzle } = pgRequire('drizzle-orm/node-postgres')
+const { tsImport } = require('tsx/esm/api')
 const { sql } = await import(pathToFileURL(require.resolve('@payloadcms/db-postgres')).href)
 const before = JSON.parse(await readFile(new URL('../apps/studio/src/migrations/20261101_180000_order_workflow.json', import.meta.url)))
 const after = JSON.parse(await readFile(new URL('../apps/studio/src/migrations/20261102_040000_partner_connections.json', import.meta.url)))
@@ -29,10 +31,21 @@ try {
   assert.equal(norm(ddl.join('\n')), norm((await generateMigration(before, after)).join('\n')))
   assert.doesNotMatch(ddl.join('\n'), /DROP\s+(TABLE|COLUMN|TYPE)|TRUNCATE|DELETE\s+FROM/i)
   await db.query('BEGIN'); for (const statement of ddl) await db.query(statement); await db.query('COMMIT')
+  // Current plugins must run against the complete upgrade, not the historical
+  // partner snapshot. Later Shop collections also add document-lock relations.
+  const { migrations } = await tsImport('../apps/studio/src/migrations/index.ts', {
+    parentURL: import.meta.url, tsconfig: fileURLToPath(new URL('../apps/studio/tsconfig.json', import.meta.url)),
+  })
+  const partnerIndex = migrations.findIndex(migration => migration.name === '20261102_040000_partner_connections')
+  assert.ok(partnerIndex >= 0, 'Partner connection migration must remain registered')
+  const migrationDb = drizzle(db)
+  for (const migration of migrations.slice(partnerIndex + 1)) {
+    await migrationDb.transaction(transaction => migration.up({ db: transaction }))
+  }
   const result = spawnSync(process.execPath, [fileURLToPath(new URL('./test-partner-connections.mjs', import.meta.url))], { env: { ...process.env, PARTNER_TEST_DATABASE_URL: url.toString() }, stdio: 'inherit', timeout: 120000 })
   assert.equal(result.status, 0, 'Full partner integration tests must pass on upgraded PostgreSQL')
   await assert.rejects(mod.exports.down({}), /forward-only/)
-  console.log('PASS additive PostgreSQL schema upgrade plus real partner migration and credential/permission integration tests')
+  console.log('PASS additive partner migration, registered PostgreSQL upgrade chain and current credential/permission integration tests')
 } finally {
   // Client.end waits for the socket to close; Pool.end can resolve before it does.
   // A normal DROP also catches leaked connections instead of terminating them.
