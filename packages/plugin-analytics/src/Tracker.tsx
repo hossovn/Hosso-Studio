@@ -1,6 +1,7 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import { CONSENT_KEY, currentAttribution, currentExperiments, privacySignal, readConsent, type Consent } from '../../blocks/src/attribution'
+import { ConsentDialog, OPEN_CONSENT_EVENT } from './ConsentDialog'
 
 type W = Window & { dataLayer?: unknown[]; gtag?: (...args: any[]) => void; fbq?: any; _fbq?: any; [key: `ga-disable-${string}`]: boolean }
 const NAMES = ['page_view', 'cta_click', 'form_start', 'form_submit', 'view_item', 'add_to_cart', 'begin_checkout', 'order_placed', 'purchase', 'experiment_view']
@@ -12,8 +13,13 @@ export function Tracker() {
     const sync = () => { setConsent(readConsent()); setOpen(!readConsent()) }
     sync(); setReady(!/^\/(admin|editor)(\/|$)/.test(location.pathname))
     const storage = (event: StorageEvent) => { if (!event.key || event.key === CONSENT_KEY) sync() }
+    const reopen = () => setOpen(true)
     window.addEventListener('storage', storage)
-    return () => window.removeEventListener('storage', storage)
+    window.addEventListener(OPEN_CONSENT_EVENT, reopen)
+    return () => {
+      window.removeEventListener('storage', storage)
+      window.removeEventListener(OPEN_CONSENT_EVENT, reopen)
+    }
   }, [])
   const choose = (value: Consent) => {
     try { localStorage.setItem(CONSENT_KEY, JSON.stringify(value)) } catch {}
@@ -83,7 +89,5 @@ export function Tracker() {
     }
   }, [consent, ready])
   if (!ready) return null
-  return <div style={{ position: 'fixed', bottom: 12, left: 12, zIndex: 9990, font: '14px/1.5 system-ui', color: '#17251e', maxWidth: 'calc(100vw - 24px)' }}>
-    {open ? <section role="region" aria-label="Tùy chọn quyền riêng tư" style={{ background: '#fff', border: '1px solid #ccd8d0', borderRadius: 10, padding: 20, maxWidth: 420, boxShadow: '0 4px 24px #0002' }}><strong>Tùy chọn quyền riêng tư</strong><p>Cho phép đo lường để cải thiện website và quảng cáo phù hợp. Bạn có thể thay đổi lựa chọn bất kỳ lúc nào.</p><div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}><button type="button" style={{ padding: 10 }} onClick={() => choose({ analytics: false, marketing: false })}>Chỉ cần thiết</button><button type="button" style={{ padding: 10 }} onClick={() => choose({ analytics: true, marketing: false })}>Cho phép đo lường</button><button type="button" style={{ padding: 10 }} onClick={() => choose({ analytics: true, marketing: true })}>Cho phép tất cả</button></div></section> : <button type="button" onClick={() => setOpen(true)} style={{ background: '#fff', color: '#17251e', border: '1px solid #ccd8d0', borderRadius: 6, padding: '8px 12px', minHeight: 44 }}>Quyền riêng tư</button>}
-  </div>
+  return <ConsentDialog open={open} consent={consent} onChoose={choose} onClose={() => setOpen(false)} />
 }

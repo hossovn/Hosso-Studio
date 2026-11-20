@@ -8,12 +8,14 @@ export default function KilnSSOPage() {
   useEffect(() => {
     if (started.current) return
     started.current = true
-    const code = new URLSearchParams(window.location.hash.slice(1)).get('code') ?? ''
+    const params = new URLSearchParams(window.location.hash.slice(1))
+    const code = params.get('code') ?? ''
+    const page_id = params.get('page') ?? undefined
     window.history.replaceState(null, '', window.location.pathname)
     void fetch('/api/site/sso-code', {
       method: 'POST', credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-      body: JSON.stringify({ code }),
+      body: JSON.stringify({ code, page_id }),
     }).then(async (res) => {
       const body = await res.json()
       if (!res.ok || typeof body.redirect !== 'string' || !/^\/editor\/[a-zA-Z0-9-]+$/.test(body.redirect)) throw new Error()

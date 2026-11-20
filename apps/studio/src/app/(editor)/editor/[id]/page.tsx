@@ -13,6 +13,7 @@ import { fontClassNames } from '@/lib/fonts'
 import { getPayloadSiteLocales, isLocale } from '@/lib/locale'
 import { href, loadSite } from '@/lib/site'
 import { Editor } from './Editor'
+import { activeManagedPlugins } from '@/lib/kiln-plugins'
 
 export const dynamic = 'force-dynamic'
 export async function generateMetadata() {
@@ -44,6 +45,7 @@ export default async function EditorPage({ params, searchParams }: { params: Pro
   const site = await loadSite(locale, true)
   const lang = adminLang((await cookies()).get('payload-lng')?.value)
   const common = {
+    allowedPluginIDs: (await activeManagedPlugins()).map(p => p.id),
     userKey: String(user.id),
     lang,
     themeName: site.theme.manifest.name,

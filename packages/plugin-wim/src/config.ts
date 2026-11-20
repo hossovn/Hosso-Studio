@@ -1,4 +1,5 @@
 import type { Payload } from 'payload'
+import { requireManagedPlugin } from '@hosso/studio-blocks'
 import { decryptSecret, isEncrypted } from './crypto'
 
 export type WimConfig = {
@@ -28,6 +29,7 @@ const num = (v: unknown, fallback: number) => (Number.isFinite(Number(v)) && Num
  * Trả null khi chưa đủ địa chỉ và khóa API.
  */
 export async function getWimConfig(payload: Payload): Promise<WimConfig | null> {
+  await requireManagedPlugin('wim')
   const memo = g.__hossoWimCfg
   if (memo && Date.now() - memo.at < MEMO_MS) return memo.value
 

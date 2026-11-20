@@ -2,7 +2,7 @@ import type { Endpoint } from 'payload'
 import { getFieldsToSign, jwtSign } from 'payload'
 
 import hosso from '@hosso-config'
-import { randomBytes, randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 import fs from 'fs'
 
 import pkg from '../../package.json'
@@ -10,6 +10,8 @@ import { hasRole } from './access'
 import { serviceTokenOk, verifySsoToken } from './kiln-auth'
 import { getPayloadSiteLocales } from './locale'
 import { exchangeKilnCode } from './kiln-code'
+import { kilnIdentity, kilnPageID } from './kiln-identity'
+import { resolveKilnPage } from './kiln-editor'
 
 /** POST /api/site/sso-code: consume Kiln's one-use code on the server. */
 export const ssoCodeLogin: Endpoint = {
@@ -27,29 +29,14 @@ export const ssoCodeLogin: Endpoint = {
       return Response.json({ error: 'forbidden' }, { status: 403, headers })
     }
     try {
-      const body = await req.json?.() as { code?: unknown }
+      const body = await req.json?.() as { code?: unknown; page_id?: unknown }
+      if (body?.page_id !== undefined && (typeof body.page_id !== 'string' || !kilnPageID.test(body.page_id))) return Response.json({ error: 'invalid_page' }, { status: 400, headers })
       const identity = await exchangeKilnCode(typeof body?.code === 'string' ? body.code : '', {
         kilnURL, publicURL, tenant, allowHTTP: process.env.HOSSO_KILN_ALLOW_INSECURE_HTTP === 'true',
       })
-      // Stable identity mapping never matches an unrelated local admin by email.
-      const email = `${identity.user_id.toLowerCase()}@kiln.invalid`
-      const find = () => req.payload.find({ collection: 'users', where: { email: { equals: email } }, limit: 1, depth: 0, overrideAccess: true })
-      let user = (await find()).docs[0]
-      if (!user) {
-        try {
-          user = await req.payload.create({ collection: 'users', overrideAccess: true,
-            data: { email, password: randomBytes(48).toString('base64url'), roles: ['admin'] },
-          })
-        } catch (err) {
-          // A simultaneous exchange may have created the same unique identity.
-          user = (await find()).docs[0]
-          if (!user) throw err
-        }
-      }
-      if (user.twoFactorEnabled || !hasRole(user, 'admin')) return Response.json({ error: 'local_login_required' }, { status: 403, headers })
-      const pages = await req.payload.find({ collection: 'pages', limit: 1, sort: 'createdAt', depth: 0, overrideAccess: true, draft: true })
-      let page = pages.docs[0]
-      if (!page) page = await req.payload.create({ collection: 'pages', overrideAccess: true, data: { title: 'Trang chủ', slug: 'home', _status: 'draft', content: { content: [], root: { props: {} } } } })
+      const user = await kilnIdentity(req, identity.user_id)
+      req.user = { ...user, collection: 'users' }
+      const page = await resolveKilnPage(req, body.page_id)
       const config = req.payload.collections.users.config
       const tokenExpiration = (config.auth as { tokenExpiration: number }).tokenExpiration
       const now = new Date(), sid = randomUUID()

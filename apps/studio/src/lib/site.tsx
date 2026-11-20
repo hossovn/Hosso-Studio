@@ -19,6 +19,7 @@ import { getPayload } from 'payload'
 import { cache } from 'react'
 
 import { coreLoaders } from './core-loaders'
+import { activeManagedPlugins } from './kiln-plugins'
 import { ogLocaleFor, resolveSiteLocales, resolveSwitcherStyle, type LocaleSwitcherStyle, type SiteLocaleItem } from './locales-catalog'
 
 export type FloatingSupportConfig = {
@@ -134,8 +135,10 @@ export const loadSite = cache(async (locale: string = defaultLocale, editorDraft
   }
 })
 
-export const renderConfig = (theme: Theme) =>
-  buildPuckConfig({ schemas: allBlocks(), theme, plugins: hosso.plugins, mode: 'render' })
+export const renderConfig = async (theme: Theme) => {
+  const plugins = await activeManagedPlugins()
+  return buildPuckConfig({ schemas: [...coreBlocks, ...plugins.flatMap(p => p.blocks ?? [])], theme, plugins, mode: 'render' })
+}
 
 export { FONTS }
 

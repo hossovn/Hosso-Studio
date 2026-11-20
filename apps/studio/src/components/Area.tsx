@@ -22,7 +22,7 @@ export async function Area({ name, locale }: { name: AreaName; locale: string })
   const raw = await loadArea(name, locale)
   if (!raw) return null
   const { theme } = await loadSite(locale)
-  const puckConfig = renderConfig(theme)
+  const puckConfig = await renderConfig(theme)
   let data = stripUnknown(raw, puckConfig)
   data = await expandReusable(data, locale)
   data = await attachBlockData(data, {}, locale)

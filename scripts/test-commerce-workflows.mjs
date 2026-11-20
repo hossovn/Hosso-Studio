@@ -27,6 +27,7 @@ let config = { telemetry: false, secret: 'commerce-test-only-secret-32-character
 for (const plugin of plugins) if (plugin.payload) config = plugin.payload(config)
 config.jobs.autoRun = []
 const payload = await getPayload({ config: buildConfig(config), key: schemaName })
+const recovery = await load('../packages/plugin-shop/src/endpoints.ts')
 const create = (collection, data) => payload.create({ collection, data, overrideAccess: true })
 const rows = async (collection, where = {}) => (await payload.find({ collection, where, limit: 1000, depth: 0, overrideAccess: true })).docs
 const request = (cookie = '', input) => createLocalReq({ req: { url: 'http://commerce.test/api/plugins/affiliate/manage', headers: new Headers({ cookie, origin: 'http://commerce.test' }), json: async () => input } }, payload)
@@ -35,6 +36,22 @@ const call = async (path, data, cookie = '') => {
   const route = payload.config.endpoints.find((e) => e.path === path.split('?')[0])
   const response = await route.handler(req)
   return { status: response.status, data: await response.json() }
+}
+const approveAndRecover = async orderNo => {
+  const order=(await rows('shop-orders',{orderNo:{equals:orderNo}}))[0]
+  assert.equal(order.approvalState,'awaiting')
+  assert.equal(order.checkoutComplete,false)
+  const req=await request('',{id:order.id,action:'confirm',version:order.operationsVersion||0})
+  req.url='http://commerce.test/api/plugins/shop/manage-order'
+  req.user={id:'fixture-admin',roles:['admin']}
+  const endpoint=payload.config.endpoints.find(e=>e.path==='/plugins/shop/manage-order'&&e.method==='post')
+  const response=await endpoint.handler(req)
+  assert.equal(response.status,200,await response.text())
+  await recovery.recoverOrders(await request())
+  const ready=(await rows('shop-orders',{id:{equals:order.id}}))[0]
+  assert.equal(ready.workflowState,'ready',JSON.stringify({state:ready.workflowState,issue:ready.processingIssue}))
+  assert.equal(ready.checkoutComplete,true)
+  return ready
 }
 let checks = 0
 const pass = (s) => { checks++; console.log('PASS', s) }
@@ -75,6 +92,8 @@ try {
   assert.equal(placed.status, 200, JSON.stringify(placed.data))
   const retry = await call('/plugins/affiliate/assisted-checkout', { ...input, quoteKey: quoted.data.quoteKey }, affCookie)
   assert.equal(retry.data.order.id, placed.data.order.id)
+  assert.equal((await rows('customer-orders')).length,0,'unapproved order emitted placement effects')
+  await approveAndRecover(placed.data.order.id)
   assert.equal((await rows('customer-orders'))[0].customer, customer.id)
   assert.equal((await rows('customer-orders')).length, 1)
   assert.equal((await call('/plugins/affiliate/assisted-checkout', { ...input, quoteKey: quoted.data.quoteKey }, otherCookie)).status, 409)
@@ -89,7 +108,8 @@ try {
   assert.equal(mixedQuote.data.adjustments.reduce((s, a) => s + a.amount, 0), 60000)
   assert.equal(mixedQuote.data.shipments.reduce((s, g) => s + g.codAmount, 0), mixedQuote.data.total)
   const mixedPlaced = await call('/plugins/shop/checkout', { ...mixed, quoteKey: mixedQuote.data.quoteKey })
-  assert.equal(mixedPlaced.status, 200, JSON.stringify(mixedPlaced.data))
+  assert.equal(mixedPlaced.status, 202, JSON.stringify(mixedPlaced.data))
+  await approveAndRecover(mixedPlaced.data.order.id)
   assert.equal((await rows('shipments', { orderId: { equals: mixedPlaced.data.order.id } })).length, 2)
   const lookup = await call('/plugins/shop/order?id=' + mixedPlaced.data.order.id, undefined)
   assert.equal(lookup.status, 404)
@@ -98,9 +118,11 @@ try {
   const looked = await (await lookupEndpoint.handler(req)).json()
   assert.equal(looked.order.shipments.length, 2); assert.equal(looked.extras.shipments.length, 2)
   assert.ok(!JSON.stringify(looked).includes('checkoutKey'))
-  const tracking = await call(`/plugins/shipping/track?orderId=${mixedPlaced.data.order.id}&phone4=0001`)
+  const tracking = await call(`/plugins/shipping/track?orderId=${mixedPlaced.data.order.id}&token=${mixedPlaced.data.lookupToken}`)
+  assert.equal(tracking.status,200,JSON.stringify(tracking.data))
   assert.equal(tracking.data.shipments.length, 2)
   assert.equal((await call(`/plugins/shipping/track?orderId=${mixedPlaced.data.order.id}&phone4=9999`)).status, 404)
+  assert.equal((await call(`/plugins/shipping/track?orderId=${mixedPlaced.data.order.id}&token=${'0'.repeat(64)}`)).status, 404)
   await payload.updateGlobal({ slug: 'shipping-settings', data: { feeMode: 'order' }, overrideAccess: true })
   assert.equal((await call('/plugins/shop/quote', mixed)).data.adjustments.reduce((s, a) => s + a.amount, 0), 35000)
   pass('shipment fee scopes, COD and private order projection preserve one total across two delivery groups')

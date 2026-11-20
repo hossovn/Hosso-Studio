@@ -1,4 +1,5 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
+import { kilnPaymentReceipts } from './lib/kiln-payment-receipts'
 import { sqliteAdapter } from '@payloadcms/db-sqlite'
 import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
 import nodemailer from 'nodemailer'
@@ -40,6 +41,9 @@ import { backupCreate, backupDownload, commentSubmit, editLock, formExport, form
 import { chatInbox, chatPoll, chatReply, chatSend, chatStart, chatStatus } from './lib/live-chat'
 import { getPayloadLocalizationLocales } from './lib/locales-catalog'
 import { siteStatus, ssoLogin, ssoCodeLogin } from './lib/kiln'
+import { kilnPages } from './lib/kiln-pages'
+import { ManagedPluginState, kilnPlugins, initializeManagedPlugins } from './lib/kiln-plugins'
+import { kilnPluginSettings } from './lib/kiln-plugin-settings'
 import { Users } from './collections/Users'
 import { ensureAdmin, seedIfEmpty } from './lib/seed'
 import { translateConfig } from './lib/translate-config'
@@ -102,7 +106,7 @@ const base: Config = {
   i18n: { supportedLanguages: { vi, en }, fallbackLanguage: 'vi' },
   // Hàng đợi tác vụ: chạy mỗi phút để xuất bản/hủy xuất bản theo lịch đặt trong trang và bài viết.
   jobs: { autoRun: [{ cron: '* * * * *', limit: isPostgres ? 10 : 1, queue: 'default' }], tasks: [formDeliveryTask] },
-  collections: [Pages, Posts, ContentEntries, ContentTypes, PostCategories, PostTags, Comments, Forms, FormSubmissions, FormDeliveries, ReusableBlocks, Media, ContactMessages, ChatSessions, Bookings, Redirects, EditLocks, EditorReviews, SiteReleases, Users],
+  collections: [ManagedPluginState, Pages, Posts, ContentEntries, ContentTypes, PostCategories, PostTags, Comments, Forms, FormSubmissions, FormDeliveries, ReusableBlocks, Media, ContactMessages, ChatSessions, Bookings, Redirects, EditLocks, EditorReviews, SiteReleases, Users],
   globals: [SiteSettings, SiteAreas],
   // Ngôn ngữ nội dung: ngôn ngữ đầu tiên trong hosso.config.ts là mặc định; thiếu bản dịch thì dùng ngôn ngữ mặc định.
   localization: { locales: getPayloadLocalizationLocales(hosso.locales), defaultLocale: hosso.locales[0].code, fallback: true },
@@ -117,6 +121,10 @@ const base: Config = {
       }),
   // Health check cho Docker/dịch vụ deploy: GET /api/health
   endpoints: [
+    ...kilnPages,
+    ...kilnPlugins,
+    ...kilnPluginSettings,
+    ...kilnPaymentReceipts,
     cmsList, cmsMutate, cmsSearch, cmsUsage, cmsCreateArticle,
     cmsTypes, cmsImport, cmsImportFile,
     formSubmit,
@@ -157,11 +165,12 @@ const base: Config = {
     },
   ],
   onInit: async (payload) => {
+    await initializeManagedPlugins(payload)
     if (process.env.HOSSO_TENANT && (!process.env.HOSSO_ADMIN_EMAIL || !process.env.HOSSO_ADMIN_PASSWORD || process.env.HOSSO_ADMIN_PASSWORD.length < 32)) {
       throw new Error('Managed Studio requires a private bootstrap admin with a strong password')
     }
     await ensureAdmin(payload)
-    if (process.env.HOSSO_SEED !== 'false') await seedIfEmpty(payload)
+    if (process.env.HOSSO_SEED !== 'false' && process.env.HOSSO_PLUGIN_AUTHORITY !== 'kiln') await seedIfEmpty(payload)
   },
 }
 

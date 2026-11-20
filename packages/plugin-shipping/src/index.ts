@@ -191,7 +191,8 @@ const endpoints: Endpoint[] = [
     path: '/plugins/shipping/ghn/webhook',
     method: 'post',
     handler: async (req) => {
-      const key = process.env.HOSSO_GHN_WEBHOOK_KEY?.trim()
+      const { isManagedPlugins, managedPluginSecrets } = await import('@hosso/studio-blocks')
+      const key = isManagedPlugins() ? (await managedPluginSecrets('shipping')).ghnWebhookKey : process.env.HOSSO_GHN_WEBHOOK_KEY?.trim()
       if (!key) return Response.json({ ok: false }, { status: 503 })
       const supplied = req.headers.get('x-hosso-webhook-key') || new URL(req.url!).searchParams.get('key') || ''
       if (!timingSafeEqual(createHash('sha256').update(supplied).digest(), createHash('sha256').update(key).digest())) return Response.json({ ok: false }, { status: 401 })

@@ -26,6 +26,7 @@ type Kind = 'pages' | 'posts' | 'reusable-blocks' | 'area'
 const Puck = dynamic(() => import('@puckeditor/core').then((m) => m.Puck), { ssr: false })
 
 type Props = {
+  allowedPluginIDs?: string[]
   collection: Kind
   userKey?: string
   revision?: string
@@ -344,10 +345,11 @@ const BRAND_CSS = `
 `
 
 export function Editor(props: Props) {
+  const activePlugins = useMemo(() => hosso.plugins.filter(p => props.allowedPluginIDs === undefined || props.allowedPluginIDs.includes(p.id)), [props.allowedPluginIDs])
   const canvasMode = props.mode !== 'puck'
   const [previewContext, setPreviewContext] = useState<EditorPreview>({ products: { shop: '', wim: '' }, account: 'guest' })
   const [previewOpen, setPreviewOpen] = useState(false)
-  const previewSources = hosso.plugins.map((p) => p.id).filter((id): id is 'shop' | 'wim' => id === 'shop' || id === 'wim')
+  const previewSources = activePlugins.map((p) => p.id).filter((id): id is 'shop' | 'wim' => id === 'shop' || id === 'wim')
   const previewControls = <EditorPreviewControls value={previewContext} onChange={setPreviewContext} open={previewOpen} onOpenChange={setPreviewOpen} sources={previewSources} locale={props.locale} lang={props.lang} />
   const T = useMemo(() => makeT(props.lang), [props.lang])
   setLocale(props.locale, props.defaultLocale) // chuỗi giao diện trong khung xem trước theo ngôn ngữ đang chỉnh
@@ -513,12 +515,12 @@ export function Editor(props: Props) {
   }, [props.fontClass])
 
   const theme = hosso.themes.find((t) => t.manifest.name === props.themeName) ?? hosso.themes[0]
-  const schemas = useMemo(() => [...coreBlocks, ...hosso.plugins.flatMap((p) => p.blocks ?? [])], [])
+  const schemas = useMemo(() => [...coreBlocks, ...activePlugins.flatMap((p) => p.blocks ?? [])], [activePlugins])
   const config = useMemo(() => {
     const known = new Set(schemas.map((s) => s.type))
     const extraTypes = (props.data?.content ?? []).map((c: { type: string }) => c.type).filter((t: string) => !known.has(t))
-    const built = buildPuckConfig({ schemas, theme, plugins: hosso.plugins, mode: 'editor', extraTypes, label: (vi) => trLabel(props.lang, vi, pluginEn) })
-    const liveTypes = [...CORE_LOADER_TYPES, ...hosso.plugins.flatMap((p) => p.loaderTypes ?? Object.keys(p.loaders ?? {}))]
+    const built = buildPuckConfig({ schemas, theme, plugins: activePlugins, mode: 'editor', extraTypes, label: (vi) => trLabel(props.lang, vi, pluginEn) })
+    const liveTypes = [...CORE_LOADER_TYPES, ...activePlugins.flatMap((p) => p.loaderTypes ?? Object.keys(p.loaders ?? {}))]
     for (const type of liveTypes) {
       const c = built.components[type]
       if (c) c.render = withLiveData(type, c.render, props.locale)
@@ -528,7 +530,7 @@ export function Editor(props: Props) {
     // Khung gốc giống site công khai (class .hs-theme + biến font) để xem trước khớp bản thật.
     const Header = theme.layout?.Header
     const Footer = theme.layout?.Footer
-    const slots = hosso.plugins.map((p, i) => (p.headerSlot ? React.createElement(p.headerSlot, { key: i }) : null)).filter(Boolean)
+    const slots = activePlugins.map((p, i) => (p.headerSlot ? React.createElement(p.headerSlot, { key: i }) : null)).filter(Boolean)
     const selfHref = editorUrl(props.id, props.collection, props.locale, props.defaultLocale)
     const fromHref = props.collection === 'area' ? props.from ?? '' : selfHref
     const areaHref = (name: string) => `/editor/${name}?c=area${props.locale !== props.defaultLocale ? `&locale=${props.locale}` : ''}${fromHref ? `&from=${encodeURIComponent(fromHref)}` : ''}`
@@ -576,7 +578,7 @@ export function Editor(props: Props) {
         ),
       },
     }
-  }, [schemas, theme, props.lang, props.data, props.fontClass, props.chrome, props.locale, props.defaultLocale, props.chromeAreas, props.from])
+  }, [schemas, activePlugins, theme, props.lang, props.data, props.fontClass, props.chrome, props.locale, props.defaultLocale, props.chromeAreas, props.from])
 
   const plugins = useMemo(
     () => buildBlockPlugins(Object.keys((config as any).components), (type) => String((config as any).components[type]?.label ?? type), T, props.lang),

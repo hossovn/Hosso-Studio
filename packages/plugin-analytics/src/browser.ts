@@ -1,6 +1,6 @@
 import type { HossoPlugin, PluginManifest } from '@hosso/studio-blocks';
 import manifest from '../hosso.json';
-import { Tracker } from './Tracker';
+import { ConsentFooter } from './ConsentFooter';
 import { Experiment } from './Experiment';
 import { experimentBlock } from './experiment-schema';
 
@@ -10,7 +10,7 @@ import { experimentBlock } from './experiment-schema';
 const plugin: HossoPlugin = {
 id: 'analytics',
 manifest: { ...manifest, commercial: true } as PluginManifest,
-headerSlot: Tracker,
+footerSlot: ConsentFooter,
 blocks: [experimentBlock],
 fallbackRenderers: { AnalyticsExperiment: Experiment as any },
 adminEn: { 'Tiếp thị': 'Marketing' },

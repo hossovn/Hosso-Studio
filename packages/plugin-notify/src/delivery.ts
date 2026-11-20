@@ -1,4 +1,5 @@
 import type { Payload, PayloadRequest } from 'payload'
+import { isManagedPlugins, sendManagedEmail } from '@hosso/studio-blocks'
 import { renderOrderEmail, type OrderEmail } from './template'
 
 export const TASK = 'notify-order-email'
@@ -31,5 +32,6 @@ export async function deliverOrderEmail(payload: Payload, input: MailJob, req?: 
   const trackingUrl = `${origin.replace(/\/$/, '')}${en ? '/en' : ''}${route}?${new URLSearchParams({ id: o.orderNo, token: o.lookupToken || '' })}`
   if (input.audience === 'customer' && !/^[a-f0-9]{64}$/.test(o.lookupToken || '')) throw new Error('Private order access code is missing')
   const message = renderOrderEmail({ brand: site?.siteName || 'TCAP', orderNo: o.orderNo, kind: input.kind, audience: input.audience, locale: en ? 'en' : 'vi', status: input.status || (o.checkoutDraft && !o.checkoutComplete && o.status !== 'cancelled' ? 'pending' : o.status), paymentStatus: input.kind === 'paid' ? 'paid' : o.paymentStatus, payment: o.paymentMethod, fulfillment: o.fulfillmentType, customer: { name: o.customerName, phone: o.phone, address: o.address }, items: o.items || [], subtotal: o.subtotal ?? o.total, adjustments: o.adjustments || [], total: o.total, trackingUrl: input.audience === 'owner' ? `${origin}/admin/collections/shop-orders/${o.id}` : trackingUrl, accessCode: input.audience === 'owner' ? '' : o.lookupToken, cancellationReason: o.cancellationReason })
-  await payload.sendEmail({ to, ...message })
+  if (isManagedPlugins()) await sendManagedEmail({ to, ...message })
+  else await payload.sendEmail({ to, ...message })
 }

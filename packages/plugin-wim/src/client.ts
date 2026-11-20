@@ -3,6 +3,7 @@ import type { components } from './api/schema'
 import { cached } from './cache'
 import type { WimConfig } from './config'
 import { fetchExternal } from '@hosso/studio-blocks/server-security'
+import { requireManagedPlugin } from '@hosso/studio-blocks'
 
 export type Product = components['schemas']['Product']
 export type Availability = components['schemas']['Availability']
@@ -30,6 +31,7 @@ type Opts = { query?: Record<string, string | number | undefined>; method?: 'GET
 
 /** Gọi WIM từ server. Trình duyệt không bao giờ gọi trực tiếp. */
 export async function wimFetch<T>(cfg: WimConfig, path: string, opts: Opts = {}): Promise<T> {
+  await requireManagedPlugin('wim')
   const url = new URL(`${cfg.apiUrl.replace(/\/$/, '')}${path}`)
   for (const [k, v] of Object.entries(opts.query ?? {})) if (v !== undefined && v !== '') url.searchParams.set(k, String(v))
 
@@ -62,7 +64,8 @@ const safeJson = (t: string) => {
 const isTransient = (e: unknown) => !(e instanceof WimError) || e.kind !== 'http' || (e.status ?? 500) >= 500
 
 /** GET có cache TTL ngắn; `tags` để webhook làm mới đúng mục. `ttlFactor` cho dữ liệu ít đổi (xe, danh mục). */
-export function wimGet<T>(cfg: WimConfig, path: string, query: Opts['query'], tags: string[], ttlFactor = 1): Promise<T> {
+export async function wimGet<T>(cfg: WimConfig, path: string, query: Opts['query'], tags: string[], ttlFactor = 1): Promise<T> {
+  await requireManagedPlugin('wim')
   const key = `${cfg.apiUrl}${path}?${new URLSearchParams(Object.entries(query ?? {}).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => [k, String(v)])).toString()}`
   return cached(key, cfg.cacheTtl * ttlFactor, tags, () => wimFetch<T>(cfg, path, { query }), isTransient)
 }

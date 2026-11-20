@@ -1,4 +1,5 @@
 import type { Payload } from 'payload'
+import { isManagedPlugins, managedPluginSecrets, requireManagedPlugin } from '@hosso/studio-blocks'
 import { createHash } from 'node:crypto'
 
 // Tích hợp Giao Hàng Nhanh (GHN) API v2. Token đọc từ HOSSO_GHN_TOKEN (không lưu trong DB), các cài đặt còn lại ở global `shipping-settings`.
@@ -34,7 +35,7 @@ export async function getGhnConfig(payload: Payload): Promise<GhnConfig | null> 
   const s = (await payload.findGlobal({ slug: 'shipping-settings' as any, depth: 0, overrideAccess: true }).catch(() => null)) as
     | { ghnEnabled?: boolean; ghnSandbox?: boolean; ghnShopId?: number; ghnWeight?: number; ghnRequiredNote?: string }
     | null
-  const token = process.env.HOSSO_GHN_TOKEN?.trim()
+  const token = isManagedPlugins() ? (await managedPluginSecrets('shipping')).ghnToken : process.env.HOSSO_GHN_TOKEN?.trim()
   if (!s?.ghnEnabled || !token || !s.ghnShopId) return null
   return {
     token,
@@ -46,6 +47,7 @@ export async function getGhnConfig(payload: Payload): Promise<GhnConfig | null> 
 }
 
 async function call<T>(cfg: GhnConfig, path: string, body?: unknown, method: 'GET' | 'POST' = 'POST'): Promise<T> {
+  await requireManagedPlugin('shipping')
   const res = await fetch(`${cfg.baseUrl}${path}`, {
     method,
     headers: { Token: cfg.token, ShopId: String(cfg.shopId), 'Content-Type': 'application/json' },

@@ -1,4 +1,5 @@
 import type { HossoPlugin } from './types'
+import { isManagedPlugins, managedPluginAllowed } from './managed-plugins'
 
 // Giấy phép cho plugin thương mại (mã đóng, phân phối riêng). Key là chuỗi đã ký số Ed25519, kiểm tra OFFLINE bằng khóa công khai bên dưới:
 //   HLK1.<payload JSON base64url>.<chữ ký base64url>
@@ -20,6 +21,7 @@ const publicKey = () => (keyPromise ??= crypto.subtle.importKey('raw', b64(PUBLI
 /** Kiểm tra key cho một plugin: chữ ký, hạn dùng, plugin có trong key, tên miền của site. Kết quả được nhớ 5 phút nên hết hạn có hiệu lực ngay trong lúc chạy. */
 const memo = new Map<string, { at: number; r: LicenseResult }>()
 export async function checkLicense(pluginId: string, key: string | undefined = process.env.HOSSO_LICENSE_KEY, now = Date.now()): Promise<LicenseResult> {
+  if (isManagedPlugins()) return { ok: await managedPluginAllowed(pluginId), reason: 'plugin' }
   const hit = memo.get(`${pluginId}|${key}|${process.env.HOSSO_PUBLIC_URL}`)
   if (hit && now - hit.at < 300_000) return hit.r
   const r = await verify(pluginId, key?.trim(), now)
@@ -68,6 +70,7 @@ let warned = false
 
 /** Plugin có được chạy không: có key hợp lệ, hoặc đang chạy dev (không ép giấy phép). */
 export async function licensed(pluginId: string): Promise<boolean> {
+  if (isManagedPlugins()) return managedPluginAllowed(pluginId)
   if ((await checkLicense(pluginId)).ok) return true
   if (enforced()) return false
   if (!warned) {

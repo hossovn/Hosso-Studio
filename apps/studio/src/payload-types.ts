@@ -67,6 +67,7 @@ export interface Config {
   };
   blocks: {};
   collections: {
+    'managed-plugin-state': ManagedPluginState;
     pages: Page;
     posts: Post;
     'content-entries': ContentEntry;
@@ -130,6 +131,7 @@ export interface Config {
   };
   collectionsJoins: {};
   collectionsSelect: {
+    'managed-plugin-state': ManagedPluginStateSelect<false> | ManagedPluginStateSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
     'content-entries': ContentEntriesSelect<false> | ContentEntriesSelect<true>;
@@ -268,6 +270,15 @@ export interface UserAuthOperations {
     email: string;
     password: string;
   };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "managed-plugin-state".
+ */
+export interface ManagedPluginState {
+  id: number;
+  key: string;
+  token: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2310,6 +2321,14 @@ export interface PayloadMigration {
   batch?: number | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "managed-plugin-state_select".
+ */
+export interface ManagedPluginStateSelect<T extends boolean = true> {
+  key?: T;
+  token?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

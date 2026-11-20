@@ -1,6 +1,7 @@
 import type React from 'react'
 import type { ComponentType } from 'react'
 import type { Config, Payload, PayloadRequest } from 'payload'
+import { withManagedPlugins } from './managed-plugin-guard'
 
 /** Field của block: tập con tương thích với field của Puck (slice 2 truyền thẳng vào Puck). */
 export type BlockField =
@@ -188,6 +189,13 @@ export type DescribeOrderEvent = { payload: Payload; order: { id: string; total:
 export type OrderExtras = { payment?: { qrUrl?: string; note?: string }; shipments?: { key: string; status: string; carrier?: string; trackingCode?: string; url?: string }[] }
 
 export type HossoPlugin = {
+  /** Narrow authenticated receipt continuations for pre-existing transactions.
+   * These may retain evidence while disabled, never start new commerce effects. */
+  retainedReceipts?: {
+    endpoints: import('payload').Endpoint[]
+    list: (req: PayloadRequest, before?: number) => Promise<unknown>
+    reconcile: (req: PayloadRequest, id: number) => Promise<unknown>
+  }
   id: string
   /** Source confirmation gates fulfillment/payment; a durable local receipt may precede it. */
   commerce?: {
@@ -220,6 +228,8 @@ export type HossoPlugin = {
   fallbackRenderers?: Record<string, BlockRenderer>
   /** Phần chèn vào header (ví dụ liên kết giỏ hàng); chạy ở trình duyệt. */
   headerSlot?: ComponentType
+  /** Public footer controls rendered after the site's custom or theme footer. */
+  footerSlot?: ComponentType
   /** One background runtime per public layout, independent of header visibility. */
   runtimeSlot?: ComponentType
   /** Mục hiện trong nhóm "Plugin" của sidebar admin. */
@@ -295,7 +305,7 @@ export const selectPlugins = (all: HossoPlugin[], list: string | undefined = pro
 }
 
 /** `plugins` của kết quả là các plugin đang bật; `installedPlugins` là tất cả plugin đã cài (kể cả đang tắt). */
-export const defineHossoConfig = (config: HossoConfig) => ({ ...config, installedPlugins: config.plugins, plugins: selectPlugins(config.plugins) })
+export const defineHossoConfig = (config: HossoConfig) => ({ ...config, installedPlugins: config.plugins.map(withManagedPlugins), plugins: selectPlugins(config.plugins).map(withManagedPlugins) })
 
 /** Dữ liệu trang theo định dạng của Puck. */
 export type PageData = {

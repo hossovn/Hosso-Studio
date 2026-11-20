@@ -1,10 +1,10 @@
 import definition from './browser'
-import { orderTotal, licensed, type HossoPlugin, withLicense } from '@hosso/studio-blocks'
+import { orderTotal, licensed, isManagedPlugins, managedPluginSecrets, retainedPaymentCredentials, type HossoPlugin, withLicense } from '@hosso/studio-blocks'
 import type { CollectionConfig, Config, Endpoint, GlobalConfig, Payload } from 'payload'
 
 import { withCommerceEvents } from '@hosso/studio-blocks/durable-events'
 import { sameSecret } from './security'
-import { allocateUnmatched, receiptOrderNo, recordReceipt, recordRefund, Refunds, Transactions } from './ledger'
+import { allocateUnmatched, receiptOrderNo, recordReceipt, recordRefund, retainReceipt, retainedReceipts, reconcileRetainedReceipt, Refunds, Transactions } from './ledger'
 import { inTransaction } from '@hosso/studio-blocks/transactions'
 
 type Roled = { roles?: string[] | null } | null | undefined
@@ -74,35 +74,42 @@ async function ensurePayment(payload: Payload, order: { id: string; total: numbe
   }
 }
 
+async function receivePayment(req: import('payload').PayloadRequest, retainOnly = false) {
+  const key = isManagedPlugins() ? (await (retainOnly ? retainedPaymentCredentials() : managedPluginSecrets('payment'))).sepayKey : process.env.HOSSO_SEPAY_KEY?.trim()
+  if (!key) return Response.json({ success: false }, { status: 503 })
+  if (!await sameSecret(req.headers.get('authorization') || '', `Apikey ${key}`)) return Response.json({ success: false }, { status: 401 })
+  const b = ((await req.json?.().catch(() => null)) ?? {}) as { id?: number | string; transferType?: string; transferAmount?: number; content?: string; code?: string; accountNumber?: string; currency?: string }
+  if (b.transferType === 'out') return Response.json({ success: true })
+  const cfg = retainOnly ? await req.payload.db.findGlobal({ slug: SETTINGS, req }) as Cfg : await getCfg(req.payload)
+  if (!configured(cfg)) return Response.json({ success: false }, { status: 503 })
+  if (b.transferType !== 'in' || !Number.isSafeInteger(b.transferAmount) || Number(b.transferAmount) <= 0 || !b.id || String(b.id).length > 160 || b.accountNumber !== cfg.accountNumber || (b.currency && b.currency !== 'VND')) return Response.json({ success: false }, { status: 400 })
+  try {
+    const receipt = { provider: 'sepay', reference: String(b.id), amount: Number(b.transferAmount), accountNumber: b.accountNumber, currency: 'VND', orderNo: receiptOrderNo(b.code, b.content) }
+    if (retainOnly) await retainReceipt(req, receipt)
+    else await recordReceipt(req, receipt)
+    return Response.json({ success: true, ...(retainOnly && { held_for_review: true }) })
+  } catch {
+    req.payload.logger.error('[payment] Receipt could not commit; provider must retry')
+    return Response.json({ success: false }, { status: 503 })
+  }
+}
 const endpoints: Endpoint[] = [
   {
     // Webhook SePay: header "Authorization: Apikey <HOSSO_SEPAY_KEY>". Đăng ký URL /api/plugins/payment/sepay/webhook với SePay.
     path: '/plugins/payment/sepay/webhook',
     method: 'post',
-    handler: async (req) => {
-      const key = process.env.HOSSO_SEPAY_KEY?.trim()
-      if (!key) return Response.json({ success: false }, { status: 503 })
-      if (!await sameSecret(req.headers.get('authorization') || '', `Apikey ${key}`)) return Response.json({ success: false }, { status: 401 })
-      const b = ((await req.json?.().catch(() => null)) ?? {}) as { id?: number | string; transferType?: string; transferAmount?: number; content?: string; code?: string; referenceCode?: string; accountNumber?: string; currency?: string }
-      if (b.transferType === 'out') return Response.json({ success: true })
-      const cfg = await getCfg(req.payload)
-      if (!configured(cfg)) return Response.json({ success: false }, { status: 503 })
-      if (b.transferType !== 'in' || !Number.isSafeInteger(b.transferAmount) || Number(b.transferAmount) <= 0 || !b.id || b.accountNumber !== cfg.accountNumber || (b.currency && b.currency !== 'VND')) return Response.json({ success: false }, { status: 400 })
-      try {
-        await recordReceipt(req, { provider: 'sepay', reference: String(b.id), amount: Number(b.transferAmount), accountNumber: b.accountNumber, currency: 'VND', orderNo: receiptOrderNo(b.code, b.content) })
-        return Response.json({ success: true })
-      } catch {
-        req.payload.logger.error('[payment] Receipt could not commit; provider must retry')
-        return Response.json({ success: false }, { status: 503 })
-      }
-    },
+    handler: req => receivePayment(req),
   },
 ]
 
 /** Plugin thanh toán chuyển khoản: QR VietQR cho khách và tự xác nhận khi tiền về. Dùng `onOrderPaid` để plugin bán hàng đánh dấu đơn đã thanh toán. */
 const plugin: HossoPlugin = {
   ...definition,
-
+  retainedReceipts: {
+    endpoints: [{ path: '/plugins/payment/sepay/webhook', method: 'post', handler: req => receivePayment(req, true) }],
+    list: retainedReceipts,
+    reconcile: reconcileRetainedReceipt,
+  },
   commerce: {
     recordRefund,
     revisePayment: async (req, orderNo, total) => inTransaction(req, async () => {

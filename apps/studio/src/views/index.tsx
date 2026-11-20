@@ -64,7 +64,7 @@ const alternates = (path: string, locale: string, activeLocales: readonly { code
 /** Nội dung Puck → trang: bỏ block không biết, thay khối dùng lại, chạy loader, rồi Render. */
 async function Content({ content, locale, sp, entry }: { content: unknown; locale: string; sp: SP; entry?: RepeatItem }) {
   const { theme } = await loadSite(locale)
-  const puckConfig = renderConfig(theme)
+  const puckConfig = await renderConfig(theme)
   let data = stripUnknown((content ?? { content: [], root: { props: {} } }) as PageData, puckConfig)
   data = await expandReusable(data, locale)
   if (entry) data = bindPageContent(data, entry)

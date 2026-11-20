@@ -1,5 +1,5 @@
 import type { CollectionConfig, Payload, PayloadRequest } from 'payload'
-import { emitOrderPaid } from '@hosso/studio-blocks'
+import { emitOrderPaid, requireManagedPlugin } from '@hosso/studio-blocks'
 import { inTransaction } from '@hosso/studio-blocks/transactions'
 
 export const TRANSACTIONS = 'payment-transactions'
@@ -56,13 +56,51 @@ export const Transactions: CollectionConfig = {
 }
 
 type Receipt = { provider: string; reference: string; amount: number; currency?: string; accountNumber?: string; orderNo?: string; actor?: string; reason?: string }
+const receiptHash = async (receipt: Receipt) => {
+  const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify([receipt.provider, receipt.reference, receipt.amount, receipt.currency || 'VND', receipt.accountNumber || '', receipt.orderNo || '']))))
+  return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')
+}
+
+/** A disabled plugin may retain authenticated money evidence for an existing order.
+ * Adapter operations deliberately avoid commerce hooks; no order/payment is updated. */
+export async function retainReceipt(req: PayloadRequest, receipt: Receipt) {
+  if (!Number.isSafeInteger(receipt.amount) || receipt.amount <= 0 || !receipt.reference || receipt.reference.length > 160 || receipt.currency !== 'VND' || !receipt.orderNo) throw new Error('Invalid retained receipt')
+  const key = receipt.provider + ':' + receipt.reference
+  const bodyHash = await receiptHash(receipt)
+  return inTransaction(req, async () => {
+    const existing = await req.payload.db.findOne({ collection: 'shop-orders', where: { orderNo: { equals: receipt.orderNo } }, req })
+    if (!existing) throw new Error('Late receipt requires an existing order')
+    const previous = await req.payload.db.findOne({ collection: TRANSACTIONS, where: { key: { equals: key } }, req }) as any
+    if (previous) {
+      if (previous.bodyHash !== bodyHash) throw new Error('Payment reference reused with different data')
+      return
+    }
+    const now = new Date().toISOString()
+    await req.payload.db.create({ collection: TRANSACTIONS, req, data: { ...receipt, key, bodyHash, state: 'unmatched', actor: 'kiln:held', reason: 'Plugin inactive when receipt arrived', receivedAt: now, createdAt: now, updatedAt: now } })
+  })
+}
+
+export async function retainedReceipts(req: PayloadRequest, before?: number) {
+  const result = await req.payload.db.find({ collection: TRANSACTIONS, req, limit: 50, pagination: true, sort: '-id', where: { and: [{ actor: { equals: 'kiln:held' } }, { state: { equals: 'unmatched' } }, ...(before ? [{ id: { less_than: before } }] : [])] } })
+  return { items: result.docs.map((row: any) => ({ id: row.id, reference: row.reference, order_no: row.orderNo, amount_vnd: row.amount, received_at: row.receivedAt })), next: result.hasNextPage ? result.docs.at(-1)?.id : null }
+}
+
+export async function reconcileRetainedReceipt(req: PayloadRequest, id: number) {
+  await requireManagedPlugin('payment')
+  await requireManagedPlugin('shop')
+  const receipt = await req.payload.db.findOne({ collection: TRANSACTIONS, where: { and: [{ id: { equals: id } }, { actor: { equals: 'kiln:held' } }] }, req }) as Receipt | null
+  if (!receipt) throw new Error('Retained receipt not found')
+  const payment = await req.payload.db.findOne({ collection: 'payments', where: { orderNo: { equals: receipt.orderNo } }, req })
+  if (!payment) throw new Error('Existing payment ledger requires reconciliation')
+  await recordReceipt(req, receipt)
+  return { reconciled: true }
+}
 export async function recordReceipt(req: PayloadRequest, receipt: Receipt) {
   if (!Number.isSafeInteger(receipt.amount) || receipt.amount <= 0 || (receipt.currency && receipt.currency !== 'VND') || !receipt.reference || receipt.reference.length > 160) throw new Error('Invalid payment receipt')
   const { payload } = req
   const key = `${receipt.provider}:${receipt.reference}`
   // The parsed destination is immutable even when its payment row has not arrived yet.
-  const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify([receipt.provider, receipt.reference, receipt.amount, receipt.currency || 'VND', receipt.accountNumber || '', receipt.orderNo || '']))))
-  const bodyHash = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+  const bodyHash = await receiptHash(receipt)
   await inTransaction(req, async () => {
     const order = receipt.orderNo ? (await payload.find({ collection: 'shop-orders' as any, where: { orderNo: { equals: receipt.orderNo } }, limit: 1, depth: 0, overrideAccess: true, req })).docs[0] as any : undefined
     if (order) {

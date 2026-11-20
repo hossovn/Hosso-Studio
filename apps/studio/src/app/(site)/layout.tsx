@@ -1,4 +1,5 @@
 import hosso from '@hosso-config'
+import { activeManagedPlugins } from '@/lib/kiln-plugins'
 import '@hosso/studio-blocks/swiper.css'
 import { LocaleProvider, safeCssColor, t } from '@hosso/studio-blocks'
 import config from '@payload-config'
@@ -71,9 +72,10 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   const Footer = theme.layout?.Footer
   // Header/footer tự dựng trong editor (vùng siteHeader/siteFooter) thay cho của theme khi có nội dung.
   const [customHeader, customFooter] = await Promise.all([loadArea('siteHeader', locale), loadArea('siteFooter', locale)])
+  const managedPlugins = await activeManagedPlugins()
   const slots = [
     siteLocales.length > 1 ? <LanguageSwitcher key="lang" locales={siteLocales} variant={localeSwitcherStyle} /> : null,
-    ...hosso.plugins.map((p, i) => (p.headerSlot ? React.createElement(p.headerSlot, { key: i }) : null)),
+    ...managedPlugins.map((p, i) => (p.headerSlot ? React.createElement(p.headerSlot, { key: i }) : null)),
   ].filter(Boolean)
   const hp = (customHeader?.root?.props ?? {}) as Record<string, unknown>
   const isSticky = Boolean(hp.sticky)
@@ -148,6 +150,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
             ) : (
               Footer && <Footer chrome={chrome} />
             )}
+            {managedPlugins.map((plugin) => plugin.footerSlot ? React.createElement(plugin.footerSlot, { key: plugin.id }) : null)}
             {showContactDock && <ContactFloat contact={chrome.contact} support={floatingSupport} />}
             <Area name="afterFooter" locale={locale} />
           </div>

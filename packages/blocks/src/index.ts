@@ -50,3 +50,4 @@ export {
   projectInteractiveList,
   useInteractiveElements,
 } from './FreeInteractiveScope'
+export { isManagedPlugins, managedPluginSecrets, retainedPaymentCredentials, sendManagedEmail, managedPluginAllowed, requireManagedPlugin } from './managed-plugins'

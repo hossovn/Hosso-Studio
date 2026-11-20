@@ -1,6 +1,6 @@
 import definition from './browser'
-import type { HossoPlugin } from '@hosso/studio-blocks'
-
+import type { HossoPlugin, PluginManifest } from '@hosso/studio-blocks'
+import manifest from '../hosso.json'
 import { loadVehicleSelector } from './loaders'
 import { loadCheckout, loadSharedDetail, loadSharedGrid, loadSharedOrder } from './shared-loaders'
 import { WimError, wimFetch } from './client'
@@ -12,7 +12,7 @@ import { applyPayload } from './payload'
 /** Plugin Hosso WIM: kết nối, block thương mại, cache, webhook. Khai báo trong hosso.config.ts. */
 const plugin: HossoPlugin = {
   ...definition,
-
+  manifest: manifest as PluginManifest,
   commerce,
 
   checklist: async (payload) => [{ label: 'Kết nối Hosso WIM (địa chỉ API và khóa)', done: Boolean(await getWimConfig(payload)), href: '/admin/globals/wim-settings' }],
