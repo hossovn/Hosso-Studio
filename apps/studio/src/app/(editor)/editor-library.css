@@ -22,7 +22,7 @@
 .cv-section-card>strong,.cv-blank-template>strong{font-size:12px;line-height:1.5;font-weight:550}
 .cv-section-art{position:relative;display:grid;align-items:center;min-height:150px;width:100%;overflow:hidden;border:1px solid var(--cv-line);border-radius:var(--cv-radius-card);background:#f0f2f5;transition:outline-color .16s;outline:2px solid transparent;outline-offset:3px}
 .cv-section-art>div{box-shadow:none!important;border-radius:0!important}
-.cv-section-add{position:absolute;right:10px;bottom:10px;display:grid;place-items:center;width:30px;height:30px;background:#fff;color:var(--hosso-brand);border-radius:50%;box-shadow:0 2px 8px #18233326}
+.cv-section-add{position:absolute;z-index:10;right:10px;bottom:10px;display:grid;place-items:center;width:30px;height:30px;background:#fff;color:var(--hosso-brand);border-radius:50%;box-shadow:0 2px 8px #18233326}
 .cv-section-card:hover .cv-section-art,.cv-section-card:focus-visible .cv-section-art{outline-color:var(--hosso-brand)}
 .cv-blank-template>span{display:grid;place-items:center;width:100%;min-height:150px;border:1px dashed #bcc8c1;background:#f9fbfa;border-radius:var(--cv-radius-card);color:var(--hosso-brand)}
 .cv-blank-template>small{margin-top:-7px;color:var(--cv-muted);font-size:11px}

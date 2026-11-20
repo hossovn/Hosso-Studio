@@ -112,7 +112,7 @@ export function StageFrame({
       document.head.querySelectorAll('style, link[rel="stylesheet"]').forEach((n) => d.head.appendChild(n.cloneNode(true)))
       const s = d.createElement('style')
       s.dataset.canvasTheme = 'true'
-      s.textContent = `${css}\nhtml,body{margin:0}\nhtml,*{scrollbar-width:none}::-webkit-scrollbar{display:none}\n${HF_CSS}`
+      s.textContent = `${css}\nhtml,body{margin:0}${expanded ? `\nhtml{padding-top:${window.innerWidth <= 700 ? 106 : 62}px;box-sizing:border-box}` : ''}\nhtml,*{scrollbar-width:none}::-webkit-scrollbar{display:none}\n${HF_CSS}`
       d.head.appendChild(s)
       d.documentElement.className = htmlClass
       d.body.dataset.ready = '1'
@@ -127,8 +127,8 @@ export function StageFrame({
 
   useEffect(() => {
     const style = doc?.querySelector<HTMLStyleElement>('style[data-canvas-theme]')
-    if (style) style.textContent = `${css}\nhtml,body{margin:0}\nhtml,*{scrollbar-width:none}::-webkit-scrollbar{display:none}\n${HF_CSS}`
-  }, [doc, css])
+    if (style) style.textContent = `${css}\nhtml,body{margin:0}${expanded ? `\nhtml{padding-top:${window.innerWidth <= 700 ? 106 : 62}px;box-sizing:border-box}` : ''}\nhtml,*{scrollbar-width:none}::-webkit-scrollbar{display:none}\n${HF_CSS}`
+  }, [doc, css, expanded])
 
   const gutter = expanded ? 0 : 32
   const targetW = typeof width === 'number' ? width : expanded ? containerW : 1200

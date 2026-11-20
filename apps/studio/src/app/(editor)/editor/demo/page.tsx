@@ -1,6 +1,7 @@
 'use client'
 import React, { useState } from 'react'
-import { FreeCanvasView, ScrollStory, type FreeElement } from '@hosso/studio-blocks'
+import hosso from '@hosso-config'
+import { FreeCanvasView, ScrollStory, buildPuckConfig, coreBlocks, type FreeElement } from '@hosso/studio-blocks'
 import { SECTION_TEMPLATES } from '../[id]/SectionTemplates'
 import { CanvasApp } from '../[id]/CanvasApp'
 import type { PageData } from '../[id]/canvas-model'
@@ -29,8 +30,12 @@ const sample: PageData = { root: { props: {} }, content: [
   ] } },
 ] }
 
-const config = { components: { ScrollStory: { label: 'Kể chuyện theo cuộn', render: ScrollStory }, FreeCanvas: { label: 'Section', render: (props: Record<string, any>) => <div id={props.id === 'collections' ? 'collections' : undefined} style={{ background: props._bgHex }}><FreeCanvasView {...props} /></div> } } }
+// Danh sách tính năng lấy từ registry thật (core + plugin) để panel "Tính năng" giống trang thật.
+// Trong canvas demo chỉ hiện khung giữ chỗ, vì các block dữ liệu cần loader và ngữ cảnh của site.
+const registry = buildPuckConfig({ schemas: [...coreBlocks, ...hosso.plugins.flatMap((plugin) => plugin.blocks ?? [])], theme: hosso.themes[0], plugins: hosso.plugins, mode: 'editor' }).components as Record<string, { label?: string }>
+const placeholders = Object.fromEntries(Object.entries(registry).map(([type, block]) => [type, { ...block, render: () => <div style={{ padding: '40px 24px', border: '1.5px dashed #94a3b8', borderRadius: 16, background: '#f8fafc', color: '#475569', font: '600 16px system-ui', textAlign: 'center' }}>{block.label || type} · xem trước demo</div> }]))
+const config = { components: { ...placeholders, ScrollStory: { label: 'Kể chuyện theo cuộn', render: ScrollStory }, FreeCanvas: { label: 'Section', render: (props: Record<string, any>) => <div id={props.id === 'collections' ? 'collections' : undefined} style={{ background: props._bgHex }}><FreeCanvasView {...props} /></div> } } }
 export default function DemoEditor() {
   const [status, setStatus] = useState('Demo')
-  return <CanvasApp config={config} data={sample} onChange={() => setStatus('Demo *')} initialSelection={{ block: 'adventure', el: 'adventure-title' }} css="html,body{font-family:Arial,sans-serif;color:#17251e}*{box-sizing:border-box}a{color:inherit}html{scroll-behavior:smooth}" htmlClass="" menu={null} title="Adventure / Home" backHref="/admin" lang="vi" labelOf={(type) => type === 'FreeCanvas' ? 'Section' : type} actions={<span style={{ color: '#647168', fontSize: 12 }}>{status}</span>} />
+  return <CanvasApp config={config} data={sample} onChange={() => setStatus('Demo *')} initialSelection={{ block: 'adventure', el: 'adventure-title' }} css="html,body{font-family:Arial,sans-serif;color:#17251e}*{box-sizing:border-box}a{color:inherit}html{scroll-behavior:smooth}" htmlClass="" menu={null} title="Adventure / Home" backHref="/admin" lang="vi" labelOf={(type) => type === 'FreeCanvas' ? 'Section' : (config.components as Record<string, { label?: string }>)[type]?.label ?? type} actions={<span style={{ color: '#647168', fontSize: 12 }}>{status}</span>} />
 }

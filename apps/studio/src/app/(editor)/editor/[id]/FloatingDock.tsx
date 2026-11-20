@@ -35,6 +35,7 @@ export function FloatingDock({ children, enabled, title }: { children: React.Rea
   const ref = useRef<HTMLDivElement>(null)
   const drag = useRef<{ x: number; y: number; left: number; top: number } | null>(null)
   const [position, setPosition] = useState({ x: 16, y: 48 })
+  const [dragging, setDragging] = useState(false) // đang kéo: dock thu thành một cục
   const clamp = (x: number, y: number) => {
     const node = ref.current, parent = node?.offsetParent as HTMLElement | null
     return { x: Math.max(8, Math.min(x, (parent?.clientWidth ?? window.innerWidth) - (node?.offsetWidth ?? 48) - 8)), y: Math.max(8, Math.min(y, (parent?.clientHeight ?? window.innerHeight) - Math.min(node?.offsetHeight ?? 300, (parent?.clientHeight ?? window.innerHeight) - 16) - 8)) }
@@ -47,11 +48,19 @@ export function FloatingDock({ children, enabled, title }: { children: React.Rea
     observer.observe(parent); observer.observe(node); resize()
     return () => observer.disconnect()
   }, [enabled])
-  return <div ref={ref} className="cv-floating-dock" data-floating={enabled} style={enabled ? { left: position.x, top: position.y } : undefined}>
+  // Báo vị trí dock cho panel anh em (.cv-panel) để nó mở ngay cạnh dock, kể cả khi dock đã bị kéo đi
+  useEffect(() => {
+    const host = ref.current?.parentElement, node = ref.current
+    if (!enabled || !host || !node) return
+    host.style.setProperty('--dock-x', `${position.x}px`)
+    host.style.setProperty('--dock-w', `${node.offsetWidth}px`)
+    host.dataset.dockSide = position.x + node.offsetWidth / 2 > host.clientWidth / 2 ? 'right' : 'left'
+  }, [enabled, position, dragging])
+  return <div ref={ref} className="cv-floating-dock" data-floating={enabled} data-dragging={dragging} style={enabled ? { left: position.x, top: position.y } : undefined}>
     {enabled && <button type="button" className="cv-dock-grip" aria-label={title} title={`${title} · nhấp đúp để đặt lại`} onDoubleClick={() => setPosition({ x: 16, y: 48 })}
-      onPointerDown={(event) => { if (event.button !== 0) return; event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); drag.current = { x: event.clientX, y: event.clientY, left: position.x, top: position.y } }}
+      onPointerDown={(event) => { if (event.button !== 0) return; event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); drag.current = { x: event.clientX, y: event.clientY, left: position.x, top: position.y }; setDragging(true) }}
       onPointerMove={(event) => { if (drag.current) setPosition(clamp(drag.current.left + event.clientX - drag.current.x, drag.current.top + event.clientY - drag.current.y)) }}
-      onPointerUp={() => { drag.current = null }} onPointerCancel={() => { drag.current = null }} onLostPointerCapture={() => { drag.current = null }}
+      onPointerUp={() => { drag.current = null; setDragging(false) }} onPointerCancel={() => { drag.current = null; setDragging(false) }} onLostPointerCapture={() => { drag.current = null; setDragging(false) }}
       onKeyDown={(event) => { const delta: Record<string, [number, number]> = { ArrowLeft: [-10, 0], ArrowRight: [10, 0], ArrowUp: [0, -10], ArrowDown: [0, 10] }; if (delta[event.key]) { event.preventDefault(); const [x, y] = delta[event.key]; setPosition(clamp(position.x + x, position.y + y)) } else if (event.key === 'Home') setPosition({ x: 16, y: 48 }) }}><Grip size={17} /></button>}
     {children}
   </div>

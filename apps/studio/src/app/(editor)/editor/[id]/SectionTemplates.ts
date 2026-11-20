@@ -2,6 +2,8 @@ import { makeElement, newId, type FreeElement } from '@hosso/studio-blocks'
 import { captureFrameVariant } from '../../../../../../../packages/blocks/src/design-presets'
 import { createFrameLayout } from '../../../../../../../packages/blocks/src/frame-layout'
 import { EFFECT_TEMPLATES } from './EffectTemplates'
+import { extraTemplates } from './SectionTemplatesExtra'
+import { extraTemplates2 } from './SectionTemplatesExtra2'
 
 /** Mẫu section (kiểu Webcake "Phần → Mẫu"): một canvas có sẵn chiều cao, nền và các phần tử đã bố trí; chèn xong vẫn kéo thả sửa tự do. */
 export type SectionTemplate = { id: string; label: string; height: number; bg?: string; extraProps?: Record<string, unknown>; build: () => FreeElement[] }
@@ -532,15 +534,22 @@ export const SECTION_TEMPLATES_MORE: SectionTemplate[] = [
   {
     id: 'newsletter',
     label: 'Đăng ký nhận tin',
-    height: 320,
-    bg: '#111827',
+    height: 360,
+    bg: '#0b1220',
     build: () => [
-      el('shape', 100, 50, 1000, 220, { bg: G, bg2: '#14b8a6', angle: 110, radius: 32 }),
-      Hd('Nhận ưu đãi mới nhất', 160, 90, 520, 60, { size: 36, color: '#ffffff', font: 'Be Vietnam Pro', weight: 800 }),
-      B('Đăng ký email để không bỏ lỡ khuyến mãi.', 160, 160, 520, 40, { size: 17, color: '#d1fae5' }),
-      el('shape', 700, 112, 250, 56, { bg: '#ffffff', radius: 999 }),
-      B('Email của bạn…', 724, 126, 210, 28, { size: 16, color: '#9ca3af' }),
-      el('button', 960, 112, 100, 56, { text: 'Gửi', bg: '#111827', radius: 999, href: '#' }),
+      el('shape', 40, 10, 420, 340, { bg: '#34d399', bg2: 'transparent', fillType: 'radial', blur: 50, opacity: 30, radius: 999 }),
+      el('shape', 760, 40, 420, 320, { bg: '#38bdf8', bg2: 'transparent', fillType: 'radial', blur: 50, opacity: 22, radius: 999 }),
+      el('shape', 100, 50, 1000, 260, { bg: '#059669', bg2: '#0f766e', angle: 120, radius: 36, bshadow: 'lg' }),
+      el('shape', 960, 208, 96, 96, { bg: '#ffffff', opacity: 10, radius: 999 }),
+      el('shape', 1030, 78, 48, 48, { bg: '#ffffff', opacity: 8, radius: 999 }),
+      B('BẢN TIN MỖI TUẦN', 140, 88, 190, 30, { size: 12, weight: 700, spacing: 2, color: '#a7f3d0', bg: 'rgba(255,255,255,0.14)', radius: 999, padX: 14, padY: 7, vAlign: 'center' }),
+      Hd('Nhận ưu đãi mới nhất', 140, 132, 470, 56, { size: 40, color: '#ffffff', font: 'Be Vietnam Pro', weight: 800, lh: 1.15 }),
+      B('Ưu đãi độc quyền và sản phẩm mới, gửi thẳng vào hộp thư. Hủy bất cứ lúc nào.', 140, 200, 440, 56, { size: 16, lh: 1.55, color: '#d1fae5' }),
+      // radius >= 999 trên shape nghĩa là 50% (elip), nên viên thuốc dùng đúng nửa chiều cao
+      el('shape', 620, 142, 296, 60, { bg: '#ffffff', radius: 30, bshadow: 'md' }),
+      B('Nhập email của bạn', 650, 157, 240, 30, { size: 16, color: '#94a3b8' }),
+      el('button', 932, 142, 128, 60, { text: 'Đăng ký', bg: '#064e3b', color: '#ffffff', radius: 30, size: 16, weight: 700, bshadow: 'md', href: '#' }),
+      B('Chúng tôi không gửi thư rác.', 628, 218, 400, 24, { size: 13, color: '#a7f3d0' }),
     ],
   },
   {
@@ -586,4 +595,5 @@ const grid = (id: string, label: string, rows: number, cols: number): SectionTem
   }
 }
 SECTION_TEMPLATES_MORE.unshift(grid('container-1x1', 'Container 1x1', 1, 1), grid('container-1x2', 'Container 1x2 (2 hàng)', 2, 1), grid('container-2x1', 'Container 2x1 (2 cột)', 1, 2), grid('container-1x3', 'Container 1x3 (3 cột)', 1, 3), grid('container-2x2', 'Container 2x2', 2, 2))
+SECTION_TEMPLATES_MORE.push(...extraTemplates({ el, Hd, B, Card, Ico }), ...extraTemplates2({ el, Hd, B, Card, Ico }))
 SECTION_TEMPLATES.push(...SECTION_TEMPLATES_MORE)

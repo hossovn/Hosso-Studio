@@ -2,6 +2,7 @@ import React from 'react'
 import '@hosso/studio-blocks/swiper.css'
 import './editor.css'
 import './editor-library.css'
+import './editor-glass.css'
 
 import { fontClassNames } from '@/lib/fonts'
 

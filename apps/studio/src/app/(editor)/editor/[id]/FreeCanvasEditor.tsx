@@ -367,12 +367,12 @@ export function InlineText({ el, scale = 1, onDone }: { el: FreeElement; scale?:
 // CSS nằm cùng component để chắc chắn có trong iframe xem trước.
 export const HF_CSS = `
 .hf-el:hover{outline:1px solid color-mix(in srgb,var(--cv-accent,#2d7b57) 55%,transparent)}
-.hf-toolbar{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:8px;background:#fff;color:#303842;border:1px solid #dfe3e8;border-radius:8px;box-shadow:0 4px 16px #18233314;font:12px/1.3 system-ui,sans-serif;letter-spacing:0;box-sizing:border-box}
+.hf-toolbar{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:8px;background:rgba(255,255,255,.9);-webkit-backdrop-filter:saturate(180%) blur(18px);backdrop-filter:saturate(180%) blur(18px);color:#303842;border:0;border-radius:16px;box-shadow:inset 0 1px 0 #fffe,0 0 0 .5px #18233322,0 10px 30px #18233324;font:12px/1.3 system-ui,sans-serif;letter-spacing:0;box-sizing:border-box}
 .hf-toolbar *{box-sizing:border-box}
 .hf-toolbar-grip{align-self:stretch;display:grid;place-items:center;min-width:20px;padding:0;border:0;border-right:1px solid #e5e7eb;background:transparent;color:#737b86;cursor:grab;touch-action:none}
 .hf-toolbar-grip:active{cursor:grabbing}
 .hf-tool-button>svg{width:17px;height:17px}
-.hf-tool-button{display:inline-flex;align-items:center;justify-content:center;gap:6px;flex-shrink:0;min-width:36px;height:38px;padding:0 9px;border:0;border-radius:5px;background:transparent;color:#505863;cursor:pointer;font:500 12px/1 system-ui,sans-serif;white-space:nowrap;transition:background .12s,transform .12s}
+.hf-tool-button{display:inline-flex;align-items:center;justify-content:center;gap:6px;flex-shrink:0;min-width:36px;height:38px;padding:0 9px;border:0;border-radius:11px;background:transparent;color:#505863;cursor:pointer;font:500 12px/1 system-ui,sans-serif;white-space:nowrap;transition:background .12s,transform .12s}
 .hf-tool-button:active:not(:disabled){transform:scale(.94)}
 @media(prefers-reduced-motion:reduce){.hf-tool-button{transition:none;transform:none!important}}
 @media(prefers-reduced-transparency:reduce){.hf-toolbar{background:#fff;backdrop-filter:none}}
@@ -386,7 +386,7 @@ export const HF_CSS = `
 .hf-toolbar button:focus-visible,.hf-toolbar summary:focus-visible,.hf-toolbar input:focus-visible,.hf-toolbar select:focus-visible{outline:2px solid #2d7b57;outline-offset:2px}
 .hf-tool-separator{width:1px;height:18px;flex-shrink:0;margin:0 3px;background:#e5e7eb}
 .hf-tool-number{min-width:26px;text-align:center;color:#374151;font-weight:600;font-variant-numeric:tabular-nums}
-.hf-tool-field,.hf-tool-select{height:38px;min-width:0;padding:0 8px;border:1px solid #e5e7eb;border-radius:4px;background:#f9fafb;color:#4b5563;font:12px Arial,sans-serif}
+.hf-tool-field,.hf-tool-select{height:38px;min-width:0;padding:0 8px;border:1px solid #e5e7eb;border-radius:9px;background:#f9fafb;color:#4b5563;font:12px Arial,sans-serif}
 .hf-tool-select{cursor:pointer;padding:0 5px}
 .hf-font-select{width:112px}
 .hf-tool-number-input{font-variant-numeric:tabular-nums;text-align:center}
