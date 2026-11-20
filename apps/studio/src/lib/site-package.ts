@@ -4,6 +4,7 @@ import fs from 'fs'
 import path from 'path'
 import type { Payload } from 'payload'
 import { AREAS } from '../globals/SiteAreas'
+import { findAll } from './find-all'
 
 /**
  * Gói site (định dạng 2) gồm: trang, bài viết, chuyên mục/thẻ, biểu mẫu, khối dùng lại, vùng giao diện, chuyển hướng, cài đặt site (theme, token, menu),
@@ -38,7 +39,7 @@ export async function buildSitePackage(payload: Payload) {
   }
   const pick = (o: any, keys: string[]) => Object.fromEntries(keys.filter((k) => o?.[k] != null && o[k] !== '').map((k) => [k, o[k]]))
   const find = (collection: any, locale: string, extra: Record<string, unknown> = {}) =>
-    payload.find({ collection, limit: 2000, depth: 1, pagination: false, locale: locale as any, fallbackLocale: false, overrideAccess: true, ...extra })
+    findAll(payload, { collection, depth: 1, locale: locale as any, fallbackLocale: false, overrideAccess: true, ...extra })
 
   // Rich-text upload IDs are installation-specific. Export filenames for remapping.
   const portableArticle = async (value: any): Promise<any> => {
@@ -116,6 +117,7 @@ export async function buildSitePackage(payload: Payload) {
     formsByLocale[D].docs.map((f: any) => ({
       slug: f.slug,
       rules: f.rules ?? {},
+      ...(/^\/(?!\/)/.test(f.delivery?.successHref || '') && !/[\\\u0000-\u0020\u007f]/.test(f.delivery.successHref) ? { successHref: f.delivery.successHref } : {}),
       fields: (f.fields ?? []).map((fl: any, i: number) => ({
         name: fl.name,
         type: fl.type,
@@ -192,12 +194,12 @@ export async function buildSitePackage(payload: Payload) {
   }
 
   if (payload.collections?.['content-entries']) {
-    if(payload.collections?.['content-types']) json('data/content-types.json',(await find('content-types',D)).docs.map((type:any)=>pick(type,['title','slug','fields'])))
+    if(payload.collections?.['content-types']) json('data/content-types.json',(await find('content-types',D)).docs.map((type:any)=>({ ...pick(type,['title','slug','fields']), detailTemplate: typeof type.detailTemplate === 'object' ? type.detailTemplate?.slug || '' : pages.find((page: any) => String(page.id) === String(type.detailTemplate))?.slug || '' })))
     const entries = await forEachLocale((locale) => find('content-entries', locale))
     json('data/content-entries.json', entries[D].docs.map((entry: any) => ({ slug: entry.slug, kind: entry.kind, published: entry.published, translations: Object.fromEntries(LOCALES.map((locale) => { const translated: any = entries[locale].docs.find((item: any) => item.slug === entry.slug); return [locale, pick(translated, ['title', 'data'])] })) })))
   }
   // ---------- Media ----------
-  const media = await payload.find({ collection: 'media', limit: 2000, depth: 0, pagination: false, overrideAccess: true })
+  const media = await findAll(payload, { collection: 'media', depth: 0, overrideAccess: true })
   const mediaDir = path.resolve(process.env.HOSSO_MEDIA_DIR || path.join(process.cwd(), 'media'))
   const mediaMeta = []
   for (const m of media.docs) {
@@ -217,7 +219,7 @@ export async function buildSitePackage(payload: Payload) {
   }
   json('data/media.json', mediaMeta)
 
-  json('data/redirects.json', (await payload.find({ collection: 'redirects', limit: 5000, depth: 0, pagination: false, overrideAccess: true })).docs.map((r: any) => ({ from: r.from, to: r.to, permanent: r.permanent !== false })))
+  json('data/redirects.json', (await findAll(payload, { collection: 'redirects', depth: 0, overrideAccess: true })).docs.map((r: any) => ({ from: r.from, to: r.to, permanent: r.permanent !== false })))
 
   json('manifest.json', {
     format: 2,

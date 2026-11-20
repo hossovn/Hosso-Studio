@@ -1,8 +1,9 @@
 import { pageForDevice } from '../../../../packages/blocks/src/responsive-layout.ts'
+import { baseDevice, layoutVariants, layoutWidth } from '../../../../packages/blocks/src/responsive-breakpoints.ts'
 
 export type PublishIssue = { severity: 'error' | 'warning'; code: string; message: string; block?: string; element?: string; device?: string; path?: string }
 type Content = { root?: any; content?: { type: string; props: Record<string, any> }[] }
-type CheckOptions = { paths: Set<string>; blockTypes: Set<string>; locale: string; locales: string[]; lang?: string; seo?: boolean }
+type CheckOptions = { paths: Set<string>; blockTypes: Set<string>; locale: string; locales: string[]; lang?: string; seo?: boolean; forms?: Map<string, { successHref?: string; delivery: boolean }> }
 
 const COPY = {
   structure: ['Cấu trúc trang không hợp lệ.', 'Invalid page structure.'],
@@ -20,6 +21,9 @@ const COPY = {
   seoDescription: ['Trang chưa có mô tả SEO.', 'Page has no SEO description.'],
   seoTitle: ['Tiêu đề SEO dài hơn 60 ký tự.', 'SEO title exceeds 60 characters.'],
   templateDraft: ['Ô mẫu đang sửa chưa được áp dụng cho danh sách dữ liệu.', 'A repeater template edit has not been applied.'],
+  formMissing: ['Biểu mẫu chưa được chọn hoặc không tồn tại.', 'The form has not been selected or no longer exists.'],
+  formDelivery: ['Lead được lưu trong Studio; chưa cấu hình email hoặc webhook nhận lead.', 'Leads are saved in Studio; no email or webhook destination is configured.'],
+  formThanks: ['Chưa có trang cảm ơn sau khi gửi biểu mẫu.', 'No thank-you page is configured for this form.'],
 } as const
 
 export function inspectPage(doc: Record<string, any>, options: CheckOptions): PublishIssue[] {
@@ -41,10 +45,20 @@ export function inspectPage(doc: Record<string, any>, options: CheckOptions): Pu
   }
   const checkLinks = (value: unknown, where: Partial<PublishIssue>, key = '') => {
     if (typeof value === 'string') {
-      if (/^(text|html|body|title|email)$/i.test(key) && /hello@example\.com|lorem ipsum|tiêu đề của bạn|nhấp đúp để sửa|your (?:company|brand)|sample (?:text|brand)/i.test(value)) add('placeholder', where)
+      if (/\[CẦN ĐIỀN[:\]]|hello@example\.com|lorem ipsum|tiêu đề của bạn|nhấp đúp để sửa|your (?:company|brand)|sample (?:text|brand)/i.test(value)) add('placeholder', where)
+      if (key === 'form' && options.forms) {
+        const form = options.forms.get(value)
+        if (!form) add('formMissing', where, 'error')
+        else {
+          if (!form.delivery) add('formDelivery', where)
+          if (!form.successHref) add('formThanks', where)
+          else checkLinks(form.successHref, where, 'href')
+        }
+      }
       if (key === 'html') for (const match of value.matchAll(/href\s*=\s*["']([^"']*)["']/gi)) checkLinks(match[1], where, 'href')
       if (!/^(href|link|buttonHref|ctaHref|ctaLink)$/i.test(key)) return
       if (!value.trim() || value === '#') { add('emptyLink', where); return }
+      if (/^https?:\/\/(?:www\.)?example\.(?:com|org|net)(?:\/|$)/i.test(value)) add('placeholder', where)
       if (/^(?:https?:\/\/|mailto:|tel:|#)/i.test(value)) return
       if (!/^\/(?!\/)/.test(value)) { add('unsafeLink', where, 'error'); return }
       let path: string
@@ -89,10 +103,10 @@ export function inspectPage(doc: Record<string, any>, options: CheckOptions): Pu
   }
   const validBlocks: { type: string; props: Record<string, any> }[] = data.content.filter((block) => block?.props && Array.isArray(block.props._els ?? block.props.elements ?? [])).map((block) => ({ ...block, props: { ...block.props, _els: (block.props._els ?? block.props.elements ?? []).filter((el: any) => el?.props) } }))
   if (Array.isArray(floating)) validBlocks.push({ type: 'Floating', props: { id: '@page', _els: floating.filter((el: any) => el?.props) } })
-  for (const device of ['desktop', 'tablet', 'mobile'] as const) {
-    const resolved = pageForDevice({ content: validBlocks }, device)
+  for (const device of layoutVariants(data.root?.props?._breakpoints)) {
+    const resolved = pageForDevice({ root: data.root, content: validBlocks }, device)
     for (const block of resolved.content) for (const el of block.props._els ?? block.props.elements ?? []) {
-      if (!el?.props || el.props._hidden || el.props._hide === ({ desktop: 'd', tablet: 't', mobile: 'm' }[device])) continue
+      if (!el?.props || el.props._hidden || el.props._hide === ({ desktop: 'd', tablet: 't', mobile: 'm' }[baseDevice(layoutWidth(device))])) continue
       const where = { block: block.props.id, element: el.id, device }
       if (![el.x, el.y, el.w, el.h].every(Number.isFinite) || el.w <= 0 || el.h <= 0) add('geometry', where, 'error')
       else if (el.x < 0 || el.x + el.w > 1201 || el.y < 0 || (block.type === 'FreeCanvas' && Number(block.props.height) > 0 && el.y + el.h > Number(block.props.height) + 1)) add('overflow', where)

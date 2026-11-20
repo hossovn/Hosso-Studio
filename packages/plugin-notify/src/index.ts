@@ -1,6 +1,7 @@
-import { withLicense, type HossoPlugin, type PluginManifest } from '@hosso/studio-blocks'
+import definition from './browser'
+import { withLicense, type HossoPlugin } from '@hosso/studio-blocks'
 import type { Config, GlobalConfig } from 'payload'
-import manifest from '../hosso.json'
+
 import { deliverOrderEmail, queueOrderEmail, TASK, type MailJob } from './delivery'
 
 type Roled = { roles?: string[] | null } | null | undefined
@@ -17,9 +18,8 @@ const Settings: GlobalConfig = {
 }
 
 const plugin: HossoPlugin = {
-  id: 'notify', manifest: manifest as PluginManifest,
-  adminEn: { 'Thông báo': 'Notifications' },
-  adminNav: [{ label: 'Thông báo đơn hàng', href: '/admin/globals/notify-settings', roles: ['admin'] }],
+  ...definition,
+
   payload: (config: Config): Config => ({ ...config, globals: [...(config.globals ?? []), Settings], jobs: { ...config.jobs, deleteJobOnComplete: false,
     jobsCollectionOverrides: (args) => {
       const collection = config.jobs?.jobsCollectionOverrides?.(args) || args.defaultJobsCollection

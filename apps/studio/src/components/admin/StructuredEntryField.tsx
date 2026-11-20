@@ -9,6 +9,7 @@ export function StructuredEntryField({path}:{path:string}){
  const type=types.find(t=>t.slug===kind),field=type?.fields.find(f=>f.key===picking)
  const put=(key:string,next:any)=>setValue({...value,[key]:next})
  const previousKind=useRef(kind),{id}=useDocumentInfo()
+ const slug=useFormFields(([fields])=>fields.slug?.value) as string
  useEffect(()=>{if(!id&&previousKind.current&&previousKind.current!==kind)setValue({});previousKind.current=kind},[kind,id])
  useEffect(()=>{const c=new AbortController();fetch('/api/site/cms/types',{signal:c.signal}).then(async r=>{if(!r.ok)throw Error();setTypes((await r.json()).types)}).catch(e=>{if(e.name!=='AbortError')setError(T('Không tải được nội dung.'))});return()=>c.abort()},[])
  useEffect(()=>{
@@ -22,6 +23,7 @@ export function StructuredEntryField({path}:{path:string}){
   return()=>{c.abort();clearTimeout(timer)}
  },[picking,query,field?.target,field?.type,locale.code])
  return <div className="cms-entry-fields">
+ {id&&slug&&type?.detailTemplate&&<p><a href={`/${locale.code}/noi-dung/${encodeURIComponent(kind)}/${encodeURIComponent(slug)}?preview=1`} target="_blank" rel="noopener noreferrer">Xem trước với trang mẫu chi tiết</a> · Lưu nội dung trước khi xem.</p>}
  {!type&&<p role="status">{T('Chọn loại nội dung để nhập dữ liệu.')}</p>}
  {type?.fields.map(f=><div key={kind+':'+f.key}><label>{T(f.label)}{f.required?' *':''}
  {f.type==='textarea'?<textarea rows={6} value={value?.[f.key]??''} onChange={e=>put(f.key,e.target.value)}/>:

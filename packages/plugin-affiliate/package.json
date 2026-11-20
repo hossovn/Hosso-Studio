@@ -5,7 +5,10 @@
   "type": "module",
   "description": "Plugin tiếp thị liên kết (affiliate) cho Hosso Studio: đối tác, link giới thiệu ?ref=, hoa hồng theo đơn.",
   "exports": {
-    ".": { "browser": "./src/client.ts", "default": "./src/index.ts" },
+    ".": {
+      "browser": "./src/client.ts",
+      "default": "./src/index.ts"
+    },
     "./admin": "./src/admin.tsx"
   },
   "scripts": {

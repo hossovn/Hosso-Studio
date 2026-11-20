@@ -210,6 +210,7 @@ export type HossoPlugin = {
     /** Server-authenticated customer pricing; browser-supplied group IDs are never sufficient. */
     customerPrice?: (event: { payload: Payload; headers: Headers; product: Record<string, any>; variantId?: string; quantity: number; price: number; assistedCustomerToken?: string }) => Promise<{ price: number; group: string; source: string } | undefined>
     assistedCustomer?: (payload: Payload, headers: Headers, token: string) => Promise<OrderCustomer | undefined>
+    customerIdentity?: (payload: Payload, headers: Headers) => Promise<string | undefined>
     fulfillmentGroups?: (payload: Payload, draft: OrderDraft) => Promise<FulfillmentGroup[]>
   }
   /** Phiếu thông tin hiện ở trang Plugin trong admin (nạp từ hosso.json của plugin). */
@@ -219,6 +220,8 @@ export type HossoPlugin = {
   fallbackRenderers?: Record<string, BlockRenderer>
   /** Phần chèn vào header (ví dụ liên kết giỏ hàng); chạy ở trình duyệt. */
   headerSlot?: ComponentType
+  /** One background runtime per public layout, independent of header visibility. */
+  runtimeSlot?: ComponentType
   /** Mục hiện trong nhóm "Plugin" của sidebar admin. */
   adminNav?: { label: string; href: string; roles?: string[] }[]
   /** Bản tiếng Anh cho nhãn tiếng Việt của plugin trong trình dựng và màn Widget (khóa = nhãn tiếng Việt). */
@@ -255,6 +258,8 @@ export type HossoPlugin = {
   sitemap?: (payload: Payload) => Promise<{ path: string; lastModified?: string }[]>
   /** Lấy dữ liệu server cho block: kết quả được truyền vào renderer qua prop `data`. */
   loaders?: Record<string, BlockLoader>
+  /** Names needed for editor previews without importing server loader implementations. */
+  loaderTypes?: string[]
 }
 
 export type HossoLocale = { code: string; label: string }

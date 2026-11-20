@@ -6,7 +6,10 @@
   "type": "module",
   "description": "Plugin báo cáo bán hàng cho Hosso Studio: doanh thu theo ngày, sản phẩm bán chạy, đơn theo trạng thái, hàng sắp hết (đọc dữ liệu của plugin Cửa hàng). Plugin thương mại, mã nguồn đóng, cần giấy phép (HOSSO_LICENSE_KEY).",
   "exports": {
-    ".": "./src/index.ts",
+    ".": {
+      "browser": "./src/browser.ts",
+      "default": "./src/index.ts"
+    },
     "./admin": "./src/admin.tsx"
   },
   "scripts": {

@@ -2,6 +2,7 @@ import type { BlockLoader, HossoPlugin } from '@hosso/studio-blocks'
 import { repeatPrefix, repeatQuery, queryRepeatItems } from '../../../../packages/blocks/src/repeater-query'
 
 import { href, loadSite, mediaUrl } from './site'
+import { loadEntryRepeater } from './entry-repeater'
 
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
 
@@ -28,13 +29,8 @@ export const coreLoaders: Record<string, BlockLoader> = {
     const preserved = Object.fromEntries(Object.entries(ctx.searchParams ?? {}).filter(([key]) => !key.startsWith(prefix)).map(([key, value]) => [key, first(value)]).filter((entry): entry is [string, string] => typeof entry[1] === 'string'))
     const decorate = (result: any) => ({ ...result, current: query, preserved })
     if (props.source === 'entries') {
-      const entries: { docs: any[] } = { docs: [] }
-      let page = 1, more = true
-      while (more) {
-        const batch = await ctx.payload.find({ collection: 'content-entries', where: { and: [{ published: { equals: true } }, ...(props.entryKind ? [{ kind: { equals: props.entryKind } }] : [])] }, depth: 0, limit: 100, page, locale: ctx.locale as any, overrideAccess: true })
-        entries.docs.push(...batch.docs); more = batch.hasNextPage; page++
-      }
-      return decorate(queryRepeatItems((entries.docs as any[]).map((entry) => ({ title: entry.title, excerpt: entry.data?.description || entry.data?.role || '', cover: entry.data?.image || '', href: entry.data?.url || '', category: entry.kind })), query))
+      const result = await loadEntryRepeater(ctx.payload, props, query, ctx.locale)
+      return decorate({ ...result, items: result.items.map((item) => ({ ...item, href: item.href.startsWith('/') ? href(item.href, ctx.locale) : item.href })) })
     }
     if (props.source === 'manual') return decorate(queryRepeatItems(Array.isArray(props.items) ? props.items : [], query))
     if (props.source === 'posts') {

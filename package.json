@@ -9,6 +9,13 @@
     "pnpm": ">=10"
   },
   "scripts": {
+    "postinstall": "node scripts/prepare-installed-plugins.mjs",
+    "test:platform": "node scripts/test-platform-regressions.mjs",
+    "test:platform-browser": "node scripts/test-platform-browser.mjs",
+    "test:platform-production": "node scripts/test-platform-production.mjs",
+    "test:platform-kits": "node scripts/test-cms-workspace.mjs scripts/test-platform-kits.ts",
+    "test:platform-scale": "node scripts/test-cms-workspace.mjs scripts/test-platform-scale.ts",
+    "test:platform-migration": "node scripts/test-platform-migration.mjs",
     "dev": "node scripts/ensure-env.mjs && pnpm --filter @hosso/studio dev",
     "dev:test": "node scripts/dev-test.mjs",
     "build": "pnpm --filter @hosso/studio build",
@@ -56,13 +63,22 @@
     "test:cms-migration": "node scripts/test-cms-migration.mjs",
     "test:cms-browser": "node scripts/test-cms-browser.mjs",
     "test:content-models": "node scripts/test-cms-workspace.mjs scripts/test-content-models.ts",
-    "test:content-model-migration": "node scripts/test-content-model-migration.mjs"
+    "test:content-model-migration": "node scripts/test-content-model-migration.mjs",
+    "test:platform-postgres": "node scripts/test-platform-postgres.mjs",
+    "test:platform-container": "node scripts/test-platform-container.mjs"
   },
   "pnpm": {
     "overrides": {
       "react": "19.3.1",
       "react-dom": "19.3.1",
-      "sharp": "-"
+      "sharp": "-",
+      "dompurify@<3.4.17": "3.4.17",
+      "undici@>=7 <7.30.1": "7.30.1",
+      "happy-dom@<21.0.4": "21.0.4",
+      "nodemailer@>=10 <10.1.4": "10.1.4",
+      "fast-uri@>=3 <3.1.9": "3.1.9",
+      "body-parser@>=2 <2.4.0": "2.4.0",
+      "multer@>=2 <2.5.0": "2.5.0"
     },
     "onlyBuiltDependencies": [
       "esbuild",
@@ -71,7 +87,8 @@
   },
   "devDependencies": {
     "drizzle-kit": "0.31.7",
-    "happy-dom": "^20.14.6",
+    "happy-dom": "21.0.4",
+    "@playwright/test": "1.65.1",
     "tsx": "4.23.15"
   }
 }

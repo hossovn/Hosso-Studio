@@ -518,7 +518,7 @@ export function Editor(props: Props) {
     const known = new Set(schemas.map((s) => s.type))
     const extraTypes = (props.data?.content ?? []).map((c: { type: string }) => c.type).filter((t: string) => !known.has(t))
     const built = buildPuckConfig({ schemas, theme, plugins: hosso.plugins, mode: 'editor', extraTypes, label: (vi) => trLabel(props.lang, vi, pluginEn) })
-    const liveTypes = [...CORE_LOADER_TYPES, ...hosso.plugins.flatMap((p) => Object.keys(p.loaders ?? {}))]
+    const liveTypes = [...CORE_LOADER_TYPES, ...hosso.plugins.flatMap((p) => p.loaderTypes ?? Object.keys(p.loaders ?? {}))]
     for (const type of liveTypes) {
       const c = built.components[type]
       if (c) c.render = withLiveData(type, c.render, props.locale)

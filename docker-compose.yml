@@ -52,11 +52,14 @@ services:
       HOSSO_MAIL_FROM: ${HOSSO_MAIL_FROM:-}
       HOSSO_UPDATE_URL: ${HOSSO_UPDATE_URL:-}
       HOSSO_BACKUP_DIR: /app/backups
+      HOSSO_PRIVATE_DIR: /app/private
+      HOSSO_RETURN_EVIDENCE_DAYS: ${HOSSO_RETURN_EVIDENCE_DAYS:-0}
     ports:
       - '${HOSSO_PORT:-3000}:3000'
     volumes:
       - media:/app/media
       - backups:/app/backups
+      - private:/app/private
     extra_hosts:
       - 'host.docker.internal:host-gateway' # lets the container call a mock WIM running on the host / để container gọi mock WIM chạy trên máy host
 
@@ -83,3 +86,4 @@ volumes:
   backups:
   pgdata:
   media:
+  private:

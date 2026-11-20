@@ -42,7 +42,7 @@ export const templatesDirs = () => {
   return [path.join(root, 'seed', 'sites'), ...fromPackages].filter((d) => fs.existsSync(d))
 }
 
-export type WebsiteTemplate = { id: string; size: number; title: string; description: string; category: string; pages: { slug: string; title: string }[]; cover: string | null; missing: string[] }
+export type WebsiteTemplate = { id: string; size: number; title: string; description: string; category: string; pages: { slug: string; title: string }[]; cover: string | null; missing: string[]; additive?: boolean; checklist?: string[] }
 
 export function templateDetails(file: string, id: string): WebsiteTemplate {
   const zip = unzipSync(new Uint8Array(fs.readFileSync(file)), { filter: (entry) => ['manifest.json', 'data/pages.json', 'data/site-settings.json'].includes(entry.name) })
@@ -51,14 +51,15 @@ export function templateDetails(file: string, id: string): WebsiteTemplate {
   if (manifest?.format !== 2) throw new Error('Invalid website template')
   const locale = manifest.locales?.[0] ?? 'vi'
   const pages = read('data/pages.json') ?? []
-  const home = pages.find((page: any) => page.slug === 'home')?.translations?.[locale]
+  const home = (pages.find((page: any) => page.slug === (manifest.startPage || 'home')) || pages[0])?.translations?.[locale]
   const blocks = home?.content?.content ?? []
   const image = blocks.map((block: any) => block.props?.slides?.[0]?.image || block.props?.image || block.props?._els?.find((element: any) => element.type === 'image')?.props?.src).find((src: unknown) => typeof src === 'string' && src.startsWith('/api/media/file/'))
   const filename = image ? decodeURIComponent(image.slice('/api/media/file/'.length).split(/[?#]/)[0]) : ''
   const cover = filename && !filename.includes('/') && !filename.includes('\\') && /\.(png|jpe?g|webp|gif|svg)$/i.test(filename) ? filename : null
   return {
     id, size: fs.statSync(file).size,
-    title: read('data/site-settings.json')?.translations?.[locale]?.siteName || id,
+    title: manifest.title || read('data/site-settings.json')?.translations?.[locale]?.siteName || id,
+    additive: manifest.installMode === 'additive', checklist: manifest.checklist || [],
     description: home?.description || '',
     category: manifest.category || ((manifest.plugins ?? []).includes('shop') ? 'Cửa hàng' : 'Khác'),
     pages: pages.map((page: any) => ({ slug: page.slug, title: page.translations?.[locale]?.title || page.slug })),

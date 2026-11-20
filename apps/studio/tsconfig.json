@@ -8,7 +8,8 @@
     "paths": {
       "@/*": ["./src/*"],
       "@payload-config": ["./src/payload.config.ts"],
-      "@hosso-config": ["./hosso.config.ts"]
+      "@hosso-config": ["./hosso.config.ts"],
+      "@hosso-installed-plugins": ["./hosso.installed.ts"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", ".next/dev/types/**/*.ts"],

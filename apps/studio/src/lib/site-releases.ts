@@ -87,13 +87,20 @@ async function inspect(req: PayloadRequest, state: Awaited<ReturnType<typeof rev
   const theme = hosso.themes.find((item) => item.manifest.name === settings?.theme) ?? hosso.themes[0]
   const schemas = [...coreBlocks, ...hosso.plugins.flatMap((plugin) => plugin.blocks ?? [])]
   const blockTypes = new Set(Object.keys(buildPuckConfig({ schemas, theme, plugins: hosso.plugins, mode: 'render' }).components))
+  const forms = new Map<string, { successHref?: string; delivery: boolean }>()
+  let formPage = 1
+  for (;;) {
+    const batch = await req.payload.find({ collection: 'forms', limit: 100, page: formPage++, depth: 0, overrideAccess: true, req })
+    for (const form of batch.docs as any[]) forms.set(form.slug, { successHref: form.delivery?.successHref, delivery: Boolean(form.delivery?.email || form.delivery?.webhookUrl) })
+    if (!batch.hasNextPage) break
+  }
   for (const item of selected) for (const [locale, doc] of Object.entries(item.translations)) {
     if (COLLECTIONS.includes(item.scope as any) && !doc.title && locale !== defaultLocale) continue
     const targets = item.scope === 'site-settings'
       ? [{ area: undefined, doc: { content: { content: [{ type: 'NavMenu', props: { id: 'site-menus', items: [...(doc.headerMenu ?? []), ...(doc.footerMenu ?? [])] } }] } } }]
       : item.scope === 'site-areas' ? AREAS.filter((area) => doc[area.name]).map((area) => ({ area: area.name, doc: { content: doc[area.name] } })) : [{ area: undefined, doc }]
     const { locales: activeLocales } = await getPayloadSiteLocales(req.payload, true)
-    for (const target of targets) for (const issue of inspectPage(target.doc, { paths, blockTypes, locale, locales: activeLocales.map((value) => value.code), lang: req.i18n?.language, seo: item.scope === 'pages' || item.scope === 'posts' })) {
+    for (const target of targets) for (const issue of inspectPage(target.doc, { paths, blockTypes, forms, locale, locales: activeLocales.map((value) => value.code), lang: req.i18n?.language, seo: item.scope === 'pages' || item.scope === 'posts' })) {
       issues.push({ ...issue, key: item.key, locale, href: editorHref(item, locale, target.area, issue) })
     }
   }

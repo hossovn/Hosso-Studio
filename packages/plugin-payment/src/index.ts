@@ -1,6 +1,7 @@
-import { orderTotal, licensed, type HossoPlugin, type PluginManifest, withLicense } from '@hosso/studio-blocks'
+import definition from './browser'
+import { orderTotal, licensed, type HossoPlugin, withLicense } from '@hosso/studio-blocks'
 import type { CollectionConfig, Config, Endpoint, GlobalConfig, Payload } from 'payload'
-import manifest from '../hosso.json'
+
 import { withCommerceEvents } from '@hosso/studio-blocks/durable-events'
 import { sameSecret } from './security'
 import { allocateUnmatched, receiptOrderNo, recordReceipt, recordRefund, Refunds, Transactions } from './ledger'
@@ -8,10 +9,7 @@ import { inTransaction } from '@hosso/studio-blocks/transactions'
 
 type Roled = { roles?: string[] | null } | null | undefined
 const isAdmin = ({ req }: { req: { user?: unknown } }) => Boolean((req.user as Roled)?.roles?.includes('admin'))
-const manager = ({ req }: { req: { user?: unknown } }) => {
-  const r = (req.user as Roled)?.roles
-  return Boolean(r?.includes('admin') || r?.includes('publisher'))
-}
+
 const bi = (vi: string, en: string) => ({ vi, en })
 const GROUP = bi('Thanh toán', 'Payments')
 const SETTINGS = 'payment-settings'
@@ -103,7 +101,8 @@ const endpoints: Endpoint[] = [
 
 /** Plugin thanh toán chuyển khoản: QR VietQR cho khách và tự xác nhận khi tiền về. Dùng `onOrderPaid` để plugin bán hàng đánh dấu đơn đã thanh toán. */
 const plugin: HossoPlugin = {
-  id: 'payment',
+  ...definition,
+
   commerce: {
     recordRefund,
     revisePayment: async (req, orderNo, total) => inTransaction(req, async () => {
@@ -134,14 +133,21 @@ const plugin: HossoPlugin = {
       if (amount > 0) await recordReceipt(req, { provider: 'manual', reference: input.reference, amount, orderNo: input.orderNo, actor: String(req.user?.id || ''), reason: input.reason })
     },
   },
-  manifest: manifest as PluginManifest,
-  adminEn: { 'Thanh toán': 'Payments' },
-  adminNav: [
-    { label: 'Khoản thanh toán', href: '/admin/collections/payments', roles: ['admin', 'publisher'] },
-    { label: 'Tài khoản nhận tiền', href: '/admin/globals/payment-settings', roles: ['admin'] },
-  ],
+
   portable: { globals: [{ slug: SETTINGS, secretFields: [] }] },
-  checklist: async (payload) => [{ label: 'Tài khoản nhận tiền chuyển khoản', done: configured(await getCfg(payload)), href: '/admin/globals/payment-settings' }],
+  checklist: async (payload) => {
+    const [pending, underpaid, unmatched] = await Promise.all([
+      payload.count({ collection: 'payments' as any, where: { and: [{ status: { equals: 'pending' } }, { createdAt: { less_than: new Date(Date.now() - 24 * 3600000).toISOString() } }] }, overrideAccess: true }),
+      payload.count({ collection: 'payments' as any, where: { status: { equals: 'underpaid' } }, overrideAccess: true }),
+      payload.count({ collection: 'payment-transactions' as any, where: { state: { equals: 'unmatched' } }, overrideAccess: true }),
+    ])
+    return [
+      { label: 'Tài khoản nhận tiền chuyển khoản', done: configured(await getCfg(payload)), href: '/admin/globals/payment-settings' },
+      { label: 'Webhook SePay: khóa xác thực đã khai báo', done: Boolean(process.env.HOSSO_SEPAY_KEY?.trim()), href: '/admin/globals/payment-settings' },
+      { label: `${pending.totalDocs} khoản chờ trên 24 giờ; ${underpaid.totalDocs} chuyển thiếu`, done: !pending.totalDocs && !underpaid.totalDocs, href: '/admin/collections/payments' },
+      { label: `${unmatched.totalDocs} giao dịch cần đối soát`, done: !unmatched.totalDocs, href: '/admin/collections/payment-transactions' },
+    ]
+  },
   payload: (config: Config): Config => withCommerceEvents({
     ...config,
     collections: [...(config.collections ?? []), Payments, Transactions, Refunds],

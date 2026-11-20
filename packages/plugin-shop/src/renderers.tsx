@@ -1,6 +1,8 @@
 import { getLocale, localizeHref, type BlockRenderer } from '@hosso/studio-blocks'
 import React from 'react'
 import { Carousel } from './client/Carousel'
+import { ProductGallery } from './client/ProductGallery'
+import { ResponsiveImage } from '../../blocks/src/ResponsiveImage'
 import { WishlistButton, WishlistView } from './client/Wishlist'
 import { AddToCart, CartView, CheckoutForm, OrderLookup, ReviewForm } from './client/Shop'
 import type { Card, Review, ReviewItem } from './loaders'
@@ -31,7 +33,7 @@ type CardOpts = { style?: string; ratio?: string; showCode?: string; showBrand?:
 const CardView = ({ c, detailPath, o = {} }: { c: Card; detailPath: string; o?: CardOpts }) => (
   <li className={`sp-card${o.style === 'horizontal' ? ' sp-card-h' : ''}${o.style === 'plain' ? ' sp-card-plain' : ''}`}>
     <a href={`${lh(detailPath)}?p=${encodeURIComponent(c.slug)}`} className={`sp-card-img${o.ratio ? ` sp-r-${o.ratio}` : ''}`}>
-      {c.image ? <img src={c.image} alt="" loading="lazy" /> : <span aria-hidden="true" />}
+      {c.image ? <ResponsiveImage src={c.image} alt="" sizes="(max-width: 600px) 50vw, (max-width: 1024px) 33vw, 25vw" /> : <span aria-hidden="true" />}
     </a>
     <div className="sp-card-body">
       <h3><a href={`${lh(detailPath)}?p=${encodeURIComponent(c.slug)}`}>{c.name}</a></h3>
@@ -125,7 +127,7 @@ const ProductDetail: BlockRenderer = ({ backPath, cartPath, layout, imageSize, s
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld).replace(/</g, '\\u003c') }} />
       <a className="sp-back" href={lh(backPath || '/san-pham')}>{tt().back}</a>
       <div className={`sp-detail${layout === 'right' ? ' sp-d-right' : ''}${layout === 'stack' ? ' sp-d-stack' : ''}${imageSize ? ` sp-img-${imageSize}` : ''}`}>
-        <div className="sp-detail-img">{(c.images ?? [c.image]).filter(Boolean).map((src, i) => <img key={src} src={src} alt={i === 0 ? c.name : ''} loading={i ? 'lazy' : 'eager'} />)}</div>
+        <ProductGallery images={(c.images ?? [c.image]).filter(Boolean) as string[]} name={c.name} />
         <div>
           <h1>{c.name}</h1>
           {d.reviewCount > 0 && <p className="sp-meta"><Stars n={d.rating} /> {d.rating} ({d.reviewCount})</p>}
@@ -140,18 +142,18 @@ const ProductDetail: BlockRenderer = ({ backPath, cartPath, layout, imageSize, s
           {!c.hidePrice && <AddToCart product={{ id: c.id, name: c.name, price: c.salePrice ?? c.price, image: c.image }} cartPath={cartPath || '/gio-hang'} inStock={c.stockUnmanaged || c.stock > 0} variants={c.variants} />}
         </div>
       </div>
-      {showTabs !== 'no' && (c.description || c.weight || c.size || c.attributes?.length) && (
+      {showTabs !== 'no' && Boolean(c.description || c.weight || c.size || c.attributes?.length) && (
         <div className="sp-tabset">
           {c.description && <input type="radio" name="sp-tab" id="sp-tab-desc" defaultChecked />}
           {c.description && <label htmlFor="sp-tab-desc">{tt().desc}</label>}
-          {(c.weight || c.size || c.attributes?.length) && <input type="radio" name="sp-tab" id="sp-tab-info" defaultChecked={!c.description} />}
-          {(c.weight || c.size || c.attributes?.length) && <label htmlFor="sp-tab-info">{tt().info}</label>}
+          {Boolean(c.weight || c.size || c.attributes?.length) && <input type="radio" name="sp-tab" id="sp-tab-info" defaultChecked={!c.description} />}
+          {Boolean(c.weight || c.size || c.attributes?.length) && <label htmlFor="sp-tab-info">{tt().info}</label>}
           {c.description && <div className="sp-panel sp-panel-desc"><p style={{ whiteSpace: 'pre-line' }}>{c.description}</p></div>}
-          {(c.weight || c.size || c.attributes?.length) && (
+          {Boolean(c.weight || c.size || c.attributes?.length) && (
             <div className="sp-panel sp-panel-info">
               <table className="sp-info">
                 <tbody>
-                  {c.weight && <tr><th>{tt().weight}</th><td>{c.weight >= 1000 ? `${c.weight / 1000} kg` : `${c.weight} g`}</td></tr>}
+                  {Boolean(c.weight) && <tr><th>{tt().weight}</th><td>{c.weight! >= 1000 ? `${c.weight! / 1000} kg` : `${c.weight} g`}</td></tr>}
                   {c.size && <tr><th>{tt().size}</th><td>{c.size}</td></tr>}
                   {c.attributes?.map((a, i) => <tr key={i}><th>{a.name}</th><td>{a.value}</td></tr>)}
                 </tbody>
@@ -183,7 +185,7 @@ const Categories: BlockRenderer = ({ heading, listPath, data }) => {
         {(d.items as { name: string; slug: string; image: string }[]).map((c) => (
           <li key={c.slug}>
             <a href={`${lh(listPath || '/san-pham')}?category=${c.slug}`}>
-              {c.image ? <img src={c.image} alt="" loading="lazy" /> : <span className="sp-cat-ph" aria-hidden="true" />}
+              {c.image ? <ResponsiveImage src={c.image} alt="" sizes="(max-width: 600px) 50vw, 25vw" /> : <span className="sp-cat-ph" aria-hidden="true" />}
               <span>{c.name}</span>
             </a>
           </li>

@@ -1,4 +1,5 @@
 'use client'
+import { ResponsiveImage } from './ResponsiveImage'
 import React, { useEffect, useRef, useState } from 'react'
 import type { BlockRenderer } from './types'
 import { popupNumber, popupTrigger, scrollPercent } from './popup-state'
@@ -58,7 +59,7 @@ export const PopupBlock: BlockRenderer = ({ id, title, body, image, ctaLabel, ct
   }, [open, editing])
   const href = typeof ctaHref === 'string' && /^(https?:\/\/|\/(?!\/)|#|mailto:|tel:)/i.test(ctaHref.trim()) ? ctaHref.trim() : '#'
   const card = <>
-    {image && <img src={image} alt="" style={{ width: '100%', maxHeight: 240, objectFit: 'cover', display: 'block' }} />}
+    {image && <ResponsiveImage src={image} alt="" style={{ width: '100%', maxHeight: 240, objectFit: 'cover', display: 'block' }} />}
     <div style={{ padding: '24px', textAlign: 'center' }}>
       {title && <h3 style={{ margin: '0 0 8px', fontSize: 24 }}>{title}</h3>}
       {body && <p style={{ margin: '0 0 18px', color: '#4b5563', whiteSpace: 'pre-wrap' }}>{body}</p>}

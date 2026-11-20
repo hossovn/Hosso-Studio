@@ -5,17 +5,24 @@ import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { activeStoryStep, storyCanPin, storyProgress, storyViewportMidpoint } from '../packages/blocks/src/scroll-story.ts'
 import { coreBlocks, scrollStory } from '../packages/blocks/src/core-blocks.ts'
+import { responsiveImage } from '../packages/blocks/src/responsive-image.ts'
 
 const require = createRequire(new URL('../apps/studio/package.json', import.meta.url))
 const ts = require('typescript')
 const React = require('react')
 const { renderToStaticMarkup } = require('react-dom/server')
+const imagePath = fileURLToPath(new URL('../packages/blocks/src/ResponsiveImage.tsx', import.meta.url))
+const imageModule = new Module(imagePath)
+imageModule.filename = imagePath
+imageModule.paths = Module._nodeModulePaths(dirname(imagePath))
+imageModule.require = (id) => id === './responsive-image' ? { responsiveImage } : require(id)
+imageModule._compile(ts.transpileModule(readFileSync(imagePath, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText, imagePath)
 const path = fileURLToPath(new URL('../packages/blocks/src/ScrollStory.tsx', import.meta.url))
 const { outputText } = ts.transpileModule(readFileSync(path, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } })
 const mod = new Module(path)
 mod.filename = path
 mod.paths = Module._nodeModulePaths(dirname(path))
-mod.require = (id) => id === './scroll-story' ? { activeStoryStep, storyCanPin } : require(id)
+mod.require = (id) => id === './ResponsiveImage' ? imageModule.exports : id === './scroll-story' ? { activeStoryStep, storyCanPin, storyProgress, storyViewportMidpoint } : require(id)
 mod._compile(outputText, path)
 const { ScrollStory } = mod.exports
 
@@ -66,7 +73,7 @@ let setup, ref = 0, state = 0
 const runtime = new Module(path)
 runtime.filename = path
 runtime.paths = Module._nodeModulePaths(dirname(path))
-runtime.require = (id) => id === './scroll-story' ? { activeStoryStep, storyCanPin, storyProgress, storyViewportMidpoint } : id === 'react' ? { useRef: () => ({ current: ref++ ? nodes : anchor }), useState: (initial) => [initial, state++ ? (value) => { activeIndex = value } : (value) => { pinnedState = value }], useEffect: (fn) => { setup = fn } } : require(id)
+runtime.require = (id) => id === './ResponsiveImage' ? imageModule.exports : id === './scroll-story' ? { activeStoryStep, storyCanPin, storyProgress, storyViewportMidpoint } : id === 'react' ? { useRef: () => ({ current: ref++ ? nodes : anchor }), useState: (initial) => [initial, state++ ? (value) => { activeIndex = value } : (value) => { pinnedState = value }], useEffect: (fn) => { setup = fn } } : require(id)
 runtime._compile(outputText, path)
 runtime.exports.ScrollStory({ steps: scrollStory.defaultProps.steps })
 const cleanup = setup()

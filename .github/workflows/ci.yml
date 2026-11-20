@@ -30,27 +30,48 @@ jobs:
       - run: pnpm test:editor-design-workspace
       - run: pnpm test:editor-frames
       - run: pnpm test:form-delivery
-      - run: node scripts/test-checkout-identity.mjs
-      - run: node scripts/test-checkout-form.mjs
-      - run: node scripts/test-order-receipt.mjs --shop-only
-      - run: node scripts/test-order-origin.mjs
-      - run: node scripts/test-commerce-security.mjs
       - run: node scripts/test-partner-connections.mjs
-      - run: node scripts/test-shipping-workflow.mjs
-      - run: pnpm test:cms-workspace
-      - run: pnpm test:content-models
-      - run: pnpm test:content-model-migration
-      - run: pnpm test:cms-migration
-      - run: pnpm test:site-package
+      - run: pnpm test:platform
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: platform-regressions, path: output/platform-regressions }
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm --filter @hosso/studio generate:importmap
+        env: { HOSSO_SECRET: build-time-placeholder, HOSSO_DATABASE_URL: 'file:/tmp/build.db' }
+      - run: pnpm test:platform-browser
+      - run: pnpm test:platform-production
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: platform-browser-production
+          path: |
+            output/platform-browser
+            output/platform-production
 
   # Builds the image (includes `next build`) without pushing it. / Dựng image (đã gồm next build), không đẩy.
   image:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
-        with: { context: ., push: false, cache-from: type=gha, cache-to: 'type=gha,mode=max' }
+        with: { context: ., push: false, load: true, tags: 'hosso-studio:ci', cache-from: type=gha, cache-to: 'type=gha,mode=max' }
+      - run: node scripts/test-platform-container.mjs
+        env: { PLATFORM_TEST_IMAGE: 'hosso-studio:ci' }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: platform-container, path: output/platform-container }
 
   # SQLite -> site package -> Postgres -> site package; the two packages must hold the same content.
   # SQLite -> gói site -> Postgres -> gói site; hai gói phải có cùng nội dung.
@@ -76,3 +97,7 @@ jobs:
         env: { COMMERCE_TEST_DATABASE_URL: 'postgres://postgres:hosso@localhost:5432/roundtrip' }
       - run: node scripts/test-partner-connections-migration.mjs
         env: { COMMERCE_TEST_DATABASE_URL: 'postgres://postgres:hosso@localhost:5432/roundtrip' }
+      - run: psql -h localhost -U postgres -c 'CREATE DATABASE platform'
+        env: { PGPASSWORD: hosso }
+      - run: node scripts/test-platform-postgres.mjs
+        env: { PLATFORM_TEST_DATABASE_URL: 'postgres://postgres:hosso@localhost:5432/platform' }

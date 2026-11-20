@@ -1,4 +1,5 @@
 'use client'
+import { ResponsiveImage } from './ResponsiveImage'
 
 import { useEffect, useRef, useState } from 'react'
 import { activeStoryStep, storyCanPin, storyProgress, storyViewportMidpoint } from './scroll-story'
@@ -81,11 +82,11 @@ export function ScrollStory({ steps, _motionEditing }: { steps?: ScrollStoryStep
     <style>{css}</style>
     <div className="hs-scroll-story__layout">
       {pinned && <div className="hs-scroll-story__visual">
-        {items.map((step, index) => step.image && <img key={index} src={step.image} alt={step.alt || ''} aria-hidden={index !== active} data-active={index === active ? 'true' : undefined} />)}
+        {items.map((step, index) => step.image && <ResponsiveImage key={index} src={step.image} alt={step.alt || ''} aria-hidden={index !== active} data-active={index === active ? 'true' : undefined} />)}
       </div>}
       <div>
         {items.map((step, index) => <article key={index} ref={(node) => { stepNodes.current[index] = node }} className="hs-scroll-story__step" data-active={pinned && index === active ? 'true' : undefined}>
-          {step.image && <img src={step.image} alt={step.alt || ''} />}
+          {step.image && <ResponsiveImage src={step.image} alt={step.alt || ''} />}
           {step.title && <h2>{step.title}</h2>}
           {step.body && <p>{step.body}</p>}
         </article>)}

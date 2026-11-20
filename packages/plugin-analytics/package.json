@@ -6,7 +6,11 @@
   "type": "module",
   "description": "Plugin theo dõi cho Hosso Studio: Google Analytics 4 và Meta (Facebook) Pixel, gồm sự kiện xem sản phẩm, thêm vào giỏ, mua hàng. Plugin thương mại, mã nguồn đóng, cần giấy phép (HOSSO_LICENSE_KEY).",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "browser": "./src/browser.ts",
+      "default": "./src/index.ts"
+    },
+    "./admin": "./src/admin.tsx"
   },
   "scripts": {
     "typecheck": "tsc -p ."

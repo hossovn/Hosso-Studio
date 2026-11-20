@@ -3,8 +3,11 @@ import { unzipSync, strFromU8 } from 'fflate'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import {createLocalReq,type Payload} from 'payload'
+import {createLocalReq,type Payload, type PayloadRequest} from 'payload'
+import { inTransaction } from '@hosso/studio-blocks/transactions'
+import { lockSitePublication } from './site-publication-lock'
 import {contentType,validateEntry} from './content-types'
+import { normalizeFormDelivery } from './form-delivery'
 
 import type { AdminLang } from './admin-i18n'
 import { serverLang } from './lang'
@@ -13,13 +16,49 @@ import { serverLang } from './lang'
  * Khôi phục gói (định dạng 2) lên cài đặt sạch (DB đã chạy migration). Bản ghi trùng slug được cập nhật; media trùng tên bị bỏ qua.
  * Dùng chung cho CLI (studio:import) và trang Công cụ trong admin.
  */
-export async function importSitePackage(payload: Payload, bytes: Uint8Array, log: (msg: string) => void = console.log, lang: AdminLang = serverLang()) {
+export async function importSitePackage(payload: Payload, bytes: Uint8Array, log: (msg: string) => void = console.log, lang: AdminLang = serverLang(), req?: PayloadRequest): Promise<{ stats: { pages: number; pagesUpdated: number; posts: number; terms: number; forms: number; blocks: number }; secretsOmitted: string[] }> {
   const M = (vi: string, en: string) => (lang === 'en' ? en : vi)
 const zip = unzipSync(bytes)
 const read = (name: string) => (zip[name] ? JSON.parse(strFromU8(zip[name])) : undefined)
 
 const manifest = read('manifest.json')
   if (manifest?.format !== 2) throw new Error(M('Gói không hợp lệ hoặc không đúng phiên bản định dạng (cần định dạng 2; xuất lại bằng bản Studio mới).', 'Invalid package or wrong format version (format 2 is required; export again with a current Studio).'))
+
+  // Additive kits never overwrite a site's pages, global settings or catalog.
+  if (manifest.installMode === 'additive') {
+    if (!req) {
+      const request = await createLocalReq({}, payload)
+      const createdFiles: string[] = []
+      request.context.importedMediaFiles = createdFiles
+      try {
+        return await inTransaction(request, async () => {
+          await lockSitePublication(request)
+          return importSitePackage(payload, bytes, log, lang, request)
+        })
+      } catch (error) {
+        const upload = payload.collections.media.config.upload
+        if (upload && typeof upload === 'object' && upload.staticDir) for (const filename of createdFiles) {
+          const referenced = await payload.count({ collection: 'media', where: { filename: { equals: filename } }, overrideAccess: true }).catch(() => null)
+          if (referenced?.totalDocs === 0 && path.basename(filename) === filename) fs.rmSync(path.join(upload.staticDir, filename), { force: true })
+        }
+        throw error
+      }
+    }
+    const allowed = new Set(['manifest.json', 'data/pages.json', 'data/forms.json', 'data/media.json'])
+    if (Object.keys(zip).some((name) => !allowed.has(name) && !/^media\/[^/\\]+$/.test(name))) throw new Error('Additive kits can only contain pages, forms and media.')
+    const missing = (manifest.plugins || []).filter((id: string) => !hosso.plugins.some((plugin) => plugin.id === id))
+    if (missing.length) throw new Error('Missing required plugins: ' + missing.join(', '))
+    for (const [collection, filename] of [['pages', 'data/pages.json'], ['forms', 'data/forms.json']] as const) {
+      const slugs = (read(filename) || []).map((doc: any) => doc.slug)
+      if (slugs.some((slug: unknown) => typeof slug !== 'string' || !/^[a-z0-9][a-z0-9_/-]*$/.test(slug)) || new Set(slugs).size !== slugs.length) throw new Error('Invalid or duplicate kit paths')
+      if (slugs.length) {
+        const conflicts = await payload.find({ collection, where: { slug: { in: slugs } }, draft: true, limit: slugs.length, depth: 0, overrideAccess: true, req })
+        if (conflicts.docs.length) throw new Error('Đường dẫn đã tồn tại: ' + conflicts.docs.map((doc: any) => doc.slug).join(', '))
+      }
+    }
+    const paths = new Set((read('data/pages.json') || []).map((page: any) => '/' + page.slug))
+    for (const form of read('data/forms.json') || []) if (!paths.has(normalizeFormDelivery({ successHref: form.successHref }).successHref)) throw new Error('Kit form requires its own thank-you page')
+  }
 
   const KNOWN_CODES = new Set(['vi', 'en', 'ko', 'ja', 'zh', 'fr', 'de', 'th', ...hosso.locales.map((l) => l.code)])
   const manifestLocales = ((manifest.locales ?? []) as string[]).filter((code) => KNOWN_CODES.has(code))
@@ -33,16 +72,20 @@ const manifest = read('manifest.json')
 
   // Media trước (nội dung tham chiếu qua URL theo tên tệp).
   for (const m of read('data/media.json') ?? []) {
-    const exists = await payload.count({ collection: 'media', where: { filename: { equals: m.filename } } })
+    const exists = await payload.count({ collection: 'media', where: { filename: { equals: m.filename } }, req })
     if (exists.totalDocs) continue
-    const tmp = path.join(os.tmpdir(), m.filename)
-    fs.writeFileSync(tmp, zip[`media/${m.filename}`])
-    await payload.create({ collection: 'media', data: { alt: m.alt || m.filename, cms: m.cms } as any, filePath: tmp })
-    fs.rmSync(tmp, { force: true })
+    if (typeof m.filename !== 'string' || !m.filename || m.filename === '.' || m.filename === '..' || /[/\\\u0000]/.test(m.filename) || !zip[`media/${m.filename}`]) throw new Error('Invalid media filename')
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hosso-import-'))
+    const tmp = path.join(tempDir, m.filename)
+    try {
+      fs.writeFileSync(tmp, zip[`media/${m.filename}`])
+      const created = await payload.create({ collection: 'media', data: { alt: m.alt || m.filename, cms: m.cms } as any, filePath: tmp, req })
+      if (created.filename && Array.isArray(req?.context.importedMediaFiles)) req.context.importedMediaFiles.push(created.filename)
+    } finally { fs.rmSync(tmp, { force: true }); fs.rmdirSync(tempDir) }
   }
   const mediaId = async (ref: { filename?: string } | null | undefined) => {
     if (!ref?.filename) return null
-    const found = await payload.find({ collection: 'media', where: { filename: { equals: ref.filename } }, limit: 1, depth: 0 })
+    const found = await payload.find({ collection: 'media', where: { filename: { equals: ref.filename } }, limit: 1, depth: 0, req })
     return found.docs[0]?.id ?? null
   }
 
@@ -56,16 +99,18 @@ const manifest = read('manifest.json')
   async function upsert(collection: any, slug: string, shared: Record<string, unknown>, translations: Record<string, Record<string, unknown>>, status?: string) {
     const first = translations[D] ?? translations[Object.keys(translations)[0]] ?? {}
     try {
-    const q = { collection, where: { slug: { equals: slug } }, limit: 1, depth: 0, locale: D as any }
+    const q = { collection, where: { slug: { equals: slug } }, limit: 1, depth: 0, locale: D as any, req }
     // Tìm cả bản nháp; nếu bảng phiên bản chưa có thì tìm trong bảng chính để không tạo trùng slug.
     const existing = (await payload.find({ ...q, draft: true })).docs.length ? await payload.find({ ...q, draft: true }) : await payload.find(q)
+    if (manifest.installMode === 'additive' && existing.docs.length) throw new Error('Đường dẫn đã tồn tại: ' + slug)
     const base: any = { ...shared, ...first, slug, ...(status ? { _status: status } : {}) }
+    if (collection === 'forms' && base.delivery && existing.docs[0]) base.delivery = { ...(existing.docs[0] as any).delivery, ...base.delivery }
     const context=collection==='content-types'||collection==='content-entries'?{cmsDeferEntryLinks:true}:undefined
     const doc: any = existing.docs[0]
-      ? await payload.update({ collection, id: existing.docs[0].id, data: base, locale: D as any,context })
-      : await payload.create({ collection, data: base, locale: D as any,context })
+      ? await payload.update({ collection, id: existing.docs[0].id, data: base, locale: D as any,context, req })
+      : await payload.create({ collection, data: base, locale: D as any,context, req })
     for (const l of LOCALES.slice(1)) {
-      if (translations[l] && (!['pages','posts','content-entries'].includes(collection) || translations[l].title)) await payload.update({ collection, id: doc.id, data: { ...translations[l], ...(status ? { _status: status } : {}) } as any, locale: l as any,context })
+      if (translations[l] && (!['pages','posts','content-entries'].includes(collection) || translations[l].title)) await payload.update({ collection, id: doc.id, data: { ...translations[l], ...(status ? { _status: status } : {}) } as any, locale: l as any,context, req })
     }
     return { doc, created: !existing.docs[0] }
   } catch (e: any) {
@@ -128,9 +173,9 @@ const manifest = read('manifest.json')
   for (const f of read('data/forms.json') ?? []) {
     const tr = f.translations as Record<string, any>
     const fieldsFor = (l: string, rows?: any[]) => f.fields.map((fl: any, i: number) => ({ ...(rows?.[i]?.id ? { id: rows[i].id } : {}), name: fl.name, type: fl.type, required: fl.required, label: fl.name, ...(fl.translations[l] ?? fl.translations[D] ?? {}) }))
-    const { doc } = await upsert('forms', f.slug, { fields: fieldsFor(D), rules: f.rules ?? {} }, { [D]: tr[D] ?? {} })
+    const { doc } = await upsert('forms', f.slug, { fields: fieldsFor(D), rules: f.rules ?? {}, ...(f.successHref ? { delivery: normalizeFormDelivery({ successHref: f.successHref }) } : {}) }, { [D]: tr[D] ?? {} })
     // Bản dịch của dòng trường cần đúng id dòng đã tạo ở ngôn ngữ mặc định.
-    for (const l of LOCALES.slice(1)) if (tr[l] || f.fields.some((fl: any) => fl.translations[l])) await payload.update({ collection: 'forms', id: doc.id, data: { ...(tr[l] ?? {}), fields: fieldsFor(l, doc.fields) }, locale: l as any })
+    for (const l of LOCALES.slice(1)) if (tr[l] || f.fields.some((fl: any) => fl.translations[l])) await payload.update({ collection: 'forms', id: doc.id, data: { ...(tr[l] ?? {}), fields: fieldsFor(l, doc.fields) }, locale: l as any, req })
     stats.forms++
   }
 
@@ -140,7 +185,11 @@ const manifest = read('manifest.json')
     stats.blocks++
   }
 
-  for (const type of read('data/content-types.json') ?? []) await upsert('content-types',type.slug,{title:type.title,fields:type.fields},{})
+  for (const type of read('data/content-types.json') ?? []) {
+    const template = type.detailTemplate ? (await payload.find({ collection: 'pages', where: { slug: { equals: type.detailTemplate } }, draft: true, depth: 0, limit: 1, overrideAccess: true })).docs[0] : undefined
+    if (type.detailTemplate && !template) throw new Error(`Missing detail template: ${type.detailTemplate}`)
+    await upsert('content-types',type.slug,{title:type.title,fields:type.fields,...('detailTemplate' in type ? { detailTemplate: template?.id || null } : {})},{})
+  }
   for (const entry of read('data/content-entries.json') ?? []) await upsert('content-entries', entry.slug, { kind: entry.kind, published: entry.published }, entry.translations)
   const validationReq=await createLocalReq({},payload)
   for(const entry of read('data/content-entries.json')??[])for(const [locale,translation] of Object.entries(entry.translations) as [string,any][]){if(!translation.title)continue;validationReq.locale=locale as any;await validateEntry(validationReq,await contentType(validationReq,entry.kind),translation.data??{},!!entry.published,entry.slug)}

@@ -17,11 +17,11 @@ RUN pnpm --filter @hosso/studio build
 FROM base AS run
 ENV NODE_ENV=production HOSTNAME=0.0.0.0 PORT=3000
 COPY --from=build /app /app
-RUN chmod +x /app/docker/entrypoint.sh && mkdir -p /app/media /app/backups && chown -R node:node /app/media /app/backups /app/apps/studio
+RUN chmod +x /app/docker/entrypoint.sh && mkdir -p /app/media /app/backups /app/private && chown -R node:node /app/media /app/backups /app/private /app/apps/studio
 USER node
 EXPOSE 3000
-VOLUME ["/app/media"]
-ENV HOSSO_MEDIA_DIR=/app/media HOSSO_SEED_DIR=/app/seed
+VOLUME ["/app/media", "/app/private", "/app/backups"]
+ENV HOSSO_MEDIA_DIR=/app/media HOSSO_PRIVATE_DIR=/app/private HOSSO_SEED_DIR=/app/seed
 HEALTHCHECK --interval=15s --timeout=5s --start-period=60s --retries=5 \
   CMD node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 ENTRYPOINT ["/app/docker/entrypoint.sh"]

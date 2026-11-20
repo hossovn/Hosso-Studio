@@ -15,7 +15,8 @@ import { getPayloadSiteLocales } from './locale'
 import { importSitePackage } from './site-import'
 import { buildSitePackage } from './site-package'
 import { allow, clientIp } from './ratelimit'
-import { deliverForm, normalizeFormDelivery } from './form-delivery'
+import { normalizeFormDelivery } from './form-delivery'
+import { saveFormSubmission } from './form-submission'
 
 import { calculateFormQuote, validateFormValues } from '../../../../packages/blocks/src/form-rules'
 
@@ -52,16 +53,10 @@ export const formSubmit: Endpoint = {
     const quote = calculateFormQuote((form.fields ?? []) as FormField[], (form as any).rules, data)
     if (quote) Object.assign(data, { _quoteTotal: quote.total, _quoteCurrency: quote.currency, _quoteItems: JSON.stringify(quote.items), _quoteBase: quote.base })
 
-    const submission = await req.payload.create({
-      collection: 'form-submissions',
-      data: { form: form.id, formTitle: form.title, data, locale },
-      overrideAccess: true,
-    })
-    await notify(req.payload, 'form', both(`Biểu mẫu mới: ${form.title}`, `New form submission: ${form.title}`), [...Object.entries(data).map(([k, v]) => `${k}: ${v}`), '', both('Xem trong Admin → Biểu mẫu → Đã gửi.', 'See Admin → Forms → Submissions.')])
-    await deliverForm(req.payload, form, submission.id, data)
+    const { submission } = await saveFormSubmission(req, form, data, { locale, requestId: body.requestId, attribution: body.attribution, experiments: body.experiments })
     let delivery: ReturnType<typeof normalizeFormDelivery> = {}
     try { delivery = normalizeFormDelivery((form as any).delivery) } catch { /* Legacy invalid settings must not fail a saved submission. */ }
-    return json({ ok: true, ...(delivery.successHref ? { redirect: delivery.successHref } : {}) })
+    return json({ ok: true, receipt: String(submission.id), ...(delivery.successHref ? { redirect: delivery.successHref } : {}) })
   },
 }
 

@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { spawn } from 'node:child_process'
 
 const require = createRequire(new URL('../apps/studio/package.json', import.meta.url))
-const { chromium } = require(process.env.HOSSO_PLAYWRIGHT_MODULE || 'playwright')
+const { chromium } = require(process.env.HOSSO_PLAYWRIGHT_MODULE || '@playwright/test')
 const repo = fileURLToPath(new URL('../', import.meta.url))
 const output = join(repo, 'output/studio-workbench-2026-11-02')
 await mkdir(output, { recursive: true })

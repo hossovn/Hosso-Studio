@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { beforePlatform } from './lib/platform-schema.mjs'
 import fs from 'node:fs'
 import { createRequire } from 'node:module'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -14,7 +15,7 @@ const { getPayload } = await import(pathToFileURL(require.resolve('payload')).hr
 const payload = await getPayload({config,disableDBConnect:true,disableOnInit:true})
 try {
  const { generateDrizzleJson,generateMigration } = require('drizzle-kit/api')
- const current = generateDrizzleJson(payload.db.schema), previous=structuredClone(current)
+ const current = beforePlatform(generateDrizzleJson(payload.db.schema)), previous=structuredClone(current)
  delete previous.tables['public.content_entries'].columns.cms
  delete previous.tables['public.content_types']
  delete previous.tables['public.users'].columns.content_permissions

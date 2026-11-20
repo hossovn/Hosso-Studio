@@ -2,6 +2,7 @@
 import React, { useId } from 'react'
 import { LOOP_AMOUNT, resolveMotionConfig, supportedMotionPresets, type MotionConfig, type EntrancePreset, type LoopPreset } from '@hosso/studio-blocks'
 import { ScrollNumber } from './ScrollEffectControls'
+import { MOTION_STYLES } from '../../../../../../../packages/blocks/src/motion-effects'
 
 export function MotionControls({ props, type, onChange }: { props: Record<string, unknown>; type: string; onChange: (value: MotionConfig) => void }) {
   const id = useId()
@@ -13,7 +14,9 @@ export function MotionControls({ props, type, onChange }: { props: Record<string
   const amountLabel = loop.preset === 'orbit' ? 'Bán kính (px)' : loop.preset === 'sway' ? 'Góc lắc (độ)' : ['pulse', 'ripple', 'slow-zoom'].includes(loop.preset) ? 'Mức phóng (%)' : 'Độ dịch chuyển (px)'
   const amountSpec = LOOP_AMOUNT[loop.preset]
   return <div className="cv-motion-controls">
+    <div className="cv-field"><label htmlFor={id + '-style'}>Bộ chuyển động</label><select id={id + '-style'} value="" onChange={(event) => { const preset = MOTION_STYLES.find((item) => item.value === event.target.value); if (preset) onChange({ ...preset.config }) }}><option value="">Chọn bộ thiết lập</option>{MOTION_STYLES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div>
     <h4 className="cv-motion-title">Xuất hiện</h4>
+    <div className="cv-field"><label htmlFor={id + '-trigger'}>Kích hoạt</label><select id={id + '-trigger'} value={config.trigger || 'viewport'} onChange={(event) => change({ trigger: event.target.value as 'viewport' | 'manual' })}><option value="viewport">Khi vào màn hình</option><option value="manual">Từ nút / phần tử khác</option></select></div>
     <div className="cv-field"><label htmlFor={id + '-entrance'}>Kiểu xuất hiện</label><select id={id + '-entrance'} value={entrance.preset} onChange={(e) => change({ entrance: { ...entrance, preset: e.target.value as EntrancePreset } })}>{options.entrance.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div>
     {entrance.preset !== 'none' && <>
       <ScrollNumber label="Thời lượng xuất hiện (ms)" value={entrance.duration} min={100} max={5000} step={100} onChange={(duration) => change({ entrance: { ...entrance, duration } })} />

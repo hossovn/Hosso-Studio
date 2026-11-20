@@ -1,3 +1,4 @@
+import { ResponsiveImage } from './ResponsiveImage'
 import React from 'react'
 import { getLocale, t } from './i18n'
 import type { BlockRenderer } from './types'
@@ -28,7 +29,7 @@ export const PostList: BlockRenderer = ({ heading, data }) => {
               <li key={p.slug} className="ss-post-card">
                 {p.cover && (
                   <a href={p.href} tabIndex={-1} aria-hidden="true">
-                    <img src={p.cover} alt="" loading="lazy" />
+                    <ResponsiveImage src={p.cover} alt="" loading="lazy" />
                   </a>
                 )}
                 <div>

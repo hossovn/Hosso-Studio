@@ -1,6 +1,9 @@
 'use client'
 import { Gutter, useDocumentInfo, useFormModified, useTranslation } from '@payloadcms/ui'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { ReturnsAdmin } from './client/Returns'
+export const ReturnsView = () => <Gutter className="ha-workspace"><ReturnsAdmin /></Gutter>
+export const ReturnsLink = () => <a className="ha-button" href="/admin/shop-returns">Xử lý đổi trả</a>
 
 // Trang Nhập/xuất CSV sản phẩm trong admin (chỉ admin/publisher dùng được endpoint).
 export const ImportView = () => {

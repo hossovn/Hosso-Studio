@@ -1,7 +1,7 @@
 /** Portable field definitions shared by the form builder, importer and server validation. */
 export const CONTENT_FIELD_TYPES = ['text', 'textarea', 'number', 'boolean', 'date', 'select', 'image', 'relationship'] as const
 export type ContentField = { key: string; label: string; type: typeof CONTENT_FIELD_TYPES[number]; required?: boolean; options?: string[]; target?: string }
-export type ContentType = { id?: string | number; slug: string; title: string; fields: ContentField[]; builtin?: boolean }
+export type ContentType = { id?: string | number; slug: string; title: string; fields: ContentField[]; builtin?: boolean; detailTemplate?: string | number | null }
 const common: ContentField[] = [
  { key: 'description', label: 'Mô tả', type: 'textarea' },
  { key: 'image', label: 'Ảnh', type: 'image' },

@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { cloneElements, elementFamily, type FreeElement } from '@hosso/studio-blocks'
 import { inheritedElementFlag } from '../../../../../../../packages/blocks/src/free-geometry'
 import { DEFAULT_REPEAT_TEMPLATE, REPEAT_FIELDS, REPEAT_TYPES } from '../../../../../../../packages/blocks/src/repeater-data'
@@ -11,6 +11,16 @@ export function RepeaterPanel({ data, sel, commit, setSel, onAdd }: { data: Page
   const repeater = el?.type === 'widget' && el.props.widget?.type === 'DataRepeater' ? el.props.widget.props : block?.type === 'DataRepeater' ? block.props : undefined
   const root = block && elsOf(block).find((candidate) => candidate.props._repeatTarget)
   const editTarget = block?.props._repeatTarget ?? root?.props._repeatTarget
+  const [types, setTypes] = useState<{ slug: string; fields: { key: string; label: string }[] }[]>([])
+  useEffect(() => {
+    const controller = new AbortController()
+    void fetch('/api/site/cms/types', { signal: controller.signal }).then((res) => res.ok ? res.json() : { types: [] }).then((json) => setTypes(json.types ?? [])).catch(() => {})
+    return () => controller.abort()
+  }, [])
+  const sourceBlock = data.content.find((item) => blockId(item) === editTarget?.block)
+  const source = editTarget?.el ? findEl(data, editTarget.el)?.el.props.widget?.props : sourceBlock?.props
+  const entryKind = (repeater ?? source)?.entryKind || data.root?.props?._bindingKind
+  const fields = [...REPEAT_FIELDS.map((value) => ({ value, label: value as string })), ...(types.find((type) => type.slug === entryKind)?.fields ?? []).map((field) => ({ value: `data.${field.key}`, label: field.label }))]
   const save = () => {
     if (!root || !block) return
     const target = root.props._repeatTarget, family = elementFamily(elsOf(block), root.id)
@@ -44,10 +54,11 @@ export function RepeaterPanel({ data, sel, commit, setSel, onAdd }: { data: Page
   const bindKeys = el?.type === 'image' ? ['src', 'alt', 'href'] : el && ['text', 'heading', 'button'].includes(el.type) ? ['text', 'href'] : el?.type === 'number' ? ['value'] : []
   return <section className="cv-workbench-panel cv-repeater-panel"><h3 className="cv-catalog-heading">Danh sách dữ liệu</h3><p className="cv-tool-help">Thiết kế một ô rồi lặp từ dữ liệu thủ công, bài viết hoặc sản phẩm.</p><div className="cv-repeat-mini" aria-hidden="true">{[1, 2, 3].map((n) => <div key={n}><i /><b /><span /></div>)}</div>
     <button type="button" className="cv-tool-button" onClick={onAdd}>Chèn danh sách mẫu</button>
+    {!repeater && !editTarget && <label className="cv-tool-field">Trường cho trang chi tiết<select aria-label="Loại nội dung của trang chi tiết" value={data.root?.props?._bindingKind || ''} onChange={(event) => commit({ ...data, root: { ...data.root, props: { ...data.root?.props, _bindingKind: event.target.value } } })}><option value="">Chọn loại nội dung</option>{types.map((type) => <option key={type.slug} value={type.slug}>{type.slug}</option>)}</select><small>Sau khi lưu trang, chọn trang này làm mẫu chi tiết trong Loại nội dung.</small></label>}
     {el?.type === 'container' && !root && <button type="button" className="cv-tool-button" onClick={convert}>Dùng khung đang chọn làm ô mẫu</button>}
     {repeater && <button type="button" className="cv-tool-button is-primary" onClick={open}>Mở ô mẫu trên canvas</button>}
     {editTarget && <><p className="cv-tool-help">Chọn từng lớp để nối trường dữ liệu. Sửa kích thước, chữ, ảnh và màu như bình thường.</p><button type="button" className="cv-tool-button is-primary" disabled={!root} onClick={save}>Áp dụng ô mẫu cho danh sách</button><button type="button" className="cv-tool-button" onClick={() => { commit(removeBlock(data, blockId(block!))); setSel({ block: editTarget.block, el: editTarget.el || '' }) }}>Hủy sửa ô mẫu</button></>}
-    {el && bindKeys.map((key) => <label className="cv-tool-field" key={key}>Nối {key === 'text' ? 'nội dung chữ' : key === 'src' ? 'ảnh' : key === 'href' ? 'liên kết' : key}<select aria-label={`Nối dữ liệu ${key}`} value={binding[key] || ''} onChange={(e) => commit(patchElProps(data, el.id, { _bind: { ...binding, [key]: e.target.value } }))}><option value="">Giá trị cố định</option>{REPEAT_FIELDS.map((field) => <option key={field} value={field}>{field}</option>)}</select></label>)}
+    {el && bindKeys.map((key) => <label className="cv-tool-field" key={key}>Nối {key === 'text' ? 'nội dung chữ' : key === 'src' ? 'ảnh' : key === 'href' ? 'liên kết' : key}<select aria-label={`Nối dữ liệu ${key}`} value={binding[key] || ''} onChange={(e) => commit(patchElProps(data, el.id, { _bind: { ...binding, [key]: e.target.value } }))}><option value="">Giá trị cố định</option>{fields.map((field) => <option key={field.value} value={field.value}>{field.label}</option>)}</select></label>)}
     {error && <p role="alert" className="cv-tool-error">{error}</p>}
   </section>
 }

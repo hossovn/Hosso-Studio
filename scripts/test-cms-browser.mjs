@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import {createRequire} from 'node:module'
 import {mkdirSync} from 'node:fs'
 const require=createRequire(new URL('../apps/studio/package.json',import.meta.url))
-const {chromium}=require(process.env.HOSSO_PLAYWRIGHT_MODULE||'playwright')
+const {chromium}=require(process.env.HOSSO_PLAYWRIGHT_MODULE || '@playwright/test')
 const origin=process.env.HOSSO_EDITOR_ORIGIN||'http://localhost:3112'
 assert.ok(/^http:\/\/localhost:\d+$/.test(origin),'Disposable local fixture required')
 mkdirSync('output/cms-workspace',{recursive:true})

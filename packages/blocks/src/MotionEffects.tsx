@@ -2,8 +2,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { motionKeyframes, type MotionConfig } from './motion-effects'
 import { useMotionScope } from './MotionScope'
+import { MOBILE_MEDIA } from './responsive-breakpoints'
 
-export function MotionEffects({ value, children }: { value: MotionConfig; children: React.ReactNode }) {
+export function MotionEffects({ value, targets = [], children }: { value: MotionConfig; targets?: string[]; children: React.ReactNode }) {
   const anchorRef = useRef<HTMLDivElement>(null)
   const entranceRef = useRef<HTMLDivElement>(null)
   const loopRef = useRef<HTMLDivElement>(null)
@@ -12,6 +13,7 @@ export function MotionEffects({ value, children }: { value: MotionConfig; childr
   const [localPaused, setLocalPaused] = useState(false)
   const pausedRef = useRef(false)
   pausedRef.current = (scope?.paused ?? false) || localPaused
+  const targetKey = targets.join('|')
 
   useEffect(() => {
     const anchor = anchorRef.current, entranceNode = entranceRef.current, loopNode = loopRef.current
@@ -21,7 +23,7 @@ export function MotionEffects({ value, children }: { value: MotionConfig; childr
     const loop = value.loop?.preset !== 'none' ? value.loop : undefined
     if (!entrance && !loop) return
     const reduced = win.matchMedia('(prefers-reduced-motion: reduce)')
-    const mobile = win.matchMedia('(max-width: 768px)')
+    const mobile = win.matchMedia(MOBILE_MEDIA)
     const units = entrance?.preset === 'text-lines' || entrance?.preset === 'text-words' ? [...entranceNode.querySelectorAll<HTMLElement>('[data-motion-unit]')] : []
     const entranceTargets: HTMLElement[] = units.length ? units : [entranceNode]
     const marquee = loopNode.querySelector<HTMLElement>('[data-motion-marquee]')
@@ -30,11 +32,12 @@ export function MotionEffects({ value, children }: { value: MotionConfig; childr
     let viewport: HTMLElement | null = anchor.parentElement
     while (viewport && (viewport === doc.body || viewport === doc.documentElement || viewport.scrollHeight <= viewport.clientHeight || !/(auto|scroll)/.test(win.getComputedStyle(viewport).overflowY))) viewport = viewport.parentElement
     let intersecting = false, entranceDone = !entrance, started = false, loopDone = false
+    let triggered = value.trigger !== 'manual', commandPaused = false
     let entranceAnimations: Animation[] = [], loopAnimation: Animation | undefined
     let focusTimer = 0
     const disabled = () => reduced.matches || !!(value.disableOnMobile && mobile.matches)
     const focused = () => loopNode.contains(doc.activeElement)
-    const eligible = () => intersecting && !doc.hidden && !pausedRef.current && !focused() && !disabled()
+    const eligible = () => triggered && !commandPaused && intersecting && !doc.hidden && !pausedRef.current && !focused() && !disabled()
     const clearEntrance = () => entranceTargets.forEach((target) => { target.style.opacity = '' })
     const cancel = () => {
       entranceAnimations.forEach((animation) => { animation.onfinish = null; animation.cancel() })
@@ -93,6 +96,17 @@ export function MotionEffects({ value, children }: { value: MotionConfig; childr
       }
     }
     syncRef.current = sync
+    const onCommand = (event: Event) => {
+      const command = (event as CustomEvent).detail
+      if (!command || !targetKey.split('|').includes(command.target) || disabled()) return
+      if (command.action === 'start') { cancel(); entranceDone = !entrance; started = false; loopDone = false; triggered = true; commandPaused = false }
+      else if (command.action === 'reset') { cancel(); entranceDone = !entrance; started = false; loopDone = false; triggered = false; commandPaused = false }
+      else if (command.action === 'pause') commandPaused = true
+      else if (command.action === 'toggle') { if (!triggered) triggered = true; else commandPaused = !commandPaused }
+      else return
+      sync()
+    }
+    doc.addEventListener('hs:motion-command', onCommand)
     const observer = new win.IntersectionObserver((entries) => {
       intersecting = entries.some((entry) => entry.isIntersecting && entry.intersectionRatio > 0)
       sync()
@@ -110,6 +124,7 @@ export function MotionEffects({ value, children }: { value: MotionConfig; childr
       win.clearTimeout(focusTimer)
       observer.disconnect()
       doc.removeEventListener('visibilitychange', sync)
+      doc.removeEventListener('hs:motion-command', onCommand)
       reduced.removeEventListener('change', sync)
       mobile.removeEventListener('change', sync)
       anchor.removeEventListener('focusin', onFocus)
@@ -117,7 +132,7 @@ export function MotionEffects({ value, children }: { value: MotionConfig; childr
       cancel()
       unregister?.()
     }
-  }, [value, scope?.register])
+  }, [value, scope?.register, targetKey])
   useEffect(() => syncRef.current(), [scope?.paused, localPaused])
 
   const hasLoop = value.loop && value.loop.preset !== 'none'

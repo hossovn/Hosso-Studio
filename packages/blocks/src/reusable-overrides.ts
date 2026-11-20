@@ -1,4 +1,4 @@
-import { sectionAnchor } from './link-actions.ts'
+import { remapActionTargets, sectionAnchor } from './link-actions.ts'
 import { normalizeBreakpoints } from './responsive-breakpoints.ts'
 import { applyFrameVariant, type FrameVariant } from './design-presets.ts'
 type Block = { type: string; props: Record<string, any> }
@@ -15,6 +15,7 @@ export function cleanReusablePatch(value: unknown): Record<string, string> {
 export function expandReusableInstance(blocks: Block[], instance: Block): Block[] {
   const source = blocks.filter((block) => block.type !== 'Reusable'), prefix = String(instance.props.id)
   const ids = new Map(source.map((block) => [String(block.props.id), `${prefix}__${encodeURIComponent(String(block.props.id))}`]))
+  const sharedElementIds = new Map<string, string>(source.flatMap((block) => (block.props._els ?? block.props.elements ?? []).map((el: any) => [el.id, `${ids.get(String(block.props.id))}__${encodeURIComponent(el.id)}`] as [string, string])))
   const triggers = new Map(source.filter((b) => b.type === 'Popup').map((b) => [String(b.props.triggerKey || b.props.id), `${prefix}__popup__${encodeURIComponent(String(b.props.triggerKey || b.props.id))}`]))
   const link = (href: unknown) => {
     if (typeof href !== 'string') return href
@@ -32,10 +33,10 @@ export function expandReusableInstance(blocks: Block[], instance: Block): Block[
       let sequence = 0
       if (variant) elements = applyFrameVariant(elements, root.id, variant, () => `${root.id}--${variant.id}--${sequence++}`)
     }
-    const elementIds = new Map<string, string>(elements.map((el: any) => [el.id, `${ids.get(id)}__${encodeURIComponent(el.id)}`]))
+    const elementIds = new Map<string, string>([...sharedElementIds, ...elements.map((el: any) => [el.id, `${ids.get(id)}__${encodeURIComponent(el.id)}`] as [string, string])])
     const _els = elements.map((el: any) => {
       const patch = cleanReusablePatch(instance.props.overrides?.[`${id}::${el.id}`])
-      return { ...el, id: elementIds.get(el.id), parentId: elementIds.get(el.parentId), props: { ...el.props, ...patch, href: link(el.props.href) }, responsive: el.responsive && Object.fromEntries(Object.entries(el.responsive).map(([key, value]) => [key, { ...(value as any), props: { ...(value as any)?.props, ...patch } }])) }
+      return { ...el, id: elementIds.get(el.id), parentId: elementIds.get(el.parentId), props: remapActionTargets({ ...el.props, ...patch, href: link(el.props.href) }, elementIds), responsive: el.responsive && remapActionTargets(Object.fromEntries(Object.entries(el.responsive).map(([key, value]) => [key, { ...(value as any), props: { ...(value as any)?.props, ...patch } }])), elementIds) }
     })
     return { ...block, props: { ...props, id: ids.get(id), _els, elements: undefined, href: link(props.href), triggerKey: block.type === 'Popup' ? triggers.get(String(block.props.triggerKey || id)) : props.triggerKey, _reusableHide: instance.props._hide, _reusableAnchor: index === 0 && instance.props._anchor ? prefix : undefined, _breakpoints: normalizeBreakpoints([...(props._breakpoints ?? []), ...(instance.props._breakpoints ?? [])]) } }
   })

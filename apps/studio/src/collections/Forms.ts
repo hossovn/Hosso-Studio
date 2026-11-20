@@ -94,12 +94,20 @@ export const Forms: CollectionConfig = {
 export const FormSubmissions: CollectionConfig = {
   slug: 'form-submissions',
   labels: { singular: 'Biểu mẫu đã gửi', plural: 'Biểu mẫu đã gửi' },
-  admin: { useAsTitle: 'formTitle', defaultColumns: ['formTitle', 'createdAt'], group: 'Nội dung' },
+  admin: { useAsTitle: 'formTitle', defaultColumns: ['formTitle', 'leadStatus', 'assignedTo', 'createdAt'], group: 'Nội dung' },
   access: { create: () => false, read: moderators, update: () => false, delete: moderators },
+  hooks: { beforeDelete: [async ({ id, req }) => { await req.payload.delete({ collection: 'form-deliveries' as any, where: { submission: { equals: id } }, overrideAccess: true, req }) }] },
   fields: [
     { name: 'form', type: 'relationship', relationTo: 'forms', required: true, label: 'Biểu mẫu' },
     { name: 'formTitle', type: 'text', label: 'Tên biểu mẫu' },
     { name: 'data', type: 'json', required: true, label: 'Dữ liệu' },
     { name: 'locale', type: 'text', label: 'Ngôn ngữ trang' },
+    { name: 'submissionKey', type: 'text', unique: true, admin: { hidden: true }, access: { read: () => false } },
+    { name: 'leadStatus', type: 'select', defaultValue: 'new', index: true, options: [{ label: 'Mới', value: 'new' }, { label: 'Đang liên hệ', value: 'contacted' }, { label: 'Đủ điều kiện', value: 'qualified' }, { label: 'Đã chốt', value: 'won' }, { label: 'Không phù hợp', value: 'lost' }], label: 'Trạng thái lead' },
+    { name: 'assignedTo', type: 'relationship', relationTo: 'users', label: 'Người phụ trách' },
+    { name: 'notes', type: 'json', label: 'Ghi chú xử lý', defaultValue: [] },
+    { name: 'attribution', type: 'json', label: 'Nguồn / chiến dịch' },
+    { name: 'experiments', type: 'json', label: 'Phiên bản thử nghiệm' },
+    { name: 'revision', type: 'number', defaultValue: 0, admin: { hidden: true } },
   ],
 }

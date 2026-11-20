@@ -2,8 +2,8 @@ import * as repeaterQuery from '../packages/blocks/src/repeater-query.ts'
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
 import Module, { createRequire } from 'node:module'
-import { dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { editorPreviewParams, normalizeEditorPreview } from '../packages/blocks/src/editor-preview-state.ts'
 import * as widgetParts from '../packages/blocks/src/widget-parts.ts'
 import * as elementStates from '../packages/blocks/src/element-states.ts'
@@ -42,7 +42,15 @@ function compile(relative, stubs) {
   const mod = new Module(path)
   mod.filename = path
   mod.paths = Module._nodeModulePaths(dirname(path))
-  mod.require = (id) => Object.hasOwn(stubs, id) ? stubs[id] : require(id)
+  mod.require = (id) => {
+    if (Object.hasOwn(stubs, id)) return stubs[id]
+    if (id.startsWith('.')) {
+      const base = resolve(dirname(path), id)
+      const source = [base, base + '.ts', base + '.tsx'].find((candidate) => /\.tsx?$/.test(candidate) && existsSync(candidate))
+      if (source) return compile(pathToFileURL(source), {})
+    }
+    return require(id)
+  }
   mod._compile(outputText, path)
   return mod.exports
 }

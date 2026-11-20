@@ -290,6 +290,7 @@ function ComponentInspector({ el, block, data, commit, setSel, state, onStateCha
           <>
             <Row label="Ảnh"><MediaField value={p.src ?? ''} onChange={(v) => put({ src: v })} kind="image" /></Row>
             <Row label="Mô tả ảnh (alt)"><input style={ctl} value={p.alt ?? ''} onChange={(e) => put({ alt: e.target.value })} /></Row>
+            <label className="cv-check"><input type="checkbox" checked={p.priority === true} onChange={(event) => put({ priority: event.target.checked })} />Ưu tiên tải ảnh đầu trang</label>
             <Row label="Cách vừa khung"><SegControl value={p.fit === 'contain' ? 'contain' : 'cover'} onChange={(v) => put({ fit: v })} options={[{ label: 'Phủ kín', value: 'cover' }, { label: 'Vừa ảnh', value: 'contain' }]} /></Row>
             <p className="cv-tool-help">Nhấp đúp ảnh để kéo vị trí và cuộn phóng. Alt + nhấp đúp để cắt ảnh thành tệp mới. Chuyển sang mobile để đặt điểm nhìn riêng.</p>
             {(['focalX', 'focalY', 'imageZoom'] as const).map((key) => <Row key={key} label={key === 'focalX' ? 'Điểm nhìn ngang (%)' : key === 'focalY' ? 'Điểm nhìn dọc (%)' : 'Độ phóng'}><input style={ctl} aria-label={key} type="number" min={key === 'imageZoom' ? 1 : 0} max={key === 'imageZoom' ? 5 : 100} step={key === 'imageZoom' ? .1 : 1} value={p[key] ?? (key === 'imageZoom' ? 1 : 50)} onChange={(e) => put({ [key]: Math.max(key === 'imageZoom' ? 1 : 0, Math.min(key === 'imageZoom' ? 5 : 100, Number(e.target.value))) })} /></Row>)}
@@ -586,6 +587,7 @@ function BlockInspector({ block, config, data, commit, labelOf, state, onStateCh
           <label className="cv-check"><input type="checkbox" checked={block.props.bgAttachment === 'fixed'} onChange={(e) => put({ bgAttachment: e.target.checked ? 'fixed' : 'scroll' })} />Giữ nền cố định khi cuộn</label>
         </>}
         <Row label="Video nền MP4"><MediaField value={block.props.bgVideo ?? ''} onChange={(v) => put({ bgVideo: v })} kind="video" /></Row>
+        {Boolean(block.props.bgVideo) && <Row label="Ảnh khi video tạm dừng"><MediaField value={block.props.bgVideoPoster ?? block.props.bgImage ?? ''} onChange={(v) => put({ bgVideoPoster: v })} /></Row>}
         {Boolean(block.props.bgVideo) && <Row label="Cách phủ video"><SegControl value={block.props.bgVideoFit ?? 'cover'} onChange={(v) => put({ bgVideoFit: v })} options={[{ label: 'Phủ kín', value: 'cover' }, { label: 'Vừa video', value: 'contain' }]} /></Row>}
         <div className="cv-subheading">Lớp phủ</div>
         <Row label="Màu lớp phủ"><ColorControl value={block.props.bgOverlayColor ?? '#000000'} onChange={(v) => put({ bgOverlayColor: v })} /></Row>

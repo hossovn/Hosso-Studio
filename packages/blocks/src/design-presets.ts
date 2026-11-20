@@ -1,5 +1,6 @@
 import type { FreeElement } from './FreeCanvas'
 import { elementFamily, inheritedElementFlag } from './free-geometry.ts'
+import { remapActionTargets } from './link-actions.ts'
 
 export const LINKED_STYLE_KEYS = ['color', 'bg', 'borderColor', 'borderW', 'radius', 'size', 'font', 'weight', 'lh', 'ls', 'align', 'opacity', 'bshadow', 'tshadow', 'spacing', 'padX', 'padY', 'bg2', 'angle', 'upper', 'italic', 'underline'] as const
 export type LinkedStyle = { id: string; name: string; props: Record<string, any> }
@@ -43,6 +44,10 @@ export function applyFrameVariant(list: FreeElement[], rootId: string, variant: 
   if (!root || !source || elementFamily(list, rootId).some((el) => inheritedElementFlag(list, el.id, '_locked'))) return list
   const old = new Set(elementFamily(list, rootId).map((el) => el.id)), ids = new Map(variant.elements.map((el) => [el.id, el === source ? rootId : newId()]))
   const next = variant.elements.map((el) => ({ ...structuredClone(el), id: ids.get(el.id)!, parentId: el === source ? root.parentId : ids.get(el.parentId!), x: el.x - source.x + root.x, y: el.y - source.y + root.y, responsive: el.responsive && Object.fromEntries(Object.entries(el.responsive).map(([device, patch]) => [device, { ...patch, ...(patch?.x != null ? { x: patch.x + (root.responsive?.[device as keyof typeof root.responsive]?.x ?? root.x) } : {}), ...(patch?.y != null ? { y: patch.y + (root.responsive?.[device as keyof typeof root.responsive]?.y ?? root.y) } : {}) }])), props: { ...el.props, ...(el === source ? { _variants: root.props._variants, _variant: variant.id, ...(root.props._isPopover ? { _isPopover: true } : {}), ...(root.props._repeatTarget ? { _repeatTarget: root.props._repeatTarget } : {}) } : {}) } }))
+  for (const element of next) {
+    element.props = remapActionTargets(element.props, ids)
+    if (element.responsive) element.responsive = remapActionTargets(element.responsive, ids)
+  }
   const result: FreeElement[] = []
   for (const el of list) { if (el.id === rootId) result.push(...next); else if (!old.has(el.id)) result.push(el) }
   return result
@@ -95,6 +100,10 @@ export function materializeFrameVariant(list: FreeElement[], rootId: string, var
       } : {}),
     },
   }))
+  for (const element of next) {
+    element.props = remapActionTargets(element.props, ids)
+    if (element.responsive) element.responsive = remapActionTargets(element.responsive, ids)
+  }
   const result: FreeElement[] = []
   for (const el of list) {
     if (el.id === rootId) result.push(...next)

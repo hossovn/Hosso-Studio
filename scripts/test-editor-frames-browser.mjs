@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
 import { createFrameLayout } from '../packages/blocks/src/frame-layout.ts'
 const require = createRequire(new URL('../apps/studio/package.json', import.meta.url))
-const { chromium } = require(process.env.HOSSO_PLAYWRIGHT_MODULE || 'playwright')
+const { chromium } = require(process.env.HOSSO_PLAYWRIGHT_MODULE || '@playwright/test')
 const origin = process.env.HOSSO_EDITOR_ORIGIN || 'http://localhost:3111'
 assert.match(origin, /^http:\/\/localhost:\d+$/)
 const browser = await chromium.launch({ headless: true })

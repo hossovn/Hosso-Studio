@@ -16,6 +16,10 @@ import { ContactMessages } from './collections/ContactMessages'
 import { Media } from './collections/Media'
 import { Comments } from './collections/Comments'
 import { Forms, FormSubmissions } from './collections/Forms'
+import { FormDeliveries } from './collections/FormDeliveries'
+import { formDeliveryTask } from './lib/form-outbox'
+import { leadsList, leadUpdate, leadRetry } from './lib/leads'
+import { readiness } from './lib/readiness'
 import { ContentEntries } from './collections/ContentEntries'
 import { ContentTypes } from './collections/ContentTypes'
 import { cmsImport, cmsImportFile } from './lib/content-import'
@@ -88,6 +92,8 @@ const base: Config = {
         plugins: { Component: '/components/admin/PluginsView#PluginsView', path: '/plugins' },
         releases: { Component: '/components/admin/ReleasesView#ReleasesView', path: '/releases' },
         chat: { Component: '/components/admin/ChatInboxView#ChatInboxView', path: '/chat' },
+        leads: { Component: '/components/admin/LeadsView#LeadsView', path: '/leads' },
+        readiness: { Component: '/components/admin/ReadinessView#ReadinessView', path: '/readiness' },
       },
       providers: ['/components/admin/BrandStyle#BrandStyle'],
       beforeLogin: ['/components/admin/LoginCode#LoginCode'],
@@ -95,8 +101,8 @@ const base: Config = {
   },
   i18n: { supportedLanguages: { vi, en }, fallbackLanguage: 'vi' },
   // Hàng đợi tác vụ: chạy mỗi phút để xuất bản/hủy xuất bản theo lịch đặt trong trang và bài viết.
-  jobs: { autoRun: [{ cron: '* * * * *', limit: isPostgres ? 10 : 1, queue: 'default' }] },
-  collections: [Pages, Posts, ContentEntries, ContentTypes, PostCategories, PostTags, Comments, Forms, FormSubmissions, ReusableBlocks, Media, ContactMessages, ChatSessions, Bookings, Redirects, EditLocks, EditorReviews, SiteReleases, Users],
+  jobs: { autoRun: [{ cron: '* * * * *', limit: isPostgres ? 10 : 1, queue: 'default' }], tasks: [formDeliveryTask] },
+  collections: [Pages, Posts, ContentEntries, ContentTypes, PostCategories, PostTags, Comments, Forms, FormSubmissions, FormDeliveries, ReusableBlocks, Media, ContactMessages, ChatSessions, Bookings, Redirects, EditLocks, EditorReviews, SiteReleases, Users],
   globals: [SiteSettings, SiteAreas],
   // Ngôn ngữ nội dung: ngôn ngữ đầu tiên trong hosso.config.ts là mặc định; thiếu bản dịch thì dùng ngôn ngữ mặc định.
   localization: { locales: getPayloadLocalizationLocales(hosso.locales), defaultLocale: hosso.locales[0].code, fallback: true },
@@ -114,6 +120,8 @@ const base: Config = {
     cmsList, cmsMutate, cmsSearch, cmsUsage, cmsCreateArticle,
     cmsTypes, cmsImport, cmsImportFile,
     formSubmit,
+    leadsList, leadUpdate, leadRetry,
+    readiness,
     formExport,
     commentSubmit,
     shareLink,

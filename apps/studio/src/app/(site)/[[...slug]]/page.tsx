@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { getSiteLocaleConfig, splitLocale } from '@/lib/locale'
-import { PageView, PostView, SearchView, TermView, pageMeta, postMeta, resolveRoute, searchMeta, termMeta, type SP } from '@/views'
+import { EntryView, entryMeta, PageView, PostView, SearchView, TermView, pageMeta, postMeta, resolveRoute, searchMeta, termMeta, type SP } from '@/views'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,6 +22,8 @@ export async function generateMetadata({ params, searchParams }: Args): Promise<
   const { locale, route } = await parse(params)
   const sp = await searchParams
   switch (route.kind) {
+    case 'entry':
+      return entryMeta(route.entryKind, route.slug, locale, sp)
     case 'page':
       return pageMeta(route.slug, locale, sp)
     case 'post':
@@ -38,6 +40,8 @@ export default async function Page({ params, searchParams }: Args) {
   const { locale, route } = await parse(params)
   const sp = await searchParams
   switch (route.kind) {
+    case 'entry':
+      return <EntryView kind={route.entryKind} slug={route.slug} locale={locale} sp={sp} />
     case 'page':
       return <PageView slug={route.slug} locale={locale} sp={sp} />
     case 'post':

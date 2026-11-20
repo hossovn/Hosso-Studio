@@ -23,6 +23,8 @@ if (!process.execArgv.includes('--conditions=react-server')) {
     './client/Carousel': { Carousel: client('Carousel') },
     './client/Wishlist': { WishlistButton: client('WishlistButton'), WishlistView: client('WishlistView') },
     './client/Shop': Object.fromEntries(['AddToCart', 'CartView', 'CheckoutForm', 'OrderLookup', 'ReviewForm'].map((name) => [name, client(name)])),
+    './client/ProductGallery': { ProductGallery: client('ProductGallery') },
+    '../../blocks/src/ResponsiveImage': { ResponsiveImage: () => null },
     './util': {},
   }
   mod.require = (id) => Object.hasOwn(stubs, id) ? stubs[id] : require(id)

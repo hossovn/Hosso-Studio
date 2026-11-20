@@ -6,7 +6,10 @@
   "type": "module",
   "description": "Plugin khuyến mãi cho Hosso Studio: mã giảm giá theo phần trăm, số tiền cố định hoặc miễn phí vận chuyển. Plugin thương mại, mã nguồn đóng, cần giấy phép (HOSSO_LICENSE_KEY).",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "browser": "./src/browser.ts",
+      "default": "./src/index.ts"
+    }
   },
   "scripts": {
     "typecheck": "tsc -p ."

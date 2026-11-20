@@ -5,7 +5,10 @@
   "type": "module",
   "description": "Plugin cửa hàng cho Hosso Studio: sản phẩm, danh mục, tồn kho, giỏ hàng, đặt hàng (COD/chuyển khoản), quản lý đơn và nhập/xuất CSV. Chạy độc lập, không cần WIM.",
   "exports": {
-    ".": "./src/index.ts",
+    ".": {
+      "browser": "./src/browser.ts",
+      "default": "./src/index.ts"
+    },
     "./server": "./src/endpoints.ts",
     "./stock": "./src/stock.ts",
     "./workflow": "./src/order-workflow.ts",
@@ -17,8 +20,22 @@
     "./admin": "./src/admin.tsx",
     "./admin-list": "./src/admin-list.tsx"
   },
-  "scripts": { "typecheck": "tsc -p ." },
-  "dependencies": { "@hosso/studio-blocks": "workspace:*", "lucide-react": "^1.60.0" },
-  "peerDependencies": { "react": "19.3.1" },
-  "devDependencies": { "@payloadcms/ui": "3.91.0", "@types/react": "19.3.0", "payload": "3.91.0", "react": "19.3.1", "typescript": "5.9.3" }
+  "scripts": {
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@hosso/studio-blocks": "workspace:*",
+    "lucide-react": "^1.60.0",
+    "@napi-rs/image": "1.16.0"
+  },
+  "peerDependencies": {
+    "react": "19.3.1"
+  },
+  "devDependencies": {
+    "@payloadcms/ui": "3.91.0",
+    "@types/react": "19.3.0",
+    "payload": "3.91.0",
+    "react": "19.3.1",
+    "typescript": "5.9.3"
+  }
 }

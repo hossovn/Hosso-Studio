@@ -104,7 +104,7 @@ export async function prepare(req: PayloadRequest, input: Record<string, any>, q
     else items.push({ productId: String(p.id), ...(p.variants?.length && { variantId: l.variantId }), name: (p as any).displayName ? `${(p as any).displayName}${p.variants?.length ? ` (${p.variants.find((v) => v.id === l.variantId)?.name})` : ''}` : name, code, price, sourcePrice, quantity, image: imageOf(p), ...(customerPrice && { priceSource: customerPrice.source, priceGroup: customerPrice.group }), source: external?.source || p.source || 'shop', ...(external && { remoteId: external.remoteId }) })
   }
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
-  const meta = typeof input.meta === 'object' && input.meta ? (input.meta as Record<string, unknown>) : {}
+  const meta = typeof input.meta === 'object' && input.meta ? structuredClone(input.meta as Record<string, unknown>) : {}
   const draft: OrderDraft = { items, subtotal, adjustments: [], customer: { name, phone, address, email }, fulfillment, payment, meta }
   try { draft.shipments = await fulfillmentGroups(payload, draft) }
   catch { return fail(409, 'fulfillment_unavailable', 'Chưa xác nhận được phương án giao và thu tiền. Vui lòng liên hệ cửa hàng.') }

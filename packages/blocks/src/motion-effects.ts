@@ -6,7 +6,13 @@ export type MotionConfig = {
   entrance?: { preset: EntrancePreset; duration: number; delay: number }
   loop?: { preset: LoopPreset; duration: number; delay: number; iterations: number | 'infinite'; amount: number }
   disableOnMobile?: boolean
+  trigger?: 'viewport' | 'manual'
 }
+export const MOTION_STYLES = [
+  { value: 'light', label: 'Nhẹ', config: { entrance: { preset: 'fade', duration: 300, delay: 0 }, disableOnMobile: false } },
+  { value: 'standard', label: 'Tiêu chuẩn', config: { entrance: { preset: 'slide-up', duration: 500, delay: 0 }, disableOnMobile: false } },
+  { value: 'story', label: 'Kể chuyện', config: { entrance: { preset: 'reveal-up', duration: 800, delay: 0 }, disableOnMobile: true } },
+] as const satisfies ReadonlyArray<{ value: string; label: string; config: MotionConfig }>
 
 export const ENTRANCE_PRESETS = [
   { value: 'none', label: 'Không' }, { value: 'fade', label: 'Hiện dần' }, { value: 'zoom', label: 'Phóng nhẹ' },
@@ -56,6 +62,7 @@ export function normalizeMotionConfig(value: unknown): MotionConfig | null {
   const hasLoop = own(value, 'loop')
   if (!hasEntrance && !hasLoop) return null
   const result: MotionConfig = { disableOnMobile: own(value, 'disableOnMobile') && value.disableOnMobile === true }
+  if (value.trigger === 'manual') result.trigger = 'manual'
   if (hasEntrance) {
     const entrance = value.entrance
     if (!record(entrance) || !own(entrance, 'preset') || !entrancePreset(entrance.preset)) return null

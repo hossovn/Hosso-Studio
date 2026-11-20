@@ -1,3 +1,4 @@
+import { ResponsiveImage } from './ResponsiveImage'
 import React from 'react'
 import { FormView, type FormDef } from './FormView'
 import { SliderView } from './SliderView'
@@ -9,7 +10,7 @@ import type { BlockRenderer } from './types'
 export const TwoColumns: BlockRenderer = ({ image, imageSide, imageFit, heading, body, ctaLabel, ctaHref }) => (
   <section className={`hs-section hs-two${imageSide === 'right' ? ' is-right' : ''}`}>
     <div className="hs-wrap hs-two-grid">
-      <div className={`hs-two-img${imageFit === 'contain' ? ' is-contain' : ''}`}>{image ? <img src={image} alt={heading || ''} loading="lazy" decoding="async" /> : <span className="hs-two-ph" aria-hidden="true" />}</div>
+      <div className={`hs-two-img${imageFit === 'contain' ? ' is-contain' : ''}`}>{image ? <ResponsiveImage src={image} alt={heading || ''} loading="lazy" decoding="async" /> : <span className="hs-two-ph" aria-hidden="true" />}</div>
       <div className="hs-text hs-two-text">
         {heading && <h2>{heading}</h2>}
         <Rich text={String(body ?? '')} />
@@ -24,7 +25,7 @@ export const ImageSections: BlockRenderer = ({ image, title, sections }) => (
   <section className="hs-section hs-isec">
     <div className="hs-wrap hs-isec-grid">
       <div className="hs-isec-img">
-        {image && <img src={image} alt="" loading="lazy" decoding="async" />}
+        {image && <ResponsiveImage src={image} alt="" loading="lazy" decoding="async" />}
         {title && <h2>{title}</h2>}
       </div>
       <div className="hs-isec-body hs-text">
@@ -60,7 +61,7 @@ export const CategoryGrid: BlockRenderer = ({ heading, items }) => (
         {((items ?? []) as { label: string; href: string; image: string }[]).map((c, n) => (
           <li key={n}>
             <a href={c.href || '#'}>
-              {c.image ? <img src={c.image} alt="" loading="lazy" /> : <span className="ss-cat-ph" aria-hidden="true" />}
+              {c.image ? <ResponsiveImage src={c.image} alt="" loading="lazy" /> : <span className="ss-cat-ph" aria-hidden="true" />}
               <span>{c.label}</span>
             </a>
           </li>

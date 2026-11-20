@@ -1,3 +1,4 @@
+import { ResponsiveImage } from './ResponsiveImage'
 import React from 'react'
 import { Rich } from './Rich'
 import { VideoEmbed } from './VideoEmbed'
@@ -8,7 +9,7 @@ import type { BlockRenderer } from './types'
 // Theme có thể dùng nguyên bộ này và chỉ tự vẽ header/footer, hoặc ghi đè từng block.
 const Hero: BlockRenderer = ({ title, subtitle, ctaLabel, ctaHref, image }) => (
   <section className={`hs-hero${image ? ' has-image' : ''}`}>
-    {image && <img className="hs-hero-bg" src={image} alt="" fetchPriority="high" decoding="async" />}
+    {image && <ResponsiveImage className="hs-hero-bg" src={image} alt="" fetchPriority="high" decoding="async" />}
     <div className="hs-wrap">
       <h1>{title}</h1>
       {subtitle && <p>{subtitle}</p>}
@@ -36,7 +37,7 @@ const Image: BlockRenderer = ({ src, alt, caption }) =>
   src ? (
     <section className="hs-section">
       <figure className="hs-wrap hs-figure">
-        <img src={src} alt={alt ?? ''} loading="lazy" />
+        <ResponsiveImage src={src} alt={alt ?? ''} loading="lazy" />
         {caption && <figcaption>{caption}</figcaption>}
       </figure>
     </section>

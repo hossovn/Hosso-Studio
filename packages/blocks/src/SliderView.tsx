@@ -1,4 +1,5 @@
 'use client'
+import { ResponsiveImage } from './ResponsiveImage'
 import React, { useEffect, useRef, useState } from 'react'
 
 type Slide = { image: string; href?: string; alt?: string }
@@ -32,10 +33,10 @@ export function SliderView({ slides, seconds }: { slides: Slide[]; seconds: numb
           <li key={n} aria-label={`${n + 1} / ${slides.length}`}>
             {s.href ? (
               <a href={s.href}>
-                <img src={s.image} alt={s.alt ?? ''} loading={n ? 'lazy' : 'eager'} />
+                <ResponsiveImage src={s.image} alt={s.alt ?? ''} loading={n ? 'lazy' : 'eager'} />
               </a>
             ) : (
-              <img src={s.image} alt={s.alt ?? ''} loading={n ? 'lazy' : 'eager'} />
+              <ResponsiveImage src={s.image} alt={s.alt ?? ''} loading={n ? 'lazy' : 'eager'} />
             )}
           </li>
         ))}

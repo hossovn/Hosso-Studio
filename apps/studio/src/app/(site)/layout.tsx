@@ -110,6 +110,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       </head>
       <body style={{ margin: 0 }}>
         <LocaleProvider locale={locale} defaultLocale={siteDefaultLocale}>
+          {hosso.plugins.map((plugin) => plugin.runtimeSlot ? React.createElement(plugin.runtimeSlot, { key: plugin.id }) : null)}
           <div className={showContactDock ? 'hs-theme has-contact-dock' : 'hs-theme'}>
             <a className="hs-skip" href="#main">
               {t('nav.skip')}

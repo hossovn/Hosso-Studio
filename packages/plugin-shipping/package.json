@@ -6,7 +6,10 @@
   "type": "module",
   "description": "Plugin giao vận cho Hosso Studio: tự lập vận đơn cho đơn giao tận nơi, quản lý mã vận đơn và cho khách tra cứu. Plugin thương mại, mã nguồn đóng, cần giấy phép (HOSSO_LICENSE_KEY).",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "browser": "./src/browser.ts",
+      "default": "./src/index.ts"
+    }
   },
   "scripts": {
     "typecheck": "tsc -p ."

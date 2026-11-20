@@ -45,7 +45,7 @@ export function WidgetPreview({ content, themeName, css, fontClass, locale, defa
     const theme = hosso.themes.find((t) => t.manifest.name === themeName) ?? hosso.themes[0]
     const schemas = [...coreBlocks, ...hosso.plugins.flatMap((p) => p.blocks ?? [])]
     const built = buildPuckConfig({ schemas, theme, plugins: hosso.plugins, mode: 'render' })
-    const live = [...CORE_LOADER_TYPES, ...hosso.plugins.flatMap((p) => Object.keys(p.loaders ?? {}))]
+    const live = [...CORE_LOADER_TYPES, ...hosso.plugins.flatMap((p) => p.loaderTypes ?? Object.keys(p.loaders ?? {}))]
     for (const type of live) {
       const c = built.components[type]
       if (c) c.render = withLiveData(type, c.render, locale)

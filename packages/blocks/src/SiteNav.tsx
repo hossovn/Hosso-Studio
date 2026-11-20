@@ -1,4 +1,5 @@
 'use client'
+import { ResponsiveImage } from './ResponsiveImage'
 import React, { useId, useState } from 'react'
 import type { MenuItem } from './types'
 import { useT } from './locale-client'
@@ -9,7 +10,7 @@ const Items = ({ items, cls, depth }: { items: MenuItem[]; cls: string; depth: n
     {items.map((item, i) => (
       <li key={i} className={item.children?.length ? 'has-sub' : undefined}>
         <a href={item.href}>
-          {item.image && <img className={`${cls}-img`} src={item.image} alt="" loading="lazy" />}
+          {item.image && <ResponsiveImage className={`${cls}-img`} src={item.image} alt="" loading="lazy" />}
           <span>{item.label}</span>
         </a>
         {!!item.children?.length && (

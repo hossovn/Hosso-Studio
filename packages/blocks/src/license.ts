@@ -92,6 +92,7 @@ export function withLicense(plugin: HossoPlugin): HossoPlugin {
     commerce: plugin.commerce && { ...plugin.commerce,
       customerPrice: wrap(plugin.commerce.customerPrice, undefined),
       assistedCustomer: wrap(plugin.commerce.assistedCustomer, undefined),
+      customerIdentity: wrap(plugin.commerce.customerIdentity, undefined),
       fulfillmentGroups: wrap(plugin.commerce.fulfillmentGroups, []),
       resendOrderEmail: wrap(plugin.commerce.resendOrderEmail, undefined),
     },

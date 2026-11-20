@@ -76,6 +76,7 @@ export interface Config {
     comments: Comment;
     forms: Form;
     'form-submissions': FormSubmission;
+    'form-deliveries': FormDelivery;
     'reusable-blocks': ReusableBlock;
     media: Media;
     'contact-messages': ContactMessage;
@@ -93,6 +94,8 @@ export interface Config {
     'shop-reviews': ShopReview;
     'shop-orders': ShopOrder;
     'shop-order-groups': ShopOrderGroup;
+    'shop-saved-carts': ShopSavedCart;
+    'shop-returns': ShopReturn;
     affiliates: Affiliate;
     'affiliate-referrals': AffiliateReferral;
     'affiliate-withdrawals': AffiliateWithdrawal;
@@ -115,6 +118,7 @@ export interface Config {
     payments: Payment;
     'payment-transactions': PaymentTransaction;
     'payment-refunds': PaymentRefund;
+    'analytics-events': AnalyticsEvent;
     customers: Customer;
     'customer-orders': CustomerOrder;
     'garage-price-groups': GaragePriceGroup;
@@ -135,6 +139,7 @@ export interface Config {
     comments: CommentsSelect<false> | CommentsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
+    'form-deliveries': FormDeliveriesSelect<false> | FormDeliveriesSelect<true>;
     'reusable-blocks': ReusableBlocksSelect<false> | ReusableBlocksSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     'contact-messages': ContactMessagesSelect<false> | ContactMessagesSelect<true>;
@@ -152,6 +157,8 @@ export interface Config {
     'shop-reviews': ShopReviewsSelect<false> | ShopReviewsSelect<true>;
     'shop-orders': ShopOrdersSelect<false> | ShopOrdersSelect<true>;
     'shop-order-groups': ShopOrderGroupsSelect<false> | ShopOrderGroupsSelect<true>;
+    'shop-saved-carts': ShopSavedCartsSelect<false> | ShopSavedCartsSelect<true>;
+    'shop-returns': ShopReturnsSelect<false> | ShopReturnsSelect<true>;
     affiliates: AffiliatesSelect<false> | AffiliatesSelect<true>;
     'affiliate-referrals': AffiliateReferralsSelect<false> | AffiliateReferralsSelect<true>;
     'affiliate-withdrawals': AffiliateWithdrawalsSelect<false> | AffiliateWithdrawalsSelect<true>;
@@ -174,6 +181,7 @@ export interface Config {
     payments: PaymentsSelect<false> | PaymentsSelect<true>;
     'payment-transactions': PaymentTransactionsSelect<false> | PaymentTransactionsSelect<true>;
     'payment-refunds': PaymentRefundsSelect<false> | PaymentRefundsSelect<true>;
+    'analytics-events': AnalyticsEventsSelect<false> | AnalyticsEventsSelect<true>;
     customers: CustomersSelect<false> | CustomersSelect<true>;
     'customer-orders': CustomerOrdersSelect<false> | CustomerOrdersSelect<true>;
     'garage-price-groups': GaragePriceGroupsSelect<false> | GaragePriceGroupsSelect<true>;
@@ -225,11 +233,15 @@ export interface Config {
   user: User;
   jobs: {
     tasks: {
+      'form-delivery-sweep': TaskFormDeliverySweep;
       'commerce-event-delivery': TaskCommerceEventDelivery;
+      'shop-return-retention': TaskShopReturnRetention;
       'shop-order-recovery': TaskShopOrderRecovery;
       'affiliate-month-end': TaskAffiliateMonthEnd;
       'cross-sell-sync': TaskCrossSellSync;
       'notify-order-email': TaskNotifyOrderEmail;
+      'analytics-record-event': TaskAnalyticsRecordEvent;
+      'analytics-retention': TaskAnalyticsRetention;
       schedulePublish: TaskSchedulePublish;
       inline: {
         input: unknown;
@@ -476,6 +488,7 @@ export interface ContentEntry {
     | number
     | boolean
     | null;
+  searchText?: string | null;
   title: string;
   slug: string;
   kind: string;
@@ -512,6 +525,10 @@ export interface ContentType {
     | number
     | boolean
     | null;
+  /**
+   * Design a page in Studio, bind fields in Data lists, then select it here. Only published templates render publicly.
+   */
+  detailTemplate?: (number | null) | Page;
   updatedAt: string;
   createdAt: string;
 }
@@ -594,6 +611,57 @@ export interface FormSubmission {
     | boolean
     | null;
   locale?: string | null;
+  submissionKey?: string | null;
+  leadStatus?: ('new' | 'contacted' | 'qualified' | 'won' | 'lost') | null;
+  assignedTo?: (number | null) | User;
+  notes?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  attribution?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  experiments?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  revision?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "form-deliveries".
+ */
+export interface FormDelivery {
+  id: number;
+  key: string;
+  submission: number | FormSubmission;
+  channel: 'email' | 'webhook';
+  destination: string;
+  status?: ('pending' | 'sending' | 'retry' | 'sent' | 'failed') | null;
+  attempts?: number | null;
+  nextAt?: string | null;
+  leaseUntil?: string | null;
+  leaseToken?: string | null;
+  sentAt?: string | null;
+  lastError?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1268,6 +1336,73 @@ export interface ShopOrderGroup {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shop-saved-carts".
+ */
+export interface ShopSavedCart {
+  id: number;
+  owner: string;
+  generation?: string | null;
+  lines?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  revision?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shop-returns".
+ */
+export interface ShopReturn {
+  id: number;
+  requestKey: string;
+  order: number | ShopOrder;
+  orderNo: string;
+  items:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  reason: string;
+  resolution?: ('refund' | 'exchange') | null;
+  state?: ('requested' | 'approved' | 'rejected' | 'received' | 'closed') | null;
+  revision?: number | null;
+  evidence?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  refundAmount?: number | null;
+  restocked?: boolean | null;
+  refundReference?: string | null;
+  history?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "affiliates".
  */
 export interface Affiliate {
@@ -1704,6 +1839,34 @@ export interface PaymentRefund {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-events".
+ */
+export interface AnalyticsEvent {
+  id: number;
+  key: string;
+  event: string;
+  pagePath?: string | null;
+  campaign?: string | null;
+  source?: string | null;
+  session?: string | null;
+  value?: number | null;
+  reference?: string | null;
+  experiments?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  experimentKey?: string | null;
+  variant?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "customers".
  */
 export interface Customer {
@@ -1810,11 +1973,15 @@ export interface PayloadJob {
         completedAt: string;
         taskSlug:
           | 'inline'
+          | 'form-delivery-sweep'
           | 'commerce-event-delivery'
+          | 'shop-return-retention'
           | 'shop-order-recovery'
           | 'affiliate-month-end'
           | 'cross-sell-sync'
           | 'notify-order-email'
+          | 'analytics-record-event'
+          | 'analytics-retention'
           | 'schedulePublish';
         taskID: string;
         input?:
@@ -1851,11 +2018,15 @@ export interface PayloadJob {
   taskSlug?:
     | (
         | 'inline'
+        | 'form-delivery-sweep'
         | 'commerce-event-delivery'
+        | 'shop-return-retention'
         | 'shop-order-recovery'
         | 'affiliate-month-end'
         | 'cross-sell-sync'
         | 'notify-order-email'
+        | 'analytics-record-event'
+        | 'analytics-retention'
         | 'schedulePublish'
       )
     | null;
@@ -1917,6 +2088,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'form-submissions';
         value: number | FormSubmission;
+      } | null)
+    | ({
+        relationTo: 'form-deliveries';
+        value: number | FormDelivery;
       } | null)
     | ({
         relationTo: 'reusable-blocks';
@@ -1981,6 +2156,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'shop-order-groups';
         value: number | ShopOrderGroup;
+      } | null)
+    | ({
+        relationTo: 'shop-saved-carts';
+        value: number | ShopSavedCart;
+      } | null)
+    | ({
+        relationTo: 'shop-returns';
+        value: number | ShopReturn;
       } | null)
     | ({
         relationTo: 'affiliates';
@@ -2069,6 +2252,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'payment-refunds';
         value: number | PaymentRefund;
+      } | null)
+    | ({
+        relationTo: 'analytics-events';
+        value: number | AnalyticsEvent;
       } | null)
     | ({
         relationTo: 'customers';
@@ -2183,6 +2370,7 @@ export interface PostsSelect<T extends boolean = true> {
  */
 export interface ContentEntriesSelect<T extends boolean = true> {
   cms?: T;
+  searchText?: T;
   title?: T;
   slug?: T;
   kind?: T;
@@ -2199,6 +2387,7 @@ export interface ContentTypesSelect<T extends boolean = true> {
   title?: T;
   slug?: T;
   fields?: T;
+  detailTemplate?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2272,6 +2461,32 @@ export interface FormSubmissionsSelect<T extends boolean = true> {
   formTitle?: T;
   data?: T;
   locale?: T;
+  submissionKey?: T;
+  leadStatus?: T;
+  assignedTo?: T;
+  notes?: T;
+  attribution?: T;
+  experiments?: T;
+  revision?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "form-deliveries_select".
+ */
+export interface FormDeliveriesSelect<T extends boolean = true> {
+  key?: T;
+  submission?: T;
+  channel?: T;
+  destination?: T;
+  status?: T;
+  attempts?: T;
+  nextAt?: T;
+  leaseUntil?: T;
+  leaseToken?: T;
+  sentAt?: T;
+  lastError?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2673,6 +2888,39 @@ export interface ShopOrderGroupsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shop-saved-carts_select".
+ */
+export interface ShopSavedCartsSelect<T extends boolean = true> {
+  owner?: T;
+  generation?: T;
+  lines?: T;
+  revision?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shop-returns_select".
+ */
+export interface ShopReturnsSelect<T extends boolean = true> {
+  requestKey?: T;
+  order?: T;
+  orderNo?: T;
+  items?: T;
+  reason?: T;
+  resolution?: T;
+  state?: T;
+  revision?: T;
+  evidence?: T;
+  refundAmount?: T;
+  restocked?: T;
+  refundReference?: T;
+  history?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "affiliates_select".
  */
 export interface AffiliatesSelect<T extends boolean = true> {
@@ -3058,6 +3306,25 @@ export interface PaymentRefundsSelect<T extends boolean = true> {
   reason?: T;
   actor?: T;
   paidAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics-events_select".
+ */
+export interface AnalyticsEventsSelect<T extends boolean = true> {
+  key?: T;
+  event?: T;
+  pagePath?: T;
+  campaign?: T;
+  source?: T;
+  session?: T;
+  value?: T;
+  reference?: T;
+  experiments?: T;
+  experimentKey?: T;
+  variant?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -4049,9 +4316,25 @@ export interface CollectionsWidget {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskForm-delivery-sweep".
+ */
+export interface TaskFormDeliverySweep {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskCommerce-event-delivery".
  */
 export interface TaskCommerceEventDelivery {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskShop-return-retention".
+ */
+export interface TaskShopReturnRetention {
   input?: unknown;
   output?: unknown;
 }
@@ -4090,6 +4373,32 @@ export interface TaskNotifyOrderEmail {
     audience: string;
     status?: string | null;
   };
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskAnalytics-record-event".
+ */
+export interface TaskAnalyticsRecordEvent {
+  input: {
+    event:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+  };
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskAnalytics-retention".
+ */
+export interface TaskAnalyticsRetention {
+  input?: unknown;
   output?: unknown;
 }
 /**

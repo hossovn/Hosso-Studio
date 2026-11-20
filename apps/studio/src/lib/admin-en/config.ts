@@ -1,5 +1,16 @@
 // Nhãn collection/trường trong biểu mẫu admin của Payload (khóa = tiếng Việt gốc). Áp dụng tự động bởi lib/translate-config.ts.
 export const configLabels: Record<string, string> = {
+  'Lần chuyển lead': 'Lead delivery',
+  'Lịch sử chuyển lead': 'Lead deliveries',
+  'Đang liên hệ': 'Contacting',
+  'Đủ điều kiện': 'Qualified',
+  'Đã chốt': 'Won',
+  'Không phù hợp': 'Not a fit',
+  'Trạng thái lead': 'Lead status',
+  'Người phụ trách': 'Owner',
+  'Ghi chú xử lý': 'Follow-up notes',
+  'Nguồn / chiến dịch': 'Source / campaign',
+  'Phiên bản thử nghiệm': 'Experiment variants',
   'Cài đặt website': 'Website settings',
   'Thông tin website': 'Website information',
   'Thông báo & bình luận': 'Notifications & comments',

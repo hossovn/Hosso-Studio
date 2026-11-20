@@ -31,6 +31,7 @@ import * as migration_20261031_170000_order_reliability from './20261031_170000_
 import * as migration_20261101_060000_commerce_blocks from './20261101_060000_commerce_blocks';
 import * as migration_20261101_120000_order_operations from './20261101_120000_order_operations';
 
+import * as studio_platform from './20261117_090000_studio_platform';
 export const migrations = [
   {
     up: migration_20261016_175939_initial.up,
@@ -129,5 +130,6 @@ export const migrations = [
   { up: cms_workspace.up, down: cms_workspace.down, name: '20261105_090000_cms_workspace' },
   { up: content_models.up, down: content_models.down, name: '20261105_120000_content_models' },
   { up: locales_and_live_chat.up, down: locales_and_live_chat.down, name: '20261108_040000_locales_and_live_chat' },
+  { up: studio_platform.up, down: studio_platform.down, name: '20261117_090000_studio_platform' },
 ];
 import * as migration_20261104_120000_editor_frames_and_forms from './20261104_120000_editor_frames_and_forms';

@@ -3,6 +3,7 @@ import React, { useId, useRef, useState } from 'react'
 import { useLocale, useT } from './locale-client'
 import { calculateFormQuote, validateFormValues, visibleFormFields, type FormRules, type FormFieldDef } from './form-rules'
 import { ICON_BODY } from './icons-data'
+import { currentAttribution, currentExperiments } from './attribution'
 
 export type FormDef = {
   slug: string
@@ -28,6 +29,7 @@ export function FormView({ form, submitIcon = 'none', submitFull = false, fullWi
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [values, setValues] = useState<Record<string, any>>({}), [step, setStep] = useState(0)
   const instance = useId(), formRef = useRef<HTMLFormElement>(null)
+  const requestId = useRef(''), started = useRef(false), submitting = useRef(false)
   const quote = calculateFormQuote(form.fields, form.rules, values)
   const money = (amount: number) => new Intl.NumberFormat(locale, { style: 'currency', currency: quote?.currency || 'VND' }).format(amount)
   const visible = visibleFormFields(form.fields, form.rules, values), steps = form.rules?.steps?.length ? form.rules.steps : ['']
@@ -35,6 +37,7 @@ export function FormView({ form, submitIcon = 'none', submitFull = false, fullWi
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (submitting.current) return
     const f = new FormData(e.currentTarget)
     setErrors({})
     const checked = validateFormValues(form.fields, form.rules, values, step < steps.length - 1 ? step : undefined)
@@ -45,22 +48,25 @@ export function FormView({ form, submitIcon = 'none', submitFull = false, fullWi
       return setState('sent')
     }
     setState('busy')
+    submitting.current = true
+    requestId.current ||= crypto.randomUUID()
     try {
       const res = await fetch(`/api/site/forms/${encodeURIComponent(form.slug)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ values, locale, website: f.get('website') }),
+        body: JSON.stringify({ values, locale, website: f.get('website'), requestId: requestId.current, attribution: currentAttribution(), experiments: currentExperiments() }),
       })
       const body = await res.json().catch(() => ({}))
       if (res.ok && body.ok) {
         setState('sent')
+        window.dispatchEvent(new CustomEvent('hs:form_submit', { detail: { id: body.receipt, form: form.slug } }))
         if (typeof body.redirect === 'string' && /^\/(?!\/)/.test(body.redirect) && !/[\\\u0000-\u0020\u007f]/.test(body.redirect)) window.location.assign(body.redirect)
         return
       }
       fail(body.errors ?? {})
     } catch {
       setState('error')
-    }
+    } finally { submitting.current = false }
   }
 
   if (state === 'sent') {
@@ -89,6 +95,7 @@ export function FormView({ form, submitIcon = 'none', submitFull = false, fullWi
       data-hs-part="form"
       data-hs-part-label="Khung biểu mẫu"
       onSubmit={submit}
+      onFocus={() => { if (!preview && !started.current) { started.current = true; window.dispatchEvent(new CustomEvent('hs:form_start', { detail: { form: form.slug } })) } }}
       noValidate
       aria-busy={state === 'busy'}
     >

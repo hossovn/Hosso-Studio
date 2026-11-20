@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CANVAS_WIDGET_CSS } from './canvas-widgets'
 import { materializeFrameVariant, type FrameVariant } from './design-presets'
-import { elementFamily, inheritedElementFlag, inheritedHideClasses } from './free-geometry'
+import { elementFamily, inheritedElementFlag, inheritedHideClasses, motionTargets } from './free-geometry'
 import { readLinkAction } from './link-actions'
 import { resolveMotionConfig } from './motion-effects'
 import { MotionScope } from './MotionScope'
@@ -206,6 +206,19 @@ export function useInteractiveElements(
     (href: unknown): Record<string, any> => {
       if (!enabled) return {}
       const act = readLinkAction(href)
+      if (act.type === 'motion' && act.frameId) {
+        const send = (node: HTMLElement, action: string) => node.ownerDocument.dispatchEvent(new CustomEvent('hs:motion-command', { detail: { target: act.frameId, action } }))
+        return {
+          role: 'button',
+          onClick: (event: React.MouseEvent<HTMLElement>) => { event.preventDefault(); send(event.currentTarget, act.operation === 'hover' ? 'start' : act.operation!) },
+          onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => { if (event.key === ' ') { event.preventDefault(); send(event.currentTarget, act.operation === 'hover' ? 'start' : act.operation!) } },
+          ...(act.operation === 'hover' ? {
+            onMouseEnter: (event: React.MouseEvent<HTMLElement>) => { if (event.currentTarget.ownerDocument.defaultView?.matchMedia('(hover: hover) and (pointer: fine)').matches) send(event.currentTarget, 'start') },
+            onMouseLeave: (event: React.MouseEvent<HTMLElement>) => { if (event.currentTarget.ownerDocument.defaultView?.matchMedia('(hover: hover) and (pointer: fine)').matches) send(event.currentTarget, 'reset') },
+            onFocus: (event: React.FocusEvent<HTMLElement>) => send(event.currentTarget, 'start'), onBlur: (event: React.FocusEvent<HTMLElement>) => send(event.currentTarget, 'reset'),
+          } : {}),
+        }
+      }
       if (act.type === 'state' && act.frameId && act.variantId) {
         const active = isTriggerActive(href, snap.activeVariants, mergedDefaults, snap.openPopover?.frameId ?? null)
         return {
@@ -501,6 +514,7 @@ export function FreeOverlay({
                     >
                       <FreeElementView
                         el={el}
+                        motionTargets={motionTargets(projected, el.id)}
                         state={interactive.isActive(el.props.href) ? 'active' : undefined}
                         linkProps={interactive.triggerProps(el.props.href)}
                         itemLinkProps={interactive.triggerProps}
@@ -523,6 +537,7 @@ export function FreeOverlay({
         renderElement={(el, scale) => (
           <FreeElementView
             el={el}
+            motionTargets={motionTargets(projected, el.id)}
             scale={scale}
             state={interactive.isActive(el.props.href) ? 'active' : undefined}
             linkProps={interactive.triggerProps(el.props.href)}

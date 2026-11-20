@@ -1,4 +1,4 @@
-# Hosso Studio architecture (PoC)
+# Hosso Studio architecture
 
 [Tiếng Việt](../ARCHITECTURE.md) | **English**
 
@@ -15,15 +15,15 @@ seed/                  Sample pages, mock WIM data, sample site packages
 
 - **The core does not depend on plugins.** `apps/studio/src`, `packages/blocks` and `packages/theme-*` never mention `plugin-wim` (checked by `pnpm check:boundaries`). The only place a plugin is registered is `hosso.config.ts`.
 - **Schema is separate from renderer.** A block declares its fields and defaults (`BlockSchema`); a theme provides the renderer. `buildPuckConfig(schemas, theme)` builds the Puck configuration at runtime, so switching theme does not change the page JSON.
-- **Data ownership.** Products, prices, stock, branches, vehicles and orders are owned by WIM; Studio only reads them (and creates orders through `POST /orders`) and never stores a copy. Tables in the Studio database: `pages`, `_pages_v`, `media`, `users*`, `contact_messages`, `site_settings`, `wim_settings*`, Payload internals.
+- **Data ownership.** Shop owns local products. WIM/supplier products retain authoritative prices and stock at their source. Studio keeps an aggregated catalog, orders and coordination state; checkout revalidates source data. A catalog cache is not authoritative inventory.
 - **The browser never calls WIM.** Every WIM call goes through the site server (block loaders, `/api/plugins/wim/*` endpoints).
 
 ## Flows
 
 - **Pages**: `pages.content` is Puck JSON (a Payload collection with drafts/publishing/versions). The public page is rendered with Puck's `Render` (RSC); for blocks with a loader the server runs the loader and passes the result in the `data` prop.
 - **Catalog reads (B)**: loader → short TTL in-memory cache → WIM. The site is correct within the TTL; a webhook (C, optional) clears exactly the affected cache entry. Temporary errors use the stale cache (up to 10 minutes); if WIM is fully down the block shows a friendly error while the Studio content is still displayed.
-- **Ordering (D)**: `POST /api/plugins/wim/checkout` → re-check stock (uncached, per branch for pick-up) → Idempotency-Key = SHA-256(cartId + order body) → `POST /v1/orders`; network errors/timeouts retry up to 3 times with the same key. Out of stock: 409, the cart is kept.
-- **Order tracking (E)**: `GET /v1/orders/{id}` through the cache; requires the order id + the last 4 digits of the phone. The `order.status_changed` webhook refreshes at once.
+- **Ordering**: shop quote/checkout verifies products, variants, prices, inventory and quote freshness. Idempotency protects repeated submissions. Transactions persist orders, local reservations and intents; workflow/recovery tracks interrupted provider operations. WIM connects through the commerce contract.
+- **Order tracking**: Studio orders use an order number and private lookup token; authenticated customers can access orders assigned to their account. Four phone digits do not authorize access to Studio orders.
 - **Webhook**: `POST /api/plugins/wim/webhook`; signature HMAC-SHA256(secret, `timestamp.body`) in `X-Hosso-Signature`; a `X-Hosso-Timestamp` more than 5 minutes off is rejected.
 - **Secrets**: the API key and webhook secret are encrypted with AES-256-GCM (`HOSSO_ENCRYPTION_KEY`) when stored; the API/admin only return a masked form; the plugin code uses Web Crypto so no Node module is pulled into the browser bundle.
 
@@ -43,8 +43,19 @@ seed/                  Sample pages, mock WIM data, sample site packages
 - Security headers (nosniff, SAMEORIGIN, Referrer-Policy, Permissions-Policy) in `next.config.ts` and `csrf` from `HOSSO_PUBLIC_URL` in the Payload config.
 - Upgrades: Postgres migrations include `poc_data_snapshot` / `poc_data_restore`, which keep the data of old PoC databases when content moves into the translation tables.
 
+## Landing, CMS and commerce platform
+
+- Browser plugin definitions are separate from server adapters. The public layout mounts each `runtimeSlot` once; cart synchronization does not depend on visible headers. The installer registers private packages separately.
+- Entry repeaters filter/sort/page in the database. Custom field bindings and `/noi-dung/:kind/:slug` support published detail templates, metadata and sitemap entries.
+- Lead submissions and delivery intents commit together. Outbox leases/backoff and `/admin/leads` support recovery. Analytics jobs persist separately so analytics failures cannot roll back leads.
+- Analytics validates consent/DNT/GPC on the server. Experiments use stable assignments per revision; business conversions are confirmed on the server.
+- Account carts use owner/revision/generation. Returns update eligible local stock and refund ledgers transactionally; evidence uses private storage and authorized endpoints.
+- Responsive WebP/AVIF images use `@napi-rs/image`, processing limits and cache/ETag. Motion shares 600/1024px breakpoints and a scroll scheduler, honors reduced motion, and defers/pauses background video.
+- Website kits import additively as drafts. Readiness and publish checks inspect actual breakpoints, content and integration configuration. See the [operations guide](../studio-platform-operations.md).
+
 ## Known limits
 
-- The cart lives in the browser (localStorage); the cache is in-memory in one process (enough for one installation = one site).
-- Rate limiting is in-memory in one process (forms, comments); checkout only has a honeypot.
+- Guest carts use localStorage; account carts synchronize with the server. Existing WIM caches remain per-process. Personal prices and account data must stay out of shared public caches.
+- Forms/comments retain per-process rate limits. Commerce uses database buckets and transactions; configure an IP header only when a trusted proxy overwrites it.
+- SMTP/GHN/SePay/WIM and backup restoration require deployment acceptance. Local lab samples do not prove field p75 Core Web Vitals.
 - Puck is still 0.x.

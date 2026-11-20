@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import { spawn } from 'node:child_process'
 const require = createRequire(new URL('../apps/studio/package.json', import.meta.url))
-const { chromium } = require(process.env.HOSSO_PLAYWRIGHT_MODULE || 'playwright')
+const { chromium } = require(process.env.HOSSO_PLAYWRIGHT_MODULE || '@playwright/test')
 const repo = fileURLToPath(new URL('../', import.meta.url))
 await mkdir(join(repo, 'output'), { recursive: true })
 const directory = await mkdtemp(join(tmpdir(), 'hosso-studio-browser-'))

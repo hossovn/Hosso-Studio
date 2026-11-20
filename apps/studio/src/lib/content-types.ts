@@ -4,7 +4,7 @@ import { BUILTIN_CONTENT_TYPES, entryDataErrors, schemaErrors, validContentKey, 
 export async function contentTypes(req: PayloadRequest): Promise<ContentType[]> {
  const docs: any[] = []; let page = 1
  do { const batch = await req.payload.find({ collection: 'content-types', depth: 0, limit: 100, page, req, overrideAccess: true }); docs.push(...batch.docs); if (!batch.hasNextPage) break; page++ } while (true)
- return [...BUILTIN_CONTENT_TYPES, ...docs.map(d => ({ id: d.id, slug: d.slug, title: d.title, fields: d.fields as ContentField[] }))]
+ return [...BUILTIN_CONTENT_TYPES, ...docs.map(d => ({ id: d.id, slug: d.slug, title: d.title, fields: d.fields as ContentField[], detailTemplate: d.detailTemplate }))]
 }
 export async function contentType(req: PayloadRequest, slug: string) {
  const builtin = BUILTIN_CONTENT_TYPES.find(t => t.slug === slug)

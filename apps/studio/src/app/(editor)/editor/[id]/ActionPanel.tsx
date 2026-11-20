@@ -19,6 +19,8 @@ export function ActionPanel({ href, data, onChange }: { href?: string; data: Pag
   const selectedStateFrame = frames.find((frame) => frame.id === stateFrameId)
   const stateVariants: { id: string; name: string }[] = Array.isArray(selectedStateFrame?.props._variants) ? selectedStateFrame.props._variants : []
   const selectedPopoverFrame = frames.find((frame) => frame.id === value)
+  const [motionOperation = 'start', motionTarget = ''] = type === 'motion' ? value.split(':') : []
+  const motionElements = [...floatOf(data), ...data.content.flatMap(elsOf)]
 
   const selectTarget = (id: string) => {
     const block = data.content.find((item) => blockId(item) === id)
@@ -44,13 +46,14 @@ export function ActionPanel({ href, data, onChange }: { href?: string; data: Pag
     <option value="none">Không có hành động</option>
     <option value="url">Mở liên kết</option>
     <option value="state">Đổi trạng thái khung (Tab)</option>
+    <option value="motion">Điều khiển chuyển động phần tử / nhóm</option>
     <option value="popover">Mở hộp nổi neo nút (Popover)</option>
     <option value="popup">Mở popup</option>
     <option value="section">Cuộn đến phần</option>
     <option value="phone">Gọi điện</option>
     <option value="email">Gửi email</option>
   </select></label>
-    {type === 'state' ? <>
+    {type === 'motion' ? <><label className="cv-tool-field">Thao tác<select value={motionOperation} onChange={(event) => change('motion', `${event.target.value}:${motionTarget}`)}>{[['start', 'Chạy từ đầu'], ['pause', 'Tạm dừng'], ['toggle', 'Bật / tạm dừng'], ['reset', 'Dừng và trở về tĩnh'], ['hover', 'Chạy khi rê chuột / focus']].map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label className="cv-tool-field">Phần tử / nhóm đích<select value={motionTarget} onChange={(event) => change('motion', `${motionOperation || 'start'}:${event.target.value}`)}><option value="">Chọn phần tử</option>{motionElements.map((el) => <option key={el.id} value={el.id}>{el.props._name || el.props.text?.slice(0, 50) || el.id}{el.type === 'container' ? ' · Nhóm' : ''}</option>)}</select></label><p className="cv-tool-help">Thiết lập chuyển động cho phần tử đích hoặc các phần tử trong nhóm. Chọn kích hoạt từ phần tử khác để chờ thao tác. Xem thử trong Preview.</p></> : type === 'state' ? <>
       <label className="cv-tool-field">Khung đích<select aria-label="Khung đổi trạng thái" value={stateFrameId} onChange={(event) => {
         const nextFrameId = event.target.value
         const nextFrame = frames.find((item) => item.id === nextFrameId)

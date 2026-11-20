@@ -78,6 +78,8 @@ export const Nav = async ({ payload, user, i18n }: Props) => {
   const writer = hasRole(u, 'admin', 'publisher', 'editor', 'author')
 
   content.push({ id: 'dash', label: 'Tổng quan', href: '/admin', icon: 'dashboard', exact: true })
+  if (canModerate(u)) content.push({ id: 'leads', label: 'Lead & biểu mẫu', href: '/admin/leads', icon: 'form', badge: formsToday || undefined })
+  if (canPublish(u)) content.push({ id: 'readiness', label: 'Kiểm tra vận hành', href: '/admin/readiness', icon: 'sliders' })
   if (writer)
     content.push({
       id: 'posts',

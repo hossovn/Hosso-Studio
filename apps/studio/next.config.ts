@@ -8,12 +8,14 @@ const dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  distDir: process.env.HOSSO_ADMIN_PREVIEW === '1' ? '.next/admin-preview' : '.next',
+  distDir: process.env.HOSSO_PLATFORM_BUILD === '1' ? '.next/platform-production' : process.env.HOSSO_ADMIN_PREVIEW === '1' ? '.next/admin-preview' : '.next',
   // Package workspace phát hành TS nguồn, không có bước build riêng.
   transpilePackages: fs.readdirSync(path.join(dirname, 'node_modules/@hosso')).map((name) => `@hosso/${name}`),
-  // Không dùng sharp (binary libvips là LGPL): tắt tối ưu ảnh của Next, dùng <img> thường.
+  // Local uploads use /api/media-variant with the MIT-licensed Rust transformer.
+  serverExternalPackages: ['@napi-rs/image'],
   images: { unoptimized: true },
-  webpack: (webpackConfig) => {
+  webpack: (webpackConfig, { isServer }) => {
+    if (!isServer) webpackConfig.resolve.alias['@hosso-installed-plugins'] = path.join(dirname, 'hosso.installed.browser.ts')
     webpackConfig.resolve.extensionAlias = {
       '.cjs': ['.cts', '.cjs'],
       '.js': ['.ts', '.tsx', '.js', '.jsx'],
@@ -23,6 +25,7 @@ const nextConfig: NextConfig = {
   },
   turbopack: {
     root: path.resolve(dirname, '../..'),
+    resolveAlias: { '@hosso-installed-plugins': { browser: './hosso.installed.browser.ts' } },
   },
 }
 

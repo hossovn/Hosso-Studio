@@ -9,7 +9,7 @@ const be = Be_Vietnam_Pro({ subsets: ['vietnamese', 'latin'], display: 'swap', w
 const manrope = Manrope({ subsets: ['vietnamese', 'latin'], display: 'swap', weight: ['400', '500', '600', '700', '800'], variable: '--font-manrope', preload: false })
 const inter = Inter({ subsets: ['vietnamese', 'latin'], display: 'swap', weight: ['400', '500', '600', '700'], variable: '--font-inter', preload: false })
 const plusJakarta = Plus_Jakarta_Sans({ subsets: ['vietnamese', 'latin'], display: 'swap', weight: ['400', '500', '600', '700', '800'], variable: '--font-plus-jakarta-sans', preload: false })
-const notoKr = Noto_Sans_KR({ subsets: ['latin'], display: 'swap', weight: ['400', '500', '600', '700'], variable: '--font-noto-sans-kr', preload: false })
+const notoKr = Noto_Sans_KR({ subsets: ['latin'], display: 'swap', variable: '--font-noto-sans-kr', preload: false })
 const barlow = Barlow({ subsets: ['vietnamese', 'latin'], display: 'swap', weight: ['600', '700'], variable: '--font-barlow', preload: false })
 
 const chakra = Chakra_Petch({ subsets: ['vietnamese', 'latin'], display: 'swap', weight: ['400', '500', '600', '700'], variable: '--font-chakra-petch', preload: false })

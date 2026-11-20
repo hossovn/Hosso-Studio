@@ -1,7 +1,7 @@
+import definition from './browser'
 import { withLicense } from '@hosso/studio-blocks'
-import type { HossoPlugin, PluginManifest } from '@hosso/studio-blocks'
+import type { HossoPlugin } from '@hosso/studio-blocks'
 import type { CollectionConfig, Config } from 'payload'
-import manifest from '../hosso.json'
 
 type Roled = { roles?: string[] | null } | null | undefined
 const manager = ({ req }: { req: { user?: unknown } }) => {
@@ -51,10 +51,8 @@ const codeOf = (meta: Record<string, unknown>) => String(meta.voucher ?? '').tri
 
 /** Plugin khuyến mãi: mã giảm giá cho mọi plugin bán hàng dùng `beforeOrder` (Cửa hàng). Đặt SAU plugin Giao vận trong hosso.config để mã miễn phí ship thấy phí ship. */
 const plugin: HossoPlugin = {
-  id: 'promotions',
-  manifest: manifest as PluginManifest,
-  adminNav: [{ label: 'Khuyến mãi', href: '/admin/collections/vouchers', roles: ['admin', 'publisher'] }],
-  adminEn: { 'Khuyến mãi': 'Promotions' },
+  ...definition,
+
   payload: (config: Config): Config => ({ ...config, collections: [...(config.collections ?? []), Vouchers] }),
   hooks: {
     beforeOrder: async ({ payload, draft }) => {

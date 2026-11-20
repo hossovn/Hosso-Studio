@@ -5,6 +5,8 @@ import { getPayload } from 'payload'
 
 import { getPayloadSiteLocales } from '@/lib/locale'
 import { href } from '@/lib/site'
+import { contentSitemap } from '@/lib/content-sitemap'
+import { findAll } from '@/lib/find-all'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,12 +15,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = (process.env.HOSSO_PUBLIC_URL || 'http://localhost:3000').replace(/\/$/, '')
   const payload = await getPayload({ config })
   const find = (collection: 'pages' | 'posts') =>
-    payload.find({ collection, where: { _status: { equals: 'published' } }, limit: 1000, depth: 0, pagination: false, overrideAccess: true })
-  const [{ locales: activeLocales, defaultLocale: activeDefault }, pages, posts, extra] = await Promise.all([
+    findAll(payload, { collection, where: { _status: { equals: 'published' } }, depth: 0, overrideAccess: true })
+  const [{ locales: activeLocales, defaultLocale: activeDefault }, pages, posts, extra, entries] = await Promise.all([
     getPayloadSiteLocales(payload),
     find('pages'),
     find('posts'),
     collectSitemap(payload),
+    contentSitemap(payload),
   ])
   const ok = (d: { seo?: { noindex?: boolean | null } | null }) => !d.seo?.noindex
   const entry = (path: string, lastModified: string) =>
@@ -32,5 +35,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...posts.docs.filter(ok).flatMap((p) => entry(`/bai-viet/${p.slug}`, p.updatedAt)),
     // Đường dẫn do plugin đóng góp (ví dụ trang chi tiết sản phẩm của plugin Cửa hàng).
     ...extra.flatMap((x) => entry(x.path, x.lastModified ?? new Date().toISOString())),
+    ...entries.flatMap((x) => entry(x.path, x.lastModified)),
   ]
 }

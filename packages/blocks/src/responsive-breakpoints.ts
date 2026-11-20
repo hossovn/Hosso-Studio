@@ -1,10 +1,13 @@
 export type LayoutDevice = 'desktop' | 'tablet' | 'mobile' | `bp-${number}`
 export type Breakpoint = { id: `bp-${number}`; width: number }
+export const MOBILE_MAX = 600
+export const TABLET_MAX = 1024
+export const MOBILE_MEDIA = `(max-width: ${MOBILE_MAX}px)`
 export function normalizeBreakpoints(input: unknown): Breakpoint[] {
   if (!Array.isArray(input)) return []
   return [...new Set(input.map((item) => Number(item?.width)).filter((w) => Number.isInteger(w) && w >= 320 && w <= 1920 && ![600, 1024].includes(w)))].sort((a, b) => a - b).map((width) => ({ id: `bp-${width}`, width }))
 }
-export const baseDevice = (width: number) => width <= 600 ? 'mobile' : width <= 1024 ? 'tablet' : 'desktop'
+export const baseDevice = (width: number) => width <= MOBILE_MAX ? 'mobile' : width <= TABLET_MAX ? 'tablet' : 'desktop'
 export const layoutWidth = (device: LayoutDevice): number => device.startsWith('bp-') ? Number(device.slice(3)) || 1200 : ({ desktop: 1200, tablet: 768, mobile: 390 }[device as 'desktop' | 'tablet' | 'mobile'])
 export function breakpointRanges(input?: unknown) {
   const ranges: { id: LayoutDevice; max: number }[] = [{ id: 'mobile', max: 600 }, { id: 'tablet', max: 1024 }, ...normalizeBreakpoints(input).map((b) => ({ id: b.id, max: b.width }))]

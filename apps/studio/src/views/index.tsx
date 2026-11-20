@@ -19,9 +19,12 @@ import { publishedPostsWhere } from '@/lib/core-loaders'
 import { verifyShareToken } from '@/lib/share'
 import { sitePreview } from '@/lib/site-preview'
 import { attachBlockData, defaultLocale, expandReusable, href, loadSite, mediaUrl, renderConfig } from '@/lib/site'
+import { bindPageContent } from '../../../../packages/blocks/src/content-binding'
+import type { RepeatItem } from '../../../../packages/blocks/src/repeater-data'
 
 export type SP = { [k: string]: string | string[] | undefined }
 export type Route =
+  | { kind: 'entry'; entryKind: string; slug: string }
   | { kind: 'page'; slug: string }
   | { kind: 'post'; slug: string }
   | { kind: 'category' | 'tag'; slug: string }
@@ -31,6 +34,7 @@ export type Route =
 export function resolveRoute(rest: string[]): Route | null {
   if (rest.length === 0) return { kind: 'page', slug: 'home' }
   if (rest.length === 1 && rest[0] === 'tim-kiem') return { kind: 'search' }
+  if (rest.length === 3 && rest[0] === 'noi-dung') return { kind: 'entry', entryKind: rest[1], slug: rest[2] }
   if (rest[0] === 'bai-viet') {
     if (rest.length === 2) return { kind: 'post', slug: rest[1] }
     if (rest.length === 3 && rest[1] === 'danh-muc') return { kind: 'category', slug: rest[2] }
@@ -58,16 +62,44 @@ const alternates = (path: string, locale: string, activeLocales: readonly { code
 })
 
 /** Nội dung Puck → trang: bỏ block không biết, thay khối dùng lại, chạy loader, rồi Render. */
-async function Content({ content, locale, sp }: { content: unknown; locale: string; sp: SP }) {
+async function Content({ content, locale, sp, entry }: { content: unknown; locale: string; sp: SP; entry?: RepeatItem }) {
   const { theme } = await loadSite(locale)
   const puckConfig = renderConfig(theme)
   let data = stripUnknown((content ?? { content: [], root: { props: {} } }) as PageData, puckConfig)
   data = await expandReusable(data, locale)
+  if (entry) data = bindPageContent(data, entry)
   data = await attachBlockData(data, sp, locale)
   // Lớp nổi toàn trang (root.props._float) phủ lên nội dung.
   const float = ((data as any).root?.props?._float ?? []) as FreeElement[]
   const page = <Render config={puckConfig as any} data={data as any} />
   return float.length ? <div style={{ position: 'relative' }}>{page}<FreeOverlay elements={float} widgets={renderCanvasWidgets(float, puckConfig.components)} breakpoints={data.root?.props?._breakpoints} /></div> : page
+}
+
+async function findEntry(kind: string, slug: string, locale: string, sp: SP) {
+  const { payload, user } = await previewUser(sp.preview as string | undefined)
+  const types = await payload.find({ collection: 'content-types', where: { slug: { equals: kind } }, limit: 1, depth: 0, overrideAccess: true })
+  const templateId = (types.docs[0] as any)?.detailTemplate
+  if (!templateId) return null
+  const entries = await payload.find({ collection: 'content-entries', where: { and: [{ slug: { equals: slug } }, { kind: { equals: kind } }] }, limit: 1, depth: 0, locale: locale as any, user, overrideAccess: false })
+  const entry = entries.docs[0] as any
+  if (!entry) return null
+  const pages = await payload.find({ collection: 'pages', where: { id: { equals: templateId } }, draft: Boolean(user), limit: 1, depth: 0, locale: locale as any, user, overrideAccess: false })
+  return pages.docs[0] ? { entry, template: pages.docs[0], preview: Boolean(user) } : null
+}
+
+export async function entryMeta(kind: string, slug: string, locale: string, sp: SP): Promise<Metadata> {
+  const result = await findEntry(kind, slug, locale, sp)
+  if (!result) return { robots: { index: false } }
+  const { entry, preview, template } = result, site = await loadSite(locale)
+  return { title: entry.title, description: String(entry.data?.description || '').slice(0, 200), alternates: alternates(`/noi-dung/${kind}/${slug}`, locale, site.locales, site.defaultLocale), robots: preview || template.seo?.noindex ? { index: false, follow: false } : undefined, openGraph: { title: entry.title, images: entry.data?.image ? [entry.data.image] : undefined } }
+}
+
+export async function EntryView({ kind, slug, locale, sp }: { kind: string; slug: string; locale: string; sp: SP }) {
+  const result = await findEntry(kind, slug, locale, sp)
+  if (!result) notFound()
+  const { entry, template } = result
+  const item = { title: entry.title, excerpt: entry.data?.description || '', cover: entry.data?.image || '', href: href(`/noi-dung/${kind}/${slug}`, locale), slug: entry.slug, data: entry.data ?? {} }
+  return <><AdminBar collection="pages" id={template.id} locale={locale} /><JsonLd data={crumbsLd([[t('breadcrumb.home'), absUrl('/', locale)], [entry.title, absUrl(item.href, locale)]])} /><Content content={template.content} locale={locale} sp={sp} entry={item} /></>
 }
 
 const previewUser = async (preview: string | undefined) => {

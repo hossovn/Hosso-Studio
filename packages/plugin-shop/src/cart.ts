@@ -118,6 +118,8 @@ export async function checkoutIdentity(cartId: string, input: Record<string, unk
 }
 
 export function renewCart() { write({ ...read(), id: newId() }) }
+export function replaceCart(lines: CartLine[], generation?: string) { write({ id: generation || newId(), lines: lines.filter(validCartLine).slice(0, 50) }) }
+export function cartSnapshot() { return read() }
 
 /** Refresh only server-owned display metadata; never change quantities during a quote. */
 export function refreshCart(lines: (CartLine & { source?: string; remoteId?: string })[]) {

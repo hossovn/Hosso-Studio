@@ -85,10 +85,12 @@ export function elementStateCss(scope: string, state: ElementState, device: Elem
     const x = clean.translateX ?? 0, y = clean.translateY ?? 0, scale = clean.scale ?? 1
     rules.push(`transform:translate(${x}px,${y}px) scale(${scale})!important`)
   }
-  if (clean.transitionMs !== undefined) rules.push(`transition:color ${clean.transitionMs}ms,background-color ${clean.transitionMs}ms,border-color ${clean.transitionMs}ms,box-shadow ${clean.transitionMs}ms,opacity ${clean.transitionMs}ms,transform ${clean.transitionMs}ms`)
+  if (clean.transitionMs !== undefined) rules.push(`transition-property:color,background-color,border-color,box-shadow,opacity,transform;transition-duration:${clean.transitionMs}ms;transition-timing-function:cubic-bezier(0.23,1,0.32,1)`)
   if (!rules.length) return ''
   const selector = state === 'normal' ? scope : `${scope}${STATE_SELECTOR[state]},${scope}[data-hs-state=${state}]`
-  const css = `${selector}{${rules.join(';')}}`
+  const css = state === 'hover'
+    ? `@media(hover:hover) and (pointer:fine){${scope}:hover{${rules.join(';')}}}${scope}[data-hs-state=hover]{${rules.join(';')}}`
+    : `${selector}{${rules.join(';')}}`
   return device === 'desktop' ? css : `${DEVICE_QUERY[device as Exclude<ElementDevice, 'desktop'>]}{${css}}`
 }
 

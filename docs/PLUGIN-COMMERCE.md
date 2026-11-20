@@ -1,7 +1,7 @@
 # Bộ plugin bán hàng
 **Tiếng Việt** | [English](en/PLUGIN-COMMERCE.md)
 
-Web bán hàng độc lập (không cần WIM) được ghép từ các plugin nhỏ. **`shop` và `affiliate` là plugin mở** (repo này). **Các plugin còn lại là plugin thương mại, mã nguồn đóng, bán theo giấy phép** (xem mục 5); repo này chỉ chứa phần lõi để chúng gắn vào. Mỗi plugin chỉ làm một việc và nói chuyện với nhau qua **sự kiện của lõi** (xem mục 3), nên bật hoặc tắt từng cái tùy nhu cầu. Chọn plugin bật bằng `NEXT_PUBLIC_HOSSO_PLUGINS` (id cách nhau bằng dấu phẩy, lúc build) hoặc sửa `plugins` trong `apps/studio/hosso.config.ts`.
+Web bán hàng độc lập (không cần WIM) được ghép từ các plugin nhỏ. **`shop` và `affiliate` là plugin mở**. **Các plugin còn lại là plugin thương mại, mã nguồn đóng, bán theo giấy phép** (xem mục 4). Package có mặt trong bản cài đặt phụ thuộc kênh phân phối; `cross-sell` được cài riêng và không nằm trong image công khai. Mỗi plugin nói chuyện với nhau qua **sự kiện của lõi** (xem mục 3), nên bật hoặc tắt từng cái tùy nhu cầu. Chọn plugin bật bằng `NEXT_PUBLIC_HOSSO_PLUGINS` (id cách nhau bằng dấu phẩy, lúc build) hoặc sửa `plugins` trong `apps/studio/hosso.config.ts`.
 
 ## 1. Các plugin
 
@@ -13,7 +13,7 @@ Web bán hàng độc lập (không cần WIM) được ghép từ các plugin n
 | `payment` | Thương mại | Mã QR VietQR và tự xác nhận khi tiền về qua webhook SePay (hoặc xác nhận tay) | Admin → Thanh toán |
 | `notify` | Thương mại | Email báo chủ shop có đơn mới, báo khách đặt hàng, đổi trạng thái, đã thanh toán | Admin → Thông báo |
 | `affiliate` | Mở | Cộng tác viên tự đăng ký, link giới thiệu, hoa hồng theo đơn | Admin → Tiếp thị liên kết |
-| `analytics` | Thương mại | Google Analytics 4 và Meta Pixel (xem sản phẩm, thêm vào giỏ, mua hàng) | Admin → Tiếp thị |
+| `analytics` | Thương mại | Consent, phễu/UTM, A/B, GA4/Meta Pixel và conversion xác nhận phía server | `/admin/analytics` |
 | `reports` | Thương mại | Trang báo cáo: doanh thu theo ngày, bán chạy, trạng thái đơn, hàng sắp hết | `/admin/shop-reports` |
 | `accounts` | Thương mại | Tài khoản khách: đăng nhập, lịch sử đơn, địa chỉ đã lưu, tự điền khi thanh toán | Block "Tài khoản khách hàng" |
 
@@ -25,7 +25,8 @@ Web bán hàng độc lập (không cần WIM) được ghép từ các plugin n
 |---|---|---|
 | `HOSSO_GHN_TOKEN`, `HOSSO_GHN_WEBHOOK_KEY` | shipping | Token API GHN; khóa cho webhook trạng thái |
 | `HOSSO_SEPAY_KEY` | payment | Khóa API của webhook SePay (`Authorization: Apikey <khóa>`). Đăng ký URL `https://<site>/api/plugins/payment/sepay/webhook` với SePay |
-| `HOSSO_SMTP_URL`, `HOSSO_MAIL_FROM` | notify | Gửi email (không có thì email chỉ ghi ra nhật ký) |
+| `HOSSO_SMTP_URL`, `HOSSO_MAIL_FROM` | notify | Gửi email qua queue; thiếu SMTP làm job lỗi để xử lý/gửi lại |
+| `HOSSO_PRIVATE_DIR`, `HOSSO_RETURN_EVIDENCE_DAYS` | shop | Nơi lưu bằng chứng đổi trả và thời hạn giữ hồ sơ đóng/từ chối |
 
 ## 3. Sự kiện của lõi (cho người viết plugin)
 
@@ -38,11 +39,13 @@ Plugin khai báo trong `hooks` của đối tượng plugin (xem `packages/block
 - `describeOrder(event)`: bổ sung thông tin hiển thị cho khách khi tra cứu đơn (mã QR chuyển khoản).
 - `sitemap(payload)`: đường dẫn đưa vào `sitemap.xml`.
 
-Lỗi trong một hook chỉ được ghi log, không làm hỏng đơn hàng (trừ `reject` có chủ đích). Plugin bán hàng phát sự kiện bằng `emitBeforeOrder`, `emitOrderPlaced`, `emitOrderStatusChanged`, `emitOrderPaid` từ `@hosso/studio-blocks`. Đăng nhập riêng cho khách (cộng tác viên, tài khoản khách) dùng `sessionOf(tên-cookie)` của lõi, tách khỏi người dùng admin.
+`beforeOrder` chạy trước khi chấp nhận đơn; `onOrderReceived` lưu intent cùng transaction. Các sự kiện thay đổi trạng thái/thanh toán dùng commerce outbox với lease, retry và idempotency; worker báo lỗi còn tồn tại để quản trị xử lý. Không coi ghi log là đã gửi email hoặc đã giao hàng. Đăng nhập khách dùng `sessionOf(tên-cookie)`, tách khỏi người dùng admin.
 
-Hợp đồng ngầm giữa `accounts` và `shop`: `accounts` lưu thông tin khách vào `localStorage` khóa `hs_customer` để `shop` tự điền khi thanh toán; `shop` phát sự kiện trình duyệt `hs:view_item`, `hs:add_to_cart`, `hs:purchase` cho `analytics`.
+`accounts` lưu thông tin tự điền vào `hs_customer`, thông báo thay đổi phiên qua event/storage. `shop` đồng bộ giỏ theo identity đã xác minh và revision, bỏ qua phản hồi của phiên cũ. Analytics chỉ nhận sự kiện client được phép; purchase phải đến từ trạng thái thanh toán server.
 
-## 5. Giấy phép cho plugin thương mại
+Bộ commerce trong `seed/sites` nối catalog → chi tiết → giỏ → checkout → trạng thái đơn → tài khoản, kèm chính sách/liên hệ. Gallery có lightbox/swipe, thanh mua mobile và phản hồi thêm giỏ. Portal đổi trả dùng token đơn; admin duyệt/nhận/hoàn tiền qua ledger. Nhập kho chỉ áp dụng hàng local đủ điều kiện; giao hàng đổi mới và chuyển tiền thực cần quy trình vận hành. Xem [vận hành nền tảng](studio-platform-operations.md).
+
+## 4. Giấy phép cho plugin thương mại
 
 Plugin thương mại (`promotions`, `shipping`, `payment`, `notify`, `analytics`, `reports`, `accounts`) được cài vào bản build của khách riêng, kèm một **key giấy phép** đặt trong biến môi trường `HOSSO_LICENSE_KEY`.
 
@@ -52,9 +55,9 @@ Plugin thương mại (`promotions`, `shipping`, `payment`, `notify`, `analytics
 - Admin → Quản lý plugin hiện tình trạng giấy phép; dashboard có bước "Giấy phép plugin ...".
 - Muốn mua giấy phép hoặc plugin: liên hệ Hosso. Người viết plugin thương mại bọc plugin bằng `withLicense(plugin)` từ `@hosso/studio-blocks`.
 
-## 4. Giới hạn đã biết
+## 5. Giới hạn đã biết
 
-- Tồn kho, số lần dùng mã và giới hạn tần suất gửi đánh giá chưa nằm trong giao dịch/khóa DB (ghi chú `ponytail:` trong mã).
+- Tồn kho local, voucher và workflow dùng transaction/CAS; tính đúng đắn của kho WIM/nhà cung cấp vẫn phụ thuộc adapter và đối soát nguồn.
 - Chưa có cổng thanh toán chuyển hướng (VNPay, MoMo); `payment` hiện hỗ trợ chuyển khoản tự xác nhận qua SePay.
 - Phí GHN dựa trên địa chỉ nhập tay được so khớp với danh mục tỉnh/quận/phường của GHN; không nhận ra thì dùng phí cố định.
 - CSV chưa hỗ trợ biến thể.

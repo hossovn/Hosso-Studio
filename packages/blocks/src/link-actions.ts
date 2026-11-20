@@ -1,13 +1,17 @@
-export type LinkAction = 'none' | 'url' | 'popup' | 'section' | 'phone' | 'email' | 'state' | 'popover'
-export type ParsedLinkAction = { type: LinkAction; value: string; frameId?: string; variantId?: string }
+export type LinkAction = 'none' | 'url' | 'popup' | 'section' | 'phone' | 'email' | 'state' | 'popover' | 'motion'
+export type ParsedLinkAction = { type: LinkAction; value: string; frameId?: string; variantId?: string; operation?: string }
 
-const SAFE_ID = /^[a-zA-Z0-9_-]{1,64}$/
+const SAFE_ID = /^[a-zA-Z0-9_-]{1,256}$/
 
 export const sectionAnchor = (id: string) => 'hs-section-' + encodeURIComponent(id)
 
 export function readLinkAction(href: unknown): ParsedLinkAction {
   const value = typeof href === 'string' ? href : ''
   if (!value || value === '#') return { type: 'none', value: '' }
+  if (value.startsWith('#motion:')) {
+    const [operation, frameId, extra] = value.slice(8).split(':')
+    if (!extra && ['start', 'pause', 'toggle', 'reset', 'hover'].includes(operation) && SAFE_ID.test(frameId)) return { type: 'motion', value: `${operation}:${frameId}`, frameId, operation }
+  }
   if (value.startsWith('#state:')) {
     const raw = value.slice(7)
     const parts = raw.split(':')
@@ -34,6 +38,7 @@ export function readLinkAction(href: unknown): ParsedLinkAction {
 export function actionHref(type: LinkAction, input: string): string {
   const value = input.trim()
   if (type === 'none' || !value) return ''
+  if (type === 'motion') return readLinkAction('#motion:' + value).type === 'motion' ? '#motion:' + value : ''
   if (type === 'state') {
     const parts = value.split(':')
     return parts.length === 2 && SAFE_ID.test(parts[0]) && SAFE_ID.test(parts[1]) ? `#state:${parts[0]}:${parts[1]}` : ''
@@ -47,4 +52,20 @@ export function actionHref(type: LinkAction, input: string): string {
   }
   if (type === 'email') return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? 'mailto:' + value : ''
   return /^(https?:\/\/|\/(?!\/)|#)/i.test(value) ? value : ''
+}
+
+export function remapActionTargets<T>(value: T, ids: Map<string, string>): T {
+  if (typeof value === 'string') {
+    const action = readLinkAction(value)
+    if (action.frameId && ids.has(action.frameId)) {
+      const target = ids.get(action.frameId)!
+      if (action.type === 'motion') return actionHref('motion', `${action.operation}:${target}`) as T
+      if (action.type === 'state') return actionHref('state', `${target}:${action.variantId}`) as T
+      if (action.type === 'popover') return actionHref('popover', target) as T
+    }
+    return value
+  }
+  if (Array.isArray(value)) return value.map((item) => remapActionTargets(item, ids)) as T
+  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, key === '_variants' ? item : remapActionTargets(item, ids)])) as T
+  return value
 }

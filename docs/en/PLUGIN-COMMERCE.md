@@ -1,7 +1,7 @@
 # Commerce plugin suite
 [Tiếng Việt](../PLUGIN-COMMERCE.md) | **English**
 
-A standalone online store (no WIM needed) built from small plugins. **`shop` and `affiliate` are open plugins** (this repo). **The others are commercial, closed-source plugins sold under a license** (see section 5); this repo only contains the core they plug into. Each plugin does one thing and they talk to each other through **core events** (see section 3), so you can enable or disable each as needed. Choose enabled plugins with `NEXT_PUBLIC_HOSSO_PLUGINS` (comma-separated ids, at build time) or edit `plugins` in `apps/studio/hosso.config.ts`.
+A standalone online store (no WIM needed) built from small plugins. **`shop` and `affiliate` are open plugins**. **The others are commercial, closed-source plugins sold under a license** (see section 4). Installed packages depend on the distribution; `cross-sell` is installed separately and excluded from the public image. Plugins communicate through **core events** (see section 3), so you can enable or disable each as needed. Choose enabled plugins with `NEXT_PUBLIC_HOSSO_PLUGINS` (comma-separated ids, at build time) or edit `plugins` in `apps/studio/hosso.config.ts`.
 
 ## 1. Plugins
 
@@ -13,7 +13,7 @@ A standalone online store (no WIM needed) built from small plugins. **`shop` and
 | `payment` | Commercial | VietQR code and automatic confirmation when the money arrives through the SePay webhook (or manual confirmation) | Admin → Payments |
 | `notify` | Commercial | Emails the owner about new orders and the customer about placement, status changes and payment | Admin → Notifications |
 | `affiliate` | Open | Partners sign up, referral links, per-order commission | Admin → Affiliate marketing |
-| `analytics` | Commercial | Google Analytics 4 and Meta Pixel (view product, add to cart, purchase) | Admin → Marketing |
+| `analytics` | Commercial | Consent, funnel/UTM, A/B, GA4/Meta Pixel and server-confirmed conversions | `/admin/analytics` |
 | `reports` | Commercial | Reports page: revenue per day, best sellers, order statuses, low stock | `/admin/shop-reports` |
 | `accounts` | Commercial | Customer accounts: login, order history, saved addresses, checkout prefill | "Customer accounts" block |
 
@@ -25,7 +25,8 @@ A standalone online store (no WIM needed) built from small plugins. **`shop` and
 |---|---|---|
 | `HOSSO_GHN_TOKEN`, `HOSSO_GHN_WEBHOOK_KEY` | shipping | GHN API token; key for the status webhook |
 | `HOSSO_SEPAY_KEY` | payment | SePay webhook API key (`Authorization: Apikey <key>`). Register `https://<site>/api/plugins/payment/sepay/webhook` with SePay |
-| `HOSSO_SMTP_URL`, `HOSSO_MAIL_FROM` | notify | Send email (otherwise emails are only written to the log) |
+| `HOSSO_SMTP_URL`, `HOSSO_MAIL_FROM` | notify | Queued email; missing SMTP fails the job for recovery |
+| `HOSSO_PRIVATE_DIR`, `HOSSO_RETURN_EVIDENCE_DAYS` | shop | Private return evidence and retention for old closed/rejected cases |
 
 ## 3. Core events (for plugin authors)
 
@@ -38,11 +39,13 @@ Plugins declare them under `hooks` on the plugin object (see `packages/blocks/sr
 - `describeOrder(event)`: adds display info for the customer when tracking an order (bank transfer QR code).
 - `sitemap(payload)`: paths to add to `sitemap.xml`.
 
-An error in one hook is only logged and never breaks the order (except a deliberate `reject`). Sales plugins emit events with `emitBeforeOrder`, `emitOrderPlaced`, `emitOrderStatusChanged`, `emitOrderPaid` from `@hosso/studio-blocks`. Separate customer logins (partners, customer accounts) use the core `sessionOf(cookie-name)`, kept apart from admin users.
+`beforeOrder` runs before order acceptance; `onOrderReceived` persists intents within the transaction. Status/payment events use a durable outbox with leases, retries and idempotency. Workers retain failed operations for review; logging does not prove delivery. Separate customer logins use `sessionOf(cookie-name)` and remain distinct from admin users.
 
-Implicit contract between `accounts` and `shop`: `accounts` stores customer details in `localStorage` key `hs_customer` so `shop` prefills checkout; `shop` fires the browser events `hs:view_item`, `hs:add_to_cart`, `hs:purchase` for `analytics`.
+Accounts stores checkout prefill in `hs_customer` and announces session changes through browser/storage events. Shop synchronizes carts with verified identity and revision, ignoring old-session responses. Analytics accepts only permitted client events; purchase comes from confirmed server payment state.
 
-## 5. Licensing for commercial plugins
+The commerce kit connects catalog, product, cart, checkout, order status and account routes with policy/contact pages. Products support a gallery/lightbox/swipe and mobile buy bar. Return requests use the private order token; administrators approve, receive and close them against the refund ledger. Local restocking is limited to eligible products; replacement shipments and actual money transfers remain operational actions. See the [operations guide](../studio-platform-operations.md).
+
+## 4. Licensing for commercial plugins
 
 Commercial plugins (`promotions`, `shipping`, `payment`, `notify`, `analytics`, `reports`, `accounts`) are installed into each customer's own build together with a **license key** set in the `HOSSO_LICENSE_KEY` environment variable.
 
@@ -52,9 +55,9 @@ Commercial plugins (`promotions`, `shipping`, `payment`, `notify`, `analytics`, 
 - Admin → Manage plugins shows the license status; the dashboard has a "Plugin license ..." step.
 - To buy a license or plugins, contact Hosso. Authors of commercial plugins wrap them with `withLicense(plugin)` from `@hosso/studio-blocks`.
 
-## 4. Known limits
+## 5. Known limits
 
-- Stock, voucher usage counts and the review rate limit are not inside a DB transaction/lock (see the `ponytail:` notes in the code).
+- Local stock, vouchers and workflows use transactions/CAS. WIM/supplier inventory still requires source adapter verification and reconciliation.
 - No redirect-based payment gateway yet (VNPay, MoMo); `payment` supports automatic bank-transfer confirmation through SePay.
 - The GHN fee relies on matching a hand-typed address against GHN's province/district/ward lists; when not recognized the flat fee is used.
 - CSV does not support variants yet.

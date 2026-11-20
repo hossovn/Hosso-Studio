@@ -1,4 +1,5 @@
 import type { FreeElement } from './FreeCanvas'
+import { remapActionTargets } from './link-actions.ts'
 
 let seq = 0
 export const newId = () => 'e' + Date.now().toString(36) + (seq++).toString(36)
@@ -69,7 +70,14 @@ export function transformFamily(els: FreeElement[], id: string, box: Pick<FreeEl
 
 export function cloneElements(els: FreeElement[], offset = 0): FreeElement[] {
   const ids = new Map(els.map((el) => [el.id, newId()]))
-  return els.map((el) => ({ ...el, id: ids.get(el.id)!, parentId: el.parentId ? ids.get(el.parentId) : undefined, x: el.x + offset, y: el.y + offset, props: structuredClone(el.props), ...(el.responsive ? { responsive: structuredClone(el.responsive) } : {}) }))
+  return els.map((el) => ({ ...el, id: ids.get(el.id)!, parentId: el.parentId ? ids.get(el.parentId) : undefined, x: el.x + offset, y: el.y + offset, props: remapActionTargets(structuredClone(el.props), ids), ...(el.responsive ? { responsive: remapActionTargets(structuredClone(el.responsive), ids) } : {}) }))
+}
+
+export function motionTargets(els: FreeElement[], id: string): string[] {
+  const ids = new Set<string>([id])
+  let parent = els.find((el) => el.id === id)?.parentId
+  while (parent && !ids.has(parent)) { ids.add(parent); parent = els.find((el) => el.id === parent)?.parentId }
+  return [...ids]
 }
 
 export type CanvasRect = { left: number; top: number; width: number; height: number }

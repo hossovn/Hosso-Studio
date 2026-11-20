@@ -1,4 +1,5 @@
 'use client'
+import { ResponsiveImage } from './ResponsiveImage'
 import React, { useEffect, useRef, useState } from 'react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { A11y, Autoplay, EffectFade, Keyboard, Navigation, Pagination } from 'swiper/modules'
@@ -88,7 +89,7 @@ export function FreeSwiper({
       >
         {slides.map((slide, i) => (
           <SwiperSlide key={i} style={{ position: 'relative', borderRadius: rad ? `${rad}px` : undefined, overflow: rad ? 'hidden' : undefined }}>
-            <img src={slide.image} alt={slide.alt || ''} style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }} />
+            <ResponsiveImage src={slide.image} alt={slide.alt || ''} style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }} />
             {slide.text && <p style={{ position: 'absolute', bottom: 16, left: 20, right: 20, margin: 0, color: '#fff', textShadow: '0 1px 4px #000' }}>{slide.text}</p>}
           </SwiperSlide>
         ))}
@@ -107,7 +108,7 @@ export function FreeSwiper({
                 swiper.current?.slideTo(i)
               }}
             >
-              <img src={slide.image} alt="" />
+              <ResponsiveImage src={slide.image} alt="" />
             </button>
           ))}
         </div>

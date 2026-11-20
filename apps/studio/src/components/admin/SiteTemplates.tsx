@@ -24,7 +24,7 @@ export function SiteTemplates({ templates, siteURL }: Props) {
     const template = templates.find((template) => template.id === id)
     if (!template || template.missing.length || pending.current) return
     const title = template.title
-    if (!window.confirm(T('Dùng giao diện "{name}"? Các trang trùng đường dẫn, menu, header/footer và cài đặt sẽ được thay bằng mẫu. Hãy sao lưu trước khi áp dụng.', { name: title }))) return
+    if (!template.additive && !window.confirm(T('Dùng giao diện "{name}"? Các trang trùng đường dẫn, menu, header/footer và cài đặt sẽ được thay bằng mẫu. Hãy sao lưu trước khi áp dụng.', { name: title }))) return
     pending.current = true
     setBusy(true)
     setMsg(T('Đang áp dụng giao diện {name}', { name: title }))
@@ -34,7 +34,7 @@ export function SiteTemplates({ templates, siteURL }: Props) {
       })
       const result = await response.json()
       if (!response.ok || result.ok !== true) throw new Error(result.error || `HTTP ${response.status}`)
-      window.location.assign(siteURL)
+      window.location.assign(template.additive ? '/admin/collections/pages' : siteURL)
     } catch (error) {
       setMsg(`${T('Lỗi')}: ${(error as Error).message}`)
     } finally {
@@ -61,7 +61,9 @@ export function SiteTemplates({ templates, siteURL }: Props) {
         <div className="ht-body">
           <div className="ht-title-row"><div><span className="ht-category">{template.category}</span><h4>{template.title}</h4></div><span className="ht-count">{template.pages.length} {T('trang')}</span></div>
           <p>{template.description}</p>
-          <details><summary>{T('Xem các trang')}</summary><ul>{template.pages.map((page) => <li key={page.slug}>{page.title}</li>)}</ul></details>
+          <details><summary>{T('Xem các trang')}</summary><ul>{template.pages.map((page) => <li key={page.slug}>{page.title} · /{page.slug === 'home' ? '' : page.slug}</li>)}</ul></details>
+          {template.additive && <p>Tạo trang nháp mới. Kiểm tra nội dung rồi xuất bản trong Studio.</p>}
+          {!!template.checklist?.length && <details><summary>Cần chuẩn bị</summary><ul>{template.checklist.map((item) => <li key={item}>{item}</li>)}</ul></details>}
           {template.missing.length > 0 && <p>{T('Chưa khả dụng. Còn thiếu: {names}', { names: template.missing.join(', ') })}</p>}
         </div>
       </article>)}

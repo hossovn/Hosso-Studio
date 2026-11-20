@@ -1,6 +1,8 @@
 'use client'
 import React, { useEffect, useMemo, useRef } from 'react'
 import { entranceKeyframes, normalizeScrollEffect, scrollEffectFrame } from './scroll-effects'
+import { MOBILE_MEDIA } from './responsive-breakpoints'
+import { registerScrollTask } from './scroll-scheduler'
 
 export function ScrollEffect({ value, children }: { value: unknown; children: React.ReactNode }) {
   const anchorRef = useRef<HTMLDivElement>(null)
@@ -11,7 +13,7 @@ export function ScrollEffect({ value, children }: { value: unknown; children: Re
     const win = anchor?.ownerDocument.defaultView
     if (!anchor || !moving || !win || !effect) return
     const reduced = win.matchMedia('(prefers-reduced-motion: reduce)')
-    const mobile = win.matchMedia('(max-width: 640px)')
+    const mobile = win.matchMedia(MOBILE_MEDIA)
     const boundary = anchor.closest<HTMLElement>('[data-scroll-boundary]')
     let viewport: HTMLElement | null = anchor.parentElement
     while (viewport && (viewport === anchor.ownerDocument.body || viewport === anchor.ownerDocument.documentElement || viewport.scrollHeight <= viewport.clientHeight || !/(auto|scroll)/.test(win.getComputedStyle(viewport).overflowY))) viewport = viewport.parentElement
@@ -45,36 +47,41 @@ export function ScrollEffect({ value, children }: { value: unknown; children: Re
         anchor.removeEventListener('focusin', reveal)
       }
     }
-    let frame = 0
-    const update = () => {
-      frame = 0
-      if (reduced.matches || (effect.disableOnMobile && mobile.matches) || anchor.contains(anchor.ownerDocument.activeElement)) { reset(); return }
+    let nearViewport = !win.IntersectionObserver
+    const task = registerScrollTask(win, { read: () => {
+      if (reduced.matches || (effect.disableOnMobile && mobile.matches) || anchor.contains(anchor.ownerDocument.activeElement)) return reset
+      if (!nearViewport) return
       const box = anchor.getBoundingClientRect()
       const view = viewport?.getBoundingClientRect()
       const value = scrollEffectFrame(effect, { top: box.top, height: box.height, boundaryBottom: boundary?.getBoundingClientRect().bottom ?? box.bottom, viewportTop: view ? view.top + viewport!.clientTop : 0, viewportHeight: viewport?.clientHeight ?? win.innerHeight })
       // Pin offsets are measured in viewport pixels, including an owner section's scale.
       const localHeight = parseFloat(win.getComputedStyle(anchor).height) || box.height
       const y = effect.mode === 'pin' && box.height ? value.y * localHeight / box.height : value.y
-      moving.style.transform = `translate3d(${value.x}px,${y}px,0) scale(${value.scale})`
-      moving.style.opacity = String(value.opacity)
-    }
-    const schedule = () => { if (!frame) frame = win.requestAnimationFrame(update) }
+      return () => {
+        moving.style.transform = `translate3d(${value.x}px,${y}px,0) scale(${value.scale})`
+        moving.style.opacity = String(value.opacity)
+      }
+    } })
+    const schedule = task.schedule
+    const visibility = win.IntersectionObserver ? new win.IntersectionObserver((entries) => {
+      nearViewport = entries.some((entry) => entry.isIntersecting)
+      schedule()
+    }, { root: viewport, rootMargin: '600px' }) : undefined
+    // A pinned anchor can leave the viewport while its moving content is still visible.
+    visibility?.observe(effect.mode === 'pin' ? boundary ?? anchor : anchor)
     const resize = new win.ResizeObserver(schedule)
     resize.observe(anchor)
     if (boundary) resize.observe(boundary)
     if (viewport) resize.observe(viewport)
-    win.addEventListener('scroll', schedule, { capture: true, passive: true })
-    win.addEventListener('resize', schedule)
     reduced.addEventListener('change', schedule)
     mobile.addEventListener('change', schedule)
     anchor.addEventListener('focusin', schedule)
     anchor.addEventListener('focusout', schedule)
-    update()
+    schedule()
     return () => {
-      win.cancelAnimationFrame(frame)
+      task.dispose()
+      visibility?.disconnect()
       resize.disconnect()
-      win.removeEventListener('scroll', schedule, true)
-      win.removeEventListener('resize', schedule)
       reduced.removeEventListener('change', schedule)
       mobile.removeEventListener('change', schedule)
       anchor.removeEventListener('focusin', schedule)

@@ -26,4 +26,12 @@ Documentation (English): [docs/en/INSTALL.md](docs/en/INSTALL.md) (installation,
 
 ## Plugins
 
-This public repository ships no commercial plugin. The Hosso WIM connector (`@hosso/plugin-wim`) is closed source and distributed separately; see [docs/en/ARCHITECTURE.md](docs/en/ARCHITECTURE.md) and [docs/en/PLUGIN-WIM.md](docs/en/PLUGIN-WIM.md) for the plugin mechanism (`HossoPlugin`) and how to add or remove one. Some scripts in the repo (`check:order-flow`, commerce sample pages) need that plugin to run fully.
+Installed plugins are registered in `apps/studio/hosso.config.ts`; commercial plugins require a valid production license. Separately distributed private plugins are registered by `scripts/prepare-installed-plugins.mjs`. The public image excludes `plugin-cross-sell`. See [architecture](docs/en/ARCHITECTURE.md) and [commerce](docs/en/PLUGIN-COMMERCE.md).
+
+## Landing pages, CMS and commerce
+
+`seed/sites` contains five goal-specific landing kits and a 13-page commerce kit: **23 draft pages** across all six kits. Import them from the admin website-kit library, then supply business content, catalog and policies before publishing. Kits contain no fabricated products or testimonials.
+
+Features include custom CMS binding/detail pages, lead inbox and delivery retries, consent/UTM and A/B, product galleries, account carts, checkout and returns. `/admin/readiness` lists missing operational configuration. See the [operations guide](docs/studio-platform-operations.md) and [verification record](docs/studio-platform-progress.md) (Vietnamese).
+
+Run `pnpm typecheck`, `pnpm test:platform`, `pnpm test:platform-browser` and `pnpm test:platform-production`. Install Chromium with `pnpm exec playwright install chromium`. Tests use isolated databases; SMTP, GHN, SePay and WIM still need acceptance in the real integration environment.

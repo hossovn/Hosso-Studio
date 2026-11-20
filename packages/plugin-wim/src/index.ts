@@ -1,24 +1,20 @@
+import definition from './browser'
 import type { HossoPlugin } from '@hosso/studio-blocks'
-import { wimBlocks } from './blocks'
+
 import { loadVehicleSelector } from './loaders'
 import { loadCheckout, loadSharedDetail, loadSharedGrid, loadSharedOrder } from './shared-loaders'
 import { WimError, wimFetch } from './client'
 import { getWimConfig } from './config'
 import { commerce } from './catalog'
-import { adminEn } from './admin-en'
+
 import { applyPayload } from './payload'
-import { fallbackRenderers } from './renderers'
-import { css } from './styles'
 
 /** Plugin Hosso WIM: kết nối, block thương mại, cache, webhook. Khai báo trong hosso.config.ts. */
 const plugin: HossoPlugin = {
-  id: 'wim',
+  ...definition,
+
   commerce,
-  blocks: wimBlocks,
-  fallbackRenderers,
-  css,
-  adminEn,
-  adminNav: [{ label: 'Kết nối Hosso WIM', href: '/admin/globals/wim-settings', roles: ['admin'] }],
+
   checklist: async (payload) => [{ label: 'Kết nối Hosso WIM (địa chỉ API và khóa)', done: Boolean(await getWimConfig(payload)), href: '/admin/globals/wim-settings' }],
   payload: applyPayload,
   readOrder: async (payload, id) => {

@@ -1,6 +1,6 @@
 'use client'
 import { localizeHref, useLocale, useEditorPreview } from '@hosso/studio-blocks'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { ClipboardList, UserRound, Wrench, ShieldCheck, Trash2, Plus, LogOut } from 'lucide-react'
 
 const S = {
@@ -30,12 +30,15 @@ const useS = () => {
 
 type Me = { profile: { name: string; email: string; phone: string; addresses: { label: string; address: string }[]; garageStatus?: string; garageName?: string; garageReason?: string }; orders: { orderNo: string; status: string; total: number; paymentStatus: string; createdAt: string; lookupToken?: string }[] }
 const vnd = (n: number) => `${Math.round(n || 0).toLocaleString('vi-VN')} đ`
-const api = async (path: string, body?: unknown) => {
+const api = async (path: string, body?: unknown, signal?: AbortSignal): Promise<{ status: number; data: any; stale?: boolean }> => {
+  const marker = sessionMarker()
   try {
-    const r = await fetch(`/api/plugins/accounts/${path}`, body === undefined ? undefined : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-    return { status: r.status, data: (await r.json().catch(() => ({}))) as any }
+    const r = await fetch(`/api/plugins/accounts/${path}`, { cache: 'no-store', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000), ...(body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }) })
+    const data = await r.json().catch(() => ({}))
+    if (marker !== sessionMarker()) return { status: 0, data: {}, stale: true }
+    return { status: r.status, data }
   } catch {
-    return { status: 0, data: { message: 'network' } }
+    return { status: 0, data: { message: 'network' }, stale: marker !== sessionMarker() }
   }
 }
 
@@ -47,6 +50,26 @@ const remember = (m: Me | null) => {
   } catch { /* Checkout also accepts manual entry when browser storage is disabled. */ }
 }
 
+let localSessionRevision = 0
+function announceSession(event: 'hs:account-change' | 'hs:account-logout') {
+  localSessionRevision++
+  try { localStorage.setItem('hs_account_session', crypto.randomUUID()) } catch {}
+  window.dispatchEvent(new Event(event))
+}
+
+const sessionMarker = () => { try { return `${localSessionRevision}:${localStorage.getItem('hs_account_session') || ''}` } catch { return String(localSessionRevision) } }
+function watchSession(refresh: () => void) {
+  const storage = (event: StorageEvent) => { if (event.key === 'hs_account_session' || event.key === null) refresh() }
+  window.addEventListener('storage', storage)
+  window.addEventListener('hs:account-change', refresh)
+  window.addEventListener('hs:account-logout', refresh)
+  return () => {
+    window.removeEventListener('storage', storage)
+    window.removeEventListener('hs:account-change', refresh)
+    window.removeEventListener('hs:account-logout', refresh)
+  }
+}
+
 /** Liên kết "Tài khoản" trên header; đồng bộ thông tin tự điền khi thanh toán. */
 export function AccountLink() {
   const { t, href } = useS()
@@ -54,10 +77,21 @@ export function AccountLink() {
   const preview = useEditorPreview()
   useEffect(() => {
     if (preview) return
-    void api('me').then((r) => {
-      remember(r.status === 200 ? r.data : null)
-      setName(r.status === 200 ? r.data.profile.name : '')
-    })
+    let pending: AbortController | undefined
+    const refresh = () => {
+      pending?.abort()
+      const controller = new AbortController(), marker = sessionMarker()
+      pending = controller
+      setName(''); remember(null)
+      void api('me', undefined, controller.signal).then((r) => {
+        if (controller.signal.aborted || marker !== sessionMarker()) return
+        remember(r.status === 200 ? r.data : null)
+        setName(r.status === 200 ? r.data.profile.name : '')
+      })
+    }
+    refresh()
+    const unwatch = watchSession(refresh)
+    return () => { pending?.abort(); unwatch() }
   }, [preview])
   return (
     <a href={href('/tai-khoan')} aria-label={name || t.account} title={name || t.account}>
@@ -79,9 +113,14 @@ export function AccountPortal({ heading, navigation = 'sidebar', showGarage = 'y
   const [form, setForm] = useState({ name: '', phone: '' })
   const [tab, setTab] = useState('orders')
   const [consentToken, setConsentToken] = useState('')
+  const pendingProfile = useRef<AbortController | null>(null)
 
   const load = useCallback(async () => {
-    const r = await api('me')
+    pendingProfile.current?.abort()
+    const controller = new AbortController(), marker = sessionMarker()
+    pendingProfile.current = controller
+    const r = await api('me', undefined, controller.signal)
+    if (controller.signal.aborted || marker !== sessionMarker()) return
     const m = r.status === 200 ? (r.data as Me) : null
     setMe(m)
     remember(m)
@@ -90,14 +129,26 @@ export function AccountPortal({ heading, navigation = 'sidebar', showGarage = 'y
       setForm({ name: m.profile.name, phone: m.profile.phone })
     }
   }, [])
-  useEffect(() => { if (!preview) void load(); else setMe(editor?.account === 'guest' ? null : { profile: { name: 'Khách xem trước', email: '', phone: '', addresses: [], garageStatus: 'retail' }, orders: [] }) }, [load, preview, editor?.account])
+  useEffect(() => {
+    if (preview) { setMe(editor?.account === 'guest' ? null : { profile: { name: 'Khách xem trước', email: '', phone: '', addresses: [], garageStatus: 'retail' }, orders: [] }); return }
+    void load()
+    const unwatch = watchSession(() => {
+      setMe(undefined); setAddrs([]); setForm({ name: '', phone: '' }); setConsentToken(''); setSaved(false); setError(''); remember(null)
+      void load()
+    })
+    return () => { pendingProfile.current?.abort(); unwatch() }
+  }, [load, preview, editor?.account])
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (preview) return
     setError('')
     const r = await api(mode, Object.fromEntries(new FormData(e.currentTarget)))
-    if (r.data.ok) await load()
+    if (r.stale) return
+    if (r.data.ok) {
+      announceSession('hs:account-change')
+      await load()
+    }
     else setError(t.errors[r.data.message] ?? t.errors.network)
   }
 
@@ -125,13 +176,13 @@ export function AccountPortal({ heading, navigation = 'sidebar', showGarage = 'y
           </div>
         ) : (
           <div className="ac-shell">
-            <nav className="ac-nav" aria-label={t.account}>{[{ id: 'orders', label: t.orders, icon: ClipboardList }, { id: 'profile', label: t.profile, icon: UserRound }, ...(showGarage === 'no' ? [] : [{ id: 'garage', label: en ? 'Garage' : 'Hồ sơ gara', icon: Wrench }]), { id: 'consent', label: en ? 'Assisted orders' : 'Ủy quyền lên đơn', icon: ShieldCheck }].map((item) => <button key={item.id} type="button" aria-current={tab === item.id ? 'page' : undefined} onClick={() => setTab(item.id)}><item.icon size={18} />{item.label}</button>)}<button type="button" onClick={async () => { const r = await api('logout', {}); if (r.data.ok) { remember(null); setMe(null) } else setError(t.errors.network) }}><LogOut size={18} />{t.logout}</button></nav>
+            <nav className="ac-nav" aria-label={t.account}>{[{ id: 'orders', label: t.orders, icon: ClipboardList }, { id: 'profile', label: t.profile, icon: UserRound }, ...(showGarage === 'no' ? [] : [{ id: 'garage', label: en ? 'Garage' : 'Hồ sơ gara', icon: Wrench }]), { id: 'consent', label: en ? 'Assisted orders' : 'Ủy quyền lên đơn', icon: ShieldCheck }].map((item) => <button key={item.id} type="button" aria-current={tab === item.id ? 'page' : undefined} onClick={() => setTab(item.id)}><item.icon size={18} />{item.label}</button>)}<button type="button" onClick={async () => { const r = await api('logout', {}); if (r.stale) return; if (r.data.ok) { announceSession('hs:account-logout'); remember(null); setMe(null) } else setError(t.errors.network) }}><LogOut size={18} />{t.logout}</button></nav>
             <div className="ac-content">
             <p className="ac-account-email">{me.profile.email}</p>
             {error && <p className="ac-error" role="alert">{error}</p>}
             <div hidden={tab !== 'profile'}>
             <h3>{t.profile}</h3>
-            <form className="ac-form" onSubmit={async (e) => { e.preventDefault(); const r = await api('profile', { ...form, addresses: addrs }); if (r.data.ok) { setSaved(true); await load() } else setError(t.errors.network) }}>
+            <form className="ac-form" onSubmit={async (e) => { e.preventDefault(); const r = await api('profile', { ...form, addresses: addrs }); if (r.stale) return; if (r.data.ok) { setSaved(true); await load() } else setError(t.errors.network) }}>
               <label>{t.name}<input value={form.name} onChange={(e) => { setForm({ ...form, name: e.target.value }); setSaved(false) }} required maxLength={120} /></label>
               <label>{t.phone}<input value={form.phone} onChange={(e) => { setForm({ ...form, phone: e.target.value }); setSaved(false) }} inputMode="tel" /></label>
               <h3>{t.addresses}</h3>
@@ -150,9 +201,9 @@ export function AccountPortal({ heading, navigation = 'sidebar', showGarage = 'y
               <h3>{en ? 'Garage application' : 'Hồ sơ gara'}</h3>
               <p role="status">{({ retail: en ? 'Retail customer' : 'Khách lẻ', pending: en ? 'Awaiting approval' : 'Chờ duyệt hồ sơ', approved: en ? 'Approved garage' : 'Gara đã được duyệt', rejected: en ? 'Rejected' : 'Hồ sơ bị từ chối', suspended: en ? 'Suspended' : 'Tạm khóa' } as Record<string,string>)[me.profile.garageStatus || 'retail']}</p>
               {me.profile.garageReason && <p>{me.profile.garageReason}</p>}
-              {['retail', 'rejected'].includes(me.profile.garageStatus || 'retail') && <form className="ac-form" onSubmit={async (e) => { e.preventDefault(); const r = await api('garage', Object.fromEntries(new FormData(e.currentTarget))); if (r.data.ok) await load(); else setError(r.data.message || t.errors.network) }}><label>{en ? 'Garage name' : 'Tên gara'}<input name="garageName" required minLength={2} maxLength={120} /></label><label>{en ? 'Tax ID' : 'Mã số thuế'}<input name="garageTaxId" maxLength={40} /></label><label>{en ? 'Garage address' : 'Địa chỉ gara'}<input name="garageAddress" required minLength={5} maxLength={300} /></label><button className="ac-btn">{en ? 'Submit application' : 'Gửi hồ sơ xét duyệt'}</button></form>}
+              {['retail', 'rejected'].includes(me.profile.garageStatus || 'retail') && <form className="ac-form" onSubmit={async (e) => { e.preventDefault(); const r = await api('garage', Object.fromEntries(new FormData(e.currentTarget))); if (r.stale) return; if (r.data.ok) await load(); else setError(r.data.message || t.errors.network) }}><label>{en ? 'Garage name' : 'Tên gara'}<input name="garageName" required minLength={2} maxLength={120} /></label><label>{en ? 'Tax ID' : 'Mã số thuế'}<input name="garageTaxId" maxLength={40} /></label><label>{en ? 'Garage address' : 'Địa chỉ gara'}<input name="garageAddress" required minLength={5} maxLength={300} /></label><button className="ac-btn">{en ? 'Submit application' : 'Gửi hồ sơ xét duyệt'}</button></form>}
             </div>
-            <div hidden={tab !== 'consent'}><h3>{en ? 'Authorize a partner' : 'Đồng ý cho CTV lên đơn hộ'}</h3><form className="ac-form" onSubmit={async (e) => { e.preventDefault(); const r = await api('assisted-consent', Object.fromEntries(new FormData(e.currentTarget))); if (r.data.ok) setConsentToken(r.data.token); else setError(r.data.message || t.errors.network) }}><label>{en ? 'Partner referral code' : 'Mã giới thiệu của CTV'}<input name="code" required maxLength={40} /></label><button className="ac-btn">{en ? 'Create authorization code' : 'Tạo mã đồng ý'}</button></form>{consentToken && <div role="status"><p>{en ? 'Valid for 15 minutes for the selected partner.' : 'Mã có hiệu lực 15 phút cho CTV đã chọn.'}</p><textarea className="ac-consent-token" aria-label={en ? 'Authorization code' : 'Mã đồng ý'} readOnly value={consentToken} onFocus={(e) => e.target.select()} /></div>}</div>
+            <div hidden={tab !== 'consent'}><h3>{en ? 'Authorize a partner' : 'Đồng ý cho CTV lên đơn hộ'}</h3><form className="ac-form" onSubmit={async (e) => { e.preventDefault(); const r = await api('assisted-consent', Object.fromEntries(new FormData(e.currentTarget))); if (r.stale) return; if (r.data.ok) setConsentToken(r.data.token); else setError(r.data.message || t.errors.network) }}><label>{en ? 'Partner referral code' : 'Mã giới thiệu của CTV'}<input name="code" required maxLength={40} /></label><button className="ac-btn">{en ? 'Create authorization code' : 'Tạo mã đồng ý'}</button></form>{consentToken && <div role="status"><p>{en ? 'Valid for 15 minutes for the selected partner.' : 'Mã có hiệu lực 15 phút cho CTV đã chọn.'}</p><textarea className="ac-consent-token" aria-label={en ? 'Authorization code' : 'Mã đồng ý'} readOnly value={consentToken} onFocus={(e) => e.target.select()} /></div>}</div>
             <div hidden={tab !== 'orders'}>
             <h3>{t.orders}</h3>
             {me.orders.length === 0 ? <p>{t.noOrders}</p> : (

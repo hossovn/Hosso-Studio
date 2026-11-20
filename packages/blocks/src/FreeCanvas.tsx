@@ -17,6 +17,8 @@ import { FreeNumber } from './FreeNumber'
 import { blockForDevice, type DevicePatch } from './responsive-layout'
 import { layoutVariants, variantCss } from './responsive-breakpoints'
 import { sanitizeRichText } from './rich-text'
+import { BackgroundVideo } from './BackgroundVideo'
+import { ResponsiveImage } from './ResponsiveImage'
 export { newId } from './free-geometry'
 export { FreeOverlay } from './FreeInteractiveScope'
 
@@ -90,8 +92,7 @@ export function makeElement(type: FreeType, over: Partial<FreeElement> & { props
 /** Nội dung của một phần tử, lấp đầy khung chứa. `unit` là bề rộng thiết kế ứng với bề rộng khung (mặc định FREE_W; thẻ xem trước dùng bề rộng phần tử). */
 /** Menu thả xuống: mục có `children` mở danh sách con khi rê chuột hoặc focus bàn phím. */
 const FM_CSS = '.fm-has{position:relative}.fm-sub{display:none;position:absolute;left:0;top:100%;z-index:60;margin:0;list-style:none;background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15)}.fm-has:hover>.fm-sub,.fm-has:focus-within>.fm-sub{display:block}.fm-sub a:hover{background:#f3f4f6}'
-export function FreeElementView({ el, unit = FREE_W, scale, editing = false, state, scrollEffects = true, linkProps, itemLinkProps, children }: { el: FreeElement; unit?: number; scale?: number; editing?: boolean; state?: ElementState; scrollEffects?: boolean; linkProps?: Record<string, any>; itemLinkProps?: (href: unknown) => Record<string, any>; children?: React.ReactNode }) {
-  if (el.type === 'widget') return <>{children ?? <div>Chọn khối để thêm nội dung</div>}</>
+export function FreeElementView({ el, unit = FREE_W, scale, editing = false, state, scrollEffects = true, linkProps, itemLinkProps, motionTargets, children }: { el: FreeElement; unit?: number; scale?: number; editing?: boolean; state?: ElementState; scrollEffects?: boolean; linkProps?: Record<string, any>; itemLinkProps?: (href: unknown) => Record<string, any>; motionTargets?: string[]; children?: React.ReactNode }) {
   const p = el.props
   const imp = ['heading', 'text', 'button', 'menu', 'countdown', 'number', 'table', 'tabs', 'accordion', 'breadcrumb'].includes(el.type) ? fontImport(p.font) : ''
   const op = p.opacity != null && p.opacity !== '' ? Math.min(100, Math.max(0, Number(p.opacity))) : 100
@@ -99,10 +100,10 @@ export function FreeElementView({ el, unit = FREE_W, scale, editing = false, sta
   const bodyOpacity = ['text', 'heading', 'button', 'image'].includes(el.type)
   const stateCss = elementStatesCss(el.id, p)
   const motion = scrollEffects && !editing && el.type !== 'container' ? resolveMotionConfig(p) : null
-  const inner = <FreeElementBody el={el} unit={unit} scale={scale} editing={editing || !scrollEffects} state={state} linkProps={linkProps} itemLinkProps={itemLinkProps} />
+  const inner = el.type === 'widget' ? <div className={p._states ? elementStateScope(el.id) : undefined} data-hs-state={state} style={{ width: '100%', height: '100%' }}>{children ?? <div>Chọn khối để thêm nội dung</div>}</div> : <FreeElementBody el={el} unit={unit} scale={scale} editing={editing || !scrollEffects} state={state} linkProps={linkProps} itemLinkProps={itemLinkProps} />
   const scrolling = scrollEffects && !editing && el.type !== 'container' && p._scroll?.mode !== 'entrance' && normalizeScrollEffect(p._scroll)
   const effects = (content: React.ReactNode) => {
-    const animated = motion ? <MotionEffects value={motion}>{content}</MotionEffects> : content
+    const animated = motion ? <MotionEffects value={motion} targets={motionTargets || [el.id]}>{content}</MotionEffects> : content
     return scrolling ? <ScrollEffect value={p._scroll}>{animated}</ScrollEffect> : animated
   }
   if (!stateCss && !imp && op === 100 && !rot) return effects(inner)
@@ -173,7 +174,7 @@ function FreeElementBody({ el, unit, scale, editing, state, linkProps, itemLinkP
     if (!p.src) return <div {...stateAttrs} style={{ ...imageStyle, opacity, background: '#f3f4f6', display: 'grid', placeItems: 'center', color: '#9ca3af', fontSize: u(16) }}>Ảnh</div>
     const focal = (value: unknown) => Math.max(0, Math.min(100, Number.isFinite(Number(value)) ? Number(value) : 50))
     const zoom = Math.max(1, Math.min(5, Number(p.imageZoom) || 1)), fx = focal(p.focalX), fy = focal(p.focalY)
-    const picture = <img src={p.src} alt={p.alt ?? ''} style={{ width: '100%', height: '100%', display: 'block', objectFit: imageStyle.objectFit, objectPosition: `${fx}% ${fy}%`, transform: `scale(${zoom})`, transformOrigin: `${fx}% ${fy}%` }} />
+    const picture = <ResponsiveImage src={p.src} alt={p.alt ?? ''} width={el.w} height={el.h} fetchPriority={p.priority === true ? 'high' : 'auto'} loading={editing || p.priority === true ? 'eager' : 'lazy'} sizes={typeof p.sizes === 'string' && p.sizes ? p.sizes : '(max-width: 600px) 100vw, ' + Math.min(100, Math.ceil(el.w / FREE_W * 100)) + 'vw'} style={{ width: '100%', height: '100%', display: 'block', objectFit: imageStyle.objectFit, objectPosition: `${fx}% ${fy}%`, transform: `scale(${zoom})`, transformOrigin: `${fx}% ${fy}%` }} />
     const frameStyle = { ...imageStyle, overflow: 'hidden', opacity }
     return p.href && !editing ? <a {...stateAttrs} href={safeHref(p.href)} {...linkProps} style={frameStyle}>{picture}</a> : <div {...stateAttrs} style={frameStyle}>{picture}</div>
   }
@@ -246,7 +247,7 @@ function FreeElementBody({ el, unit, scale, editing, state, linkProps, itemLinkP
  * Block "Vùng tự do": chỉ là khoảng trống có chiều cao; các phần tử nằm ở lớp phủ chung (`_els`, cũng dùng cho mọi block khác).
  * `elements` là tên prop cũ, vẫn đọc được. `_noFree` được editor đặt khi nó tự vẽ lớp chỉnh sửa.
  */
-export const FreeCanvasView: BlockRenderer = (props: { id?: string; height?: number; heightMode?: 'canvas' | 'svh'; svh?: number; svhOffset?: number; minHeightPx?: number; bgImage?: string; bgVideo?: string; bgOverlay?: number; bgOverlayColor?: string; bgOverlayColor2?: string; bgOverlayAngle?: number; bgSize?: string; bgRepeat?: string; bgPositionX?: number; bgPositionY?: number; bgAttachment?: string; bgImageOpacity?: number; bgBlur?: number; bgVideoFit?: string; _els?: FreeElement[]; elements?: FreeElement[]; _noFree?: boolean; _states?: unknown; _editorState?: ElementState; _responsive?: Record<string, any>; _breakpoints?: unknown }) => {
+export const FreeCanvasView: BlockRenderer = (props: { id?: string; height?: number; heightMode?: 'canvas' | 'svh'; svh?: number; svhOffset?: number; minHeightPx?: number; bgImage?: string; bgVideo?: string; bgVideoPoster?: string; _motionEditing?: boolean; bgOverlay?: number; bgOverlayColor?: string; bgOverlayColor2?: string; bgOverlayAngle?: number; bgSize?: string; bgRepeat?: string; bgPositionX?: number; bgPositionY?: number; bgAttachment?: string; bgImageOpacity?: number; bgBlur?: number; bgVideoFit?: string; _els?: FreeElement[]; elements?: FreeElement[]; _noFree?: boolean; _states?: unknown; _editorState?: ElementState; _responsive?: Record<string, any>; _breakpoints?: unknown }) => {
   const { height = 0, bgImage, bgVideo, bgOverlay = 0, bgOverlayColor = '#000000', bgSize = 'cover', bgRepeat = 'no-repeat', bgPositionX = 50, bgPositionY = 50, bgAttachment = 'scroll', bgImageOpacity = 100, bgBlur = 0, bgVideoFit = 'cover', _els, elements, _noFree } = props
   const stateCss = props.id ? elementStatesCss(props.id, props) : ''
   const els = _els ?? elements ?? []
@@ -266,7 +267,7 @@ export const FreeCanvasView: BlockRenderer = (props: { id?: string; height?: num
       {stateCss && <style>{stateCss}</style>}
       <div style={{ position: 'relative', minHeight: sectionMinHeight }}>
       {bgImage && <div aria-hidden="true" style={{ position: 'absolute', inset: 0, backgroundImage: `url("${String(bgImage).replace(/"/g, '%22')}")`, backgroundSize: ['cover', 'contain', 'auto'].includes(bgSize) ? bgSize : 'cover', backgroundRepeat: ['no-repeat', 'repeat', 'repeat-x', 'repeat-y'].includes(bgRepeat) ? bgRepeat : 'no-repeat', backgroundPosition: `${Math.min(100, Math.max(0, Number(bgPositionX) || 0))}% ${Math.min(100, Math.max(0, Number(bgPositionY) || 0))}%`, backgroundAttachment: bgAttachment === 'fixed' ? 'fixed' : 'scroll', opacity: Math.min(100, Math.max(0, Number(bgImageOpacity) || 0)) / 100, filter: Number(bgBlur) > 0 ? `blur(${Math.min(40, Math.max(0, Number(bgBlur)))}px)` : undefined, transform: Number(bgBlur) > 0 ? 'scale(1.05)' : undefined, pointerEvents: 'none' }} />}
-      {bgVideo && <video src={bgVideo} autoPlay muted loop playsInline aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: bgVideoFit === 'contain' ? 'contain' : 'cover', objectPosition: `${Math.min(100, Math.max(0, Number(bgPositionX) || 0))}% ${Math.min(100, Math.max(0, Number(bgPositionY) || 0))}%` }} />}
+      {bgVideo && <BackgroundVideo src={bgVideo} poster={props.bgVideoPoster || bgImage} editing={props._motionEditing} fit={bgVideoFit === 'contain' ? 'contain' : 'cover'} position={`${Math.min(100, Math.max(0, Number(bgPositionX) || 0))}% ${Math.min(100, Math.max(0, Number(bgPositionY) || 0))}%`} />}
       {bgOverlay > 0 && <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: overlayBg, opacity: Math.min(100, Math.max(0, bgOverlay)) / 100, pointerEvents: 'none' }} />}
       <div data-hs-variants={encodeURIComponent((props.id || 'free') + '-height')} style={{ position: 'relative', maxWidth: FREE_MAX_PX, margin: '0 auto', containerType: 'inline-size' }}>
         <style>{variantCss((props.id || 'free') + '-height', props._breakpoints)}</style>

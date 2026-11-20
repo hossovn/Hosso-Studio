@@ -4,7 +4,7 @@ import { createRequire } from 'node:module'
 import { join } from 'node:path'
 
 const require = createRequire(new URL('../apps/studio/package.json', import.meta.url))
-const { chromium } = require(process.env.HOSSO_PLAYWRIGHT_MODULE || 'playwright')
+const { chromium } = require(process.env.HOSSO_PLAYWRIGHT_MODULE || '@playwright/test')
 const origin = process.env.HOSSO_EDITOR_ORIGIN || 'http://localhost:3111'
 assert.ok(/^http:\/\/localhost:\d+$/.test(origin), 'Only use the disposable local fixture')
 const output = new URL('../output/editor-workspace-20261104/', import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1')

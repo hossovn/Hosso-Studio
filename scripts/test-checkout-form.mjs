@@ -17,10 +17,16 @@ function compile(relative, stubs = {}) {
 }
 const cart = compile('../packages/plugin-shop/src/cart.ts')
 const util = compile('../packages/plugin-shop/src/util.ts', { './product-content': { imagesOf: () => [] } })
-const { CheckoutForm, OrderLookup } = compile('../packages/plugin-shop/src/client/Shop.tsx', { '../cart': cart, '../util': util, '@hosso/studio-blocks': { useLocale: () => ({ locale: 'vi', defaultLocale: 'vi' }), localizeHref: (p) => p, useEditorPreview: () => null } })
+const attribution = compile('../packages/blocks/src/attribution.ts')
+const scrollScheduler = compile('../packages/blocks/src/scroll-scheduler.ts')
+const { CheckoutForm, OrderLookup } = compile('../packages/plugin-shop/src/client/Shop.tsx', { '../cart': cart, '../util': util, './SavedCart': { SavedCart: () => null }, './Returns': { ReturnPortal: () => null }, '../../../blocks/src/attribution': attribution, '../../../blocks/src/scroll-scheduler': scrollScheduler, '@hosso/studio-blocks': { useLocale: () => ({ locale: 'vi', defaultLocale: 'vi' }), localizeHref: (p) => p, useEditorPreview: () => null } })
 const { createRoot } = require('react-dom/client')
 const host = document.createElement('div'); document.body.append(host); const root = createRoot(host)
-const settle = async (run = () => {}) => React.act(async () => { run(); for (let i = 0; i < 5; i++) await new Promise((r) => setImmediate(r)) })
+const settle = async (run = () => {}) => React.act(async () => { run(); await new Promise((r) => setTimeout(r, 250)); for (let i = 0; i < 5; i++) await new Promise((r) => setImmediate(r)) })
+const quoteReady = async () => {
+  for (let i = 0; i < 8 && host.querySelector('.sp-checkout-action')?.disabled; i++) await settle()
+  assert.equal(host.querySelector('.sp-checkout-action')?.disabled, false, 'A successful quote enables checkout')
+}
 let requests = [], resolveCheckout
 globalThis.fetch = async (url, options) => {
   if (url.endsWith('/quote')) return Response.json({ ok: true, total: 150000, adjustments: [], quoteKey: 'quote' })
@@ -29,6 +35,7 @@ globalThis.fetch = async (url, options) => {
 }
 cart.addToCart({ productId: '1', name: 'Bộ lọc dầu', price: 150000 })
 await settle(() => root.render(React.createElement(CheckoutForm, { statusPath: '/trang-thai-don', cartPath: '/gio-hang' })))
+await quoteReady()
 const form = host.querySelector('form')
 for (const [name, value] of Object.entries({ name: 'Khách thử nghiệm', phone: '0912345678', email: 'buyer@example.test', address: 'Địa chỉ thử nghiệm' })) form.elements.namedItem(name).value = value
 await settle(() => { form.dispatchEvent(new win.Event('submit', { bubbles: true, cancelable: true })); form.dispatchEvent(new win.Event('submit', { bubbles: true, cancelable: true })) })
@@ -48,6 +55,7 @@ await settle(() => root.unmount())
 cart.clearCart(); cart.addToCart({ productId: '1', name: 'Bộ lọc dầu', price: 150000 })
 const retryRoot = createRoot(host)
 await settle(() => retryRoot.render(React.createElement(CheckoutForm, { statusPath: '/trang-thai-don', cartPath: '/gio-hang' })))
+await quoteReady()
 const retryForm = host.querySelector('form')
 assert.equal(retryForm.elements.namedItem('address').value, 'Địa chỉ thử nghiệm', 'Next purchase retains the recipient')
 await settle(() => retryForm.dispatchEvent(new win.Event('submit', { bubbles: true, cancelable: true })))

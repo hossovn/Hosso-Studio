@@ -1,4 +1,5 @@
 'use client'
+import { ResponsiveImage } from './ResponsiveImage'
 import React, { useEffect, useState } from 'react'
 import { comparisonPosition } from './detailing-effects'
 import { safeCssColor } from './free-style'
@@ -21,7 +22,7 @@ export function FreeComparison({ p, unit, scale, editing = false }: { p: Record<
   const before = typeof p.beforeLabel === 'string' ? p.beforeLabel : 'Trước'
   const after = typeof p.afterLabel === 'string' ? p.afterLabel : 'Sau'
   const picture = (src: unknown, alt: unknown, label: string) => typeof src === 'string' && src
-    ? <img src={src} alt={typeof alt === 'string' ? alt : label} draggable={false} loading="lazy" style={{ width: '100%', height: '100%', display: 'block', objectFit: p.fit === 'contain' ? 'contain' : 'cover' }} />
+    ? <ResponsiveImage src={src} alt={typeof alt === 'string' ? alt : label} draggable={false} loading="lazy" style={{ width: '100%', height: '100%', display: 'block', objectFit: p.fit === 'contain' ? 'contain' : 'cover' }} />
     : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#64748b', background: label === before ? '#e2e8f0' : '#cbd5e1', fontSize: `max(12px, ${u(18)})` }}>Chọn ảnh {label.toLowerCase()}</div>
   const badge: React.CSSProperties = { position: 'absolute', padding: '6px 12px', background: '#111827b3', color: '#ffffff', borderRadius: 5, font: `700 clamp(11px, ${u(13)}, 14px) / 1.3 system-ui, sans-serif`, pointerEvents: 'none', zIndex: 2 }
   return <div className="hs-comparison" data-direction={vertical ? 'vertical' : 'horizontal'} style={{ '--comparison-accent': accent, position: 'relative', width: '100%', height: '100%', overflow: 'hidden', borderRadius: u(Math.max(0, Number(p.radius) || 0)), background: '#e2e8f0' } as React.CSSProperties}>

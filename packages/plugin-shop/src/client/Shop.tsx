@@ -1,9 +1,13 @@
 'use client'
+import { registerScrollTask } from '../../../blocks/src/scroll-scheduler'
 import { localizeHref, useLocale, useEditorPreview, type FulfillmentGroup, type OrderExtras } from '@hosso/studio-blocks'
 import React, { useState } from 'react'
 import { ArrowLeft, ArrowRight, CircleCheck, ImageOff, Minus, Plus, ShoppingBag, Trash2, Undo2 } from 'lucide-react'
 import { addToCart, cartCount, cartTotal, consumeCart, checkoutIdentity, renewCart, lineKey, removeFromCart, refreshCart, setQuantity, useCart, type CartLine } from '../cart'
+import { SavedCart } from './SavedCart'
+import { ReturnPortal } from './Returns'
 import { vnd } from '../util'
+import { currentAttribution, currentExperiments } from '../../../blocks/src/attribution'
 
 const S = {
   vi: {
@@ -39,7 +43,7 @@ const useS = () => {
 }
 
 function receiveCheckout(body: any, cart: { id: string; lines: CartLine[] }, customer: Record<string, unknown>, target: string) {
-  window.dispatchEvent(new CustomEvent('hs:purchase', { detail: { id: body.order.id, total: body.order.total, items: cart.lines } }))
+  window.dispatchEvent(new CustomEvent('hs:order_placed', { detail: { id: body.order.id, total: body.order.total, items: cart.lines } }))
   consumeCart(cart.id)
   try {
     localStorage.setItem('hs_lookup_' + body.order.id, body.lookupToken)
@@ -64,20 +68,45 @@ export function CartLink() {
 export function AddToCart({ product, cartPath, inStock, variants }: { product: { id: string; name: string; price: number; image?: string }; cartPath: string; inStock: boolean; variants?: { id: string; name: string; price: number; stock: number }[] }) {
   const { t, href } = useS()
   const [added, setAdded] = useState(false)
+  const [sticky, setSticky] = useState(false)
+  const anchor = React.useRef<HTMLDivElement>(null)
+  const variantLabel = React.useId()
   const [variantId, setVariantId] = useState(variants?.find((v) => v.stock > 0)?.id ?? '')
   const variant = variants?.find((v) => v.id === variantId)
   const price = variant?.price ?? product.price
   const canBuy = variants?.length ? Boolean(variant && variant.stock > 0) : inStock
   const n = cartCount(useCart())
+  const preview = useEditorPreview()
+  React.useEffect(() => {
+    const node = anchor.current, section = node?.closest('section')
+    if (!node || !section || preview) return
+    // IntersectionObserver can miss a direct jump from below to above the viewport.
+    const task = registerScrollTask(window, { read: () => {
+      const bottom = node.getBoundingClientRect().bottom, bounds = section.getBoundingClientRect()
+      const show = bottom < 0 && bounds.bottom > 0 && bounds.top < innerHeight && !document.activeElement?.matches('input,textarea,select,[contenteditable="true"]')
+      return () => setSticky(show)
+    } })
+    const resize = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(task.schedule)
+    resize?.observe(section)
+    document.addEventListener('focusin', task.schedule); document.addEventListener('focusout', task.schedule)
+    return () => { task.dispose(); resize?.disconnect(); document.removeEventListener('focusin', task.schedule); document.removeEventListener('focusout', task.schedule) }
+  }, [preview])
+  const add = () => {
+    if (preview || !canBuy) return
+    const name = variant ? `${product.name} (${variant.name})` : product.name
+    addToCart({ productId: product.id, variantId: variant?.id, name, price, image: product.image })
+    setAdded(true); window.dispatchEvent(new CustomEvent('hs:add_to_cart', { detail: { id: product.id, name, price } }))
+  }
   React.useEffect(() => {
     window.dispatchEvent(new CustomEvent('hs:view_item', { detail: { id: product.id, name: product.name, price: product.price } }))
   }, [product.id])
   return (
-    <div className="sp-add">
+    <div className="sp-add" ref={anchor}>
       {variants && variants.length > 0 && (
-        <label className="sp-variant">{t.variant}<select value={variantId} onChange={(e) => { setVariantId(e.target.value); setAdded(false) }}>{variants.map((v) => (<option key={v.id} value={v.id} disabled={v.stock <= 0}>{v.name} — {vnd(v.price)}{v.stock <= 0 ? ` (${t.soldOut})` : ''}</option>))}</select></label>
+        <div className="sp-variant"><label htmlFor={variantLabel}>{t.variant}</label><select id={variantLabel} value={variantId} onChange={(e) => { setVariantId(e.target.value); setAdded(false) }}>{variants.map((v) => (<option key={v.id} value={v.id} disabled={v.stock <= 0}>{v.name} — {vnd(v.price)}{v.stock <= 0 ? ` (${t.soldOut})` : ''}</option>))}</select></div>
       )}
-      <button className="sp-btn" type="button" disabled={!canBuy} onClick={() => { const name = variant ? `${product.name} (${variant.name})` : product.name; addToCart({ productId: product.id, variantId: variant?.id, name, price, image: product.image }); setAdded(true); window.dispatchEvent(new CustomEvent('hs:add_to_cart', { detail: { id: product.id, name, price } })) }}>
+      {variant && <p aria-live="polite">{variant.name} · <strong>{vnd(price)}</strong></p>}
+      <button className="sp-btn" type="button" disabled={!canBuy || Boolean(preview)} onClick={add}>
         {canBuy ? t.add : t.soldOut}
       </button>
       {(added || n > 0) && (
@@ -86,6 +115,7 @@ export function AddToCart({ product, cartPath, inStock, variants }: { product: {
           <a href={href(cartPath)}>{t.view} ({n})</a>
         </p>
       )}
+      {sticky && <div className="sp-mobile-buy" role="region" aria-label={t.add}><div><strong>{vnd(price)}</strong><small>{variant?.name || product.name}</small></div><button className="sp-btn" type="button" disabled={!canBuy} onClick={add}>{added ? t.added : canBuy ? t.add : t.soldOut}</button><a href={href(cartPath)} aria-label={t.view}>{t.cart} ({n})</a></div>}
     </div>
   )
 }
@@ -123,6 +153,7 @@ export function CartView({ heading, checkoutPath, shopPath, layout = 'split', sh
     <section className="sp-section sp-commerce">
       <div className="sp-wrap">
         <header className="sp-commerce-heading" data-hs-part="cart-heading">{heading && <h2>{heading}</h2>}<span>{cartCount(cart)} {en ? 'items' : 'sản phẩm'}</span></header>
+        {!preview && <SavedCart en={en} />}
         {cart.lines.length === 0 ? (
           <div className="sp-empty" data-hs-part="cart-empty"><ShoppingBag size={40} strokeWidth={1.5} aria-hidden="true" /><h3>{emptyHeading || t.empty}</h3>{emptyText && <p>{emptyText}</p>}<a className="sp-btn sp-action" href={href(shopPath)}><ArrowLeft size={18} />{t.continue}</a></div>
         ) : (
@@ -185,6 +216,7 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath, branches
   const [branchId, setBranchId] = useState(branches[0]?.id || '')
   const [pay, setPay] = useState<'cod' | 'bank'>('cod')
   const [voucher, setVoucher] = useState('')
+  const [address, setAddress] = useState('')
   const [quote, setQuote] = useState<Quote | null>(null)
   const [quoteError, setQuoteError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -193,6 +225,12 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath, branches
   const [issues, setIssues] = useState<{ productId: string; variantId?: string; code: string; available?: number; name?: string }[]>([])
   const quoteRequest = React.useRef<AbortController | null>(null)
   const submitting = React.useRef(false)
+  const checkoutTracked = React.useRef(false)
+  React.useEffect(() => {
+    if (preview || !cart.lines.length || checkoutTracked.current) return
+    checkoutTracked.current = true
+    window.dispatchEvent(new CustomEvent('hs:begin_checkout', { detail: { total: cartTotal(cart), items: cart.lines } }))
+  }, [cart.id, preview])
 
   const items = cart.lines.map((l) => ({ productId: l.productId, variantId: l.variantId, quantity: l.quantity }))
   const itemsKey = JSON.stringify(items)
@@ -205,12 +243,11 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath, branches
     quoteRequest.current = controller
     setQuoting(true)
     setQuote(null)
-    const f = formRef.current ? new FormData(formRef.current) : null
     const r = await fetch('/api/plugins/shop/quote', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
-      body: JSON.stringify({ items, customer: { address: f?.get('address') ?? '' }, fulfillment: { type, ...(type === 'pickup' && branchId && { branchId }) }, payment: pay, meta: { voucher: voucher.trim(), locale } }),
+      body: JSON.stringify({ items, customer: { address }, fulfillment: { type, ...(type === 'pickup' && branchId && { branchId }) }, payment: pay, meta: { voucher: voucher.trim(), locale } }),
     }).catch(() => null)
     const j = await r?.json().catch(() => null)
     if (controller.signal.aborted) return
@@ -226,10 +263,12 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath, branches
       setQuote(null)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itemsKey, type, branchId, pay, voucher, locale, preview])
+  }, [itemsKey, type, branchId, pay, voucher, address, locale, preview])
   React.useEffect(() => {
-    void runQuote()
-    return () => quoteRequest.current?.abort()
+    if (preview || !items.length) return
+    setQuoting(true); setQuote(null)
+    const timer = setTimeout(() => void runQuote(), 200)
+    return () => { clearTimeout(timer); quoteRequest.current?.abort() }
   }, [itemsKey, type, pay, runQuote])
 
   // Tự điền từ tài khoản khách (plugin Tài khoản lưu thông tin ở localStorage khóa hs_customer).
@@ -256,7 +295,7 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath, branches
       if (!c || !f) return
       for (const k of ['name', 'phone', 'email', 'address']) {
         const el = f.elements.namedItem(k) as HTMLInputElement | null
-        if (el && !el.value && c[k]) el.value = c[k]
+        if (el && !el.value && c[k]) { if (k === 'address') setAddress(c[k]); else el.value = c[k] }
       }
     } catch {
       // dữ liệu hỏng: bỏ qua
@@ -277,7 +316,7 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath, branches
     setError(null)
     try {
       const customer = { name: String(f.get('name') || '').trim(), phone: String(f.get('phone') || '').trim(), email: String(f.get('email') || '').trim(), address: String(f.get('address') || '').trim(), note: String(f.get('note') || '').trim() }
-      const intent = { items, customer, fulfillment: { type, ...(type === 'pickup' && branchId && { branchId }) }, payment: pay, meta: { voucher: voucher.trim(), locale } }
+      const intent = { items, customer, fulfillment: { type, ...(type === 'pickup' && branchId && { branchId }) }, payment: pay, meta: { voucher: voucher.trim(), locale, attribution: currentAttribution(), experiments: currentExperiments(), cartGeneration: cart.id } }
       const checkoutId = await checkoutIdentity(cart.id, intent)
       const request = { cartId: cart.id, checkoutId, quoteKey: quote.quoteKey, ...intent, website: f.get('website') }
       try { localStorage.setItem('hs_checkout_pending_' + cart.id, JSON.stringify(request)) } catch { /* Same-page retries still use the stable identity. */ }
@@ -322,7 +361,7 @@ export function CheckoutForm({ heading, bankInfo, statusPath, cartPath, branches
             <label className="sp-radio"><input type="radio" checked={type === 'pickup'} onChange={() => setType('pickup')} /> {t.pickup}</label>
           </fieldset>
           {type === 'pickup' && branches.length > 0 && <label>{locale === 'en' ? 'Pickup branch' : 'Chi nhánh nhận hàng'}<select value={branchId} onChange={(e) => setBranchId(e.target.value)} required>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label>}
-          {type === 'delivery' && <label>{t.address}<textarea name="address" required rows={2} maxLength={300} autoComplete="street-address" onBlur={() => void runQuote()} /></label>}
+          {type === 'delivery' && <label>{t.address}<textarea name="address" required rows={2} maxLength={300} autoComplete="street-address" value={address} onChange={(event) => { setAddress(event.target.value); setQuote(null); setQuoting(true) }} /></label>}
           <label>{t.note}<textarea name="note" rows={2} maxLength={500} /></label>
           <div className="sp-voucher">
             <label>{t.voucher}<input value={voucher} onChange={(e) => setVoucher(e.target.value)} maxLength={40} autoCapitalize="characters" /></label>
@@ -379,6 +418,7 @@ export function OrderLookup({ heading }: { heading?: string }) {
     setOrder(j?.order ?? null)
     setExtras(j?.extras ?? {})
     setAvailability(j?.availability ?? [])
+    if (j?.order?.paymentStatus === 'paid') window.dispatchEvent(new CustomEvent('hs:purchase', { detail: { id: j.order.id, total: j.order.total, items: j.order.items } }))
   }
   const decide = async (decision: string) => {
     if (!order || deciding) return
@@ -392,11 +432,11 @@ export function OrderLookup({ heading }: { heading?: string }) {
     finally { setDeciding(false) }
   }
   React.useEffect(() => {
-    if (!order || !accessCode || deciding || !['processing', 'awaiting_customer', 'cancelling', 'fulfilling'].includes(order.workflowState || '')) return
+    if (!order || !accessCode || deciding || (!['processing', 'awaiting_customer', 'cancelling', 'fulfilling'].includes(order.workflowState || '') && !(order.payment === 'bank' && order.paymentStatus === 'unpaid' && order.status !== 'cancelled'))) return
     const until = Date.now() + 30 * 60000
     const timer = setInterval(() => { if (!document.hidden && Date.now() < until) void find(order.id, accessCode) }, 10000)
     return () => { clearInterval(timer); lookupRequest.current?.abort() }
-  }, [order?.id, order?.workflowState, accessCode, deciding])
+  }, [order?.id, order?.workflowState, order?.paymentStatus, order?.status, accessCode, deciding])
   // Mở từ trang đặt hàng thành công bằng mã tra cứu riêng.
   React.useEffect(() => {
     const q = new URLSearchParams(location.search)
@@ -441,6 +481,7 @@ export function OrderLookup({ heading }: { heading?: string }) {
                 <ul className="sp-checkout-lines">{order.items.map((i, n) => (<li key={n}><ProductImage src={i.image} name={i.name} /><div><strong>{i.name}</strong><span>{t.qty}: {i.quantity}</span></div><strong className="sp-receipt-price">{vnd(i.price * i.quantity)}</strong></li>))}</ul>
                 <dl className="sp-receipt-totals"><div><dt>{locale === 'en' ? 'Subtotal' : 'Tạm tính'}</dt><dd>{vnd(order.subtotal)}</dd></div>{order.adjustments.map((a, n) => (<div key={n}><dt>{a.label}</dt><dd>{a.amount < 0 ? '−' : '+'}{vnd(Math.abs(a.amount))}</dd></div>))}<div className="sp-receipt-total"><dt>{t.total}</dt><dd>{vnd(order.total)}</dd></div></dl>
                 <ShipmentSummary groups={order.shipments} items={order.items} payment={order.payment} en={locale === 'en'} tracking={extras.shipments} />
+                <ReturnPortal order={order} token={accessCode} />
               </div>
               <aside className="sp-receipt-info" aria-label={locale === 'en' ? 'Order information' : 'Thông tin đơn hàng'}>
                 <div className="sp-receipt-id"><span>{t.orderNo}</span><strong>{order.id}</strong></div>
