@@ -104,7 +104,8 @@ export function inspectPage(doc: Record<string, any>, options: CheckOptions): Pu
   const validBlocks: { type: string; props: Record<string, any> }[] = data.content.filter((block) => block?.props && Array.isArray(block.props._els ?? block.props.elements ?? [])).map((block) => ({ ...block, props: { ...block.props, _els: (block.props._els ?? block.props.elements ?? []).filter((el: any) => el?.props) } }))
   if (Array.isArray(floating)) validBlocks.push({ type: 'Floating', props: { id: '@page', _els: floating.filter((el: any) => el?.props) } })
   for (const device of layoutVariants(data.root?.props?._breakpoints)) {
-    const resolved = pageForDevice({ root: data.root, content: validBlocks }, device)
+    // Floating elements are already validated in the synthetic block above.
+    const resolved = pageForDevice({ content: validBlocks }, device)
     for (const block of resolved.content) for (const el of block.props._els ?? block.props.elements ?? []) {
       if (!el?.props || el.props._hidden || el.props._hide === ({ desktop: 'd', tablet: 't', mobile: 'm' }[baseDevice(layoutWidth(device))])) continue
       const where = { block: block.props.id, element: el.id, device }

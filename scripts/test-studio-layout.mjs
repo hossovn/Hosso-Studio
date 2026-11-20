@@ -49,6 +49,14 @@ assert.ok(issues.some((issue) => issue.code === 'link' && issue.path === '/missi
 assert.ok(issues.some((issue) => issue.code === 'seoDescription'))
 assert.ok(inspectPage({ content: { content: 'invalid' } }, options).some((issue) => issue.severity === 'error'))
 assert.ok(inspectPage({ content: { content: [null], root: { props: { _float: 'invalid' } } } }, options).some((issue) => issue.code === 'structure'))
+for (const floating of ['invalid', [null], [{}], [{ id: 'missing-props' }]]) {
+  const malformed = structuredClone(source)
+  malformed.root.props._float = floating
+  const before = structuredClone(malformed)
+  const report = inspectPage({ content: malformed }, options)
+  assert.ok(report.some((issue) => issue.code === 'structure' && issue.block === '@page' && issue.severity === 'error'), 'malformed floating elements must report a structure error without crashing')
+  assert.deepEqual(malformed, before, 'publish checks must not mutate malformed documents')
+}
 const invalidFloating = structuredClone(source)
 invalidFloating.root.props._float = [{ ...element, id: 'floating', w: -10 }]
 assert.ok(inspectPage({ content: invalidFloating }, options).some((issue) => issue.code === 'geometry' && issue.block === '@page'))

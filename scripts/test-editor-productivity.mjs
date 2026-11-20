@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import Module, { createRequire } from 'node:module'
-import { dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { Window } from 'happy-dom'
 import { constrainedElements, axisConstraint } from '../packages/blocks/src/layout-constraints.ts'
 import { pageForDevice } from '../packages/blocks/src/responsive-layout.ts'
@@ -16,7 +16,17 @@ const ts = require('typescript'), React = require('react')
 function compile(relative, stubs = {}) {
   const path = fileURLToPath(new URL(relative, import.meta.url))
   const { outputText } = ts.transpileModule(readFileSync(path, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } })
-  const mod = new Module(path); mod.filename = path; mod.paths = Module._nodeModulePaths(dirname(path)); mod.require = (id) => Object.hasOwn(stubs, id) ? stubs[id] : require(id); mod._compile(outputText, path); return mod.exports
+  const mod = new Module(path); mod.filename = path; mod.paths = Module._nodeModulePaths(dirname(path))
+  mod.require = (id) => {
+    if (Object.hasOwn(stubs, id)) return stubs[id]
+    if (id.startsWith('.')) {
+      const base = resolve(dirname(path), id)
+      const source = [base, base + '.ts', base + '.tsx'].find((candidate) => /\.tsx?$/.test(candidate) && existsSync(candidate))
+      if (source) return compile(pathToFileURL(source))
+    }
+    return require(id)
+  }
+  mod._compile(outputText, path); return mod.exports
 }
 const el = (id, x, y, w = 100, h = 40, props = {}) => ({ id, type: 'text', x, y, w, h, props: { text: id, size: 20, ...props } })
 const one = el('one', 80, 60), two = el('two', 280, 60), list = [one, two]
