@@ -1,5 +1,5 @@
 import type { Payload } from 'payload'
-import { requireManagedPlugin } from '@hosso/studio-blocks'
+import { requireManagedPlugin } from '@hosso/studio-blocks/managed-plugins'
 import { decryptSecret, isEncrypted } from './crypto'
 
 export type WimConfig = {

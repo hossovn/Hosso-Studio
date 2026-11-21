@@ -3,7 +3,7 @@ import type { components } from './api/schema'
 import { cached } from './cache'
 import type { WimConfig } from './config'
 import { fetchExternal } from '@hosso/studio-blocks/server-security'
-import { requireManagedPlugin } from '@hosso/studio-blocks'
+import { requireManagedPlugin } from '@hosso/studio-blocks/managed-plugins'
 
 export type Product = components['schemas']['Product']
 export type Availability = components['schemas']['Availability']
