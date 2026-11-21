@@ -49,6 +49,8 @@ function compile(relative, stubs) {
       const source = [base, base + '.ts', base + '.tsx'].find((candidate) => /\.tsx?$/.test(candidate) && existsSync(candidate))
       if (source) return compile(pathToFileURL(source), {})
     }
+    // Cấu hình site cần plugin cài riêng; test dựng riêng từng thành phần nên chỉ cần danh sách plugin rỗng.
+    if (id === '@hosso-config') return { __esModule: true, default: { plugins: [] } }
     return require(id)
   }
   mod._compile(outputText, path)
