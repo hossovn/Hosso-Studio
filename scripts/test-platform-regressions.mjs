@@ -1,6 +1,11 @@
 import { spawn } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
-const tests = [
+// Các kiểm thử này cần plugin thương mại (mã đóng, cài riêng từ hosso-plugins). Checkout công khai bỏ qua chúng;
+// pipeline deploy (Hosso-Deploy) chạy đủ sau khi ghép plugin vào packages/.
+const PRIVATE_PLUGIN_TESTS = new Set(['scripts/test-commerce-security.mjs', 'scripts/test-shipping-workflow.mjs', 'scripts/test-platform-commerce.ts', 'scripts/test-platform-kits.ts', 'scripts/test-platform-runtime.ts'])
+const privatePlugins = existsSync('packages/plugin-payment/src/index.ts') && existsSync('packages/plugin-wim/src/index.ts')
+const allTests = [
   ['scripts/test-motion-runtime.mjs'], ['scripts/test-detailing-effects.mjs'], ['scripts/test-editor-interactive-upgrades.mjs'],
   ['scripts/test-platform-foundation.mts'], ['scripts/test-checkout-identity.mjs'], ['scripts/test-checkout-form.mjs'],
   ['scripts/test-order-receipt.mjs', '--shop-only'], ['scripts/test-order-origin.mjs'], ['scripts/test-commerce-security.mjs'],
@@ -12,6 +17,8 @@ const tests = [
   ['scripts/test-platform-targets.mts'], ['scripts/test-cms-workspace.mjs', 'scripts/test-platform-kits.ts'],
   ['scripts/test-cms-workspace.mjs', 'scripts/test-platform-scale.ts'], ['scripts/test-platform-migration.mjs'],
 ]
+const tests = allTests.filter((args) => privatePlugins || !args.some((arg) => PRIVATE_PLUGIN_TESTS.has(arg)))
+for (const args of allTests) if (!tests.includes(args)) console.log(`SKIP ${args.join(' ')} (cần plugin thương mại từ hosso-plugins)`)
 await mkdir('output/platform-regressions', { recursive: true })
 const results = []
 for (let i = 0; i < tests.length; i += 2) await Promise.all(tests.slice(i, i + 2).map(async (args) => {

@@ -16,5 +16,13 @@ apps/studio/backups
 !seed/sites/*.hosso-site.zip
 apps/studio/hosso.installed.ts
 apps/studio/hosso.installed.browser.ts
+packages/plugin-wim
 packages/plugin-cross-sell
+packages/plugin-shipping
+packages/plugin-promotions
+packages/plugin-payment
+packages/plugin-notify
+packages/plugin-analytics
+packages/plugin-reports
+packages/plugin-accounts
 output
