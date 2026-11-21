@@ -6,8 +6,9 @@ import { join, sep } from 'node:path'
 const roots = ['apps/studio', 'packages/blocks', ...readdirSync('packages').filter((d) => d.startsWith('theme-')).map((d) => `packages/${d}`)]
 const skip = new Set(['node_modules', '.next', 'data', 'media', 'importMap.js'])
 // Hai nơi duy nhất được nhắc plugin: khai báo cấu hình site và phụ thuộc của app.
-// Kiểm thử tích hợp plugin (chạy ở pipeline deploy, nơi plugin đã được ghép vào) được phép nhắc plugin-wim.
-const allowed = new Set(['apps/studio/hosso.config.ts', 'apps/studio/package.json', 'apps/studio/scripts/test-kiln-plugins.ts'])
+// Kiểm thử tích hợp plugin (chạy ở pipeline deploy, nơi plugin đã được ghép vào) và hai file đăng ký plugin do
+// prepare-installed-plugins.mjs sinh ra (không commit) được phép nhắc plugin-wim.
+const allowed = new Set(['apps/studio/hosso.config.ts', 'apps/studio/package.json', 'apps/studio/scripts/test-kiln-plugins.ts', 'apps/studio/hosso.installed.ts', 'apps/studio/hosso.installed.browser.ts'])
 const bad = []
 
 const walk = (dir) => {
