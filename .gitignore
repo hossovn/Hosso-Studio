@@ -27,3 +27,14 @@ apps/studio/src/app/(payload)/admin/importMap.js
 docs/ACCEPTANCE.md
 docs/PLAN.md
 apps/studio/backups/
+
+# Plugin thương mại: mã nguồn đóng, cài riêng từ repo hosso-plugins (xem scripts/prepare-installed-plugins.mjs)
+packages/plugin-accounts/
+packages/plugin-analytics/
+packages/plugin-cross-sell/
+packages/plugin-notify/
+packages/plugin-payment/
+packages/plugin-promotions/
+packages/plugin-reports/
+packages/plugin-shipping/
+packages/plugin-wim/

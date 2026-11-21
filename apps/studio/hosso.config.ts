@@ -1,12 +1,4 @@
 import { defineHossoConfig } from '@hosso/studio-blocks'
-import wim from '@hosso/plugin-wim'
-import shipping from '@hosso/plugin-shipping'
-import reports from '@hosso/plugin-reports'
-import promotions from '@hosso/plugin-promotions'
-import payment from '@hosso/plugin-payment'
-import notify from '@hosso/plugin-notify'
-import analytics from '@hosso/plugin-analytics'
-import accounts from '@hosso/plugin-accounts'
 import affiliate from '@hosso/plugin-affiliate'
 import installedPlugins from '@hosso-installed-plugins'
 import shop from '@hosso/plugin-shop'
@@ -31,7 +23,8 @@ export default defineHossoConfig({
   ],
   themes: [defaultTheme, altTheme, autoTheme],
   // Gỡ plugin: xóa dòng import ở trên và tên plugin ở đây; Studio vẫn chạy, block của plugin bị bỏ qua.
-  // Plugin thương mại (Giao vận, Khuyến mãi, Thanh toán, ...) cài riêng bằng giấy phép; thứ tự: shipping TRƯỚC promotions (xem docs/PLUGIN-COMMERCE.md).
-  // Cross-sell được installer đăng ký sau khi cài package riêng; checkout public không có package này.
-  plugins: [shop, affiliate, wim, ...installedPlugins, shipping, promotions, payment, notify, analytics, reports, accounts],
+  // Plugin thương mại (WIM, Giao vận, Khuyến mãi, Thanh toán, Thông báo, Analytics, Báo cáo, Tài khoản, Cross-sell) là mã nguồn đóng,
+  // cài riêng từ repo hosso-plugins; scripts/prepare-installed-plugins.mjs đăng ký những package có mặt, theo đúng thứ tự
+  // (shipping TRƯỚC promotions, xem docs/PLUGIN-COMMERCE.md). Checkout công khai không có chúng và vẫn chạy với shop + affiliate.
+  plugins: [shop, affiliate, ...installedPlugins],
 })

@@ -4,7 +4,8 @@ import { fileURLToPath } from 'node:url'
 // Private packages are installed separately and must not be required by a public checkout.
 const root = new URL('../', import.meta.url)
 const target = new URL('apps/studio/hosso.installed.ts', root)
-const installed = ['cross-sell'].filter((id) => existsSync(new URL(`packages/plugin-${id}/src/index.ts`, root)))
+// Thứ tự là thứ tự đăng ký plugin: shipping trước promotions (xem docs/PLUGIN-COMMERCE).
+const installed = ['wim', 'cross-sell', 'shipping', 'promotions', 'payment', 'notify', 'analytics', 'reports', 'accounts'].filter((id) => existsSync(new URL(`packages/plugin-${id}/src/index.ts`, root)))
 for (const id of installed) if (!existsSync(new URL(`packages/plugin-${id}/src/browser.ts`, root))) {
   throw new Error(`Installed plugin ${id} needs a browser-safe src/browser.ts entry. Upgrade the separately installed package before building Studio.`)
 }
